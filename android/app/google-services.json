@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1098267931109",
+    "project_id": "khoirun-app",
+    "storage_bucket": "khoirun-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1098267931109:android:d09bc86fa84f4c3af87f0c",
+        "android_client_info": {
+          "package_name": "com.example.tahfiz_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCFRS6boRx92_hgfqrB8qBBZDXFlZeRVlQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
