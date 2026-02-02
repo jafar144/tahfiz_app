@@ -14,6 +14,16 @@ import 'package:khoirunnasyien/features/auth/data/repository/user_repository_imp
 import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
 import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:khoirunnasyien/features/home/data/datasource/admin_home_remote_datasource.dart';
+import 'package:khoirunnasyien/features/home/data/datasource/admin_home_remote_datasource_impl.dart';
+import 'package:khoirunnasyien/features/home/data/repository/admin_home_repository_impl.dart';
+import 'package:khoirunnasyien/features/home/domain/repositories/admin_home_repository.dart';
+import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
+import 'package:khoirunnasyien/features/management_santri/data/datasource/santri_remote_datasource.dart';
+import 'package:khoirunnasyien/features/management_santri/data/datasource/santri_remote_datasource_impl.dart';
+import 'package:khoirunnasyien/features/management_santri/data/repository/santri_repository_impl.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -37,6 +47,14 @@ Future<void> initDI() async {
     () => UserRemoteDatasourceImpl(getIt()),
   );
 
+  getIt.registerLazySingleton<AdminHomeRemoteDatasource>(
+    () => AdminHomeRemoteDatasourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<SantriRemoteDataSource>(
+    () => SantriRemoteDataSourceImpl(getIt()),
+  );
+
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt()),
@@ -46,8 +64,24 @@ Future<void> initDI() async {
     () => UserRepositoryImpl(getIt()),
   );
 
+  getIt.registerLazySingleton<AdminHomeRepository>(
+    () => AdminHomeRepositoryImpl(getIt(), getIt()),
+  );
+
+  getIt.registerLazySingleton<SantriRepository>(
+    () => SantriRepositoryImpl(getIt(), getIt()),
+  );  
+
   // Cubit
   getIt.registerFactory(
     () => AuthCubit(getIt(), getIt()),
+  );
+
+  getIt.registerFactory(
+    () => AdminHomeCubit(getIt(), getIt()),
+  );
+
+  getIt.registerFactory(
+    () => SantriCubit(getIt()),
   );
 }

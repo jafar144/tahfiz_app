@@ -1,56 +1,78 @@
 import 'package:flutter/material.dart';
-import 'package:khoirunnasyien/features/home/presentation/widgets/admin_bottom_nav.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
+import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 
-class AdminHomePage extends StatelessWidget {
+class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
 
   @override
+  State<AdminHomePage> createState() => _AdminHomePageState();
+}
+
+class _AdminHomePageState extends State<AdminHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    context.read<AdminHomeCubit>().loadHome();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Admin Dashboard'),
-        elevation: 0,
-      ),
-      bottomNavigationBar: const AdminBottomNav(),
-      body: SingleChildScrollView(
+    return SafeArea(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// Greeting
-            const Text(
-              'Welcome back 👋',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+            BlocBuilder<AdminHomeCubit, AdminHomeState>(
+              builder: (context, state) {
+                if (state is AdminHomeLoading) {
+                  return const CircularProgressIndicator();
+                }
+      
+                if (state is AdminHomeLoaded) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome back, ${state.data.adminName}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      InfoCard(
+                        title: 'Total Santri',
+                        value: state.data.totalSantri.toString(),
+                        subtitle: 'Active students',
+                        icon: Icons.groups_rounded,
+                      ),
+                    ],
+                  );
+                }
+      
+                if (state is AdminHomeError) {
+                  return Text(state.message);
+                }
+      
+                return const SizedBox();
+              },
             ),
-
-            const SizedBox(height: 16),
-
-            /// INFO (Total Santri)
-            const InfoCard(
-              title: 'Total Santri',
-              value: '150',
-              subtitle: 'Active students',
-              icon: Icons.groups_rounded,
-            ),
-
+      
             const SizedBox(height: 24),
-
+      
             /// Management
             const Text(
               'Management',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-
+      
             const SizedBox(height: 12),
-
+      
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

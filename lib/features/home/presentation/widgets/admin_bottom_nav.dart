@@ -1,27 +1,21 @@
 import 'package:flutter/material.dart';
 
-class AdminBottomNav extends StatefulWidget {
-  const AdminBottomNav({super.key});
+class AdminBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
 
-  @override
-  State<AdminBottomNav> createState() => _AdminBottomNavState();
-}
-
-class _AdminBottomNavState extends State<AdminBottomNav> {
-  int currentIndex = 0;
+  const AdminBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
       currentIndex: currentIndex,
+      onTap: onTap,
       type: BottomNavigationBarType.fixed,
-      onTap: (index) {
-        setState(() {
-          currentIndex = index;
-        });
-
-        // TODO: integrate with router
-      },
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_rounded),

@@ -3,9 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
-import 'package:khoirunnasyien/features/home/presentation/pages/admin_home_page.dart';
+import 'package:khoirunnasyien/features/home/presentation/pages/admin_shell_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/santri_home_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/asatidz_home_page.dart';
+
+import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
+
+import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -30,7 +35,13 @@ class _HomePageState extends State<HomePage> {
 
         switch (role) {
           case UserRole.admin:
-            return const AdminHomePage();
+            return MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => getIt<AdminHomeCubit>()),
+                BlocProvider(create: (_) => getIt<SantriCubit>()),
+              ],
+              child: const AdminShellPage(),
+            );
 
           case UserRole.santri:
             return const SantriHomePage();
