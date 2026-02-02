@@ -1,8 +1,9 @@
 import 'package:go_router/go_router.dart';
-import 'package:tahfiz_app/core/router/route_names.dart';
-import 'package:tahfiz_app/core/router/route_paths.dart';
-import 'package:tahfiz_app/features/auth/presentation/pages/login_page.dart';
-import 'package:tahfiz_app/features/auth/presentation/pages/splash_page.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/router/route_paths.dart';
+import 'package:khoirunnasyien/features/auth/presentation/pages/login_page.dart';
+import 'package:khoirunnasyien/features/auth/presentation/pages/splash_page.dart';
+import 'package:khoirunnasyien/features/home/presentation/pages/home_page.dart';
 
 class AppRouter {
 
@@ -18,6 +19,11 @@ class AppRouter {
         path: RoutePaths.login,
         name: RouteNames.login,
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.home,
+        name: RouteNames.home,
+        builder: (context, state) => const HomePage(),
       ),
     ],
   );

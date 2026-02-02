@@ -4,8 +4,8 @@ class AppColors {
   AppColors._();
 
   // Brand
-  static const primary = Color(0xFF2E7D32);
-  static const secondary = Color(0xFF81C784);
+  static const primary = Color(0xFF007CC3);
+  static const secondary = Color(0xFF268CBE);
 
   // Neutral
   static const background = Color(0xFFF9F9F9);

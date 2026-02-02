@@ -37,6 +37,13 @@ class AppTheme {
       dividerTheme: const DividerThemeData(
         color: AppColors.divider,
       ),
+
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 }
