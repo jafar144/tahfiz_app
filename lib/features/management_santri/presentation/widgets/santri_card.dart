@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/gender_dot.dart';
 
@@ -12,6 +14,12 @@ class SantriCard extends StatelessWidget {
     return Card(
       elevation: 1,
       child: ListTile(
+        onTap: () {
+          context.pushNamed(
+            RouteNames.detailSantri,
+            pathParameters: {'id': santri.id},
+          );
+        },
         leading: GenderDot(santri.jenisKelamin),
         title: Text(
           santri.name,

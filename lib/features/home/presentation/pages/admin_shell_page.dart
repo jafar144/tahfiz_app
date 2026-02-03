@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/admin_home_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/admin_bottom_nav.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/admin_santri_page.dart';
@@ -32,6 +34,9 @@ class _AdminShellPageState extends State<AdminShellPage> {
       bottomNavigationBar: AdminBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
+          if (index == 0) {
+            context.read<AdminHomeCubit>().loadHome();
+          }
           setState(() {
             _currentIndex = index;
           });

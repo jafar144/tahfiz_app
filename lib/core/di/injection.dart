@@ -24,6 +24,8 @@ import 'package:khoirunnasyien/features/management_santri/data/datasource/santri
 import 'package:khoirunnasyien/features/management_santri/data/repository/santri_repository_impl.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
+
 
 final getIt = GetIt.instance;
 
@@ -52,7 +54,7 @@ Future<void> initDI() async {
   );
 
   getIt.registerLazySingleton<SantriRemoteDataSource>(
-    () => SantriRemoteDataSourceImpl(getIt()),
+    () => SantriRemoteDataSourceImpl(getIt(), getIt()),
   );
 
   // Repository
@@ -83,5 +85,9 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => SantriCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => SantriDetailCubit(getIt()),
   );
 }

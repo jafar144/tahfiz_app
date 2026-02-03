@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
@@ -12,19 +14,140 @@ class AdminSantriPage extends StatefulWidget {
 }
 
 class _AdminSantriPageState extends State<AdminSantriPage> {
+  final TextEditingController _searchController = TextEditingController();
+  bool? _filterIsActive; // null = All, true = Active, false = Inactive
+  String _searchKeyword = '';
+
   @override
   void initState() {
     super.initState();
-    context.read<SantriCubit>().loadSantri();
+    _fetchData();
+  }
+
+  void _fetchData() {
+    context.read<SantriCubit>().loadSantri(
+          keyword: _searchKeyword,
+          isActive: _filterIsActive,
+        );
+  }
+
+  void _onSearch() {
+    setState(() {
+      _searchKeyword = _searchController.text;
+    });
+    _fetchData();
+  }
+
+  void _onFilterChanged(bool? isActive) {
+    setState(() {
+      _filterIsActive = isActive;
+    });
+    _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Student Data')),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text(
+          'Data Santri',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: Colors.black87),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await context.pushNamed(RouteNames.addSantri);
+          if (mounted) {
+            _fetchData();
+          }
+        },
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: Column(
         children: [
-          // Search & Filter nanti
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: Column(
+              children: [
+                // Search Bar
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onSubmitted: (_) => _onSearch(),
+                        decoration: InputDecoration(
+                          hintText: 'Search students...',
+                          prefixIcon:
+                              const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Colors.blue, width: 1),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        onPressed: _onSearch,
+                        icon: const Icon(Icons.search, color: Colors.white),
+                        tooltip: 'Search',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All Students', null),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Active', true),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Inactive', false),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // List
           Expanded(
             child: BlocBuilder<SantriCubit, SantriState>(
               builder: (context, state) {
@@ -35,10 +158,26 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                 }
 
                 if (state is SantriLoaded) {
+                  if (state.santri.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_off,
+                              size: 48, color: Colors.grey[400]),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No students found',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: state.santri.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       return SantriCard(state.santri[index]);
                     },
@@ -54,6 +193,27 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool? value) {
+    final isSelected = _filterIsActive == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => _onFilterChanged(value),
+      selectedColor: Colors.blue,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black87,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+      ),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? Colors.transparent : Colors.grey.shade300,
+        ),
       ),
     );
   }
