@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
-import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
-import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
-import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/widgets/asatidz_card.dart';
 
-class AdminSantriPage extends StatefulWidget {
-  const AdminSantriPage({super.key});
+class AdminAsatidzPage extends StatefulWidget {
+  const AdminAsatidzPage({super.key});
 
   @override
-  State<AdminSantriPage> createState() => _AdminSantriPageState();
+  State<AdminAsatidzPage> createState() => _AdminAsatidzPageState();
 }
 
-class _AdminSantriPageState extends State<AdminSantriPage> {
+class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
   final TextEditingController _searchController = TextEditingController();
-  bool? _filterIsActive; // null = All, true = Active, false = Inactive
+  bool? _filterIsActive;
   String _searchKeyword = '';
 
   @override
@@ -25,7 +25,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   }
 
   void _fetchData() {
-    context.read<SantriCubit>().loadSantri(
+    context.read<AsatidzCubit>().loadAsatidz(
           keyword: _searchKeyword,
           isActive: _filterIsActive,
         );
@@ -57,7 +57,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
-          'Data Santri',
+          'Data Asatidz',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
         ),
         backgroundColor: Colors.white,
@@ -66,9 +66,9 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
         iconTheme: const IconThemeData(color: Colors.black87),
       ),
       floatingActionButton: FloatingActionButton(
-        heroTag: 'add_santri_fab',
+        heroTag: 'add_asatidz_fab',
         onPressed: () async {
-          await context.pushNamed(RouteNames.addSantri);
+          await context.pushNamed(RouteNames.addAsatidz);
           if (mounted) {
             _fetchData();
           }
@@ -91,7 +91,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                         controller: _searchController,
                         onSubmitted: (_) => _onSearch(),
                         decoration: InputDecoration(
-                          hintText: 'Search students...',
+                          hintText: 'Cari asatidz...',
                           prefixIcon:
                               const Icon(Icons.search, color: Colors.grey),
                           filled: true,
@@ -125,7 +125,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                       child: IconButton(
                         onPressed: _onSearch,
                         icon: const Icon(Icons.search, color: Colors.white),
-                        tooltip: 'Search',
+                        tooltip: 'Cari',
                       ),
                     ),
                   ],
@@ -136,11 +136,11 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      _buildFilterChip('All Students', null),
+                      _buildFilterChip('Semua', null),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Active', true),
+                      _buildFilterChip('Aktif', true),
                       const SizedBox(width: 8),
-                      _buildFilterChip('Inactive', false),
+                      _buildFilterChip('Tidak Aktif', false),
                     ],
                   ),
                 ),
@@ -150,16 +150,16 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
           const SizedBox(height: 8),
           // List
           Expanded(
-            child: BlocBuilder<SantriCubit, SantriState>(
+            child: BlocBuilder<AsatidzCubit, AsatidzState>(
               builder: (context, state) {
-                if (state is SantriLoading) {
+                if (state is AsatidzLoading) {
                   return const Center(
                     child: CircularProgressIndicator(),
                   );
                 }
 
-                if (state is SantriLoaded) {
-                  if (state.santri.isEmpty) {
+                if (state is AsatidzLoaded) {
+                  if (state.asatidz.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -168,7 +168,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                               size: 48, color: Colors.grey[400]),
                           const SizedBox(height: 16),
                           Text(
-                            'No students found',
+                            'Tidak ada data asatidz',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         ],
@@ -177,18 +177,18 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                   }
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
-                    itemCount: state.santri.length,
+                    itemCount: state.asatidz.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      return SantriCard(
-                        state.santri[index],
+                      return AsatidzCard(
+                        state.asatidz[index],
                         onReturn: _fetchData,
                       );
                     },
                   );
                 }
 
-                if (state is SantriError) {
+                if (state is AsatidzError) {
                   return Center(child: Text(state.message));
                 }
 

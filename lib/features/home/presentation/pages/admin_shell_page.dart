@@ -4,7 +4,7 @@ import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit
 import 'package:khoirunnasyien/features/home/presentation/pages/admin_home_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/admin_bottom_nav.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/admin_santri_page.dart';
-import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/admin_asatidz_pages.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/admin_asatidz_page.dart';
 import 'package:khoirunnasyien/features/profile/presentation/pages/admin_profile_page.dart';
 
 class AdminShellPage extends StatefulWidget {

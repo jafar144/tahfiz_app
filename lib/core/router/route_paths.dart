@@ -5,4 +5,9 @@ abstract class RoutePaths {
   static const addSantri = '/add_santri';
   static const detailSantri = '/detail_santri/:id';
   static const editSantri = '/edit_santri';
+
+  static const adminAsatidz = '/admin-asatidz';
+  static const addAsatidz = '/add_asatidz';
+  static const detailAsatidz = '/detail_asatidz/:id';
+  static const editAsatidz = '/edit_asatidz';
 }

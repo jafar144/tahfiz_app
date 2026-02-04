@@ -25,6 +25,12 @@ import 'package:khoirunnasyien/features/management_santri/data/repository/santri
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart';
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource_impl.dart';
+import 'package:khoirunnasyien/features/management_asatidz/data/repository/asatidz_repository_impl.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -57,6 +63,10 @@ Future<void> initDI() async {
     () => SantriRemoteDataSourceImpl(getIt(), getIt()),
   );
 
+  getIt.registerLazySingleton<AsatidzRemoteDataSource>(
+    () => AsatidzRemoteDataSourceImpl(getIt(), getIt()),
+  );
+
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt()),
@@ -72,6 +82,10 @@ Future<void> initDI() async {
 
   getIt.registerLazySingleton<SantriRepository>(
     () => SantriRepositoryImpl(getIt(), getIt()),
+  );
+
+  getIt.registerLazySingleton<AsatidzRepository>(
+    () => AsatidzRepositoryImpl(getIt()),
   );  
 
   // Cubit
@@ -89,5 +103,13 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => SantriDetailCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => AsatidzCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => AsatidzDetailCubit(getIt()),
   );
 }
