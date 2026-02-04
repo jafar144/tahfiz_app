@@ -5,7 +5,9 @@ class SantriEntity {
   final String kelas;
   final String jenisKelamin;
   final bool isActive;
+  final bool isFree;
   final String? pembimbing;
+  final String? nomorWali;
 
   SantriEntity({
     required this.id,
@@ -14,6 +16,8 @@ class SantriEntity {
     required this.kelas,
     required this.jenisKelamin,
     required this.isActive,
+    required this.isFree,
     this.pembimbing,
+    this.nomorWali,
   });
 }

@@ -31,6 +31,14 @@ import 'package:khoirunnasyien/features/management_asatidz/data/repository/asati
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
+
+
+import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource.dart';
+import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource_impl.dart';
+import 'package:khoirunnasyien/features/payment/data/repositories/payment_repository_impl.dart';
+import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/input_payment_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -111,5 +119,22 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => AsatidzDetailCubit(getIt()),
+  );
+
+  // Payment
+  getIt.registerLazySingleton<PaymentRemoteDataSource>(
+    () => PaymentRemoteDataSourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<PaymentRepository>(
+    () => PaymentRepositoryImpl(getIt(), getIt()),
+  );
+
+  getIt.registerFactory(
+    () => PaymentCubit(getIt(), getIt()),
+  );
+
+  getIt.registerFactory(
+    () => InputPaymentCubit(getIt()),
   );
 }

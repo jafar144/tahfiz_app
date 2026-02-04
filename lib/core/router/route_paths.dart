@@ -10,4 +10,7 @@ abstract class RoutePaths {
   static const addAsatidz = '/add_asatidz';
   static const detailAsatidz = '/detail_asatidz/:id';
   static const editAsatidz = '/edit_asatidz';
+
+  static const adminPayment = '/admin-payment';
+  static const inputPayment = '/input_payment';
 }

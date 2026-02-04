@@ -49,6 +49,8 @@ class SantriRepositoryImpl implements SantriRepository {
         kelas: s.kelas,
         jenisKelamin: s.jenisKelamin,
         isActive: s.isActive,
+        isFree: s.isFree,
+        nomorWali: s.nomorWali,
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();

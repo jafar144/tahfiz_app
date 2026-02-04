@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
@@ -80,11 +82,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               childAspectRatio: 1.1,
-              children: const [
+              children: [
                 MenuCard(
                   icon: Icons.payments_rounded,
                   title: 'Payment Input',
                   subtitle: 'SPP & Infaq',
+                  onTap: () => context.pushNamed(RouteNames.adminPayment),
                 ),
                 MenuCard(
                   icon: Icons.calendar_month_rounded,

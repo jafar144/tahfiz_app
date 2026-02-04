@@ -48,6 +48,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         kelas: data['kelas'],
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
+        isFree: data['is_free'] ?? false,
+        nomorWali: data['nomor_wali'],
         pembimbing: null,
       );
     }).toList();

@@ -19,6 +19,8 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/ad
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/detail_asatidz_page.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/edit_asatidz_page.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
+import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_page.dart';
+import 'package:khoirunnasyien/features/payment/presentation/pages/input_payment_page.dart';
 
 class AppRouter {
 
@@ -91,6 +93,16 @@ class AppRouter {
             child: EditAsatidzPage(asatidz: extras['asatidz'] as AsatidzDetail),
           );
         },
+      ),
+      GoRoute(
+        path: RoutePaths.adminPayment,
+        name: RouteNames.adminPayment,
+        builder: (context, state) => const AdminPaymentPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.inputPayment,
+        name: RouteNames.inputPayment,
+        builder: (context, state) => const InputPaymentPage(),
       ),
     ],
   );
