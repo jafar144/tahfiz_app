@@ -120,34 +120,46 @@ class _AddSantriPageState extends State<AddSantriPage> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               const Text(
-                'Pilih Kelas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                   const Padding(
+                     padding: EdgeInsets.only(bottom: 16),
+                     child: Text(
+                      'Pilih Kelas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                     ),
+                   ),
+                  ...AppConstants.santriClasses.map((cls) => ListTile(
+                        title: Text(cls, textAlign: TextAlign.center),
+                        onTap: () {
+                          setState(() {
+                            _selectedClass = cls;
+                          });
+                          Navigator.pop(context);
+                        },
+                        trailing: _selectedClass == cls
+                            ? const Icon(Icons.check, color: Colors.blue)
+                            : null,
+                      )),
+                ],
               ),
-              const SizedBox(height: 16),
-              ...AppConstants.santriClasses.map((cls) => ListTile(
-                    title: Text(cls, textAlign: TextAlign.center),
-                    onTap: () {
-                      setState(() {
-                        _selectedClass = cls;
-                      });
-                      Navigator.pop(context);
-                    },
-                    trailing: _selectedClass == cls
-                        ? const Icon(Icons.check, color: Colors.blue)
-                        : null,
-                  )),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -161,34 +173,46 @@ class _AddSantriPageState extends State<AddSantriPage> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Pilih Tipe Kelas',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        return DraggableScrollableSheet(
+           initialChildSize: 0.4,
+           minChildSize: 0.3,
+           maxChildSize: 0.8,
+           expand: false,
+           builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'Pilih Tipe Kelas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ...AppConstants.classTypes.map((type) => ListTile(
+                        title: Text(type, textAlign: TextAlign.center),
+                        onTap: () {
+                          setState(() {
+                            _classType = type;
+                          });
+                          Navigator.pop(context);
+                        },
+                        trailing: _classType == type
+                            ? const Icon(Icons.check, color: Colors.blue)
+                            : null,
+                      )),
+                ],
               ),
-              const SizedBox(height: 16),
-              ...AppConstants.classTypes.map((type) => ListTile(
-                    title: Text(type, textAlign: TextAlign.center),
-                    onTap: () {
-                      setState(() {
-                        _classType = type;
-                      });
-                      Navigator.pop(context);
-                    },
-                    trailing: _classType == type
-                        ? const Icon(Icons.check, color: Colors.blue)
-                        : null,
-                  )),
-            ],
-          ),
+            );
+          }
         );
       },
     );
@@ -336,18 +360,20 @@ class _AddSantriPageState extends State<AddSantriPage> {
                   _buildSectionTitle('Informasi Wali'),
                   const SizedBox(height: 20),
                   AiwaTextField(
-                    label: 'Nama Wali',
+                    label: 'Nama Wali (Opsional)',
                     hint: 'Masukkan nama wali',
                     controller: _waliNameController,
                     icon: Icons.family_restroom,
+                    isOptional: true,
                   ),
                   const SizedBox(height: 16),
                   AiwaTextField(
-                    label: 'No. Telepon Wali',
+                    label: 'No. Telepon Wali (Opsional)',
                     hint: '0812...',
                     controller: _waliPhoneController,
                     icon: Icons.phone_in_talk_outlined,
                     keyboardType: TextInputType.phone,
+                    isOptional: true,
                   ),
                   const SizedBox(height: 32),
                   _buildSectionTitle('Informasi Kelas'),
@@ -398,7 +424,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                     children: [
                       Expanded(
                         child: AiwaSelectionCard(
-                          label: 'Reguler (Berbayar)',
+                          label: 'Reguler',
                           icon: Icons.attach_money,
                           isSelected: !_isFree,
                           onTap: () {
@@ -411,7 +437,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: AiwaSelectionCard(
-                          label: 'Beasiswa (Gratis)',
+                          label: 'Gratis',
                           icon: Icons.volunteer_activism,
                           isSelected: _isFree,
                           onTap: () {

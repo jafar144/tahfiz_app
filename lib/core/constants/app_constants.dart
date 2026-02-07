@@ -1,10 +1,16 @@
 class AppConstants {
   static const List<String> santriClasses = [
-    'Iqro 1',
-    'Iqro 2',
-    'Juz 30',
-    'Juz 29',
-    'Al-Quran'
+    'Tahsin Awwal',
+    'Tahsin Akhir',
+    'Mutawassith',
+    'Pra Takhossus Awal',
+    'Pra Takhossus Akhir',
+    'Takhossus Awal',
+    'Takhossus Tsani',
+    'Takhossus Tsalits',
+    'Takhossus Robi',
+    'Takhossus Khomis',
+    'Takhossus Akhir',
   ];
 
   static const List<String> classTypes = [

@@ -103,30 +103,42 @@ class _EditSantriPageState extends State<EditSantriPage> {
     UiUtils.unfocus(context);
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                title,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: ListView(
+                controller: scrollController,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style:
+                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  ...items.map((item) => ListTile(
+                        title: Text(item, textAlign: TextAlign.center),
+                        onTap: () {
+                          onSelected(item);
+                          Navigator.pop(context);
+                        },
+                      )),
+                ],
               ),
-              const SizedBox(height: 16),
-              ...items.map((item) => ListTile(
-                    title: Text(item, textAlign: TextAlign.center),
-                    onTap: () {
-                      onSelected(item);
-                      Navigator.pop(context);
-                    },
-                  )),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -305,18 +317,20 @@ class _EditSantriPageState extends State<EditSantriPage> {
               _buildSectionTitle('Informasi Wali'),
               const SizedBox(height: 20),
               AiwaTextField(
-                label: 'Nama Wali',
+                label: 'Nama Wali (Opsional)',
                 hint: 'Masukkan nama wali',
                 controller: _waliNameController,
                 icon: Icons.family_restroom,
+                isOptional: true,
               ),
               const SizedBox(height: 16),
               AiwaTextField(
-                label: 'No. Telepon Wali',
+                label: 'No. Telepon Wali (Opsional)',
                 hint: '0812...',
                 controller: _waliPhoneController,
                 icon: Icons.phone,
                 keyboardType: TextInputType.phone,
+                isOptional: true,
               ),
               const SizedBox(height: 32),
               _buildSectionTitle('Informasi Akademik'),
@@ -365,7 +379,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
                 children: [
                   Expanded(
                     child: AiwaSelectionCard(
-                      label: 'Reguler (Berbayar)',
+                      label: 'Reguler',
                       icon: Icons.attach_money,
                       isSelected: !_isFree,
                       onTap: () {
@@ -378,7 +392,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: AiwaSelectionCard(
-                      label: 'Beasiswa (Gratis)',
+                      label: 'Gratis',
                       icon: Icons.volunteer_activism,
                       isSelected: _isFree,
                       onTap: () {
