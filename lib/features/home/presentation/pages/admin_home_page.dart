@@ -86,13 +86,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.payments_rounded,
                   title: 'Payment Input',
-                  subtitle: 'SPP & Infaq',
+                  subtitle: 'SPP',
                   onTap: () => context.pushNamed(RouteNames.adminPayment),
                 ),
                 MenuCard(
                   icon: Icons.calendar_month_rounded,
                   title: 'Schedule',
                   subtitle: 'Manage Classes',
+                  onTap: () => context.pushNamed(RouteNames.adminSchedule),
                 ),
               ],
             ),

@@ -298,7 +298,7 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: state.recentTransactions.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final item = state.recentTransactions[index];
                           return _buildTransactionItem(item);

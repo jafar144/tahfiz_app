@@ -17,11 +17,8 @@ class PaymentCubit extends Cubit<PaymentState> {
       final month = date.month.toString();
       final year = date.year.toString();
       
-      print('DEBUG: Fetching payments for $month/$year');
-
       // 1. Fetch Payments for Month/Year
       final payments = await paymentRepository.getPayments(month, year);
-      print('DEBUG: Found ${payments.length} payments');
       
       // 2. Fetch All Active Santri
       final allSantri = await santriRepository.getSantriList(isActive: true);
@@ -35,7 +32,6 @@ class PaymentCubit extends Cubit<PaymentState> {
 
       for (var santri in allSantri) {
         if (santri.isFree || paidSantriIds.contains(santri.id)) {
-          if (santri.isFree) print('DEBUG: Santri ${santri.name} is FREE');
           paidStudents.add(santri);
         } else {
           unpaidStudents.add(santri);

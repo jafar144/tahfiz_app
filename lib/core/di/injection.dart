@@ -39,6 +39,13 @@ import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_
 import 'package:khoirunnasyien/features/payment/data/repositories/payment_repository_impl.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/input_payment_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/data/datasource/schedule_remote_datasource.dart';
+import 'package:khoirunnasyien/features/management_schedule/data/repositories/schedule_repository_impl.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 
 
 final getIt = GetIt.instance;
@@ -75,6 +82,10 @@ Future<void> initDI() async {
     () => AsatidzRemoteDataSourceImpl(getIt(), getIt()),
   );
 
+  getIt.registerLazySingleton<ScheduleRemoteDataSource>(
+    () => ScheduleRemoteDataSourceImpl(getIt()),
+  );
+
   // Repository
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt()),
@@ -94,6 +105,10 @@ Future<void> initDI() async {
 
   getIt.registerLazySingleton<AsatidzRepository>(
     () => AsatidzRepositoryImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<ScheduleRepository>(
+    () => ScheduleRepositoryImpl(getIt()),
   );  
 
   // Cubit
@@ -136,5 +151,26 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => InputPaymentCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => ScheduleCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => AddHalaqahCubit(
+      scheduleRepository: getIt(),
+      asatidzRepository: getIt(),
+      santriRepository: getIt(),
+    ),
+  );
+
+  getIt.registerFactoryParam<HalaqahDetailCubit, Halaqah, void>(
+    (halaqah, _) => HalaqahDetailCubit(
+      scheduleRepository: getIt(),
+      asatidzRepository: getIt(),
+      santriRepository: getIt(),
+      halaqah: halaqah,
+    ),
   );
 }

@@ -13,4 +13,9 @@ abstract class RoutePaths {
 
   static const adminPayment = '/admin-payment';
   static const inputPayment = '/input_payment';
+
+  static const adminSchedule = '/admin_schedule';
+  static const addHalaqah = '/add_halaqah';
+  static const detailHalaqah = '/detail_halaqah';
+  static const editHalaqah = '/edit_halaqah';
 }

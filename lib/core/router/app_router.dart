@@ -21,6 +21,14 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/ed
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/input_payment_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/pages/schedule_view_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/pages/add_halaqah_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/pages/halaqah_detail_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/pages/edit_halaqah_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 
 class AppRouter {
 
@@ -103,6 +111,44 @@ class AppRouter {
         path: RoutePaths.inputPayment,
         name: RouteNames.inputPayment,
         builder: (context, state) => const InputPaymentPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSchedule,
+        name: RouteNames.adminSchedule,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<ScheduleCubit>()..loadSchedule('L'),
+          child: const ScheduleViewPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.addHalaqah,
+        name: RouteNames.addHalaqah,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<AddHalaqahCubit>(),
+          child: const AddHalaqahPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.detailHalaqah,
+        name: RouteNames.detailHalaqah,
+        builder: (context, state) {
+           final halaqah = state.extra as Halaqah;
+           return BlocProvider(
+             create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah),
+             child: const HalaqahDetailPage(),
+           );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.editHalaqah,
+        name: RouteNames.editHalaqah,
+        builder: (context, state) {
+          final cubit = state.extra as HalaqahDetailCubit;
+          return BlocProvider.value(
+            value: cubit,
+            child: const EditHalaqahPage(),
+          );
+        },
       ),
     ],
   );
