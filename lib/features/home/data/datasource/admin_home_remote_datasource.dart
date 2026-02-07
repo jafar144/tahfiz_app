@@ -1,3 +1,4 @@
 abstract class AdminHomeRemoteDatasource {
-  Future<int> getTotalSantri();
+  Future<int> getTotalSantriPutra();
+  Future<int> getTotalSantriPutri();
 }

@@ -18,11 +18,15 @@ class AdminHomeRepositoryImpl implements AdminHomeRepository {
     required String adminUid,
   }) async {
     final admin = await userRepository.getUserByUid(adminUid);
-    final totalSantri = await dashboardDatasource.getTotalSantri();
+    final futures = await Future.wait([
+      dashboardDatasource.getTotalSantriPutra(),
+      dashboardDatasource.getTotalSantriPutri(),
+    ]);
 
     return AdminHomeData(
       adminName: admin.name,
-      totalSantri: totalSantri,
+      totalSantriPutra: futures[0],
+      totalSantriPutri: futures[1],
     );
   }
 }

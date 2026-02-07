@@ -7,6 +7,9 @@ import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 
+import 'package:khoirunnasyien/features/home/domain/entities/admin_home_data.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
 
@@ -31,37 +34,62 @@ class _AdminHomePageState extends State<AdminHomePage> {
           children: [
             BlocBuilder<AdminHomeCubit, AdminHomeState>(
               builder: (context, state) {
-                if (state is AdminHomeLoading) {
-                  return const CircularProgressIndicator();
-                }
-      
+                final isLoading = state is AdminHomeLoading;
+                final AdminHomeData displayData;
+
                 if (state is AdminHomeLoaded) {
-                  return Column(
+                  displayData = state.data;
+                } else if (state is AdminHomeError) {
+                  displayData = AdminHomeData(
+                    adminName: 'Admin',
+                    totalSantriPutra: 0,
+                    totalSantriPutri: 0,
+                  );
+                } else {
+                  displayData = AdminHomeData(
+                    adminName: 'Admin User',
+                    totalSantriPutra: 123,
+                    totalSantriPutri: 123,
+                  );
+                }
+
+                return Skeletonizer(
+                  enabled: isLoading,
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome back, ${state.data.adminName}',
+                        'Welcome back, ${displayData.adminName}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      InfoCard(
-                        title: 'Total Santri',
-                        value: state.data.totalSantri.toString(),
-                        subtitle: 'Active students',
-                        icon: Icons.groups_rounded,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InfoCard(
+                              title: 'Santri Putra',
+                              value: displayData.totalSantriPutra.toString(),
+                              icon: Icons.face,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: InfoCard(
+                              title: 'Santri Putri',
+                              value: displayData.totalSantriPutri.toString(),
+                              icon: Icons.face_3,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  );
-                }
-      
-                if (state is AdminHomeError) {
-                  return Text(state.message);
-                }
-      
-                return const SizedBox();
+                  ),
+                );
               },
             ),
       

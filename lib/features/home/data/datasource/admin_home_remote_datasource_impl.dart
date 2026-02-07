@@ -7,12 +7,26 @@ class AdminHomeRemoteDatasourceImpl implements AdminHomeRemoteDatasource {
   AdminHomeRemoteDatasourceImpl(this.firestore);
 
   @override
-  Future<int> getTotalSantri() async {
+  Future<int> getTotalSantriPutra() async {
     final snapshot = await firestore
-        .collection('users')
-        .where('role', isEqualTo: 'santri')
+        .collection('santri_profiles')
+        .where('is_active', isEqualTo: true)
+        .where('jenis_kelamin', isEqualTo: 'L')
+        .count()
         .get();
 
-    return snapshot.docs.length;
+    return snapshot.count ?? 0;
+  }
+
+  @override
+  Future<int> getTotalSantriPutri() async {
+    final snapshot = await firestore
+        .collection('santri_profiles')
+        .where('is_active', isEqualTo: true)
+        .where('jenis_kelamin', isEqualTo: 'P')
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
   }
 }

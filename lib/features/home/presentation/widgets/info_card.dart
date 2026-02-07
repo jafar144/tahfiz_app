@@ -3,31 +3,32 @@ import 'package:flutter/material.dart';
 class InfoCard extends StatelessWidget {
   final String title;
   final String value;
-  final String subtitle;
   final IconData icon;
+  final Color? color;
 
   const InfoCard({
     super.key,
     required this.title,
     required this.value,
-    required this.subtitle,
     required this.icon,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final effectiveColor = color ?? theme.primaryColor;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withValues(alpha: 0.1),
+        color: effectiveColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: theme.primaryColor,
+            backgroundColor: effectiveColor,
             child: Icon(icon, color: Colors.white),
           ),
           const SizedBox(width: 16),
@@ -43,13 +44,6 @@ class InfoCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
                 ),
               ),
             ],
