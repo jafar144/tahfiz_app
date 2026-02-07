@@ -94,8 +94,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
     required DateTime initialDate,
     required Function(DateTime) onPicked,
   }) async {
-    UiUtils.unfocus(context);
-    await Future.delayed(Duration.zero);
+    await UiUtils.dismissKeyboard(context);
     
     if (!context.mounted) return;
 
@@ -113,8 +112,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
   }
 
   void _showClassBottomSheet() async {
-    UiUtils.unfocus(context);
-    await Future.delayed(Duration.zero);
+    await UiUtils.dismissKeyboard(context);
     
     if (!mounted) return;
 
@@ -166,8 +164,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
   }
 
   void _showClassTypeBottomSheet() async {
-    UiUtils.unfocus(context);
-    await Future.delayed(Duration.zero);
+    await UiUtils.dismissKeyboard(context);
 
     if (!mounted) return;
 
@@ -249,218 +246,224 @@ class _AddSantriPageState extends State<AddSantriPage> {
           foregroundColor: Colors.black87,
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Informasi Pribadi'),
-                  const SizedBox(height: 20),
-                  AiwaTextField(
-                    label: 'Nama Lengkap',
-                    hint: 'Masukkan nama lengkap',
-                    controller: _nameController,
-                    icon: Icons.person_outline,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
+            child: GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: AiwaTextField(
-                          label: 'NIS',
-                          hint: 'Nomor Induk',
-                          controller: _nisController,
-                          icon: Icons.badge_outlined,
-                          keyboardType: TextInputType.number,
-                        ),
+                      _buildSectionTitle('Informasi Pribadi'),
+                      const SizedBox(height: 20),
+                      AiwaTextField(
+                        label: 'Nama Lengkap',
+                        hint: 'Masukkan nama lengkap',
+                        controller: _nameController,
+                        icon: Icons.person_outline,
+                        textCapitalization: TextCapitalization.words,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: AiwaTextField(
-                          label: 'No. Telepon (Opsional)',
-                          hint: '0812...',
-                          controller: _phoneController,
-                          icon: Icons.phone_outlined,
-                          keyboardType: TextInputType.phone,
-                          isOptional: true,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Jenis Kelamin',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AiwaSelectionCard(
-                          label: 'Laki-laki',
-                          icon: Icons.male,
-                          isSelected: _gender == 'L',
-                          onTap: () {
-                            UiUtils.unfocus(context);
-                            setState(() => _gender = 'L');
-                          },
-                          activeColor: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AiwaSelectionCard(
-                          label: 'Perempuan',
-                          icon: Icons.female,
-                          isSelected: _gender == 'P',
-                          onTap: () {
-                            UiUtils.unfocus(context);
-                            setState(() => _gender = 'P');
-                          },
-                          activeColor: Colors.pink,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AiwaTextField(
-                          label: 'Tempat Lahir',
-                          hint: 'Kota',
-                          controller: _birthPlaceController,
-                          icon: Icons.location_city_outlined,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: AiwaClickableInput(
-                          label: 'Tanggal Lahir',
-                          value: _birthDate == null
-                              ? 'Pilih Tanggal'
-                              : DateFormat('dd MMM yyyy').format(_birthDate!),
-                          icon: Icons.calendar_today_outlined,
-                          onTap: () => _pickDate(
-                            context: context,
-                            initialDate: _birthDate ?? DateTime(2010),
-                            onPicked: (d) => _birthDate = d,
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AiwaTextField(
+                              label: 'NIS',
+                              hint: 'Nomor Induk',
+                              controller: _nisController,
+                              icon: Icons.badge_outlined,
+                              keyboardType: TextInputType.number,
+                            ),
                           ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: AiwaTextField(
+                              label: 'No. Telepon (Opsional)',
+                              hint: '0812...',
+                              controller: _phoneController,
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                              isOptional: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Jenis Kelamin',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AiwaSelectionCard(
+                              label: 'Laki-laki',
+                              icon: Icons.male,
+                              isSelected: _gender == 'L',
+                              onTap: () {
+                                UiUtils.unfocus(context);
+                                setState(() => _gender = 'L');
+                              },
+                              activeColor: Colors.blue,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AiwaSelectionCard(
+                              label: 'Perempuan',
+                              icon: Icons.female,
+                              isSelected: _gender == 'P',
+                              onTap: () {
+                                UiUtils.unfocus(context);
+                                setState(() => _gender = 'P');
+                              },
+                              activeColor: Colors.pink,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AiwaTextField(
+                              label: 'Tempat Lahir',
+                              hint: 'Kota',
+                              controller: _birthPlaceController,
+                              icon: Icons.location_city_outlined,
+                              textCapitalization: TextCapitalization.words,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: AiwaClickableInput(
+                              label: 'Tanggal Lahir',
+                              value: _birthDate == null
+                                  ? 'Pilih Tanggal'
+                                  : DateFormat('dd MMM yyyy').format(_birthDate!),
+                              icon: Icons.calendar_today_outlined,
+                              onTap: () => _pickDate(
+                                context: context,
+                                initialDate: _birthDate ?? DateTime(2010),
+                                onPicked: (d) => _birthDate = d,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle('Informasi Wali'),
+                      const SizedBox(height: 20),
+                      AiwaTextField(
+                        label: 'Nama Wali (Opsional)',
+                        hint: 'Masukkan nama wali',
+                        controller: _waliNameController,
+                        icon: Icons.family_restroom,
+                        isOptional: true,
+                        textCapitalization: TextCapitalization.words,
+                      ),
+                      const SizedBox(height: 16),
+                      AiwaTextField(
+                        label: 'No. Telepon Wali (Opsional)',
+                        hint: '0812...',
+                        controller: _waliPhoneController,
+                        icon: Icons.phone_in_talk_outlined,
+                        keyboardType: TextInputType.phone,
+                        isOptional: true,
+                      ),
+                      const SizedBox(height: 32),
+                      _buildSectionTitle('Informasi Kelas'),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AiwaClickableInput(
+                              label: 'Kelas',
+                              value: _selectedClass ?? 'Pilih Kelas',
+                              icon: Icons.class_outlined,
+                              onTap: _showClassBottomSheet,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: AiwaClickableInput(
+                              label: 'Tipe',
+                              value: _classType ?? 'Pilih Tipe',
+                              icon: Icons.access_time,
+                              onTap: _showClassTypeBottomSheet,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      AiwaClickableInput(
+                        label: 'Tanggal Masuk',
+                        value: DateFormat('dd MMMM yyyy').format(_entryDate),
+                        icon: Icons.login,
+                        onTap: () => _pickDate(
+                          context: context,
+                          initialDate: _entryDate,
+                          onPicked: (d) => _entryDate = d,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Status Pembayaran',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AiwaSelectionCard(
+                              label: 'Reguler',
+                              icon: Icons.attach_money,
+                              isSelected: !_isFree,
+                              onTap: () {
+                                UiUtils.unfocus(context);
+                                setState(() => _isFree = false);
+                              },
+                              activeColor: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: AiwaSelectionCard(
+                              label: 'Gratis',
+                              icon: Icons.volunteer_activism,
+                              isSelected: _isFree,
+                              onTap: () {
+                                UiUtils.unfocus(context);
+                                setState(() => _isFree = true);
+                              },
+                              activeColor: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 40),
+                      AiwaButton(
+                        text: 'Tambah Santri',
+                        onPressed: _submit,
+                        isLoading: _isLoading,
+                        height: 52,
+                      ),
+                      const SizedBox(height: 32),
                     ],
                   ),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle('Informasi Wali'),
-                  const SizedBox(height: 20),
-                  AiwaTextField(
-                    label: 'Nama Wali (Opsional)',
-                    hint: 'Masukkan nama wali',
-                    controller: _waliNameController,
-                    icon: Icons.family_restroom,
-                    isOptional: true,
-                  ),
-                  const SizedBox(height: 16),
-                  AiwaTextField(
-                    label: 'No. Telepon Wali (Opsional)',
-                    hint: '0812...',
-                    controller: _waliPhoneController,
-                    icon: Icons.phone_in_talk_outlined,
-                    keyboardType: TextInputType.phone,
-                    isOptional: true,
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle('Informasi Kelas'),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AiwaClickableInput(
-                          label: 'Kelas',
-                          value: _selectedClass ?? 'Pilih Kelas',
-                          icon: Icons.class_outlined,
-                          onTap: _showClassBottomSheet,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: AiwaClickableInput(
-                          label: 'Tipe',
-                          value: _classType ?? 'Pilih Tipe',
-                          icon: Icons.access_time,
-                          onTap: _showClassTypeBottomSheet,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  AiwaClickableInput(
-                    label: 'Tanggal Masuk',
-                    value: DateFormat('dd MMMM yyyy').format(_entryDate),
-                    icon: Icons.login,
-                    onTap: () => _pickDate(
-                      context: context,
-                      initialDate: _entryDate,
-                      onPicked: (d) => _entryDate = d,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Status Pembayaran',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AiwaSelectionCard(
-                          label: 'Reguler',
-                          icon: Icons.attach_money,
-                          isSelected: !_isFree,
-                          onTap: () {
-                            UiUtils.unfocus(context);
-                            setState(() => _isFree = false);
-                          },
-                          activeColor: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AiwaSelectionCard(
-                          label: 'Gratis',
-                          icon: Icons.volunteer_activism,
-                          isSelected: _isFree,
-                          onTap: () {
-                            UiUtils.unfocus(context);
-                            setState(() => _isFree = true);
-                          },
-                          activeColor: Colors.orange,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
-                  AiwaButton(
-                    text: 'Tambah Santri',
-                    onPressed: _submit,
-                    isLoading: _isLoading,
-                    height: 52,
-                  ),
-                  const SizedBox(height: 32),
-                ],
+                ),
               ),
             ),
-          ),
         ),
       ),
     );

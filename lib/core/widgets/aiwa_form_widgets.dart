@@ -7,6 +7,7 @@ class AiwaTextField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType keyboardType;
   final bool isOptional;
+  final TextCapitalization textCapitalization;
 
   const AiwaTextField({
     super.key,
@@ -16,6 +17,7 @@ class AiwaTextField extends StatelessWidget {
     required this.controller,
     this.keyboardType = TextInputType.text,
     this.isOptional = false,
+    this.textCapitalization = TextCapitalization.sentences,
   });
 
   @override
@@ -35,6 +37,7 @@ class AiwaTextField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          textCapitalization: textCapitalization,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (value) {
             if (isOptional) return null;

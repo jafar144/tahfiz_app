@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
+import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 
 class AdminSantriPage extends StatefulWidget {
   const AdminSantriPage({super.key});
@@ -32,6 +33,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   }
 
   void _onSearch() {
+    UiUtils.unfocus(context);
     setState(() {
       _searchKeyword = _searchController.text;
     });
@@ -41,6 +43,15 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   void _onFilterChanged(bool? isActive) {
     setState(() {
       _filterIsActive = isActive;
+    });
+    _fetchData();
+  }
+
+  void _resetAndFetchData() {
+    setState(() {
+      _searchController.clear();
+      _searchKeyword = '';
+      _filterIsActive = null;
     });
     _fetchData();
   }
@@ -70,7 +81,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
         onPressed: () async {
           await context.pushNamed(RouteNames.addSantri);
           if (mounted) {
-            _fetchData();
+            _resetAndFetchData();
           }
         },
         backgroundColor: Colors.blue,
@@ -182,7 +193,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                     itemBuilder: (context, index) {
                       return SantriCard(
                         state.santri[index],
-                        onReturn: _fetchData,
+                        onReturn: _resetAndFetchData,
                       );
                     },
                   );
