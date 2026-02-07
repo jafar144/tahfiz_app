@@ -29,6 +29,9 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/pages/e
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/select_asatidz_page.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 
 class AppRouter {
 
@@ -127,6 +130,48 @@ class AppRouter {
           create: (_) => getIt<AddHalaqahCubit>(),
           child: const AddHalaqahPage(),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.selectSantri,
+        name: RouteNames.selectSantri,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>? ?? {};
+          final gender = extras['gender'] as String?;
+          final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
+          
+          return BlocProvider(
+            create: (_) => getIt<SantriCubit>()..loadSantri(
+              isActive: true,
+              gender: gender,
+            ),
+            child: SelectSantriPage(
+              genderFiltered: gender,
+              initialSelection: (extras['initialSelection'] as List?)?.cast<SantriEntity>() ?? [],
+              disabledIds: disabledIds,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.selectAsatidz,
+        name: RouteNames.selectAsatidz,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>? ?? {};
+          final gender = extras['gender'] as String?;
+          final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
+
+          return BlocProvider(
+            create: (_) => getIt<AsatidzCubit>()..loadAsatidz(
+              isActive: true,
+              gender: gender,
+            ),
+            child: SelectAsatidzPage(
+              genderFiltered: gender,
+              initialSelectedId: extras['initialSelectedId'] as String?,
+              disabledIds: disabledIds,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.detailHalaqah,

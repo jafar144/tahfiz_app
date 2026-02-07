@@ -6,6 +6,7 @@ abstract class AsatidzRepository {
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    String? gender,
     int limit = 10,
     String? lastDocumentId,
   });

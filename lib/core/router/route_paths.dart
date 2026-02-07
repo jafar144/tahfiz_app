@@ -16,6 +16,8 @@ abstract class RoutePaths {
 
   static const adminSchedule = '/admin_schedule';
   static const addHalaqah = '/add_halaqah';
+  static const selectSantri = '/select_santri';
+  static const selectAsatidz = '/select_asatidz';
   static const detailHalaqah = '/detail_halaqah';
   static const editHalaqah = '/edit_halaqah';
 }

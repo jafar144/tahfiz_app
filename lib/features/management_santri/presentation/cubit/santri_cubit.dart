@@ -9,6 +9,7 @@ class SantriCubit extends Cubit<SantriState> {
   // Keep track of current filters for pagination
   String? _currentKeyword;
   bool? _currentIsActive;
+  String? _currentGender;
   static const int _limit = 10;
 
   SantriCubit(this.repository) : super(SantriInitial());
@@ -16,15 +17,18 @@ class SantriCubit extends Cubit<SantriState> {
   void loadSantri({
     String? keyword,
     bool? isActive,
+    String? gender,
   }) async {
     _currentKeyword = keyword;
     _currentIsActive = isActive;
+    _currentGender = gender;
     
     emit(SantriLoading());
     try {
       final result = await repository.getSantriList(
         keyword: keyword,
         isActive: isActive,
+        gender: gender,
         limit: _limit,
       );
 
@@ -49,6 +53,7 @@ class SantriCubit extends Cubit<SantriState> {
     // Search logic fetches all data at once, so no "load more" needed
     if (_currentKeyword != null && _currentKeyword!.isNotEmpty) return;
 
+    // Already loading more
     emit(currentState.copyWith(isFetchingMore: true));
 
     try {
@@ -56,6 +61,7 @@ class SantriCubit extends Cubit<SantriState> {
       final newSantri = await repository.getSantriList(
         keyword: _currentKeyword,
         isActive: _currentIsActive,
+        gender: _currentGender,
         limit: _limit,
         lastDocumentId: lastId,
       );

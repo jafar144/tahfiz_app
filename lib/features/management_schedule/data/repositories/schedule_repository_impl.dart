@@ -24,6 +24,16 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
+  Future<Either<Failure, List<Halaqah>>> getHalaqahsBySchedule(String scheduleId) async {
+    try {
+      final result = await remoteDataSource.getHalaqahsBySchedule(scheduleId);
+      return Either.right(result);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<ScheduleProgram>>> getPrograms({required String gender}) async {
     try {
       final result = await remoteDataSource.getPrograms(gender);

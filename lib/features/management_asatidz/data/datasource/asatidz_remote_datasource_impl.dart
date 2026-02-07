@@ -16,6 +16,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    String? gender,
     int limit = 10,
     String? lastDocumentId,
   }) async {
@@ -23,6 +24,10 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
 
     if (isActive != null) {
       query = query.where('is_active', isEqualTo: isActive);
+    }
+    
+    if (gender != null) {
+      query = query.where('jenis_kelamin', isEqualTo: gender);
     }
 
     bool isSearching = keyword != null && keyword.isNotEmpty;

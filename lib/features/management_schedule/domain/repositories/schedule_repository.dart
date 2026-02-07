@@ -8,6 +8,7 @@ abstract class ScheduleRepository {
   Future<Either<Failure, List<ScheduleProgram>>> getPrograms({required String gender});
   Future<Either<Failure, List<ProgramSchedule>>> getSchedules({required String programId});
   Future<Either<Failure, List<Halaqah>>> getHalaqahs({required String programId});
+  Future<Either<Failure, List<Halaqah>>> getHalaqahsBySchedule(String scheduleId);
   Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah);
   Future<Either<Failure, void>> createHalaqah(Halaqah halaqah);
 }

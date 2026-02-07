@@ -16,6 +16,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
     bool? isActive,
+    String? gender,
     int limit = 10,
     String? lastDocumentId,
   }) async {
@@ -23,6 +24,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
     if (isActive != null) {
       query = query.where('is_active', isEqualTo: isActive);
+    }
+
+    if (gender != null) {
+      query = query.where('jenis_kelamin', isEqualTo: gender);
     }
 
     // Only paginate if NOT searching by keyword (client-side filter needs all data)

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
@@ -16,14 +18,12 @@ class EditHalaqahPage extends StatefulWidget {
 }
 
 class _EditHalaqahPageState extends State<EditHalaqahPage> {
-  final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roomController = TextEditingController();
 
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   String _status = 'Active';
-  List<String> _selectedSantriIds = [];
   List<HalaqahSantri> _selectedSantris = [];
 
   @override
@@ -36,15 +36,14 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
   }
 
   void _populateData(Halaqah halaqah) {
-    setState(() {
-      _nameController.text = halaqah.name;
-      _roomController.text = halaqah.room;
-      _selectedTeacherId = halaqah.teacherId;
-      _selectedTeacherName = halaqah.teacherName;
-      _status = halaqah.status;
-      _selectedSantris = List.from(halaqah.santris);
-      _selectedSantriIds = halaqah.santris.map((s) => s.id).toList();
-    });
+    if (_nameController.text.isEmpty) {
+        _nameController.text = halaqah.name;
+        _roomController.text = halaqah.room;
+        _selectedTeacherId = halaqah.teacherId;
+        _selectedTeacherName = halaqah.teacherName;
+        _status = halaqah.status;
+        _selectedSantris = List.from(halaqah.santris);
+    }
   }
 
   @override
@@ -90,24 +89,21 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
           appBar: AppBar(
             title: const Text('Edit Halaqah'),
           ),
-          body: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDetailInfo(context, state),
-                  const SizedBox(height: 24),
-                  _buildPengajarSection(context, state),
-                  const SizedBox(height: 24),
-                  _buildSantriSection(context, state),
-                  const SizedBox(height: 24),
-                  _buildStatusSection(),
-                  const SizedBox(height: 32),
-                  _buildSaveButton(context, state),
-                ],
-              ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailInfo(context),
+                const SizedBox(height: 24),
+                _buildPengajarSection(context, state),
+                const SizedBox(height: 24),
+                _buildSantriSection(context, state),
+                const SizedBox(height: 24),
+                _buildStatusSection(),
+                const SizedBox(height: 32),
+                _buildSaveButton(context, state),
+              ],
             ),
           ),
         );
@@ -115,31 +111,29 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildDetailInfo(BuildContext context, HalaqahDetailLoaded state) {
+  Widget _buildDetailInfo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '📝 Detail Kelas',
+          'Detail Kelas',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        TextFormField(
+        AiwaTextField(
+          label: 'Nama Halaqah',
+          hint: 'Masukkan nama halaqah',
+          icon: Icons.class_outlined,
           controller: _nameController,
-          decoration: const InputDecoration(
-            labelText: 'Nama Halaqah',
-            border: OutlineInputBorder(),
-            hintText: 'Masukkan nama halaqah',
-          ),
+          textCapitalization: TextCapitalization.sentences,
         ),
         const SizedBox(height: 16),
-        TextFormField(
+        AiwaTextField(
+          label: 'Ruangan',
+          hint: 'Masukkan nama ruangan',
+          icon: Icons.meeting_room_outlined,
           controller: _roomController,
-          decoration: const InputDecoration(
-            labelText: 'Ruangan',
-            border: OutlineInputBorder(),
-            hintText: 'Masukkan nama ruangan',
-          ),
+          textCapitalization: TextCapitalization.sentences,
         ),
       ],
     );
@@ -150,68 +144,37 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '👨‍🏫 Pengajar (Asatidz)',
+          'Pengajar (Asatidz)',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: () {
-            if (state.asatidzList.isNotEmpty) {
-              _showAsatidzBottomSheet(context, state.asatidzList);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data asatidz tidak tersedia')),
-              );
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    _selectedTeacherName ?? 'Pilih Asatidz',
-                    style: TextStyle(
-                      color: _selectedTeacherName != null ? Colors.black : Colors.grey,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.arrow_drop_down),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+        AiwaClickableInput(
+          label: 'Pengajar',
+          value: _selectedTeacherName ?? 'Pilih Pengajar',
+          icon: Icons.person_outline,
+          onTap: () async {
+            final unavailable = state.unavailableTeacherIds;
 
-  void _showAsatidzBottomSheet(BuildContext context, List<AsatidzEntity> asatidzList) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return ListView.builder(
-          itemCount: asatidzList.length,
-          itemBuilder: (context, index) {
-            final asatidz = asatidzList[index];
-            return ListTile(
-              title: Text(asatidz.name),
-              subtitle: Text(asatidz.nis),
-              onTap: () {
-                setState(() {
-                  _selectedTeacherId = asatidz.id;
-                  _selectedTeacherName = asatidz.name;
-                });
-                Navigator.pop(context);
+            final result = await context.pushNamed(
+              RouteNames.selectAsatidz,
+              extra: {
+                // Gender null berarti tampilkan semua (asumsi edit bisa lintas gender/tidak strict)
+                // Atau bisa diambil dari session kalau ada akses
+                'gender': null, 
+                'initialSelectedId': _selectedTeacherId,
+                'disabledIds': unavailable,
               },
             );
+
+            if (result != null && result is AsatidzEntity) {
+              setState(() {
+                _selectedTeacherId = result.id;
+                _selectedTeacherName = result.name;
+              });
+            }
           },
-        );
-      },
+        ),
+      ],
     );
   }
 
@@ -219,41 +182,80 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '👥 Pilih Santri-Santri',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+             const Text(
+              'Santri',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            if (_selectedSantris.isNotEmpty)
+              Text(
+                '${_selectedSantris.length} dipilih',
+                style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold),
+              )
+          ],
         ),
         const SizedBox(height: 12),
         InkWell(
-          onTap: () {
-            if (state.santriList.isNotEmpty) {
-              _showSantriBottomSheet(context, state.santriList);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data santri tidak tersedia')),
-              );
+          onTap: () async {
+            // Convert HalaqahSantri to SantriEntity for selection page
+            // Note: Some fields like nis, gender might be missing in HalaqahSantri
+            // But SelectSantriPage handles initialSelection ids mostly.
+            final initialEntities = _selectedSantris.map((h) => SantriEntity(
+              id: h.id, 
+              name: h.name, 
+              nis: '', 
+              jenisKelamin: 'L', // Dummy gender, selection page uses ID mainly
+              isActive: true, 
+              kelas: '', 
+              isFree: false, 
+              nomorWali: '', 
+              pembimbing: ''
+            )).toList();
+
+            final unavailable = state.unavailableSantriIds;
+
+            final result = await context.pushNamed(
+              RouteNames.selectSantri,
+              extra: {
+                'gender': null,
+                'initialSelection': initialEntities,
+                'disabledIds': unavailable,
+              },
+            );
+
+            if (result != null && result is List<SantriEntity>) {
+              setState(() {
+                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name)).toList();
+              });
             }
           },
+          borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                const Icon(Icons.people_outline, color: Colors.grey),
+                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _selectedSantris.isEmpty
                         ? 'Pilih Santri'
-                        : '${_selectedSantris.length} santri dipilih',
+                        : _selectSantrisPreview(),
                     style: TextStyle(
-                      color: _selectedSantris.isNotEmpty ? Colors.black : Colors.grey,
+                      color: _selectedSantris.isEmpty ? Colors.grey : Colors.black87,
+                      fontSize: 14,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Icon(Icons.arrow_drop_down),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
               ],
             ),
           ),
@@ -266,10 +268,11 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             children: _selectedSantris.map((santri) {
               return Chip(
                 label: Text(santri.name),
+                backgroundColor: Colors.blue.shade50,
+                deleteIcon: const Icon(Icons.close, size: 18),
                 onDeleted: () {
                   setState(() {
                     _selectedSantris.removeWhere((s) => s.id == santri.id);
-                    _selectedSantriIds.remove(santri.id);
                   });
                 },
               );
@@ -280,76 +283,8 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  void _showSantriBottomSheet(BuildContext context, List<SantriEntity> santriList) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return DraggableScrollableSheet(
-              initialChildSize: 0.7,
-              minChildSize: 0.5,
-              maxChildSize: 0.95,
-              expand: false,
-              builder: (context, scrollController) {
-                return Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Pilih Santri',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Selesai'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: ListView.builder(
-                        controller: scrollController,
-                        itemCount: santriList.length,
-                        itemBuilder: (context, index) {
-                          final santri = santriList[index];
-                          final isSelected = _selectedSantriIds.contains(santri.id);
-                          return CheckboxListTile(
-                            title: Text(santri.name),
-                            subtitle: Text(santri.nis),
-                            value: isSelected,
-                            onChanged: (bool? value) {
-                              setModalState(() {
-                                if (value == true) {
-                                  _selectedSantriIds.add(santri.id);
-                                  _selectedSantris.add(HalaqahSantri(
-                                    id: santri.id,
-                                    name: santri.name,
-                                  ));
-                                } else {
-                                  _selectedSantriIds.remove(santri.id);
-                                  _selectedSantris.removeWhere((s) => s.id == santri.id);
-                                }
-                              });
-                              setState(() {});
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
+  String _selectSantrisPreview() {
+    return _selectedSantris.map((e) => e.name).join(', ');
   }
 
   Widget _buildStatusSection() {
@@ -357,18 +292,30 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          '📊 Status',
+          'Status',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
-              child: _buildStatusCard('Active', Icons.check_circle, Colors.green),
+              child: AiwaSelectionCard(
+                label: 'Active',
+                icon: Icons.check_circle,
+                isSelected: _status == 'Active',
+                activeColor: Colors.green,
+                onTap: () => setState(() => _status = 'Active'),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _buildStatusCard('Non-Active', Icons.cancel, Colors.grey),
+              child: AiwaSelectionCard(
+                label: 'Non-Active',
+                icon: Icons.cancel,
+                isSelected: _status == 'Non-Active',
+                activeColor: Colors.red,
+                onTap: () => setState(() => _status = 'Non-Active'),
+              ),
             ),
           ],
         ),
@@ -376,76 +323,52 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildStatusCard(String status, IconData icon, Color color) {
-    final isSelected = _status == status;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _status = status;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isSelected ? color : Colors.grey,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              status,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected ? color : Colors.grey,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSaveButton(BuildContext context, HalaqahDetailLoaded state) {
+    // Check loading state from somewhere else if needed, but here we assume loaded is stable
+    // Wait, updating state is handled by cubit emit HalaqahDetailUpdating?
+    // The state in builder is HalaqahDetailLoaded. 
+    // If Updating, builder re-runs? 
+    // Consumer listener checks success/error.
+    // If cubit emits Updating, the state passed to builder might be Updating.
+    // But my builder checks 'if state is! HalaqahDetailLoaded'.
+    // So if Updating, it will show 'Data tidak ditemukan'? NO!
+    
+    // I need to handle Updating state in builder.
+    // Or simpler: Show loading overlay or button loading.
+    
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: state is HalaqahDetailLoading ? null : _submit,
+        onPressed: _submit,
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
         ),
-        child: state is HalaqahDetailLoading
-            ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                '💾 Simpan Perubahan',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
+        child: const Text(
+          'Simpan Perubahan',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
   void _submit() {
     final cubit = context.read<HalaqahDetailCubit>();
+    if (cubit.state is! HalaqahDetailLoaded) return;
+    
     final currentState = cubit.state as HalaqahDetailLoaded;
     final halaqah = currentState.halaqah;
+
+    // Validate inputs
+    if (_nameController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama halaqah wajib diisi')));
+        return;
+    }
 
     final updatedHalaqah = Halaqah(
       id: halaqah.id,

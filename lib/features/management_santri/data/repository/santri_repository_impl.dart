@@ -16,12 +16,14 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
     bool? isActive,
+    String? gender,
     int limit = 10,
     String? lastDocumentId,
   }) async {
     final santriList = await remote.getSantriList(
       keyword: keyword,
       isActive: isActive,
+      gender: gender,
       limit: limit,
       lastDocumentId: lastDocumentId,
     );

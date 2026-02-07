@@ -10,6 +10,7 @@ class AsatidzCubit extends Cubit<AsatidzState> {
   // Keep track of current filters for pagination
   String? _currentKeyword;
   bool? _currentIsActive;
+  String? _currentGender;
   static const int _limit = 10;
 
   AsatidzCubit(this.repository) : super(AsatidzInitial());
@@ -17,15 +18,18 @@ class AsatidzCubit extends Cubit<AsatidzState> {
   void loadAsatidz({
     String? keyword,
     bool? isActive,
+    String? gender,
   }) async {
     _currentKeyword = keyword;
     _currentIsActive = isActive;
+    _currentGender = gender;
     
     emit(AsatidzLoading());
     try {
       final result = await repository.getAsatidzList(
         keyword: keyword,
         isActive: isActive,
+        gender: gender,
         limit: _limit,
       );
 
@@ -54,10 +58,11 @@ class AsatidzCubit extends Cubit<AsatidzState> {
       final newAsatidz = await repository.getAsatidzList(
         keyword: _currentKeyword,
         isActive: _currentIsActive,
+        gender: _currentGender,
         limit: _limit,
         lastDocumentId: lastId,
       );
-
+      
       emit(currentState.copyWith(
         asatidz: List.of(currentState.asatidz)..addAll(newAsatidz),
         hasReachedMax: newAsatidz.length < _limit,

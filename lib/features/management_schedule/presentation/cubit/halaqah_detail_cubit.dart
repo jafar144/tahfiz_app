@@ -1,8 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
-import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
-import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
@@ -30,47 +28,61 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
     }
 
     if (currentHalaqah == null) {
-      // Should not happen if flow is correct
       emit(const HalaqahDetailError("Data halaqah tidak ditemukan"));
       return;
     }
 
     emit(HalaqahDetailLoading());
     try {
-      final asatidzResult = await asatidzRepository.getAsatidzList(isActive: true);
-      final santriResult = await santriRepository.getSantriList(isActive: true);
-      
       emit(HalaqahDetailLoaded(
         halaqah: currentHalaqah,
-        asatidzList: asatidzResult,
-        santriList: santriResult,
       ));
+      
+      _checkAvailability(currentHalaqah.scheduleId, currentHalaqah.id);
     } catch (e) {
       emit(HalaqahDetailError(e.toString()));
     }
   }
 
+  Future<void> _checkAvailability(String scheduleId, String currentHalaqahId) async {
+    if (state is! HalaqahDetailLoaded) return;
+    
+    final result = await scheduleRepository.getHalaqahsBySchedule(scheduleId);
+    result.fold(
+      ifLeft: (_) {}, 
+      ifRight: (halaqahs) {
+        final otherHalaqahs = halaqahs.where((h) => h.id != currentHalaqahId).toList();
+        
+        final busyTeachers = otherHalaqahs.map((h) => h.teacherId).toList();
+        final busySantris = otherHalaqahs.expand((h) => h.santris.map((s) => s.id)).toList();
+        
+        if (state is HalaqahDetailLoaded) {
+          emit((state as HalaqahDetailLoaded).copyWith(
+            unavailableTeacherIds: busyTeachers,
+            unavailableSantriIds: busySantris,
+          ));
+        }
+      }
+    );
+  }
+
   Future<void> updateHalaqah(Halaqah updatedHalaqah) async {
-    emit(HalaqahDetailUpdating());
-    final result = await scheduleRepository.updateHalaqah(updatedHalaqah);
     final previousState = state;
     
-    List<AsatidzEntity> asatidzList = [];
-    List<SantriEntity> santriList = [];
     if (previousState is HalaqahDetailLoaded) {
-      asatidzList = previousState.asatidzList;
-      santriList = previousState.santriList;
+      emit(previousState.copyWith(isSubmitting: true));
+    } else {
+      emit(HalaqahDetailUpdating());
     }
 
+    final result = await scheduleRepository.updateHalaqah(updatedHalaqah);
+    
     result.fold(
-      ifLeft: (failure) => emit(HalaqahDetailError(failure.message)),
+      ifLeft: (failure) {
+          emit(HalaqahDetailError(failure.message));
+      },
       ifRight: (_) {
          emit(HalaqahDetailSuccess());
-         emit(HalaqahDetailLoaded(
-           halaqah: updatedHalaqah,
-           asatidzList: asatidzList,
-           santriList: santriList,
-         ));
       },
     );
   }

@@ -14,12 +14,14 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    String? gender,
     int limit = 10,
     String? lastDocumentId,
   }) async {
     return await remote.getAsatidzList(
       keyword: keyword,
       isActive: isActive,
+      gender: gender,
       limit: limit,
       lastDocumentId: lastDocumentId,
     );
