@@ -88,7 +88,9 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   @override
   Future<void> addSantri(SantriParams params) async {
     final email = '${params.nis}@khoirunnasyien.app';
-    final password = 'password123'; // Default password
+    // Password format: YYYYMMDD
+    final birthDate = params.birthDate;
+    final password = '${birthDate.year}${birthDate.month.toString().padLeft(2, '0')}${birthDate.day.toString().padLeft(2, '0')}';
 
     FirebaseApp? tempApp;
     try {

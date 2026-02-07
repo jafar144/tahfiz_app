@@ -77,7 +77,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
   @override
   Future<void> addAsatidz(AsatidzParams params) async {
     final email = '${params.nis}@khoirunnasyien.app';
-    final password = 'password123';
+    final password = 'Khoirun123';
 
     FirebaseApp? tempApp;
     try {
