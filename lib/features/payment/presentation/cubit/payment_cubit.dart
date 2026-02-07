@@ -21,7 +21,7 @@ class PaymentCubit extends Cubit<PaymentState> {
       final payments = await paymentRepository.getPayments(month, year);
       
       // 2. Fetch All Active Santri
-      final allSantri = await santriRepository.getSantriList(isActive: true);
+      final allSantri = await santriRepository.getSantriList(isActive: true, limit: 9999);
 
       // 3. Separate Paid and Unpaid
       final paidStudents = <SantriEntity>[];
