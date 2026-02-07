@@ -16,11 +16,25 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   }) async {
     Query query = firestore.collection('asatidz_profiles');
 
     if (isActive != null) {
       query = query.where('is_active', isEqualTo: isActive);
+    }
+
+    bool isSearching = keyword != null && keyword.isNotEmpty;
+    
+    if (!isSearching) {
+      query = query.limit(limit);
+      if (lastDocumentId != null) {
+        final lastDoc = await firestore.collection('asatidz_profiles').doc(lastDocumentId).get();
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        }
+      }
     }
 
     final snapshot = await query.get();

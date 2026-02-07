@@ -16,6 +16,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   }) async {
     Query query = firestore.collection('santri_profiles');
 
@@ -23,12 +25,25 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       query = query.where('is_active', isEqualTo: isActive);
     }
 
+    // Only paginate if NOT searching by keyword (client-side filter needs all data)
+    bool isSearching = keyword != null && keyword.isNotEmpty;
+    
+    if (!isSearching) {
+      query = query.limit(limit);
+      if (lastDocumentId != null) {
+        final lastDoc = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        }
+      }
+    }
+
     final snapshot = await query.get();
 
     var docs = snapshot.docs;
 
     // Filter by keyword (Search logic) - client side for flexibility
-    if (keyword != null && keyword.isNotEmpty) {
+    if (isSearching) {
       final k = keyword.toLowerCase();
       docs = docs.where((doc) {
         final data = doc.data() as Map<String, dynamic>;

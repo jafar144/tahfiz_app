@@ -16,10 +16,14 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   }) async {
     final santriList = await remote.getSantriList(
       keyword: keyword,
       isActive: isActive,
+      limit: limit,
+      lastDocumentId: lastDocumentId,
     );
 
     final classSnap = await firestore

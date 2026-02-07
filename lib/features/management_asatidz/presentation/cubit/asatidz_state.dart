@@ -8,8 +8,26 @@ class AsatidzLoading extends AsatidzState {}
 
 class AsatidzLoaded extends AsatidzState {
   final List<AsatidzEntity> asatidz;
+  final bool hasReachedMax;
+  final bool isFetchingMore;
 
-  AsatidzLoaded(this.asatidz);
+  AsatidzLoaded(
+    this.asatidz, {
+    this.hasReachedMax = false,
+    this.isFetchingMore = false,
+  });
+
+  AsatidzLoaded copyWith({
+    List<AsatidzEntity>? asatidz,
+    bool? hasReachedMax,
+    bool? isFetchingMore,
+  }) {
+    return AsatidzLoaded(
+      asatidz ?? this.asatidz,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      isFetchingMore: isFetchingMore ?? this.isFetchingMore,
+    );
+  }
 }
 
 class AsatidzError extends AsatidzState {

@@ -6,6 +6,8 @@ abstract class SantriRepository {
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   });
 
   Future<SantriDetail> getSantriDetail(String id);

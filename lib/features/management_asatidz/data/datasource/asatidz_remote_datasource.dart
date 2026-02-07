@@ -6,6 +6,8 @@ abstract class AsatidzRemoteDataSource {
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   });
 
   Future<AsatidzDetail> getAsatidzDetail(String id);

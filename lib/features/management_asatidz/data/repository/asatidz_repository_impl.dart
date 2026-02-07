@@ -10,11 +10,19 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   AsatidzRepositoryImpl(this.remote);
 
   @override
+  @override
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
+    int limit = 10,
+    String? lastDocumentId,
   }) async {
-    return await remote.getAsatidzList(keyword: keyword, isActive: isActive);
+    return await remote.getAsatidzList(
+      keyword: keyword,
+      isActive: isActive,
+      limit: limit,
+      lastDocumentId: lastDocumentId,
+    );
   }
 
   @override

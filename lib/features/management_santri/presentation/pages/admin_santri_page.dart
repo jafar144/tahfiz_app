@@ -6,6 +6,8 @@ import 'package:khoirunnasyien/features/management_santri/presentation/cubit/san
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class AdminSantriPage extends StatefulWidget {
   const AdminSantriPage({super.key});
@@ -19,11 +21,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   bool? _filterIsActive; // null = All, true = Active, false = Inactive
   String _searchKeyword = '';
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchData();
-  }
+
 
   void _fetchData() {
     context.read<SantriCubit>().loadSantri(
@@ -56,9 +54,45 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
     _fetchData();
   }
 
+  final ScrollController _scrollController = ScrollController();
+  final List<SantriEntity> _skeletonData = List.generate(
+    5,
+    (index) => SantriEntity(
+      id: 'skeleton_$index',
+      name: 'Nama Santri Placeholder',
+      nis: '12345',
+      kelas: 'Tahfiz 1',
+      jenisKelamin: 'L',
+      isActive: true,
+      isFree: false,
+      nomorWali: '0812...',
+      pembimbing: 'Ustadz Fulan',
+    ),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<SantriCubit>().loadMoreSantri();
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.8);
+  }
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -163,15 +197,20 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
           Expanded(
             child: BlocBuilder<SantriCubit, SantriState>(
               builder: (context, state) {
-                if (state is SantriLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                // Determine logic for Skeletonizer
+                final isLoading = state is SantriLoading;
+                final List<SantriEntity> displayList;
+                
+                if (isLoading) {
+                  displayList = _skeletonData;
+                } else if (state is SantriLoaded) {
+                  displayList = state.santri;
+                } else {
+                  displayList = [];
                 }
 
-                if (state is SantriLoaded) {
-                  if (state.santri.isEmpty) {
-                    return Center(
+                if (state is SantriLoaded && state.santri.isEmpty) {
+                   return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -185,25 +224,36 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                         ],
                       ),
                     );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: state.santri.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return SantriCard(
-                        state.santri[index],
-                        onReturn: _resetAndFetchData,
-                      );
-                    },
-                  );
                 }
 
                 if (state is SantriError) {
                   return Center(child: Text(state.message));
                 }
 
-                return const SizedBox();
+                return Skeletonizer(
+                  enabled: isLoading,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: displayList.length + (state is SantriLoaded && state.isFetchingMore ? 1 : 0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      if (index >= displayList.length) {
+                         return Skeletonizer(
+                           enabled: true,
+                           child: SantriCard(
+                             _skeletonData.first,
+                             onReturn: () {},
+                           ),
+                         );
+                      }
+                      return SantriCard(
+                        displayList[index],
+                        onReturn: _resetAndFetchData,
+                      );
+                    },
+                  ),
+                );
               },
             ),
           ),

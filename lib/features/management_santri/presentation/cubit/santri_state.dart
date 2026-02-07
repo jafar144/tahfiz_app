@@ -8,8 +8,26 @@ class SantriLoading extends SantriState {}
 
 class SantriLoaded extends SantriState {
   final List<SantriEntity> santri;
+  final bool hasReachedMax;
+  final bool isFetchingMore;
 
-  SantriLoaded(this.santri);
+  SantriLoaded(
+    this.santri, {
+    this.hasReachedMax = false,
+    this.isFetchingMore = false,
+  });
+
+  SantriLoaded copyWith({
+    List<SantriEntity>? santri,
+    bool? hasReachedMax,
+    bool? isFetchingMore,
+  }) {
+    return SantriLoaded(
+      santri ?? this.santri,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
+      isFetchingMore: isFetchingMore ?? this.isFetchingMore,
+    );
+  }
 }
 
 class SantriError extends SantriState {

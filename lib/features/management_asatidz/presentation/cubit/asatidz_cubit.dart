@@ -7,22 +7,64 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/as
 class AsatidzCubit extends Cubit<AsatidzState> {
   final AsatidzRepository repository;
 
+  // Keep track of current filters for pagination
+  String? _currentKeyword;
+  bool? _currentIsActive;
+  static const int _limit = 10;
+
   AsatidzCubit(this.repository) : super(AsatidzInitial());
 
   void loadAsatidz({
     String? keyword,
     bool? isActive,
   }) async {
+    _currentKeyword = keyword;
+    _currentIsActive = isActive;
+    
     emit(AsatidzLoading());
     try {
       final result = await repository.getAsatidzList(
         keyword: keyword,
         isActive: isActive,
+        limit: _limit,
       );
 
-      emit(AsatidzLoaded(result));
+      final isSearching = keyword != null && keyword.isNotEmpty;
+
+      emit(AsatidzLoaded(
+        result,
+        hasReachedMax: isSearching ? true : result.length < _limit,
+      ));
     } catch (e) {
       emit(AsatidzError(e.toString()));
+    }
+  }
+
+  void loadMoreAsatidz() async {
+    final currentState = state;
+    if (currentState is! AsatidzLoaded) return;
+    if (currentState.hasReachedMax || currentState.isFetchingMore) return;
+
+    if (_currentKeyword != null && _currentKeyword!.isNotEmpty) return;
+
+    emit(currentState.copyWith(isFetchingMore: true));
+
+    try {
+      final lastId = currentState.asatidz.last.id;
+      final newAsatidz = await repository.getAsatidzList(
+        keyword: _currentKeyword,
+        isActive: _currentIsActive,
+        limit: _limit,
+        lastDocumentId: lastId,
+      );
+
+      emit(currentState.copyWith(
+        asatidz: List.of(currentState.asatidz)..addAll(newAsatidz),
+        hasReachedMax: newAsatidz.length < _limit,
+        isFetchingMore: false,
+      ));
+    } catch (e) {
+      emit(currentState.copyWith(isFetchingMore: false));
     }
   }
 
@@ -30,7 +72,7 @@ class AsatidzCubit extends Cubit<AsatidzState> {
     emit(AsatidzLoading());
     try {
       await repository.addAsatidz(params);
-      loadAsatidz();
+      loadAsatidz(keyword: _currentKeyword, isActive: _currentIsActive);
     } catch (e) {
       emit(AsatidzError(e.toString()));
     }
