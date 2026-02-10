@@ -70,8 +70,8 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
 
         if (schedule == null || schedule.day != currentDay) continue;
 
-        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(hours: 1));
-        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(hours: 2));
+        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(minutes: 30));
+        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(minutes: 30));
 
         if (now.isAfter(sessionStart) && now.isBefore(sessionEnd)) {
           final isCheckedIn = await _checkAsatidzAttendance(halaqah.id, scheduleId, now);
