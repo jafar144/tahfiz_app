@@ -46,12 +46,17 @@ class HalaqahModel extends Halaqah {
 }
 
 class HalaqahSantriModel extends HalaqahSantri {
-  const HalaqahSantriModel({required super.id, required super.name});
+  const HalaqahSantriModel({
+    required super.id,
+    required super.name,
+    required super.nis,
+  });
 
   factory HalaqahSantriModel.fromJson(Map<String, dynamic> json) {
     return HalaqahSantriModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
+      nis: json['nis'] ?? '',
     );
   }
   
@@ -59,6 +64,7 @@ class HalaqahSantriModel extends HalaqahSantri {
     return {
       'id': id,
       'name': name,
+      'nis': nis,
     };
   }
 }

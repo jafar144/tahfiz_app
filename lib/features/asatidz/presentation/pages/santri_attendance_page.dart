@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_state.dart';
+import 'package:intl/intl.dart';
 
 class SantriAttendancePage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
@@ -17,7 +18,18 @@ class SantriAttendancePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(activeHalaqah.halaqah.name),
+        title: Column(
+          children: [
+            Text(
+              activeHalaqah.halaqah.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              DateFormat('EEEE, d MMMM • HH:mm', 'id_ID').format(DateTime.now()),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -51,7 +63,6 @@ class SantriAttendancePage extends StatelessWidget {
           if (state is SantriAttendanceLoaded) {
             return Column(
               children: [
-                _buildHeader(state),
                 Expanded(
                   child: _buildAttendanceList(context, state),
                 ),
@@ -62,66 +73,6 @@ class SantriAttendancePage extends StatelessWidget {
 
           return const SizedBox();
         },
-      ),
-    );
-  }
-
-  Widget _buildHeader(SantriAttendanceLoaded state) {
-    final present = state.attendanceMap.values.where((s) => s == 'hadir').length;
-    final total = state.attendanceMap.length;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
-        ),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'MARKED ATTENDANCE',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.white70,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$present',
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              Text(
-                ' / $total',
-                style: TextStyle(
-                  fontSize: 24,
-                  color: Colors.white.withOpacity(0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Santri hadir',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -137,25 +88,15 @@ class SantriAttendancePage extends StatelessWidget {
         final santri = santris[index];
         final status = state.attendanceMap[santri.id] ?? 'hadir';
         final initial = santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?';
-        
-        final colors = [
-          Colors.blue,
-          Colors.green,
-          Colors.orange,
-          Colors.purple,
-          Colors.pink,
-          Colors.teal,
-        ];
-        final color = colors[index % colors.length];
 
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -165,28 +106,24 @@ class SantriAttendancePage extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [color, color.withOpacity(0.7)],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: Center(
                     child: Text(
                       initial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,22 +131,27 @@ class SantriAttendancePage extends StatelessWidget {
                       Text(
                         santri.name,
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
-                        'ID: ${santri.id}',
+                        'NIS: ${santri.nis}',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Colors.grey.shade500,
                         ),
                       ),
+                      if (status != 'hadir') ...[
+                        const SizedBox(height: 4),
+                        _buildReasonChip(status),
+                      ],
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 _buildStatusToggle(context, santri.id, status),
               ],
             ),
@@ -219,75 +161,181 @@ class SantriAttendancePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusToggle(BuildContext context, String santriId, String currentStatus) {
+  Widget _buildReasonChip(String status) {
+    final Map<String, Map<String, dynamic>> statusConfig = {
+      'izin': {'label': 'Izin', 'color': Colors.orange},
+      'sakit': {'label': 'Sakit', 'color': Colors.blue},
+      'alpha': {'label': 'Alpha', 'color': Colors.red},
+    };
+
+    final config = statusConfig[status];
+    if (config == null) return const SizedBox();
+
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
+        color: (config['color'] as Color).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildStatusButton(
-            context,
-            santriId,
-            'hadir',
-            currentStatus == 'hadir',
-            Icons.check_circle,
-            Colors.green,
-          ),
-          _buildStatusButton(
-            context,
-            santriId,
-            'izin',
-            currentStatus == 'izin',
-            Icons.info,
-            Colors.orange,
-          ),
-          _buildStatusButton(
-            context,
-            santriId,
-            'sakit',
-            currentStatus == 'sakit',
-            Icons.local_hospital,
-            Colors.blue,
-          ),
-          _buildStatusButton(
-            context,
-            santriId,
-            'alpha',
-            currentStatus == 'alpha',
-            Icons.cancel,
-            Colors.red,
-          ),
-        ],
+      child: Text(
+        config['label'],
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: config['color'],
+        ),
       ),
     );
   }
 
-  Widget _buildStatusButton(
+  Widget _buildStatusToggle(BuildContext context, String santriId, String currentStatus) {
+    final isPresent = currentStatus == 'hadir';
+
+    return GestureDetector(
+      onTap: () {
+        if (isPresent) {
+          _showStatusBottomSheet(context, santriId);
+        } else {
+          context.read<SantriAttendanceCubit>().updateAttendance(santriId, 'hadir');
+        }
+      },
+      child: Container(
+        width: 52,
+        height: 32,
+        decoration: BoxDecoration(
+          color: isPresent ? Colors.blue : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Stack(
+          children: [
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 200),
+              alignment: isPresent ? Alignment.centerRight : Alignment.centerLeft,
+              child: Container(
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Center(
+              child: Padding(
+                padding: EdgeInsets.only(left: isPresent ? 6 : 0, right: isPresent ? 0 : 6),
+                child: Text(
+                  isPresent ? 'Hadir' : 'Absent',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isPresent ? Colors.white : Colors.grey.shade600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showStatusBottomSheet(BuildContext context, String santriId) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'REASON FOR ABSENCE',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildReasonOption(
+              context,
+              santriId,
+              'Sakit (Sick)',
+              'sakit',
+              Icons.local_hospital,
+              Colors.blue,
+            ),
+            const Divider(height: 1),
+            _buildReasonOption(
+              context,
+              santriId,
+              'Izin (Permission)',
+              'izin',
+              Icons.info,
+              Colors.orange,
+            ),
+            const Divider(height: 1),
+            _buildReasonOption(
+              context,
+              santriId,
+              'Alpha (Absent)',
+              'alpha',
+              Icons.cancel,
+              Colors.red,
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(sheetContext),
+                child: const Text('Batal'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReasonOption(
     BuildContext context,
     String santriId,
+    String label,
     String status,
-    bool isSelected,
     IconData icon,
     Color color,
   ) {
     return InkWell(
       onTap: () {
         context.read<SantriAttendanceCubit>().updateAttendance(santriId, status);
+        Navigator.pop(context);
       },
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          size: 24,
-          color: isSelected ? color : Colors.grey.shade400,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -300,7 +348,7 @@ class SantriAttendancePage extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),

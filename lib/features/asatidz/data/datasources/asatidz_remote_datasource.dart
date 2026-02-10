@@ -76,20 +76,56 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String scheduleId,
     required DateTime date,
   }) async {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    try {
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    final query = await firestore
-        .collection('asatidz_attendance')
-        .where('asatidz_id', isEqualTo: asatidzId)
-        .where('halaqah_id', isEqualTo: halaqahId)
-        .where('schedule_id', isEqualTo: scheduleId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-        .limit(1)
-        .get();
+      print('=== CHECK ATTENDANCE ===');
+      print('asatidzId: $asatidzId');
+      print('halaqahId: $halaqahId');
+      print('scheduleId: $scheduleId');
+      print('date: $date');
+      print('startOfDay: $startOfDay');
+      print('endOfDay: $endOfDay');
 
-    return query.docs.isNotEmpty;
+      final query = await firestore
+          .collection('asatidz_attendance')
+          .where('asatidz_id', isEqualTo: asatidzId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .get();
+
+      print('Found ${query.docs.length} total documents');
+
+      final matchingDoc = query.docs.where((doc) {
+        final data = doc.data();
+        final matchHalaqah = data['halaqah_id'] == halaqahId;
+        final matchSchedule = data['schedule_id'] == scheduleId;
+        print('Doc ${doc.id}: halaqah_id=${data['halaqah_id']} (match: $matchHalaqah), schedule_id=${data['schedule_id']} (match: $matchSchedule)');
+        return matchHalaqah && matchSchedule;
+      }).firstOrNull;
+
+      final hasAttended = matchingDoc != null;
+      
+      if (hasAttended) {
+        print('✅ FOUND MATCHING ATTENDANCE');
+        print('Document ID: ${matchingDoc.id}');
+        print('Document data: ${matchingDoc.data()}');
+      } else {
+        print('❌ NO MATCHING ATTENDANCE FOUND');
+      }
+      
+      print('Result: $hasAttended');
+      print('========================');
+
+      return hasAttended;
+    } catch (e, stackTrace) {
+      print('=== ERROR CHECK ATTENDANCE ===');
+      print('Error: $e');
+      print('Stack: $stackTrace');
+      print('==============================');
+      return false;
+    }
   }
 
   @override
@@ -165,41 +201,116 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String asatidzName,
     required List<SantriAttendanceItem> attendanceList,
   }) async {
-    final now = DateTime.now();
-    final totalPresent = attendanceList.where((item) => item.status == 'hadir').length;
-    final totalAbsent = attendanceList.length - totalPresent;
+    try {
+      final now = DateTime.now();
+      final totalPresent = attendanceList.where((item) => item.status == 'hadir').length;
+      final totalAbsent = attendanceList.length - totalPresent;
 
-    final model = SantriAttendanceModel(
-      id: '',
-      halaqahId: halaqahId,
-      halaqahName: halaqahName,
-      scheduleId: scheduleId,
-      date: date,
-      asatidzId: asatidzId,
-      asatidzName: asatidzName,
-      attendanceList: attendanceList,
-      totalPresent: totalPresent,
-      totalAbsent: totalAbsent,
-      createdAt: now,
-      updatedAt: now,
-    );
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
 
-    final docRef = await firestore.collection('santri_attendance').add(model.toFirestore());
-    
-    return SantriAttendanceModel(
-      id: docRef.id,
-      halaqahId: halaqahId,
-      halaqahName: halaqahName,
-      scheduleId: scheduleId,
-      date: date,
-      asatidzId: asatidzId,
-      asatidzName: asatidzName,
-      attendanceList: attendanceList,
-      totalPresent: totalPresent,
-      totalAbsent: totalAbsent,
-      createdAt: now,
-      updatedAt: now,
-    );
+      print('=== CHECKING EXISTING ATTENDANCE ===');
+      print('halaqahId: $halaqahId');
+      print('scheduleId: $scheduleId');
+      print('date: $date');
+      print('startOfDay: $startOfDay');
+      print('endOfDay: $endOfDay');
+
+      final existingQuery = await firestore
+          .collection('santri_attendance')
+          .where('halaqah_id', isEqualTo: halaqahId)
+          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .get();
+
+      print('Found ${existingQuery.docs.length} documents');
+
+      final existingDoc = existingQuery.docs.where((doc) {
+        final data = doc.data();
+        return data['schedule_id'] == scheduleId;
+      }).firstOrNull;
+
+      if (existingDoc != null) {
+        print('=== UPDATING EXISTING ATTENDANCE ===');
+        final docId = existingDoc.id;
+        print('Document ID: $docId');
+        
+        await firestore.collection('santri_attendance').doc(docId).update({
+          'attendance_list': attendanceList.map((item) => {
+            'santri_id': item.santriId,
+            'santri_name': item.santriName,
+            'status': item.status,
+          }).toList(),
+          'total_present': totalPresent,
+          'total_absent': totalAbsent,
+          'updated_at': Timestamp.fromDate(now),
+        });
+
+        print('=== UPDATE SUCCESS ===');
+
+        final existingModel = SantriAttendanceModel.fromFirestore(existingDoc);
+        
+        return SantriAttendanceModel(
+          id: docId,
+          halaqahId: halaqahId,
+          halaqahName: halaqahName,
+          scheduleId: scheduleId,
+          date: date,
+          asatidzId: asatidzId,
+          asatidzName: asatidzName,
+          attendanceList: attendanceList,
+          totalPresent: totalPresent,
+          totalAbsent: totalAbsent,
+          createdAt: existingModel.createdAt,
+          updatedAt: now,
+        );
+      }
+
+      print('=== CREATING NEW ATTENDANCE ===');
+
+      final model = SantriAttendanceModel(
+        id: '',
+        halaqahId: halaqahId,
+        halaqahName: halaqahName,
+        scheduleId: scheduleId,
+        date: date,
+        asatidzId: asatidzId,
+        asatidzName: asatidzName,
+        attendanceList: attendanceList,
+        totalPresent: totalPresent,
+        totalAbsent: totalAbsent,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      final docRef = await firestore.collection('santri_attendance').add(model.toFirestore());
+      
+      print('=== CREATE SUCCESS ===');
+      print('New Document ID: ${docRef.id}');
+      
+      return SantriAttendanceModel(
+        id: docRef.id,
+        halaqahId: halaqahId,
+        halaqahName: halaqahName,
+        scheduleId: scheduleId,
+        date: date,
+        asatidzId: asatidzId,
+        asatidzName: asatidzName,
+        attendanceList: attendanceList,
+        totalPresent: totalPresent,
+        totalAbsent: totalAbsent,
+        createdAt: now,
+        updatedAt: now,
+      );
+    } catch (e, stackTrace) {
+      print('=== FIRESTORE ERROR ===');
+      print('Error Type: ${e.runtimeType}');
+      print('Error Message: $e');
+      print('Stack Trace:');
+      print(stackTrace);
+      print('=======================');
+      rethrow;
+    }
   }
 
   @override

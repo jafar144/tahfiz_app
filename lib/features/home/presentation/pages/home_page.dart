@@ -6,7 +6,6 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/admin_shell_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/santri_home_page.dart';
-import 'package:khoirunnasyien/features/home/presentation/pages/asatidz_home_page.dart';
 
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';

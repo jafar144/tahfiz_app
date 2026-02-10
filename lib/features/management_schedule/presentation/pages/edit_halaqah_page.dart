@@ -393,7 +393,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
 
             if (result != null && result is List<SantriEntity>) {
               setState(() {
-                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name)).toList();
+                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name, nis: e.nis)).toList();
               });
             }
           },

@@ -273,7 +273,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                             child: ListView.separated(
                               shrinkWrap: true,
                               itemCount: state.schedules.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, _) => const Divider(height: 1),
                               itemBuilder: (ctx, index) {
                                 final schedule = state.schedules[index];
                                 final dayName = _getDayName(schedule.day);
@@ -487,7 +487,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
 
             if (result != null && result is List<SantriEntity>) {
               setState(() {
-                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name)).toList();
+                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name, nis: e.nis)).toList();
               });
             }
           },

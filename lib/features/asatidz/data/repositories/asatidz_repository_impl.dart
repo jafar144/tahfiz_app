@@ -94,7 +94,11 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
         attendanceList: attendanceList,
       );
       return Right(result);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('=== ATTENDANCE ERROR ===');
+      print('Error: $e');
+      print('Stack trace: $stackTrace');
+      print('========================');
       return Left(ServerFailure(e.toString()));
     }
   }

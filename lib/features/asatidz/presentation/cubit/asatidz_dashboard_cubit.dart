@@ -33,10 +33,20 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
       );
 
       final activeHalaqah = await _findActiveHalaqah(halaqahs);
+      
+      bool hasAttendedToday = false;
+      if (activeHalaqah != null) {
+        hasAttendedToday = await _checkAsatidzAttendance(
+          activeHalaqah.halaqah.id,
+          activeHalaqah.schedule.id,
+          DateTime.now(),
+        );
+      }
 
       emit(AsatidzDashboardLoaded(
         totalSantri: totalSantri,
         activeHalaqah: activeHalaqah,
+        hasAttendedToday: hasAttendedToday,
       ));
     } catch (e) {
       emit(AsatidzDashboardError(e.toString()));
@@ -133,7 +143,10 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
           isAsatidzCheckedIn: true,
         );
 
-        emit(currentState.copyWith(activeHalaqah: updatedActiveHalaqah));
+        emit(currentState.copyWith(
+          activeHalaqah: updatedActiveHalaqah,
+          hasAttendedToday: true,
+        ));
       },
     );
   }

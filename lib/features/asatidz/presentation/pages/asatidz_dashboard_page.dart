@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_attend
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/halaqah_deposit_list_page.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 
 class AsatidzDashboardPage extends StatefulWidget {
   const AsatidzDashboardPage({super.key});
@@ -69,7 +70,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                     _buildStatsCard(state.totalSantri),
                     const SizedBox(height: 20),
                     if (state.activeHalaqah != null) ...[ 
-                      _buildActiveSessionCard(context, state.activeHalaqah!),
+                      _buildActiveSessionCard(context, state),
                       const SizedBox(height: 20),
                     ],
                     _buildQuickActions(context, state),
@@ -175,7 +176,8 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
     );
   }
 
-  Widget _buildActiveSessionCard(BuildContext context, dynamic activeHalaqah) {
+  Widget _buildActiveSessionCard(BuildContext context, AsatidzDashboardLoaded state) {
+    final activeHalaqah = state.activeHalaqah!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -299,34 +301,72 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
             ],
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: activeHalaqah.isAsatidzCheckedIn
-                  ? null
-                  : () {
-                      context.read<AsatidzDashboardCubit>().checkInAsatidz(activeHalaqah);
-                    },
-              icon: Icon(
-                activeHalaqah.isAsatidzCheckedIn ? Icons.check_circle : Icons.login,
-                size: 20,
-              ),
-              label: Text(
-                activeHalaqah.isAsatidzCheckedIn ? 'Sudah Absen' : 'Absen Sekarang',
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: activeHalaqah.isAsatidzCheckedIn ? Colors.grey : Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ),
+          _buildAttendanceButton(context, activeHalaqah, state.hasAttendedToday),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAttendanceButton(BuildContext context, ActiveHalaqah activeHalaqah, bool hasAttended) {
+    if (hasAttended) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.green.shade200, width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle, color: Colors.green.shade700, size: 24),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sudah Absen',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade900,
+                  ),
+                ),
+                Text(
+                  'Terima kasih sudah hadir hari ini',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          context.read<AsatidzDashboardCubit>().checkInAsatidz(activeHalaqah);
+        },
+        icon: const Icon(Icons.login, size: 20),
+        label: const Text(
+          'Absen Sekarang',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 0,
+        ),
       ),
     );
   }
