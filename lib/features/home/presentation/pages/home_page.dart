@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/pages/asatidz_shell_page.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/admin_shell_page.dart';
@@ -12,6 +13,7 @@ import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit
 
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -49,7 +51,14 @@ class _HomePageState extends State<HomePage> {
             return const SantriHomePage();
 
           case UserRole.asatidz:
-            return const AsatidzHomePage();
+            return BlocProvider(
+              create: (_) => AsatidzDashboardCubit(
+                scheduleRepository: getIt(),
+                asatidzRepository: getIt(),
+                asatidzId: user.uid,
+              )..loadDashboard(),
+              child: const AsatidzShellPage(),
+            );
         }
       },
     );

@@ -25,10 +25,10 @@ import 'package:khoirunnasyien/features/management_santri/data/repository/santri
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
-import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart';
-import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource_impl.dart';
-import 'package:khoirunnasyien/features/management_asatidz/data/repository/asatidz_repository_impl.dart';
-import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart' as mgmt_asatidz_ds;
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource_impl.dart' as mgmt_asatidz_ds_impl;
+import 'package:khoirunnasyien/features/management_asatidz/data/repository/asatidz_repository_impl.dart' as mgmt_asatidz_repo;
+import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart' as mgmt_asatidz_domain;
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
@@ -46,6 +46,10 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/s
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/asatidz/data/datasources/asatidz_remote_datasource.dart';
+import 'package:khoirunnasyien/features/asatidz/data/repositories/asatidz_repository_impl.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart' as asatidz_domain;
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -78,12 +82,16 @@ Future<void> initDI() async {
     () => SantriRemoteDataSourceImpl(getIt(), getIt()),
   );
 
-  getIt.registerLazySingleton<AsatidzRemoteDataSource>(
-    () => AsatidzRemoteDataSourceImpl(getIt(), getIt()),
+  getIt.registerLazySingleton<mgmt_asatidz_ds.AsatidzRemoteDataSource>(
+    () => mgmt_asatidz_ds_impl.AsatidzRemoteDataSourceImpl(getIt(), getIt()),
   );
 
   getIt.registerLazySingleton<ScheduleRemoteDataSource>(
     () => ScheduleRemoteDataSourceImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<AsatidzRemoteDataSource>(
+    () => AsatidzRemoteDataSourceImpl(firestore: getIt()),
   );
 
   // Repository
@@ -103,13 +111,17 @@ Future<void> initDI() async {
     () => SantriRepositoryImpl(getIt(), getIt()),
   );
 
-  getIt.registerLazySingleton<AsatidzRepository>(
-    () => AsatidzRepositoryImpl(getIt()),
+  getIt.registerLazySingleton<mgmt_asatidz_domain.AsatidzRepository>(
+    () => mgmt_asatidz_repo.AsatidzRepositoryImpl(getIt()),
   );
 
   getIt.registerLazySingleton<ScheduleRepository>(
     () => ScheduleRepositoryImpl(getIt()),
   );  
+
+  getIt.registerLazySingleton<asatidz_domain.AsatidzRepository>(
+    () => AsatidzRepositoryImpl(remoteDataSource: getIt()),
+  );
 
   // Cubit
   getIt.registerFactory(
@@ -171,6 +183,14 @@ Future<void> initDI() async {
       asatidzRepository: getIt(),
       santriRepository: getIt(),
       halaqah: halaqah,
+    ),
+  );
+
+  getIt.registerFactory(
+    () => AsatidzDashboardCubit(
+      scheduleRepository: getIt(),
+      asatidzRepository: getIt(),
+      asatidzId: '', // Will be set from auth
     ),
   );
 }

@@ -46,15 +46,12 @@ class ScheduleCubit extends Cubit<ScheduleState> {
           if (hasError) break;
           allSchedules.addAll(currentProgramSchedules);
 
-          // For each schedule, fetch its specific halaqahs
-          for (var schedule in currentProgramSchedules) {
-            final halaqahResult = await repository.getHalaqahs(programId: schedule.id);
-            halaqahResult.fold(
-              ifLeft: (l) { 
-              },
-              ifRight: (r) => allHalaqahs.addAll(r),
-            );
-          }
+          final halaqahResult = await repository.getHalaqahs(programId: program.id);
+          halaqahResult.fold(
+            ifLeft: (l) { 
+            },
+            ifRight: (r) => allHalaqahs.addAll(r),
+          );
         }
 
         if (hasError) {

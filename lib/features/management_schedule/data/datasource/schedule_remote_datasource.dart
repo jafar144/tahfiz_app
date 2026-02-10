@@ -6,8 +6,10 @@ import 'package:khoirunnasyien/features/management_schedule/data/models/schedule
 abstract class ScheduleRemoteDataSource {
   Future<List<ScheduleProgramModel>> getPrograms(String gender);
   Future<List<ProgramScheduleModel>> getSchedules(String programId);
+  Future<ProgramScheduleModel> getScheduleById(String scheduleId);
   Future<List<HalaqahModel>> getHalaqahs(String programId);
   Future<List<HalaqahModel>> getHalaqahsBySchedule(String scheduleId);
+  Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId);
   Future<void> updateHalaqah(HalaqahModel halaqah);
   Future<void> createHalaqah(HalaqahModel halaqah);
 }
@@ -31,7 +33,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   Future<List<HalaqahModel>> getHalaqahsBySchedule(String scheduleId) async {
     final query = await firestore
         .collection('halaqahs')
-        .where('schedule_id', isEqualTo: scheduleId)
+        .where('schedule_ids', arrayContains: scheduleId)
         .get();
         
     return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
@@ -71,7 +73,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
     await firestore.collection('halaqahs').doc(halaqah.id).update({
       'name': halaqah.name,
       'room': halaqah.room,
-      'schedule_id': halaqah.scheduleId,
+      'schedule_ids': halaqah.scheduleIds,
       'status': halaqah.status,
       'asatidz': {
         'id': halaqah.teacherId,
@@ -86,7 +88,8 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
     await firestore.collection('halaqahs').add({
       'name': halaqah.name,
       'room': halaqah.room,
-      'schedule_id': halaqah.scheduleId,
+      'schedule_ids': halaqah.scheduleIds,
+      'session_id': halaqah.programId,
       'status': halaqah.status,
       'asatidz': {
         'id': halaqah.teacherId,
@@ -94,5 +97,26 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
       },
       'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name}).toList(),
     });
+  }
+
+  @override
+  Future<ProgramScheduleModel> getScheduleById(String scheduleId) async {
+    final doc = await firestore.collection('session_schedules').doc(scheduleId).get();
+    
+    if (!doc.exists) {
+      throw Exception('Schedule not found');
+    }
+    
+    return ProgramScheduleModel.fromFirestore(doc);
+  }
+
+  @override
+  Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId) async {
+    final query = await firestore
+        .collection('halaqahs')
+        .where('asatidz.id', isEqualTo: teacherId)
+        .get();
+        
+    return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
   }
 }

@@ -1,4 +1,5 @@
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 
@@ -15,6 +16,7 @@ class HalaqahDetailLoading extends HalaqahDetailState {}
 
 class HalaqahDetailLoaded extends HalaqahDetailState {
   final Halaqah halaqah;
+  final List<ProgramSchedule> schedules;
   final List<AsatidzEntity> asatidzList;
   final List<SantriEntity> santriList;
   final List<String> unavailableTeacherIds;
@@ -24,6 +26,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
   
   const HalaqahDetailLoaded({
     required this.halaqah,
+    this.schedules = const [],
     this.asatidzList = const [],
     this.santriList = const [],
     this.unavailableTeacherIds = const [],
@@ -33,6 +36,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
 
   HalaqahDetailLoaded copyWith({
     Halaqah? halaqah,
+    List<ProgramSchedule>? schedules,
     List<AsatidzEntity>? asatidzList,
     List<SantriEntity>? santriList,
     List<String>? unavailableTeacherIds,
@@ -41,6 +45,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
   }) {
     return HalaqahDetailLoaded(
       halaqah: halaqah ?? this.halaqah,
+      schedules: schedules ?? this.schedules,
       asatidzList: asatidzList ?? this.asatidzList,
       santriList: santriList ?? this.santriList,
       unavailableTeacherIds: unavailableTeacherIds ?? this.unavailableTeacherIds,

@@ -1,0 +1,140 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_state.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+
+class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
+  final AsatidzRepository asatidzRepository;
+  final ScheduleRepository scheduleRepository;
+  final String asatidzId;
+
+  AsatidzDashboardCubit({
+    required this.asatidzRepository,
+    required this.scheduleRepository,
+    required this.asatidzId,
+  }) : super(AsatidzDashboardInitial());
+
+  Future<void> loadDashboard() async {
+    emit(AsatidzDashboardLoading());
+
+    try {
+      final halaqahsResult = await scheduleRepository.getHalaqahsByTeacher(asatidzId);
+      
+      final halaqahs = halaqahsResult.fold(
+        ifLeft: (_) => <Halaqah>[],
+        ifRight: (h) => h,
+      );
+
+      final totalSantri = halaqahs.fold<int>(
+        0,
+        (sum, halaqah) => sum + halaqah.santris.length,
+      );
+
+      final activeHalaqah = await _findActiveHalaqah(halaqahs);
+
+      emit(AsatidzDashboardLoaded(
+        totalSantri: totalSantri,
+        activeHalaqah: activeHalaqah,
+      ));
+    } catch (e) {
+      emit(AsatidzDashboardError(e.toString()));
+    }
+  }
+
+  Future<ActiveHalaqah?> _findActiveHalaqah(List<Halaqah> halaqahs) async {
+    final now = DateTime.now();
+    final currentDay = now.weekday;
+
+    for (final halaqah in halaqahs) {
+      if (halaqah.status != 'Active') continue;
+
+      for (final scheduleId in halaqah.scheduleIds) {
+        final scheduleResult = await scheduleRepository.getScheduleById(scheduleId);
+        
+        final schedule = scheduleResult.fold(
+          ifLeft: (_) => null,
+          ifRight: (s) => s,
+        );
+
+        if (schedule == null || schedule.day != currentDay) continue;
+
+        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(hours: 1));
+        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(hours: 2));
+
+        if (now.isAfter(sessionStart) && now.isBefore(sessionEnd)) {
+          final isCheckedIn = await _checkAsatidzAttendance(halaqah.id, scheduleId, now);
+          
+          return ActiveHalaqah(
+            halaqah: halaqah,
+            schedule: schedule,
+            sessionStart: sessionStart,
+            sessionEnd: sessionEnd,
+            isAsatidzCheckedIn: isCheckedIn,
+          );
+        }
+      }
+    }
+
+    return null;
+  }
+
+  DateTime _parseTimeToDateTime(String time) {
+    final parts = time.split(':');
+    final now = DateTime.now();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+  }
+
+  Future<bool> _checkAsatidzAttendance(String halaqahId, String scheduleId, DateTime date) async {
+    final result = await asatidzRepository.checkAttendance(
+      asatidzId: asatidzId,
+      halaqahId: halaqahId,
+      scheduleId: scheduleId,
+      date: date,
+    );
+
+    return result.fold(
+      ifLeft: (_) => false,
+      ifRight: (exists) => exists,
+    );
+  }
+
+  Future<void> checkInAsatidz(ActiveHalaqah activeHalaqah) async {
+    if (state is! AsatidzDashboardLoaded) return;
+
+    final currentState = state as AsatidzDashboardLoaded;
+
+    final result = await asatidzRepository.createAttendance(
+      asatidzId: asatidzId,
+      halaqahId: activeHalaqah.halaqah.id,
+      halaqahName: activeHalaqah.halaqah.name,
+      scheduleId: activeHalaqah.schedule.id,
+      date: DateTime.now(),
+    );
+
+    result.fold(
+      ifLeft: (failure) {
+        emit(AsatidzDashboardError(failure.message));
+        emit(currentState);
+      },
+      ifRight: (_) {
+        final updatedActiveHalaqah = ActiveHalaqah(
+          halaqah: activeHalaqah.halaqah,
+          schedule: activeHalaqah.schedule,
+          sessionStart: activeHalaqah.sessionStart,
+          sessionEnd: activeHalaqah.sessionEnd,
+          isAsatidzCheckedIn: true,
+        );
+
+        emit(currentState.copyWith(activeHalaqah: updatedActiveHalaqah));
+      },
+    );
+  }
+}

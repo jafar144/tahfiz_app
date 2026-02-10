@@ -25,6 +25,8 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
   String? _selectedTeacherName;
   String _status = 'Active';
   List<HalaqahSantri> _selectedSantris = [];
+  List<String> _selectedScheduleIds = [];
+  List<String> _selectedScheduleDisplays = [];
 
   @override
   void initState() {
@@ -35,7 +37,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     });
   }
 
-  void _populateData(Halaqah halaqah) {
+  void _populateData(Halaqah halaqah, HalaqahDetailLoaded state) {
     if (_nameController.text.isEmpty) {
         _nameController.text = halaqah.name;
         _roomController.text = halaqah.room;
@@ -43,7 +45,26 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         _selectedTeacherName = halaqah.teacherName;
         _status = halaqah.status;
         _selectedSantris = List.from(halaqah.santris);
+        _selectedScheduleIds = List.from(halaqah.scheduleIds);
+        
+        _selectedScheduleDisplays = halaqah.scheduleIds.map((scheduleId) {
+          try {
+            final schedule = state.schedules.firstWhere(
+              (s) => s.id == scheduleId,
+            );
+            final dayName = _getDayName(schedule.day);
+            return '$dayName, ${schedule.startTime} - ${schedule.endTime}';
+          } catch (e) {
+            return 'Jadwal tidak ditemukan';
+          }
+        }).toList();
     }
+  }
+
+  String _getDayName(int day) {
+    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    if (day >= 1 && day <= 7) return days[day - 1];
+    return '';
   }
 
   @override
@@ -58,7 +79,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     return BlocConsumer<HalaqahDetailCubit, HalaqahDetailState>(
       listener: (context, state) {
         if (state is HalaqahDetailLoaded) {
-          _populateData(state.halaqah);
+          _populateData(state.halaqah, state);
         }
         if (state is HalaqahDetailSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -88,21 +109,27 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Edit Halaqah'),
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            elevation: 0,
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDetailInfo(context),
+                _buildDetailInfo(),
                 const SizedBox(height: 24),
-                _buildPengajarSection(context, state),
+                _buildScheduleSection(state),
                 const SizedBox(height: 24),
-                _buildSantriSection(context, state),
+                _buildPengajarSection(state),
+                const SizedBox(height: 24),
+                _buildSantriSection(state),
                 const SizedBox(height: 24),
                 _buildStatusSection(),
                 const SizedBox(height: 32),
-                _buildSaveButton(context, state),
+                _buildSaveButton(state),
               ],
             ),
           ),
@@ -111,7 +138,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildDetailInfo(BuildContext context) {
+  Widget _buildDetailInfo() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -139,7 +166,151 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildPengajarSection(BuildContext context, HalaqahDetailLoaded state) {
+  Widget _buildScheduleSection(HalaqahDetailLoaded state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Jadwal',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            if (_selectedScheduleIds.isNotEmpty)
+              Text(
+                '${_selectedScheduleIds.length} dipilih',
+                style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold),
+              )
+          ],
+        ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              builder: (modalContext) {
+                return StatefulBuilder(
+                  builder: (BuildContext _, StateSetter setModalState) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                         const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Text("Pilih Jadwal", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
+                        const Divider(height: 1),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: state.schedules.length,
+                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            itemBuilder: (ctx, index) {
+                              final schedule = state.schedules[index];
+                              final dayName = _getDayName(schedule.day);
+                              final display = '$dayName, ${schedule.startTime} - ${schedule.endTime}';
+                              final isSelected = _selectedScheduleIds.contains(schedule.id);
+                              
+                              return ListTile(
+                                title: Text(display),
+                                trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.blue) : null,
+                                onTap: () {
+                                   if (isSelected) {
+                                     _selectedScheduleIds.remove(schedule.id);
+                                     _selectedScheduleDisplays.remove(display);
+                                   } else {
+                                     _selectedScheduleIds.add(schedule.id);
+                                     _selectedScheduleDisplays.add(display);
+                                   }
+                                   setModalState(() {});
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {});
+                                Navigator.pop(modalContext);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text('Selesai (${_selectedScheduleIds.length} dipilih)'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.grey),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedScheduleIds.isEmpty
+                        ? 'Pilih Jadwal'
+                        : '${_selectedScheduleIds.length} jadwal dipilih',
+                    style: TextStyle(
+                      color: _selectedScheduleIds.isEmpty ? Colors.grey : Colors.black87,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+        if (_selectedScheduleDisplays.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _selectedScheduleDisplays.asMap().entries.map((entry) {
+              final index = entry.key;
+              final display = entry.value;
+              return Chip(
+                label: Text(display),
+                backgroundColor: Colors.blue.shade50,
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () {
+                  setState(() {
+                    _selectedScheduleIds.removeAt(index);
+                    _selectedScheduleDisplays.removeAt(index);
+                  });
+                },
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPengajarSection(HalaqahDetailLoaded state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -158,8 +329,6 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             final result = await context.pushNamed(
               RouteNames.selectAsatidz,
               extra: {
-                // Gender null berarti tampilkan semua (asumsi edit bisa lintas gender/tidak strict)
-                // Atau bisa diambil dari session kalau ada akses
                 'gender': null, 
                 'initialSelectedId': _selectedTeacherId,
                 'disabledIds': unavailable,
@@ -178,7 +347,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildSantriSection(BuildContext context, HalaqahDetailLoaded state) {
+  Widget _buildSantriSection(HalaqahDetailLoaded state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -199,14 +368,11 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         const SizedBox(height: 12),
         InkWell(
           onTap: () async {
-            // Convert HalaqahSantri to SantriEntity for selection page
-            // Note: Some fields like nis, gender might be missing in HalaqahSantri
-            // But SelectSantriPage handles initialSelection ids mostly.
             final initialEntities = _selectedSantris.map((h) => SantriEntity(
               id: h.id, 
               name: h.name, 
               nis: '', 
-              jenisKelamin: 'L', // Dummy gender, selection page uses ID mainly
+              jenisKelamin: 'L',
               isActive: true, 
               kelas: '', 
               isFree: false, 
@@ -323,19 +489,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     );
   }
 
-  Widget _buildSaveButton(BuildContext context, HalaqahDetailLoaded state) {
-    // Check loading state from somewhere else if needed, but here we assume loaded is stable
-    // Wait, updating state is handled by cubit emit HalaqahDetailUpdating?
-    // The state in builder is HalaqahDetailLoaded. 
-    // If Updating, builder re-runs? 
-    // Consumer listener checks success/error.
-    // If cubit emits Updating, the state passed to builder might be Updating.
-    // But my builder checks 'if state is! HalaqahDetailLoaded'.
-    // So if Updating, it will show 'Data tidak ditemukan'? NO!
-    
-    // I need to handle Updating state in builder.
-    // Or simpler: Show loading overlay or button loading.
-    
+  Widget _buildSaveButton(HalaqahDetailLoaded state) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -364,16 +518,20 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     final currentState = cubit.state as HalaqahDetailLoaded;
     final halaqah = currentState.halaqah;
 
-    // Validate inputs
     if (_nameController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama halaqah wajib diisi')));
         return;
     }
 
+    if (_selectedScheduleIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih minimal satu jadwal')));
+      return;
+    }
+
     final updatedHalaqah = Halaqah(
       id: halaqah.id,
       programId: halaqah.programId,
-      scheduleId: halaqah.scheduleId,
+      scheduleIds: _selectedScheduleIds,
       name: _nameController.text,
       room: _roomController.text,
       teacherId: _selectedTeacherId ?? halaqah.teacherId,

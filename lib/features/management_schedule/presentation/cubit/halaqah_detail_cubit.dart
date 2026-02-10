@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
 
@@ -34,11 +35,21 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
 
     emit(HalaqahDetailLoading());
     try {
+      final schedulesResult = await scheduleRepository.getSchedules(programId: currentHalaqah.programId);
+      
+      final schedules = schedulesResult.fold(
+        ifLeft: (_) => <ProgramSchedule>[],
+        ifRight: (s) => s,
+      );
+
       emit(HalaqahDetailLoaded(
         halaqah: currentHalaqah,
+        schedules: schedules,
       ));
       
-      _checkAvailability(currentHalaqah.scheduleId, currentHalaqah.id);
+      if (currentHalaqah.scheduleIds.isNotEmpty) {
+        _checkAvailability(currentHalaqah.scheduleIds.first, currentHalaqah.id);
+      }
     } catch (e) {
       emit(HalaqahDetailError(e.toString()));
     }
@@ -81,8 +92,26 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
       ifLeft: (failure) {
           emit(HalaqahDetailError(failure.message));
       },
-      ifRight: (_) {
+      ifRight: (_) async {
          emit(HalaqahDetailSuccess());
+         
+         await Future.delayed(const Duration(milliseconds: 100));
+         
+         final schedulesResult = await scheduleRepository.getSchedules(programId: updatedHalaqah.programId);
+         
+         final schedules = schedulesResult.fold(
+           ifLeft: (_) => <ProgramSchedule>[],
+           ifRight: (s) => s,
+         );
+
+         emit(HalaqahDetailLoaded(
+           halaqah: updatedHalaqah,
+           schedules: schedules,
+         ));
+         
+         if (updatedHalaqah.scheduleIds.isNotEmpty) {
+           _checkAvailability(updatedHalaqah.scheduleIds.first, updatedHalaqah.id);
+         }
       },
     );
   }

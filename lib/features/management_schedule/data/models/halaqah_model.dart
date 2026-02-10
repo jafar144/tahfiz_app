@@ -6,7 +6,7 @@ class HalaqahModel extends Halaqah {
   const HalaqahModel({
     required super.id,
     required super.programId,
-    required super.scheduleId,
+    required super.scheduleIds,
     required super.name,
     required super.room,
     required super.teacherId,
@@ -22,10 +22,19 @@ class HalaqahModel extends Halaqah {
         .map((e) => HalaqahSantriModel.fromJson(e as Map<String, dynamic>))
         .toList();
     
+    List<String> scheduleIds;
+    if (data['schedule_ids'] != null) {
+      scheduleIds = List<String>.from(data['schedule_ids']);
+    } else if (data['schedule_id'] != null) {
+      scheduleIds = [data['schedule_id'] as String];
+    } else {
+      scheduleIds = [];
+    }
+    
     return HalaqahModel(
       id: doc.id,
       programId: data['session_id'] ?? '', 
-      scheduleId: data['schedule_id'] ?? '',
+      scheduleIds: scheduleIds,
       name: data['name'] ?? '',
       room: data['room'] ?? '',
       teacherId: asatidz['id'] ?? '',

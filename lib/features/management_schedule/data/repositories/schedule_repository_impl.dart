@@ -59,7 +59,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       final model = HalaqahModel(
         id: halaqah.id,
         programId: halaqah.programId,
-        scheduleId: halaqah.scheduleId,
+        scheduleIds: halaqah.scheduleIds,
         name: halaqah.name,
         room: halaqah.room,
         teacherId: halaqah.teacherId,
@@ -80,7 +80,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       final model = HalaqahModel(
         id: halaqah.id,
         programId: halaqah.programId,
-        scheduleId: halaqah.scheduleId,
+        scheduleIds: halaqah.scheduleIds,
         name: halaqah.name,
         room: halaqah.room,
         teacherId: halaqah.teacherId,
@@ -90,6 +90,26 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       );
       await remoteDataSource.createHalaqah(model);
       return const Either.right(null);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ProgramSchedule>> getScheduleById(String scheduleId) async {
+    try {
+      final result = await remoteDataSource.getScheduleById(scheduleId);
+      return Either.right(result);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Halaqah>>> getHalaqahsByTeacher(String teacherId) async {
+    try {
+      final result = await remoteDataSource.getHalaqahsByTeacher(teacherId);
+      return Either.right(result);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
     }

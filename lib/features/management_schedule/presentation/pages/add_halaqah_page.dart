@@ -26,8 +26,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
   String? _selectedGender;
   String? _selectedSessionId;
   String? _selectedSessionName;
-  String? _selectedScheduleId;
-  String? _selectedScheduleDisplay;
+  List<String> _selectedScheduleIds = [];
+  List<String> _selectedScheduleDisplays = [];
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   
@@ -136,8 +136,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       _selectedGender = gender;
       _selectedSessionId = null;
       _selectedSessionName = null;
-      _selectedScheduleId = null;
-      _selectedScheduleDisplay = null;
+      _selectedScheduleIds = [];
+      _selectedScheduleDisplays = [];
       _selectedTeacherId = null;
       _selectedTeacherName = null;
       _selectedSantris = [];
@@ -183,8 +183,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                          setState(() {
                            _selectedSessionId = session.id;
                            _selectedSessionName = FormatUtils.capitalize(session.name);
-                           _selectedScheduleId = null;
-                           _selectedScheduleDisplay = null;
+                           _selectedScheduleIds = [];
+                           _selectedScheduleDisplays = [];
                          });
                          context.read<AddHalaqahCubit>().loadSchedulesAndPeople(session.id, _selectedGender!);
                          Navigator.pop(ctx);
@@ -236,72 +236,148 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
   }
 
   Widget _buildScheduleInput(BuildContext context, AddHalaqahState state) {
-    return AiwaClickableInput(
-      label: 'Jadwal',
-      value: _selectedScheduleDisplay ?? 'Pilih Jadwal',
-      icon: Icons.calendar_today,
-      onTap: () {
-        if (_selectedSessionId == null) {
-          _showSnack(context, 'Silakan pilih sesi terlebih dahulu');
-          return;
-        }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            if (_selectedSessionId == null) {
+              _showSnack(context, 'Silakan pilih sesi terlebih dahulu');
+              return;
+            }
 
-        if (state is AddHalaqahLoaded) {
-          if (state.schedules.isEmpty) {
-             _showSnack(context, 'Tidak ada jadwal tersedia untuk sesi ini');
-             return;
-          }
+            if (state is AddHalaqahLoaded) {
+              if (state.schedules.isEmpty) {
+                 _showSnack(context, 'Tidak ada jadwal tersedia untuk sesi ini');
+                 return;
+              }
 
-          showModalBottomSheet(
-            context: context,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              showModalBottomSheet(
+                context: context,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (modalContext) {
+                  return StatefulBuilder(
+                    builder: (BuildContext _, StateSetter setModalState) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                           const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text("Pilih Jadwal", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ),
+                          const Divider(height: 1),
+                          Flexible(
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: state.schedules.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (ctx, index) {
+                                final schedule = state.schedules[index];
+                                final dayName = _getDayName(schedule.day);
+                                final display = '$dayName, ${schedule.startTime} - ${schedule.endTime}';
+                                final isSelected = _selectedScheduleIds.contains(schedule.id);
+                                
+                                return ListTile(
+                                  title: Text(display),
+                                  trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.blue) : null,
+                                  onTap: () {
+                                     if (isSelected) {
+                                       _selectedScheduleIds.remove(schedule.id);
+                                       _selectedScheduleDisplays.remove(display);
+                                     } else {
+                                       _selectedScheduleIds.add(schedule.id);
+                                       _selectedScheduleDisplays.add(display);
+                                     }
+                                     setModalState(() {});
+                                     if (_selectedScheduleIds.isNotEmpty) {
+                                       context.read<AddHalaqahCubit>().checkScheduleAvailability(_selectedScheduleIds.first);
+                                     }
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  setState(() {});
+                                  Navigator.pop(modalContext);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: Text('Selesai (${_selectedScheduleIds.length} dipilih)'),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              );
+            } else {
+                 _showSnack(context, 'Jadwal belum dimuat');
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
             ),
-            builder: (ctx) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text("Pilih Jadwal", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
-                  const Divider(height: 1),
-                  Flexible(
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: state.schedules.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (ctx, index) {
-                        final schedule = state.schedules[index];
-                        final dayName = _getDayName(schedule.day);
-                        final display = '$dayName, ${schedule.startTime} - ${schedule.endTime}';
-                        return ListTile(
-                          title: Text(display),
-                          onTap: () {
-                             setState(() {
-                               _selectedScheduleId = schedule.id;
-                               _selectedScheduleDisplay = display;
-                               _selectedTeacherId = null;
-                               _selectedTeacherName = null;
-                               _selectedSantris.clear();
-                             });
-                             context.read<AddHalaqahCubit>().checkScheduleAvailability(schedule.id);
-                             Navigator.pop(ctx);
-                          },
-                        );
-                      },
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today, color: Colors.grey),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedScheduleIds.isEmpty
+                        ? 'Pilih Jadwal'
+                        : '${_selectedScheduleIds.length} jadwal dipilih',
+                    style: TextStyle(
+                      color: _selectedScheduleIds.isEmpty ? Colors.grey : Colors.black87,
+                      fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+        if (_selectedScheduleDisplays.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _selectedScheduleDisplays.asMap().entries.map((entry) {
+              final index = entry.key;
+              final display = entry.value;
+              return Chip(
+                label: Text(display, style: const TextStyle(fontSize: 12)),
+                backgroundColor: Colors.blue.shade50,
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () {
+                  setState(() {
+                    _selectedScheduleIds.removeAt(index);
+                    _selectedScheduleDisplays.removeAt(index);
+                  });
+                },
               );
-            }
-          );
-        } else {
-             _showSnack(context, 'Jadwal belum dimuat');
-        }
-      },
+            }).toList(),
+          ),
+        ],
+      ],
     );
   }
 
@@ -328,7 +404,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               _showSnack(context, 'Silakan pilih kategori kelas terlebih dahulu');
               return;
             }
-            if (_selectedScheduleId == null) {
+            if (_selectedScheduleIds.isEmpty) {
                _showSnack(context, 'Silakan pilih jadwal terlebih dahulu');
                return;
             }
@@ -381,7 +457,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               _showSnack(context, 'Silakan pilih kategori kelas terlebih dahulu');
               return;
             }
-            if (_selectedScheduleId == null) {
+            if (_selectedScheduleIds.isEmpty) {
                _showSnack(context, 'Silakan pilih jadwal terlebih dahulu');
                return;
             }
@@ -519,8 +595,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       return;
     }
     
-    if (_selectedScheduleId == null) {
-      _showSnack(context, 'Pilih jadwal terlebih dahulu');
+    if (_selectedScheduleIds.isEmpty) {
+      _showSnack(context, 'Pilih minimal satu jadwal terlebih dahulu');
       return;
     }
 
@@ -537,7 +613,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
     final halaqah = Halaqah(
       id: '',
       programId: _selectedSessionId!,
-      scheduleId: _selectedScheduleId!,
+      scheduleIds: _selectedScheduleIds,
       name: _nameController.text,
       room: _roomController.text,
       teacherId: _selectedTeacherId!,

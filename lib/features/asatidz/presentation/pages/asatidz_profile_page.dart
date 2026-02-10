@@ -4,8 +4,8 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
 
-class AdminProfilePage extends StatelessWidget {
-  const AdminProfilePage({super.key});
+class AsatidzProfilePage extends StatelessWidget {
+  const AsatidzProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +52,12 @@ class AdminProfilePage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.purple.shade600, Colors.purple.shade400],
+          colors: [Colors.blue.shade600, Colors.blue.shade400],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: Colors.blue.withOpacity(0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -85,7 +85,7 @@ class AdminProfilePage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Colors.purple.shade600,
+                  color: Colors.blue.shade600,
                 ),
               ),
             ),
@@ -108,29 +108,6 @@ class AdminProfilePage extends StatelessWidget {
               color: Colors.white.withOpacity(0.9),
             ),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.admin_panel_settings, color: Colors.white, size: 16),
-                SizedBox(width: 6),
-                Text(
-                  'Administrator',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),
@@ -167,7 +144,7 @@ class AdminProfilePage extends StatelessWidget {
           const Divider(height: 24),
           _buildInfoRow(Icons.phone, 'No. Telepon', user.phone),
           const Divider(height: 24),
-          _buildInfoRow(Icons.work, 'Role', 'Administrator'),
+          _buildInfoRow(Icons.work, 'Role', 'Asatidz'),
         ],
       ),
     );
@@ -179,10 +156,10 @@ class AdminProfilePage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.purple.shade50,
+            color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: Colors.purple.shade700),
+          child: Icon(icon, size: 20, color: Colors.blue.shade700),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -244,18 +221,6 @@ class AdminProfilePage extends StatelessWidget {
             title: 'Ganti Password',
             subtitle: 'Ubah kata sandi',
             color: Colors.orange,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
-          ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.settings,
-            title: 'Pengaturan',
-            subtitle: 'Konfigurasi aplikasi',
-            color: Colors.teal,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Fitur coming soon...')),
