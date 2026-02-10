@@ -183,4 +183,41 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'nis': params.nis,
     });
   }
+
+  @override
+  Future<List<SantriEntity>> getSantriByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+
+    final List<SantriEntity> allSantris = [];
+    
+    // Firestore whereIn supports max 10 items
+    for (var i = 0; i < ids.length; i += 10) {
+      final end = (i + 10 < ids.length) ? i + 10 : ids.length;
+      final chunk = ids.sublist(i, end);
+
+      final snapshot = await firestore
+          .collection('santri_profiles')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+
+      final items = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return SantriEntity(
+          id: doc.id,
+          name: data['name'] ?? '',
+          nis: data['nis'] ?? '',
+          kelas: data['kelas'] ?? '',
+          jenisKelamin: data['jenis_kelamin'] ?? '',
+          isActive: data['is_active'] ?? true,
+          isFree: data['is_free'] ?? false,
+          nomorWali: data['nomor_wali'],
+          pembimbing: null,
+        );
+      }).toList();
+      
+      allSantris.addAll(items);
+    }
+    
+    return allSantris;
+  }
 }

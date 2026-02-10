@@ -7,8 +7,9 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 class SantriCard extends StatelessWidget {
   final SantriEntity santri;
   final VoidCallback? onReturn;
+  final Map<String, dynamic>? extra;
 
-  const SantriCard(this.santri, {super.key, this.onReturn});
+  const SantriCard(this.santri, {super.key, this.onReturn, this.extra});
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +20,7 @@ class SantriCard extends StatelessWidget {
           await context.pushNamed(
             RouteNames.detailSantri,
             pathParameters: {'id': santri.id},
+            extra: extra,
           );
           onReturn?.call();
         },

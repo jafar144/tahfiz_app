@@ -11,8 +11,13 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 
 class SantriDetailPage extends StatefulWidget {
   final String santriId;
+  final bool readOnly;
 
-  const SantriDetailPage({super.key, required this.santriId});
+  const SantriDetailPage({
+    super.key, 
+    required this.santriId,
+    this.readOnly = false,
+  });
 
   @override
   State<SantriDetailPage> createState() => _SantriDetailPageState();
@@ -58,7 +63,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         ),
         floatingActionButton: BlocBuilder<SantriDetailCubit, SantriDetailState>(
           builder: (context, state) {
-            if (state is SantriDetailLoaded) {
+            if (state is SantriDetailLoaded && !widget.readOnly) {
               return FloatingActionButton(
                 onPressed: () {
                   context.pushNamed(

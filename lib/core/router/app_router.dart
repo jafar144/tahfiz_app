@@ -64,9 +64,13 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.detailSantri,
         name: RouteNames.detailSantri,
-        builder: (context, state) => SantriDetailPage(
-          santriId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>?;
+          return SantriDetailPage(
+            santriId: state.pathParameters['id']!,
+            readOnly: extras?['readOnly'] ?? false,
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.editSantri,

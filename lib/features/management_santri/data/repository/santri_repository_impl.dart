@@ -106,4 +106,43 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<void> updateSantri(String id, SantriParams params) async {
     await remote.updateSantri(id, params);
   }
+
+  @override
+  Future<List<SantriEntity>> getSantriByIds(List<String> ids) async {
+    final santriList = await remote.getSantriByIds(ids);
+
+    // Fetch pembimbing info similar to getSantriList
+    // Note: optimization possible if ids are few
+    final classSnap = await firestore
+        .collection('classes')
+        .where('is_active', isEqualTo: true)
+        .get();
+
+    final classMap = <String, String>{};
+
+    for (var doc in classSnap.docs) {
+      final data = doc.data();
+      final namaPembimbing = data['pembimbing_name'];
+      if (data['santri_ids'] != null) {
+        final santriIds = List<String>.from(data['santri_ids']);
+         for (final id in santriIds) {
+          classMap[id.trim()] = namaPembimbing;
+        }
+      }
+    }
+
+    return santriList.map((s) {
+      return SantriEntity(
+        id: s.id,
+        name: s.name,
+        nis: s.nis,
+        kelas: s.kelas,
+        jenisKelamin: s.jenisKelamin,
+        isActive: s.isActive,
+        isFree: s.isFree,
+        nomorWali: s.nomorWali,
+        pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
+      );
+    }).toList();
+  }
 }

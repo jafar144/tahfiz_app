@@ -50,6 +50,7 @@ import 'package:khoirunnasyien/features/asatidz/data/datasources/asatidz_remote_
 import 'package:khoirunnasyien/features/asatidz/data/repositories/asatidz_repository_impl.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart' as asatidz_domain;
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -191,6 +192,13 @@ Future<void> initDI() async {
       scheduleRepository: getIt(),
       asatidzRepository: getIt(),
       asatidzId: '', // Will be set from auth
+    ),
+  );
+
+  getIt.registerFactory(
+    () => AsatidzSantriCubit(
+      scheduleRepository: getIt(),
+      santriRepository: getIt(),
     ),
   );
 }
