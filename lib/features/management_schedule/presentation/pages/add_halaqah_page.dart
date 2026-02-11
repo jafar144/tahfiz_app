@@ -465,7 +465,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
             final initialEntities = _selectedSantris.map((h) => SantriEntity(
               id: h.id, 
               name: h.name, 
-              nis: '', 
+              nis: h.nis, 
               jenisKelamin: _selectedGender!, 
               isActive: true, 
               kelas: '', 

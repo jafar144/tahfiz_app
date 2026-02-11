@@ -116,8 +116,20 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
             ),
           ),
           Expanded(
-            child: BlocBuilder<SantriCubit, SantriState>(
-              builder: (context, state) {
+            child: BlocListener<SantriCubit, SantriState>(
+              listener: (context, state) {
+                if (state is SantriLoaded) {
+                  setState(() {
+                    for (final santri in state.santri) {
+                      if (_selectedMap.containsKey(santri.id)) {
+                        _selectedMap[santri.id] = santri;
+                      }
+                    }
+                  });
+                }
+              },
+              child: BlocBuilder<SantriCubit, SantriState>(
+                builder: (context, state) {
                       final isLoading = state is SantriLoading;
                       // Dummy data for skeleton
                       final List<SantriEntity> dataList;
@@ -211,9 +223,9 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
                     },
                   ),
                 ),
-              ],
-            ),
-          );
-
+              ),
+            ],
+          ),
+      );
   }
 }

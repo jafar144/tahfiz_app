@@ -79,7 +79,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         'id': halaqah.teacherId,
         'name': halaqah.teacherName,
       },
-      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name}).toList(),
+      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name, 'nis': s.nis}).toList(),
     });
   }
 
@@ -95,7 +95,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         'id': halaqah.teacherId,
         'name': halaqah.teacherName,
       },
-      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name}).toList(),
+      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name, 'nis': s.nis}).toList(),
     });
   }
 
