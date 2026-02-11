@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
@@ -96,15 +97,8 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'Data Asatidz',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.black87),
+      appBar: const AiwaAppBar(
+        title: 'Data Asatidz',
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add_asatidz_fab',

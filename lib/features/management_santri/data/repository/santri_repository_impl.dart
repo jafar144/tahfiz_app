@@ -37,21 +37,24 @@ class SantriRepositoryImpl implements SantriRepository {
       lastDocumentId: lastDocumentId,
     );
 
-    final classSnap = await firestore
-        .collection('classes')
-        .where('is_active', isEqualTo: true)
+    final halaqahSnap = await firestore
+        .collection('halaqahs')
+        .where('status', isEqualTo: 'Active')
         .get();
 
     final classMap = <String, String>{};
 
-    for (var doc in classSnap.docs) {
+    for (var doc in halaqahSnap.docs) {
       final data = doc.data();
-      final namaPembimbing = data['pembimbing_name'];
-      // Handle potential null or type issues safely
-      if (data['santri_ids'] != null) {
-        final santriIds = List<String>.from(data['santri_ids']);
-         for (final id in santriIds) {
-          classMap[id.trim()] = namaPembimbing;
+      final asatidzData = data['asatidz'] as Map<String, dynamic>?;
+      final namaPembimbing = asatidzData?['name'] as String?;
+      
+      if (data['santris'] != null && namaPembimbing != null) {
+        final santrisList = List<dynamic>.from(data['santris']);
+         for (final item in santrisList) {
+           if (item is Map && item['id'] != null) {
+              classMap[item['id'].toString().trim()] = namaPembimbing;
+           }
         }
       }
     }
@@ -75,16 +78,22 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<SantriDetail> getSantriDetail(String id) async {
     final detail = await remote.getSantriDetail(id);
 
-    // Fetch pembimbing from classes collection
-    final classSnap = await firestore
-        .collection('classes')
-        .where('santri_ids', arrayContains: id)
-        .limit(1)
+    // Fetch pembimbing from halaqahs collection
+    final halaqahSnap = await firestore
+        .collection('halaqahs')
+        .where('status', isEqualTo: 'Active')
         .get();
 
     String? namaPembimbing;
-    if (classSnap.docs.isNotEmpty) {
-      namaPembimbing = classSnap.docs.first.data()['pembimbing_name'];
+    for (var doc in halaqahSnap.docs) {
+      final data = doc.data();
+      final santris = data['santris'] as List<dynamic>? ?? [];
+      final found = santris.any((s) => s is Map && s['id'] == id);
+      if (found) {
+        final asatidz = data['asatidz'] as Map<String, dynamic>?;
+        namaPembimbing = asatidz?['name'];
+        break;
+      }
     }
 
     return SantriDetail(
@@ -120,22 +129,25 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<List<SantriEntity>> getSantriByIds(List<String> ids) async {
     final santriList = await remote.getSantriByIds(ids);
 
-    // Fetch pembimbing info similar to getSantriList
-    // Note: optimization possible if ids are few
-    final classSnap = await firestore
-        .collection('classes')
-        .where('is_active', isEqualTo: true)
+    // Fetch pembimbing info
+    final halaqahSnap = await firestore
+        .collection('halaqahs')
+        .where('status', isEqualTo: 'Active')
         .get();
 
     final classMap = <String, String>{};
 
-    for (var doc in classSnap.docs) {
+    for (var doc in halaqahSnap.docs) {
       final data = doc.data();
-      final namaPembimbing = data['pembimbing_name'];
-      if (data['santri_ids'] != null) {
-        final santriIds = List<String>.from(data['santri_ids']);
-         for (final id in santriIds) {
-          classMap[id.trim()] = namaPembimbing;
+      final asatidzData = data['asatidz'] as Map<String, dynamic>?;
+      final namaPembimbing = asatidzData?['name'] as String?;
+      
+      if (data['santris'] != null && namaPembimbing != null) {
+        final santrisList = List<dynamic>.from(data['santris']);
+         for (final item in santrisList) {
+           if (item is Map && item['id'] != null) {
+              classMap[item['id'].toString().trim()] = namaPembimbing;
+           }
         }
       }
     }

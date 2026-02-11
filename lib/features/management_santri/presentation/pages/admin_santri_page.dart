@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_chip.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/constants/app_constants.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -194,15 +195,8 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: const Text(
-          'Data Santri',
-          style: AppTextStyles.titleBlack,
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: const IconThemeData(color: Colors.black87),
+      appBar: const AiwaAppBar(
+        title: 'Data Santri',
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add_santri_fab',
