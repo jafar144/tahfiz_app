@@ -9,19 +9,27 @@ class SantriAttendanceLoading extends SantriAttendanceState {}
 class SantriAttendanceLoaded extends SantriAttendanceState {
   final Map<String, String> attendanceMap;
   final bool isSubmitting;
+  final bool isExistingData;
+  final DateTime? lastUpdated;
 
   const SantriAttendanceLoaded({
     required this.attendanceMap,
     this.isSubmitting = false,
+    this.isExistingData = false,
+    this.lastUpdated,
   });
 
   SantriAttendanceLoaded copyWith({
     Map<String, String>? attendanceMap,
     bool? isSubmitting,
+    bool? isExistingData,
+    DateTime? lastUpdated,
   }) {
     return SantriAttendanceLoaded(
       attendanceMap: attendanceMap ?? this.attendanceMap,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isExistingData: isExistingData ?? this.isExistingData,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
     );
   }
 }

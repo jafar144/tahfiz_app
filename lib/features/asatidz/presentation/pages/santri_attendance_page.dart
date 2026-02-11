@@ -63,6 +63,8 @@ class SantriAttendancePage extends StatelessWidget {
           if (state is SantriAttendanceLoaded) {
             return Column(
               children: [
+                if (state.isExistingData)
+                  _buildExistingDataInfo(state.lastUpdated),
                 Expanded(
                   child: _buildAttendanceList(context, state),
                 ),
@@ -73,6 +75,53 @@ class SantriAttendancePage extends StatelessWidget {
 
           return const SizedBox();
         },
+      ),
+    );
+  }
+
+  Widget _buildExistingDataInfo(DateTime? lastUpdated) {
+    final dateStr = lastUpdated != null 
+        ? DateFormat('d MMM yyyy • HH:mm', 'id_ID').format(lastUpdated)
+        : '';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sudah melakukan absen',
+                  style: TextStyle(
+                    color: Colors.blue.shade900,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                if (dateStr.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Terakhir: $dateStr',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -199,43 +248,43 @@ class SantriAttendancePage extends StatelessWidget {
           context.read<SantriAttendanceCubit>().updateAttendance(santriId, 'hadir');
         }
       },
-      child: Container(
-        width: 52,
-        height: 32,
-        decoration: BoxDecoration(
-          color: isPresent ? Colors.blue : Colors.grey.shade300,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Stack(
-          children: [
-            AnimatedAlign(
-              duration: const Duration(milliseconds: 200),
-              alignment: isPresent ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                width: 28,
-                height: 28,
-                margin: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-              ),
+      child: Column(
+        children: [
+          Container(
+            width: 52,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isPresent ? Colors.blue : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(16),
             ),
-            Center(
-              child: Padding(
-                padding: EdgeInsets.only(left: isPresent ? 6 : 0, right: isPresent ? 0 : 6),
-                child: Text(
-                  isPresent ? 'Hadir' : 'Absent',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isPresent ? Colors.white : Colors.grey.shade600,
+            child: Stack(
+              children: [
+                AnimatedAlign(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: isPresent ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    margin: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isPresent ? 'Hadir' : 'Absent',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: isPresent ? Colors.blue : Colors.grey.shade600,
+            ),
+          ),
+        ],
       ),
     );
   }

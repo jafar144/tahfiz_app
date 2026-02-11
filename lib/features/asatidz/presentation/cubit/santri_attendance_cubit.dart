@@ -17,7 +17,45 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
     required this.asatidzName,
   }) : super(SantriAttendanceInitial());
 
-  void init() {
+  Future<void> init() async {
+    emit(SantriAttendanceLoading());
+    
+    final result = await repository.getSantriAttendance(
+      halaqahId: activeHalaqah.halaqah.id,
+      date: DateTime.now(),
+    );
+
+    result.fold(
+      ifLeft: (failure) => _loadDefaultAttendance(), // Fallback if error
+      ifRight: (attendance) {
+        if (attendance != null) {
+          final attendanceMap = <String, String>{};
+          
+          // Map existing attendance
+          for (final item in attendance.attendanceList) {
+            attendanceMap[item.santriId] = item.status;
+          }
+          
+          // Ensure all current santris are included (in case new ones added)
+          for (final santri in activeHalaqah.halaqah.santris) {
+            if (!attendanceMap.containsKey(santri.id)) {
+              attendanceMap[santri.id] = 'hadir';
+            }
+          }
+          
+          emit(SantriAttendanceLoaded(
+            attendanceMap: attendanceMap,
+            isExistingData: true,
+            lastUpdated: attendance.updatedAt,
+          ));
+        } else {
+          _loadDefaultAttendance();
+        }
+      },
+    );
+  }
+
+  void _loadDefaultAttendance() {
     final attendanceMap = <String, String>{};
     
     for (final santri in activeHalaqah.halaqah.santris) {
