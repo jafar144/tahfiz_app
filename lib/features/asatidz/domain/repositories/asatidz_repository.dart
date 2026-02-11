@@ -50,10 +50,13 @@ abstract class AsatidzRepository {
     required String asatidzName,
     required DateTime date,
     required String surah,
-    required int ayatAwal,
-    required int ayatAkhir,
-    required String kualitasHafalan,
     String catatan,
+  });
+
+  Future<Either<Failure, void>> updateSetoran({
+    required String setoranId,
+    required String surah,
+    required String catatan,
   });
 
   Future<Either<Failure, List<SantriSetoran>>> getSetoranHistory({

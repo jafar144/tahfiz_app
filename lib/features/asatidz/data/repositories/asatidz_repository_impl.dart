@@ -129,9 +129,6 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
     required String asatidzName,
     required DateTime date,
     required String surah,
-    required int ayatAwal,
-    required int ayatAkhir,
-    required String kualitasHafalan,
     String catatan = '',
   }) async {
     try {
@@ -144,12 +141,27 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
         asatidzName: asatidzName,
         date: date,
         surah: surah,
-        ayatAwal: ayatAwal,
-        ayatAkhir: ayatAkhir,
-        kualitasHafalan: kualitasHafalan,
         catatan: catatan,
       );
       return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateSetoran({
+    required String setoranId,
+    required String surah,
+    required String catatan,
+  }) async {
+    try {
+      await remoteDataSource.updateSetoran(
+        setoranId: setoranId,
+        surah: surah,
+        catatan: catatan,
+      );
+      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

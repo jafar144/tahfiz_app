@@ -12,9 +12,6 @@ class SantriSetoranModel extends SantriSetoran {
     required super.asatidzName,
     required super.date,
     required super.surah,
-    required super.ayatAwal,
-    required super.ayatAkhir,
-    required super.kualitasHafalan,
     super.catatan,
     required super.createdAt,
   });
@@ -31,9 +28,6 @@ class SantriSetoranModel extends SantriSetoran {
       asatidzName: data['asatidz_name'] ?? '',
       date: (data['date'] as Timestamp).toDate(),
       surah: data['surah'] ?? '',
-      ayatAwal: data['ayat_awal'] ?? 1,
-      ayatAkhir: data['ayat_akhir'] ?? 1,
-      kualitasHafalan: data['kualitas_hafalan'] ?? '',
       catatan: data['catatan'] ?? '',
       createdAt: (data['created_at'] as Timestamp).toDate(),
     );
@@ -49,9 +43,6 @@ class SantriSetoranModel extends SantriSetoran {
       'asatidz_name': asatidzName,
       'date': Timestamp.fromDate(date),
       'surah': surah,
-      'ayat_awal': ayatAwal,
-      'ayat_akhir': ayatAkhir,
-      'kualitas_hafalan': kualitasHafalan,
       'catatan': catatan,
       'created_at': Timestamp.fromDate(createdAt),
     };

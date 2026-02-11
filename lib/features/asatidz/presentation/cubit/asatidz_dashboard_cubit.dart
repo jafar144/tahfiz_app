@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/constants/app_constants.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_state.dart';
@@ -70,8 +71,8 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
 
         if (schedule == null || schedule.day != currentDay) continue;
 
-        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(minutes: 30));
-        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(minutes: 30));
+        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(minutes: AppConstants.sessionBufferMinutes));
+        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(minutes: AppConstants.sessionBufferMinutes));
 
         if (now.isAfter(sessionStart) && now.isBefore(sessionEnd)) {
           final isCheckedIn = await _checkAsatidzAttendance(halaqah.id, scheduleId, now);

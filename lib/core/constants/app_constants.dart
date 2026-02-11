@@ -18,4 +18,6 @@ class AppConstants {
     'Sore',
     'Malam'
   ];
+
+  static const int sessionBufferMinutes = 30;
 }

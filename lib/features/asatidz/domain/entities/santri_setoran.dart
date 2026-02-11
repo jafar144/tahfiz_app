@@ -8,9 +8,6 @@ class SantriSetoran {
   final String asatidzName;
   final DateTime date;
   final String surah;
-  final int ayatAwal;
-  final int ayatAkhir;
-  final String kualitasHafalan;
   final String catatan;
   final DateTime createdAt;
 
@@ -24,9 +21,6 @@ class SantriSetoran {
     required this.asatidzName,
     required this.date,
     required this.surah,
-    required this.ayatAwal,
-    required this.ayatAkhir,
-    required this.kualitasHafalan,
     this.catatan = '',
     required this.createdAt,
   });

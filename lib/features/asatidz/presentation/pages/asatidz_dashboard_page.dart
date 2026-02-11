@@ -473,8 +473,11 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => HalaqahDepositListPage(
-                            activeHalaqah: state.activeHalaqah!,
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<AsatidzDashboardCubit>(),
+                            child: HalaqahDepositListPage(
+                              activeHalaqah: state.activeHalaqah!,
+                            ),
                           ),
                         ),
                       );

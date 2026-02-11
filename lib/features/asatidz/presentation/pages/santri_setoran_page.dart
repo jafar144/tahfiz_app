@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_state.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
+
 
 class SantriSetoranPage extends StatefulWidget {
   final ActiveHalaqah activeHalaqah;
@@ -21,18 +23,14 @@ class SantriSetoranPage extends StatefulWidget {
 
 class _SantriSetoranPageState extends State<SantriSetoranPage> {
   final _formKey = GlobalKey<FormState>();
-  final _surahController = TextEditingController();
-  final _ayatAwalController = TextEditingController();
-  final _ayatAkhirController = TextEditingController();
+  final _hafalanController = TextEditingController(); // Replaces surah
   final _catatanController = TextEditingController();
   
-  String _selectedKualitas = 'Mantap';
+
 
   @override
   void dispose() {
-    _surahController.dispose();
-    _ayatAwalController.dispose();
-    _ayatAkhirController.dispose();
+    _hafalanController.dispose();
     _catatanController.dispose();
     super.dispose();
   }
@@ -42,7 +40,15 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Input Setoran Hafalan'),
+        title: BlocBuilder<SantriSetoranCubit, SantriSetoranState>(
+          builder: (context, state) {
+            String title = 'Input Setoran';
+            if (state is SantriSetoranDataLoaded && state.todaySetoran != null) {
+              title = 'Edit Setoran';
+            }
+            return Text(title);
+          },
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -52,8 +58,8 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
         listener: (context, state) {
           if (state is SantriSetoranSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Setoran berhasil disimpan'),
+              SnackBar(
+                content: Text(state.message),
                 backgroundColor: Colors.green,
               ),
             );
@@ -67,11 +73,24 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               ),
             );
           }
+          // Initial data loaded listener to populate fields for editing
+          if (state is SantriSetoranDataLoaded && state.todaySetoran != null && !_hafalanController.text.isNotEmpty) {
+             _hafalanController.text = state.todaySetoran!.surah;
+             _catatanController.text = state.todaySetoran!.catatan;
+          }
         },
         builder: (context, state) {
+          if (state is SantriSetoranLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          bool isEditing = false;
+          if (state is SantriSetoranDataLoaded && state.todaySetoran != null) {
+            isEditing = true;
+          }
+
           return Column(
             children: [
-              _buildSantriHeader(),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -80,60 +99,58 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildDateCard(),
-                        const SizedBox(height: 16),
-                        _buildSurahInput(),
-                        const SizedBox(height: 16),
-                        _buildAyatInputs(),
-                        const SizedBox(height: 16),
-                        _buildKualitasSelector(),
-                        const SizedBox(height: 16),
+                        _buildHeader(), // Simplified header
+                        const SizedBox(height: 20),
+                        
+                        _buildSectionLabel('Tanggal'),
+                        const SizedBox(height: 8),
+                        _buildDateInput(),
+                        
+                        const SizedBox(height: 20),
+                        _buildSectionLabel('Hafalan'),
+                        const SizedBox(height: 8),
+                        _buildHafalanInput(),
+                        
+                        const SizedBox(height: 20),
+                        _buildSectionLabel('Catatan Ustadz'),
+                        const SizedBox(height: 8),
                         _buildCatatanInput(),
-                        const SizedBox(height: 80),
+                        
+                        const SizedBox(height: 40),
                       ],
                     ),
                   ),
                 ),
               ),
+              _buildSubmitButton(context, state is SantriSetoranDataLoaded ? state.isSubmitting : false, isEditing),
             ],
           );
         },
       ),
-      floatingActionButton: _buildSubmitButton(context),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
-  Widget _buildSantriHeader() {
+  Widget _buildHeader() {
     final initial = widget.santri.name.isNotEmpty ? widget.santri.name[0].toUpperCase() : '?';
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.purple.shade600, Colors.purple.shade400],
-        ),
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.shade100),
       ),
       child: Row(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Center(
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: Colors.white,
+            child: Text(
+              initial,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
               ),
             ),
           ),
@@ -145,17 +162,17 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                 Text(
                   widget.santri.name,
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.activeHalaqah.halaqah.name,
+                  'NIS: ${widget.santri.nis}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -166,415 +183,131 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
     );
   }
 
-  Widget _buildDateCard() {
-    final now = DateTime.now();
-    final dateStr = '${now.day}/${now.month}/${now.year}';
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+    );
+  }
 
+  Widget _buildDateInput() {
+    final now = DateTime.now();
+    // Improved date format: DD/MM/YYYY
+    final dateStr = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(10),
+          Expanded(
+            child: Text(
+              dateStr,
+              style: const TextStyle(fontSize: 16, color: Colors.black87),
             ),
-            child: Icon(Icons.calendar_today, color: Colors.blue.shade700, size: 20),
           ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Tanggal',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                dateStr,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
+          const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
         ],
       ),
     );
   }
 
-  Widget _buildSurahInput() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+  Widget _buildHafalanInput() {
+    return TextFormField(
+      controller: _hafalanController,
+      decoration: InputDecoration(
+        hintText: 'Contoh: Juz 30 Full, atau Al-Mulk 1-10',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.book, color: Colors.purple.shade700, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Surah',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _surahController,
-            decoration: InputDecoration(
-              hintText: 'Contoh: Al-Mulk',
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Nama surah harus diisi';
-              }
-              return null;
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAyatInputs() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.format_list_numbered, color: Colors.orange.shade700, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Ayat',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ayat Awal',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _ayatAwalController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: '1',
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Wajib diisi';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Harus angka';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ayat Akhir',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _ayatAkhirController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        hintText: '10',
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Wajib diisi';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Harus angka';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKualitasSelector() {
-    final kualitasOptions = ['Mantap', 'Jaryid', 'Kurang'];
-    final colors = {
-      'Mantap': Colors.green,
-      'Jaryid': Colors.orange,
-      'Kurang': Colors.red,
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.star, color: Colors.amber.shade700, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Kualitas Hafalan',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: kualitasOptions.map((kualitas) {
-              final isSelected = _selectedKualitas == kualitas;
-              final color = colors[kualitas]!;
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedKualitas = kualitas;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isSelected ? color.withOpacity(0.2) : Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected ? color : Colors.grey.shade300,
-                          width: 2,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          kualitas,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? color : Colors.grey.shade600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Wajib diisi';
+        }
+        return null;
+      },
     );
   }
 
   Widget _buildCatatanInput() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.note, color: Colors.blue.shade700, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Catatan Ustadz',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _catatanController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              hintText: 'Tulis catatan perbaikan atau kelebihan hafalan...',
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.all(16),
-            ),
-          ),
-        ],
+    return TextFormField(
+      controller: _catatanController,
+      maxLines: 4,
+      decoration: InputDecoration(
+        hintText: 'Tulis catatan perbaikan makhroj atau tajwid...',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        contentPadding: const EdgeInsets.all(16),
       ),
     );
   }
 
-  Widget _buildSubmitButton(BuildContext context) {
-    return BlocBuilder<SantriSetoranCubit, SantriSetoranState>(
-      builder: (context, state) {
-        final isSubmitting = state is SantriSetoranLoading;
-
-        return Container(
+  Widget _buildSubmitButton(BuildContext context, bool isSubmitting, bool isEditing) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: SizedBox(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ElevatedButton(
+          child: ElevatedButton.icon(
             onPressed: isSubmitting ? null : _handleSubmit,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.purple,
+              backgroundColor: isEditing ? Colors.orange : Colors.blue,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              elevation: 4,
+              elevation: 0,
             ),
-            child: isSubmitting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.save, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Simpan Setoran',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+            icon: isSubmitting 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+              : Icon(isEditing ? Icons.edit : Icons.save),
+            label: Text(
+              isSubmitting ? 'Menyimpan...' : (isEditing ? 'Perbarui Setoran' : 'Simpan Setoran'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -584,10 +317,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
     }
 
     context.read<SantriSetoranCubit>().submitSetoran(
-          surah: _surahController.text,
-          ayatAwal: int.parse(_ayatAwalController.text),
-          ayatAkhir: int.parse(_ayatAkhirController.text),
-          kualitasHafalan: _selectedKualitas,
+          surah: _hafalanController.text,
           catatan: _catatanController.text,
         );
   }

@@ -51,10 +51,13 @@ abstract class AsatidzRemoteDataSource {
     required String asatidzName,
     required DateTime date,
     required String surah,
-    required int ayatAwal,
-    required int ayatAkhir,
-    required String kualitasHafalan,
     String catatan,
+  });
+
+  Future<void> updateSetoran({
+    required String setoranId,
+    required String surah,
+    required String catatan,
   });
 
   Future<List<SantriSetoranModel>> getSetoranHistory({
@@ -343,9 +346,6 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String asatidzName,
     required DateTime date,
     required String surah,
-    required int ayatAwal,
-    required int ayatAkhir,
-    required String kualitasHafalan,
     String catatan = '',
   }) async {
     final now = DateTime.now();
@@ -359,9 +359,6 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       asatidzName: asatidzName,
       date: date,
       surah: surah,
-      ayatAwal: ayatAwal,
-      ayatAkhir: ayatAkhir,
-      kualitasHafalan: kualitasHafalan,
       catatan: catatan,
       createdAt: now,
     );
@@ -378,12 +375,22 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       asatidzName: asatidzName,
       date: date,
       surah: surah,
-      ayatAwal: ayatAwal,
-      ayatAkhir: ayatAkhir,
-      kualitasHafalan: kualitasHafalan,
       catatan: catatan,
       createdAt: now,
     );
+  }
+
+  @override
+  Future<void> updateSetoran({
+    required String setoranId,
+    required String surah,
+    required String catatan,
+  }) async {
+    await firestore.collection('santri_setoran').doc(setoranId).update({
+      'surah': surah,
+      'catatan': catatan,
+      'updated_at': FieldValue.serverTimestamp(),
+    });
   }
 
   @override
