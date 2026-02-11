@@ -31,4 +31,22 @@ class AppTextStyles {
     fontWeight: FontWeight.w600,
     color: AppColors.primary,
   );
+
+  static const titleBlack = TextStyle(
+    fontSize: 24,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+
+  static const contentBlack = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+
+  static const smallContentBlack = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
 }

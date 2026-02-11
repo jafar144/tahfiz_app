@@ -3,6 +3,7 @@ import 'package:khoirunnasyien/features/management_santri/data/datasource/santri
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 
@@ -17,6 +18,10 @@ class SantriRepositoryImpl implements SantriRepository {
     String? keyword,
     bool? isActive,
     String? gender,
+    String? session,
+    String? kelas,
+    String? asatidzId,
+    bool? isFree,
     int limit = 10,
     String? lastDocumentId,
   }) async {
@@ -24,6 +29,10 @@ class SantriRepositoryImpl implements SantriRepository {
       keyword: keyword,
       isActive: isActive,
       gender: gender,
+      session: session,
+      kelas: kelas,
+      asatidzId: asatidzId,
+      isFree: isFree,
       limit: limit,
       lastDocumentId: lastDocumentId,
     );
@@ -144,5 +153,9 @@ class SantriRepositoryImpl implements SantriRepository {
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();
+  }
+  @override
+  Future<List<AsatidzEntity>> getAsatidzList() async {
+    return await remote.getAsatidzList();
   }
 }

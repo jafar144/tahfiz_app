@@ -3,6 +3,8 @@ import 'package:khoirunnasyien/features/management_santri/domain/repository/sant
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
+
 class SantriCubit extends Cubit<SantriState> {
   final SantriRepository repository;
 
@@ -10,6 +12,10 @@ class SantriCubit extends Cubit<SantriState> {
   String? _currentKeyword;
   bool? _currentIsActive;
   String? _currentGender;
+  String? _currentSession;
+  String? _currentClass;
+  String? _currentAsatidzId;
+  bool? _currentIsFree;
   static const int _limit = 10;
 
   SantriCubit(this.repository) : super(SantriInitial());
@@ -18,10 +24,18 @@ class SantriCubit extends Cubit<SantriState> {
     String? keyword,
     bool? isActive,
     String? gender,
+    String? session,
+    String? kelas,
+    String? asatidzId,
+    bool? isFree,
   }) async {
     _currentKeyword = keyword;
     _currentIsActive = isActive;
     _currentGender = gender;
+    _currentSession = session;
+    _currentClass = kelas;
+    _currentAsatidzId = asatidzId;
+    _currentIsFree = isFree;
     
     emit(SantriLoading());
     try {
@@ -29,6 +43,10 @@ class SantriCubit extends Cubit<SantriState> {
         keyword: keyword,
         isActive: isActive,
         gender: gender,
+        session: session,
+        kelas: kelas,
+        asatidzId: asatidzId,
+        isFree: isFree,
         limit: _limit,
       );
 
@@ -62,6 +80,10 @@ class SantriCubit extends Cubit<SantriState> {
         keyword: _currentKeyword,
         isActive: _currentIsActive,
         gender: _currentGender,
+        session: _currentSession,
+        kelas: _currentClass,
+        asatidzId: _currentAsatidzId,
+        isFree: _currentIsFree,
         limit: _limit,
         lastDocumentId: lastId,
       );
@@ -88,5 +110,8 @@ class SantriCubit extends Cubit<SantriState> {
     } catch (e) {
       emit(SantriError(e.toString()));
     }
+  }
+  Future<List<AsatidzEntity>> fetchAsatidzList() {
+    return repository.getAsatidzList();
   }
 }

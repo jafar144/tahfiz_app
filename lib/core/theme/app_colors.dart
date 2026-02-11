@@ -4,7 +4,7 @@ class AppColors {
   AppColors._();
 
   // Brand
-  static const primary = Color(0xFF007CC3);
+  static const primary = Color.fromRGBO(30, 136, 229, 1);
   static const secondary = Color(0xFF268CBE);
 
   // Neutral

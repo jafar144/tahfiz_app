@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/management_santri/data/datasource/santri
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 
 class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   final FirebaseFirestore firestore;
@@ -17,9 +18,94 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     String? keyword,
     bool? isActive,
     String? gender,
+    String? session,
+    String? kelas,
+    String? asatidzId,
+    bool? isFree,
     int limit = 10,
     String? lastDocumentId,
   }) async {
+    if (asatidzId != null) {
+      // 1. Get halaqahs for this asatidz
+      final halaqahs = await firestore
+          .collection('halaqahs')
+          .where('asatidz.id', isEqualTo: asatidzId)
+          .get();
+
+      final santriIds = <String>{};
+      for (var doc in halaqahs.docs) {
+        final data = doc.data();
+        if (data['santris'] != null) {
+          final list = data['santris'] as List;
+          for (var item in list) {
+             if (item is Map && item['id'] != null) {
+              santriIds.add(item['id'].toString());
+            }
+          }
+        }
+      }
+
+      if (santriIds.isEmpty) return [];
+
+      // 2. Fetch santris by IDs with other filters applied
+      final List<SantriEntity> allSantris = [];
+      final idsList = santriIds.toList();
+
+      // Chunking because whereIn supports max 10
+      for (var i = 0; i < idsList.length; i += 10) {
+        final end = (i + 10 < idsList.length) ? i + 10 : idsList.length;
+        final chunk = idsList.sublist(i, end);
+
+        Query query = firestore.collection('santri_profiles').where(FieldPath.documentId, whereIn: chunk);
+
+        if (isActive != null) {
+          query = query.where('is_active', isEqualTo: isActive);
+        }
+        if (gender != null) {
+          query = query.where('jenis_kelamin', isEqualTo: gender);
+        }
+        if (session != null) {
+          query = query.where('tipe_kelas', isEqualTo: session);
+        }
+        if (kelas != null) {
+          query = query.where('kelas', isEqualTo: kelas);
+        }
+        if (isFree != null) {
+          query = query.where('is_free', isEqualTo: isFree);
+        }
+
+        final snapshot = await query.get();
+        final items = snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return SantriEntity(
+            id: doc.id,
+            name: data['name'],
+            nis: data['nis'],
+            kelas: data['kelas'],
+            jenisKelamin: data['jenis_kelamin'],
+            isActive: data['is_active'] ?? true,
+            isFree: data['is_free'] ?? false,
+            nomorWali: data['nomor_wali'],
+            pembimbing: null,
+          );
+        }).toList();
+
+        allSantris.addAll(items);
+      }
+
+      // 3. Filter by keyword in memory
+      if (keyword != null && keyword.isNotEmpty) {
+        final k = keyword.toLowerCase();
+        return allSantris.where((s) {
+          final name = s.name.toLowerCase();
+          final nis = s.nis.toLowerCase();
+          return name.contains(k) || nis.contains(k);
+        }).toList();
+      }
+
+      return allSantris;
+    }
+
     Query query = firestore.collection('santri_profiles');
 
     if (isActive != null) {
@@ -28,6 +114,18 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
     if (gender != null) {
       query = query.where('jenis_kelamin', isEqualTo: gender);
+    }
+
+    if (session != null) {
+      query = query.where('tipe_kelas', isEqualTo: session);
+    }
+
+    if (kelas != null) {
+      query = query.where('kelas', isEqualTo: kelas);
+    }
+
+    if (isFree != null) {
+      query = query.where('is_free', isEqualTo: isFree);
     }
 
     // Only paginate if NOT searching by keyword (client-side filter needs all data)
@@ -219,5 +317,20 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     }
     
     return allSantris;
+  }
+  @override
+  Future<List<AsatidzEntity>> getAsatidzList() async {
+    final snapshot = await firestore.collection('asatidz_profiles').where('is_active', isEqualTo: true).get();
+    
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      return AsatidzEntity(
+        id: doc.id,
+        name: data['name'] ?? '',
+        nis: data['nis'] ?? '',
+        jenisKelamin: data['jenis_kelamin'] ?? '',
+        isActive: data['is_active'] ?? true,
+      );
+    }).toList();
   }
 }
