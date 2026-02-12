@@ -39,13 +39,12 @@ class _LoginPageState extends State<LoginPage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.8, // Take up most height to allow centering but bias
+                height: MediaQuery.of(context).size.height * 0.8,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // Center vertically in the SizedBox
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Spacer(), // Push down a bit
-                    // Center content but biased up
+                    const Spacer(),
                     const Center(
                     child: Image(
                       image: AssetImage('assets/images/logo.png'),
@@ -65,7 +64,6 @@ class _LoginPageState extends State<LoginPage> {
                     hint: 'Masukkan NIS',
                     icon: Icons.person_outline,
                     controller: nisController,
-                    keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 16),
                   AiwaTextField(

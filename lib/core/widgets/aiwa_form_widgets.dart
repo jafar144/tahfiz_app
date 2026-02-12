@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class AiwaTextField extends StatelessWidget {
+class AiwaTextField extends StatefulWidget {
   final String label;
   final String hint;
   final IconData icon;
@@ -23,12 +23,25 @@ class AiwaTextField extends StatelessWidget {
   });
 
   @override
+  State<AiwaTextField> createState() => _AiwaTextFieldState();
+}
+
+class _AiwaTextFieldState extends State<AiwaTextField> {
+  late bool _obscureText;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureText = widget.obscureText;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label,
+          widget.label,
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -37,22 +50,35 @@ class AiwaTextField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textCapitalization: textCapitalization,
-          obscureText: obscureText,
+          controller: widget.controller,
+          keyboardType: widget.keyboardType,
+          textCapitalization: widget.textCapitalization,
+          obscureText: _obscureText,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (value) {
-            if (isOptional) return null;
+            if (widget.isOptional) return null;
             if (value == null || value.isEmpty) {
-              return '$label tidak boleh kosong';
+              return '${widget.label} tidak boleh kosong';
             }
             return null;
           },
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
-            prefixIcon: Icon(icon, color: Colors.grey, size: 20),
+            prefixIcon: Icon(widget.icon, color: Colors.grey, size: 20),
+            suffixIcon: widget.obscureText
+                ? IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  )
+                : null,
             filled: true,
             fillColor: Colors.grey[50], // Very light grey
             contentPadding:
