@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/utils/ui_utils.dart'; // Added
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 
 class SantriCard extends StatelessWidget {
@@ -48,19 +49,19 @@ class SantriCard extends StatelessWidget {
               children: [
                 // Avatar Inisial (Abu-abu)
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: backgroundColor,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    _getInitials(santri.name),
+                    UiUtils.getInitials(santri.name),
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: primaryColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -113,11 +114,11 @@ class SantriCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
-                              vertical: 6,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: backgroundColor,
-                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -125,13 +126,13 @@ class SantriCard extends StatelessWidget {
                                 Icon(
                                   Icons.school,
                                   size: 14,
-                                  color: primaryColor,
+                                  color: Colors.grey.shade600,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   santri.kelas,
                                   style: TextStyle(
-                                    color: primaryColor,
+                                    color: Colors.grey.shade700,
                                     fontWeight: FontWeight.w600,
                                     fontSize: 10,
                                   ),
@@ -177,15 +178,5 @@ class SantriCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _getInitials(String name) {
-    if (name.isEmpty) return '';
-    final parts = name.trim().split(' ');
-    if (parts.length == 1) {
-      if (parts[0].isEmpty) return '';
-      return parts[0][0].toUpperCase();
-    }
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 }

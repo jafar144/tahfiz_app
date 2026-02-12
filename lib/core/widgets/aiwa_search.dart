@@ -19,35 +19,46 @@ class AiwaSearch extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: TextField(
-            controller: controller,
-            onSubmitted: onSubmitted,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: hintText,
-              prefixIcon: const Icon(
-                Icons.search,
-                color: Colors.grey,
-              ),
-              filled: true,
-              fillColor: Colors.grey[100],
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 12,
-                horizontal: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Colors.blue,
-                  width: 1,
+          child: SizedBox(
+            height: 40,
+            child: TextField(
+              controller: controller,
+              onSubmitted: onSubmitted,
+              textInputAction: TextInputAction.search,
+              textAlignVertical: TextAlignVertical.center,
+              style: const TextStyle(fontSize: 13),
+              decoration: InputDecoration(
+                hintText: hintText,
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: Colors.grey,
+                  size: 18,
+                ),
+                isDense: true,
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: Colors.blue,
+                    width: 1,
+                  ),
                 ),
               ),
             ),
@@ -55,14 +66,18 @@ class AiwaSearch extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Container(
+          height: 40,
+          width: 40,
           decoration: BoxDecoration(
             color: Colors.blue,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(
             onPressed: onSearch,
+            padding: EdgeInsets.zero,
             icon: const Icon(Icons.search, color: Colors.white),
             tooltip: 'Search',
+            iconSize: 18,
           ),
         ),
       ],

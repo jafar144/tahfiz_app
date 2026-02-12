@@ -256,14 +256,11 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
               ],
             ),
           ),
-          // ... rest of body
 
           const SizedBox(height: 8),
-          // List
           Expanded(
             child: BlocBuilder<SantriCubit, SantriState>(
               builder: (context, state) {
-                // Determine logic for Skeletonizer
                 final isLoading = state is SantriLoading;
                 final List<SantriEntity> displayList;
 
@@ -507,23 +504,10 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   }
 
   Widget _buildModalChip(String label, bool isSelected, VoidCallback onTap) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      selectedColor: Colors.blue.shade100,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.blue.shade800 : Colors.black87,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      showCheckmark: false,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? Colors.blue : Colors.grey.shade300,
-        ),
-      ),
+    return AiwaChoiceChip(
+      label: label,
+      isSelected: isSelected,
+      onTap: onTap,
     );
   }
 }

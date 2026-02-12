@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
@@ -118,66 +119,11 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
             color: Colors.white,
             child: Column(
               children: [
-                // Search Bar
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onSubmitted: (_) => _onSearch(),
-                        decoration: InputDecoration(
-                          hintText: 'Cari asatidz...',
-                          prefixIcon:
-                              const Icon(Icons.search, color: Colors.grey),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 16,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                const BorderSide(color: Colors.blue, width: 1),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: _onSearch,
-                        icon: const Icon(Icons.search, color: Colors.white),
-                        tooltip: 'Cari',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('Semua', null),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Aktif', true),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Tidak Aktif', false),
-                    ],
-                  ),
+                AiwaSearch(
+                  controller: _searchController,
+                  onSubmitted: (_) => _onSearch(),
+                  onSearch: _onSearch,
+                  hintText: 'Cari Asatidz...',
                 ),
               ],
             ),

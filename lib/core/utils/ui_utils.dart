@@ -11,4 +11,14 @@ class UiUtils {
     FocusScope.of(context).requestFocus(FocusNode());
     await Future.delayed(const Duration(milliseconds: 300));
   }
+
+  static String getInitials(String name) {
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(' ');
+    if (parts.length == 1) {
+      if (parts[0].isEmpty) return '';
+      return parts[0][0].toUpperCase();
+    }
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
 }

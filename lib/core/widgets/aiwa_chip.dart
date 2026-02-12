@@ -18,7 +18,7 @@ class AiwaChip extends StatelessWidget {
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? Colors.blue : Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -34,6 +34,7 @@ class AiwaChip extends StatelessWidget {
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.black87,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                fontSize: 12,
               ),
             ),
             if (isSelected) ...[
@@ -52,6 +53,44 @@ class AiwaChip extends StatelessWidget {
               )
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class AiwaChoiceChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const AiwaChoiceChip({
+    super.key,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
+      selectedColor: Colors.blue.shade100,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.blue.shade800 : Colors.black87,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 12, // Reduced font size
+      ),
+      visualDensity: VisualDensity.compact, // Make it compact
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // Reduce padding
+      showCheckmark: false,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? Colors.blue : Colors.grey.shade300,
         ),
       ),
     );
