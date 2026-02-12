@@ -33,7 +33,7 @@ class AppTextStyles {
   );
 
   static const titleBlack = TextStyle(
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: FontWeight.bold,
     color: Colors.black87,
   );

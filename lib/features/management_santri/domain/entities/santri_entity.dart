@@ -8,6 +8,7 @@ class SantriEntity {
   final bool isFree;
   final String? pembimbing;
   final String? nomorWali;
+  final String? tipeKelas;
 
   SantriEntity({
     required this.id,
@@ -19,5 +20,6 @@ class SantriEntity {
     required this.isFree,
     this.pembimbing,
     this.nomorWali,
+    this.tipeKelas,
   });
 }

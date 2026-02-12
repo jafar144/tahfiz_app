@@ -72,30 +72,60 @@ class SantriCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header: Name + Menu Icon
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              santri.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.black87,
+                        // Header: Name + Session Badge
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                santri.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.more_vert,
-                            size: 20,
-                            color: Colors.grey.shade400,
-                          ),
-                        ],
-                      ),
+                            if (santri.tipeKelas != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getSessionColor(santri.tipeKelas!)
+                                      .withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _getSessionIcon(santri.tipeKelas!),
+                                      size: 14,
+                                      color:
+                                          _getSessionColor(santri.tipeKelas!),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      santri.tipeKelas!,
+                                      style: TextStyle(
+                                        color:
+                                            _getSessionColor(santri.tipeKelas!),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       
                       // NIS (Tanpa Label ID:)
                       Text(
@@ -141,7 +171,9 @@ class SantriCard extends StatelessWidget {
                             ),
                           ),
                           
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
+
+
                           
                           Expanded(
                             child: Row(
@@ -178,5 +210,31 @@ class SantriCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getSessionColor(String session) {
+    switch (session.toLowerCase()) {
+      case 'pagi':
+        return Colors.orange.shade700;
+      case 'sore':
+        return Colors.deepOrange.shade700;
+      case 'malam':
+        return Colors.indigo.shade700;
+      default:
+        return Colors.grey.shade700;
+    }
+  }
+
+  IconData _getSessionIcon(String session) {
+    switch (session.toLowerCase()) {
+      case 'pagi':
+        return Icons.wb_sunny_outlined;
+      case 'sore':
+        return Icons.wb_twilight;
+      case 'malam':
+        return Icons.nights_stay_outlined;
+      default:
+        return Icons.schedule;
+    }
   }
 }

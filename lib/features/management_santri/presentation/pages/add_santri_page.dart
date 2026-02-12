@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/constants/app_constants.dart';
@@ -236,14 +237,8 @@ class _AddSantriPageState extends State<AddSantriPage> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text(
-            'Tambah Santri',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
+        appBar: AiwaAppBar(
+          title: 'Tambah Santri',
         ),
         body: SafeArea(
             child: GestureDetector(
@@ -255,8 +250,8 @@ class _AddSantriPageState extends State<AddSantriPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionTitle('Informasi Pribadi'),
-                      const SizedBox(height: 20),
+                      const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
+                      const SizedBox(height: 12),
                       AiwaTextField(
                         label: 'Nama Lengkap',
                         hint: 'Masukkan nama lengkap',
@@ -264,7 +259,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         icon: Icons.person_outline,
                         textCapitalization: TextCapitalization.words,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -276,7 +271,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               keyboardType: TextInputType.number,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: AiwaTextField(
                               label: 'No. Telepon (Opsional)',
@@ -289,16 +284,16 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       const Text(
                         'Jenis Kelamin',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
@@ -328,7 +323,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -340,7 +335,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               textCapitalization: TextCapitalization.words,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: AiwaClickableInput(
                               label: 'Tanggal Lahir',
@@ -357,9 +352,9 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Informasi Wali'),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+                      const AiwaFormSectionTitle(title: 'Informasi Wali'),
+                      const SizedBox(height: 12),
                       AiwaTextField(
                         label: 'Nama Wali (Opsional)',
                         hint: 'Masukkan nama wali',
@@ -368,7 +363,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         isOptional: true,
                         textCapitalization: TextCapitalization.words,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       AiwaTextField(
                         label: 'No. Telepon Wali (Opsional)',
                         hint: '0812...',
@@ -377,9 +372,9 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         keyboardType: TextInputType.phone,
                         isOptional: true,
                       ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Informasi Kelas'),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
+                      const AiwaFormSectionTitle(title: 'Informasi Kelas'),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -390,7 +385,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               onTap: _showClassBottomSheet,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: AiwaClickableInput(
                               label: 'Tipe',
@@ -401,7 +396,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       AiwaClickableInput(
                         label: 'Tanggal Masuk',
                         value: DateFormat('dd MMMM yyyy').format(_entryDate),
@@ -412,16 +407,16 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           onPicked: (d) => _entryDate = d,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       const Text(
                         'Status Pembayaran',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           Expanded(
@@ -451,14 +446,14 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 24),
                       AiwaButton(
                         text: 'Tambah Santri',
                         onPressed: _submit,
                         isLoading: _isLoading,
-                        height: 52,
+                        height: 48,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -469,29 +464,6 @@ class _AddSantriPageState extends State<AddSantriPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        Container(
-          height: 4,
-          width: 40,
-          margin: const EdgeInsets.only(top: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-      ],
-    );
-  }
+
 }
 

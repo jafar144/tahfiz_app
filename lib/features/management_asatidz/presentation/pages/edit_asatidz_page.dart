@@ -107,6 +107,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
                 controller: _nisController,
                 icon: Icons.badge_outlined,
                 keyboardType: TextInputType.number,
+                enabled: false,
               ),
               const SizedBox(height: 16),
               AiwaTextField(

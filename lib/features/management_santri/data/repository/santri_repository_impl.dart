@@ -69,6 +69,7 @@ class SantriRepositoryImpl implements SantriRepository {
         isActive: s.isActive,
         isFree: s.isFree,
         nomorWali: s.nomorWali,
+        tipeKelas: s.tipeKelas,
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();
@@ -162,6 +163,7 @@ class SantriRepositoryImpl implements SantriRepository {
         isActive: s.isActive,
         isFree: s.isFree,
         nomorWali: s.nomorWali,
+        tipeKelas: s.tipeKelas,
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();

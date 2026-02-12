@@ -6,6 +6,7 @@ class AiwaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final bool centerTitle;
   final Color? backgroundColor;
+  final Color? foregroundColor;
   final Widget? leading;
 
   const AiwaAppBar({
@@ -14,6 +15,7 @@ class AiwaAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.centerTitle = false,
     this.backgroundColor,
+    this.foregroundColor,
     this.leading,
   });
 
@@ -22,13 +24,17 @@ class AiwaAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       title: Text(
         title,
-        style: AppTextStyles.titleBlack,
+        style: AppTextStyles.titleBlack.copyWith(
+          color: foregroundColor,
+        ),
       ),
       backgroundColor: backgroundColor ?? Colors.white,
-      surfaceTintColor: Colors.white,
+      surfaceTintColor: backgroundColor ?? Colors.white,
       elevation: 0,
       centerTitle: centerTitle,
-      iconTheme: const IconThemeData(color: Colors.black87),
+      iconTheme: IconThemeData(
+        color: foregroundColor ?? Colors.black87,
+      ),
       actions: actions,
       leading: leading,
     );

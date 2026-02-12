@@ -87,6 +87,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             isFree: data['is_free'] ?? false,
             nomorWali: data['nomor_wali'],
             pembimbing: null,
+            tipeKelas: data['tipe_kelas'],
           );
         }).toList();
 
@@ -169,6 +170,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: data['is_free'] ?? false,
         nomorWali: data['nomor_wali'],
         pembimbing: null,
+        tipeKelas: data['tipe_kelas'],
       );
     }).toList();
   }
@@ -310,6 +312,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           isFree: data['is_free'] ?? false,
           nomorWali: data['nomor_wali'],
           pembimbing: null,
+          tipeKelas: data['tipe_kelas'],
         );
       }).toList();
       

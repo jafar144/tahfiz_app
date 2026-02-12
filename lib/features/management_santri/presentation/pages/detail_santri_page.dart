@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_detail_widgets.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
@@ -48,11 +51,10 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          title: const Text('Detail Santri', style: TextStyle(fontWeight: FontWeight.bold)),
+        appBar: AiwaAppBar(
+          title: 'Detail Santri',
           centerTitle: true,
           backgroundColor: Colors.blue.shade600,
-          elevation: 0,
           foregroundColor: Colors.white,
         ),
         body: BlocBuilder<SantriDetailCubit, SantriDetailState>(
@@ -109,7 +111,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                       Text(
                         detail.name,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 20, // Reduced from 22
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
@@ -119,7 +121,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                       Text(
                         'NIS: ${detail.nis}',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13, // Reduced from 14
                           color: Colors.grey.shade600,
                         ),
                         textAlign: TextAlign.center,
@@ -128,45 +130,77 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _buildLastSetoranSection(detail),
-                const SizedBox(height: 20),
-                // _buildAttendanceSection(),
+                // _buildLastSetoranSection(detail),
                 // const SizedBox(height: 20),
-                _buildSectionTitle('Informasi Akademik'),
+                const AiwaFormSectionTitle(title: 'Informasi Akademik'),
                 const SizedBox(height: 10),
-                _buildInfoCard([
-                  _buildInfoRow(Icons.class_, 'Kelas', detail.kelas),
-                  _buildInfoRow(Icons.category, 'Tipe Kelas', detail.tipeKelas ?? '-'),
-                  _buildInfoRow(Icons.supervisor_account, 'Pembimbing', detail.pembimbing ?? '-'),
-                  _buildInfoRow(Icons.payments, 'Status Biaya', detail.isFree ? 'Gratis' : 'Reguler'),
-                  _buildInfoRow(Icons.calendar_today, 'Tanggal Masuk',
-                      detail.tanggalMasuk != null
-                          ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalMasuk!)
-                          : '-'),
+                AiwaInfoCard(children: [
+                   AiwaDetailInfoRow(
+                     icon: Icons.class_,
+                     label: 'Kelas',
+                     value: detail.kelas,
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.category,
+                     label: 'Tipe Kelas',
+                     value: detail.tipeKelas ?? '-',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.supervisor_account,
+                     label: 'Pembimbing',
+                     value: detail.pembimbing ?? '-',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.payments,
+                     label: 'Status Biaya',
+                     value: detail.isFree ? 'Gratis' : 'Reguler',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.calendar_today,
+                     label: 'Tanggal Masuk',
+                     value: detail.tanggalMasuk != null
+                         ? DateFormat('dd MMMM yyyy').format(detail.tanggalMasuk!)
+                         : '-',
+                   ),
                 ]),
                 const SizedBox(height: 20),
-                _buildSectionTitle('Informasi Pribadi'),
+                const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
                 const SizedBox(height: 10),
-                _buildInfoCard([
-                  _buildInfoRow(Icons.location_on, 'Tempat Lahir', detail.tempatLahir ?? '-'),
-                  _buildInfoRow(Icons.cake, 'Tanggal Lahir',
-                      detail.tanggalLahir != null
-                          ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalLahir!)
-                          : '-'),
-                  _buildInfoRow(
-                    detail.jenisKelamin == 'L' ? Icons.male : Icons.female,
-                    'Jenis Kelamin',
-                    detail.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
-                  ),
+                AiwaInfoCard(children: [
+                   AiwaDetailInfoRow(
+                     icon: Icons.location_on,
+                     label: 'Tempat Lahir',
+                     value: detail.tempatLahir ?? '-',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.cake,
+                     label: 'Tanggal Lahir',
+                     value: detail.tanggalLahir != null
+                         ? DateFormat('dd MMMM yyyy').format(detail.tanggalLahir!)
+                         : '-',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: detail.jenisKelamin == 'L' ? Icons.male : Icons.female,
+                     label: 'Jenis Kelamin',
+                     value: detail.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
+                   ),
                 ]),
                 const SizedBox(height: 20),
-                _buildSectionTitle('Informasi Wali'),
+                const AiwaFormSectionTitle(title: 'Informasi Wali'),
                 const SizedBox(height: 10),
-                _buildInfoCard([
-                  _buildInfoRow(Icons.person, 'Nama Wali', detail.namaWali ?? '-'),
-                  _buildInfoRow(Icons.phone, 'Nomor HP Wali', detail.nomorWali ?? '-'),
+                AiwaInfoCard(children: [
+                   AiwaDetailInfoRow(
+                     icon: Icons.person,
+                     label: 'Nama Wali',
+                     value: detail.namaWali ?? '-',
+                   ),
+                   AiwaDetailInfoRow(
+                     icon: Icons.phone,
+                     label: 'Nomor HP Wali',
+                     value: detail.nomorWali ?? '-',
+                   ),
                 ]),
-                const SizedBox(height: 80), // Specs for FAB
+                const SizedBox(height: 80),
               ],
             ),
           ),
@@ -213,7 +247,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   child: Text(
                     detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
                     style: TextStyle(
-                      fontSize: 36,
+                      fontSize: 32, // Reduced from 36
                       fontWeight: FontWeight.bold,
                       color: Colors.blue.shade800,
                     ),
@@ -227,17 +261,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.blue.shade900,
-        letterSpacing: 0.5,
-      ),
-    );
-  }
+
 
   Widget _buildLastSetoranSection(SantriDetail detail) {
     return FutureBuilder(
@@ -544,67 +568,5 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
     );
   }
 
-  Widget _buildInfoCard(List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: children,
-      ),
-    );
-  }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: Colors.blue.shade700),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

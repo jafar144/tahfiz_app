@@ -9,6 +9,7 @@ class AiwaTextField extends StatefulWidget {
   final bool isOptional;
   final TextCapitalization textCapitalization;
   final bool obscureText;
+  final bool enabled;
 
   const AiwaTextField({
     super.key,
@@ -20,6 +21,7 @@ class AiwaTextField extends StatefulWidget {
     this.isOptional = false,
     this.textCapitalization = TextCapitalization.sentences,
     this.obscureText = false,
+    this.enabled = true,
   });
 
   @override
@@ -43,13 +45,18 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
         Text(
           widget.label,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
         TextFormField(
+          enabled: widget.enabled,
+          style: TextStyle(
+            fontSize: 13,
+            color: widget.enabled ? Colors.black : Colors.grey.shade600,
+          ),
           controller: widget.controller,
           keyboardType: widget.keyboardType,
           textCapitalization: widget.textCapitalization,
@@ -64,8 +71,8 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
           },
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
-            prefixIcon: Icon(widget.icon, color: Colors.grey, size: 20),
+            hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
+            prefixIcon: Icon(widget.icon, color: Colors.grey, size: 18),
             suffixIcon: widget.obscureText
                 ? IconButton(
                     icon: Icon(
@@ -80,9 +87,9 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
                   )
                 : null,
             filled: true,
-            fillColor: Colors.grey[50], // Very light grey
+            fillColor: widget.enabled ? Colors.grey[50] : Colors.grey[200],
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -95,6 +102,10 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
               borderRadius: BorderRadius.circular(12),
               borderSide:
                   BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
             ),
           ),
         ),
@@ -125,7 +136,7 @@ class AiwaClickableInput extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
           ),
@@ -135,7 +146,7 @@ class AiwaClickableInput extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.circular(12),
@@ -143,12 +154,12 @@ class AiwaClickableInput extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon, color: Colors.grey, size: 20),
+                Icon(icon, color: Colors.grey, size: 18),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, color: Colors.black87),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -216,3 +227,39 @@ class AiwaSelectionCard extends StatelessWidget {
     );
   }
 }
+
+class AiwaFormSectionTitle extends StatelessWidget {
+  final String title;
+
+  const AiwaFormSectionTitle({
+    super.key,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        Container(
+          height: 3,
+          width: 30,
+          margin: const EdgeInsets.only(top: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ],
+    );
+  }
+}
+

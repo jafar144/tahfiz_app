@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
@@ -11,12 +12,8 @@ class AdminProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
+      appBar: AiwaAppBar(
+        title: 'Profile',
       ),
       body: BlocBuilder<AuthCubit, AuthState>(
         builder: (context, state) {
@@ -227,30 +224,30 @@ class AdminProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem(
-            icon: Icons.edit,
-            title: 'Edit Profile',
-            subtitle: 'Ubah informasi akun',
-            color: Colors.blue,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
-          ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.lock,
-            title: 'Ganti Password',
-            subtitle: 'Ubah kata sandi',
-            color: Colors.orange,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
-          ),
-          const Divider(height: 1),
+          // _buildMenuItem(
+          //   icon: Icons.edit,
+          //   title: 'Edit Profile',
+          //   subtitle: 'Ubah informasi akun',
+          //   color: Colors.blue,
+          //   onTap: () {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       const SnackBar(content: Text('Fitur coming soon...')),
+          //     );
+          //   },
+          // ),
+          // const Divider(height: 1),
+          // _buildMenuItem(
+          //   icon: Icons.lock,
+          //   title: 'Ganti Password',
+          //   subtitle: 'Ubah kata sandi',
+          //   color: Colors.orange,
+          //   onTap: () {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       const SnackBar(content: Text('Fitur coming soon...')),
+          //     );
+          //   },
+          // ),
+          // const Divider(height: 1),
           _buildMenuItem(
             icon: Icons.settings,
             title: 'Pengaturan',
