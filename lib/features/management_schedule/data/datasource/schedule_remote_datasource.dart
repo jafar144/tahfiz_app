@@ -12,6 +12,7 @@ abstract class ScheduleRemoteDataSource {
   Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId);
   Future<void> updateHalaqah(HalaqahModel halaqah);
   Future<void> createHalaqah(HalaqahModel halaqah);
+  Future<HalaqahModel?> getHalaqahBySantriId(String santriId);
 }
 
 class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
@@ -118,5 +119,24 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .get();
         
     return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
+  }
+
+  @override
+  Future<HalaqahModel?> getHalaqahBySantriId(String santriId) async {
+    // Note: iterating all halaqahs is not scalable for very large datasets,
+    // but without santris_ids array field, this is the only way.
+    final query = await firestore.collection('halaqahs').get();
+    
+    for (var doc in query.docs) {
+      final data = doc.data();
+      if (data['santris'] != null && data['santris'] is List) {
+        final santris =List.from(data['santris']);
+        final found = santris.any((s) => s is Map && s['id'] == santriId);
+        if (found) {
+          return HalaqahModel.fromFirestore(doc);
+        }
+      }
+    }
+    return null;
   }
 }

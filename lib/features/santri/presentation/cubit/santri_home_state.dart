@@ -1,0 +1,45 @@
+
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
+
+enum SantriHomeStatus { initial, loading, success, failure }
+
+class SantriHomeState {
+  final SantriHomeStatus status;
+  final String? message;
+  final SantriDetail? santri;
+  final bool isPaidThisMonth;
+  final SantriSetoran? latestSetoran;
+  final String? pembimbingName;
+  final String? pembimbingPhone;
+
+  const SantriHomeState({
+    this.status = SantriHomeStatus.initial,
+    this.message,
+    this.santri,
+    this.isPaidThisMonth = false,
+    this.latestSetoran,
+    this.pembimbingName,
+    this.pembimbingPhone,
+  });
+
+  SantriHomeState copyWith({
+    SantriHomeStatus? status,
+    String? message,
+    SantriDetail? santri,
+    bool? isPaidThisMonth,
+    SantriSetoran? latestSetoran,
+    String? pembimbingName,
+    String? pembimbingPhone,
+  }) {
+    return SantriHomeState(
+      status: status ?? this.status,
+      message: message ?? this.message,
+      santri: santri ?? this.santri,
+      isPaidThisMonth: isPaidThisMonth ?? this.isPaidThisMonth,
+      latestSetoran: latestSetoran ?? this.latestSetoran,
+      pembimbingName: pembimbingName ?? this.pembimbingName,
+      pembimbingPhone: pembimbingPhone ?? this.pembimbingPhone,
+    );
+  }
+}
