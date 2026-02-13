@@ -181,10 +181,18 @@ class AppRouter {
         path: RoutePaths.detailHalaqah,
         name: RouteNames.detailHalaqah,
         builder: (context, state) {
-           final halaqah = state.extra as Halaqah;
+           final extras = state.extra as Map<String, dynamic>;
+           final halaqah = extras['halaqah'] as Halaqah;
+           final sessionName = extras['sessionName'] as String? ?? 'Regular';
+           final gender = extras['gender'] as String? ?? 'Putra'; // L/P usually but the page might expect full string or code? The page expects L/P or 'Putra'/'Putri'?
+           // Let's check detail page: it handles L/P conversion. 'gender' passed from view page is from cubit which is 'L' or 'P'.
+           
            return BlocProvider(
-             create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah),
-             child: const HalaqahDetailPage(),
+             create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah)..init(),
+             child: HalaqahDetailPage(
+               sessionName: sessionName,
+               gender: gender,
+             ),
            );
         },
       ),
