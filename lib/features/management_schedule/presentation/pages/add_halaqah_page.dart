@@ -59,6 +59,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
+            surfaceTintColor: Colors.white,
             title: const Text('Tambah Halaqah'),
             elevation: 0,
           ),

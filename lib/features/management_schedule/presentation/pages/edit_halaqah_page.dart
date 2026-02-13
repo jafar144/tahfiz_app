@@ -108,6 +108,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
 
         return Scaffold(
           appBar: AppBar(
+            surfaceTintColor: Colors.white,
             title: const Text('Edit Halaqah'),
             centerTitle: true,
             backgroundColor: Colors.white,
