@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit.dart';
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
@@ -28,7 +29,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -44,12 +45,16 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     adminName: 'Admin',
                     totalSantriPutra: 0,
                     totalSantriPutri: 0,
+                    totalAsatidzPutra: 0,
+                    totalAsatidzPutri: 0,
                   );
                 } else {
                   displayData = AdminHomeData(
                     adminName: 'Admin User',
                     totalSantriPutra: 123,
                     totalSantriPutri: 123,
+                    totalAsatidzPutra: 10,
+                    totalAsatidzPutri: 10,
                   );
                 }
 
@@ -58,69 +63,83 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Welcome back, ${displayData.adminName}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: InfoCard(
+                          Text(
+                            'Assalamua\'laikum',
+                            style: AppTextStyles.infoGrey,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            displayData.adminName,
+                            style: AppTextStyles.mediumContentBlack,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            InfoCard(
                               title: 'Santri Putra',
                               value: displayData.totalSantriPutra.toString(),
-                              icon: Icons.face,
                               color: Colors.blue,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: InfoCard(
+                            const SizedBox(width: 12),
+                            InfoCard(
                               title: 'Santri Putri',
                               value: displayData.totalSantriPutri.toString(),
-                              icon: Icons.face_3,
                               color: Colors.red,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            InfoCard(
+                              title: 'Asatidz Putra',
+                              value: displayData.totalAsatidzPutra.toString(),
+                              icon: Icons.school_rounded,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 12),
+                            InfoCard(
+                              title: 'Asatidz Putri',
+                              value: displayData.totalAsatidzPutri.toString(),
+                              icon: Icons.school_rounded,
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 );
               },
             ),
-      
+
             const SizedBox(height: 24),
-      
-            /// Management
-            const Text(
-              'Management',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-      
+
+            const Text('Management', style: AppTextStyles.mediumContentBlack),
+
             const SizedBox(height: 12),
-      
+
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.1,
+              childAspectRatio: 1.2,
               children: [
                 MenuCard(
                   icon: Icons.payments_rounded,
-                  title: 'Payment Input',
-                  subtitle: 'SPP',
+                  title: 'Pembayaran',
+                  subtitle: 'Input Pembayaran',
                   onTap: () => context.pushNamed(RouteNames.adminPayment),
                 ),
                 MenuCard(
                   icon: Icons.calendar_month_rounded,
-                  title: 'Schedule',
-                  subtitle: 'Manage Classes',
+                  title: 'Halaqah',
+                  subtitle: 'Manajemen Halaqah',
                   onTap: () => context.pushNamed(RouteNames.adminSchedule),
                 ),
               ],

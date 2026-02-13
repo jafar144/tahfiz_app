@@ -44,9 +44,27 @@ class AppTextStyles {
     color: Colors.black87,
   );
 
+  static const mediumContentBlack = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: Colors.black87,
+  );
+
   static const smallContentBlack = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.bold,
     color: Colors.black87,
+  );
+
+  static const infoGrey = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    color: Colors.grey,
+  );
+
+  static const infoLightGrey = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    color: Colors.grey,
   );
 }

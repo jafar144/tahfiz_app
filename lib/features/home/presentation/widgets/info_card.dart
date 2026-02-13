@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 
 class InfoCard extends StatelessWidget {
   final String title;
@@ -10,7 +11,7 @@ class InfoCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
-    required this.icon,
+    this.icon = Icons.groups,
     this.color,
   });
 
@@ -20,33 +21,38 @@ class InfoCard extends StatelessWidget {
     final effectiveColor = color ?? theme.primaryColor;
 
     return Container(
+      width: 140,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: effectiveColor.withValues(alpha: 0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: effectiveColor,
-            child: Icon(icon, color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: effectiveColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: effectiveColor, size: 22),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: AppTextStyles.infoGrey,
+          ),
+          Text(
+            value,
+            style: AppTextStyles.titleBlack,
           ),
         ],
       ),

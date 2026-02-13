@@ -29,4 +29,30 @@ class AdminHomeRemoteDatasourceImpl implements AdminHomeRemoteDatasource {
 
     return snapshot.count ?? 0;
   }
+
+  @override
+  Future<int> getTotalAsatidzPutra() async {
+    // Assuming 'L' for laki-laki
+    final snapshot = await firestore
+        .collection('asatidz_profiles')
+        .where('is_active', isEqualTo: true)
+        .where('jenis_kelamin', isEqualTo: 'L')
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
+  }
+
+  @override
+  Future<int> getTotalAsatidzPutri() async {
+    // Assuming 'P' for perempuan
+    final snapshot = await firestore
+        .collection('asatidz_profiles')
+        .where('is_active', isEqualTo: true)
+        .where('jenis_kelamin', isEqualTo: 'P')
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
+  }
 }

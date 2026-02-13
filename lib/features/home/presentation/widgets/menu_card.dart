@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 
 class MenuCard extends StatelessWidget {
   final IconData icon;
@@ -28,9 +29,9 @@ class MenuCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -38,23 +39,19 @@ class MenuCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
+              radius: 24,
               backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-              child: Icon(icon, color: theme.primaryColor),
+              child: Icon(icon, color: theme.primaryColor, size: 24),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: AppTextStyles.smallContentBlack,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 1),
             Text(
               subtitle,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
+              style: AppTextStyles.infoLightGrey,
               textAlign: TextAlign.center,
             ),
           ],

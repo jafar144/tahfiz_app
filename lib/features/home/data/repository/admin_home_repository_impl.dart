@@ -21,12 +21,16 @@ class AdminHomeRepositoryImpl implements AdminHomeRepository {
     final futures = await Future.wait([
       dashboardDatasource.getTotalSantriPutra(),
       dashboardDatasource.getTotalSantriPutri(),
+      dashboardDatasource.getTotalAsatidzPutra(),
+      dashboardDatasource.getTotalAsatidzPutri(),
     ]);
 
     return AdminHomeData(
       adminName: admin.name,
       totalSantriPutra: futures[0],
       totalSantriPutri: futures[1],
+      totalAsatidzPutra: futures[2],
+      totalAsatidzPutri: futures[3],
     );
   }
 }
