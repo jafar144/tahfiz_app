@@ -1,5 +1,6 @@
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
 import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
@@ -48,5 +49,29 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> logout() async {
     await authRepository.logout();
     emit(AuthUnauthenticated());
+  }
+
+  Future<void> switchRole() async {
+    final currentState = state;
+    if (currentState is AuthAuthenticated) {
+      final currentUser = currentState.user;
+      if (!currentUser.isAdmin) return;
+
+      final newRole = currentUser.role == UserRole.admin
+          ? UserRole.asatidz
+          : UserRole.admin;
+
+      try {
+        emit(AuthLoading());
+        await userRepository.updateUserRole(currentUser.uid, newRole);
+        
+        final user = await userRepository.getUserByUid(currentUser.uid);
+        emit(AuthAuthenticated(user));
+      } catch (e) {
+        emit(AuthError(e.toString()));
+        // Restore previous state if needed, but for now error state is fine or could log and restore
+        emit(currentState);
+      }
+    }
   }
 }

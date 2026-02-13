@@ -1,3 +1,4 @@
+import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
 
 import '../datasource/user_remote_datasource.dart';
@@ -11,5 +12,10 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<UserModel> getUserByUid(String uid) {
     return remoteDatasource.getUserByUid(uid);
+  }
+
+  @override
+  Future<void> updateUserRole(String uid, UserRole role) {
+    return remoteDatasource.updateUserRole(uid, role);
   }
 }

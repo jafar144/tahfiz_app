@@ -29,7 +29,7 @@ class AdminProfilePage extends StatelessWidget {
               children: [
                 _buildProfileHeader(user.name, user.email),
                 const SizedBox(height: 24),
-                _buildInfoCard(user),
+                _buildInfoCard(context, user),
                 const SizedBox(height: 24),
                 _buildMenuSection(context),
                 const SizedBox(height: 24),
@@ -41,6 +41,8 @@ class AdminProfilePage extends StatelessWidget {
       ),
     );
   }
+
+
 
   Widget _buildProfileHeader(String name, String email) {
     return Container(
@@ -134,7 +136,7 @@ class AdminProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(dynamic user) {
+  Widget _buildInfoCard(BuildContext context, dynamic user) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -164,13 +166,18 @@ class AdminProfilePage extends StatelessWidget {
           const Divider(height: 24),
           _buildInfoRow(Icons.phone, 'No. Telepon', user.phone),
           const Divider(height: 24),
-          _buildInfoRow(Icons.work, 'Role', 'Administrator'),
+          _buildInfoRow(
+            Icons.work,
+            'Role',
+            'Administrator',
+            trailing: user.isAdmin ? _buildSmallSwitchButton(context, isToAsatidz: true) : null,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value, {Widget? trailing}) {
     return Row(
       children: [
         Container(
@@ -205,7 +212,90 @@ class AdminProfilePage extends StatelessWidget {
             ],
           ),
         ),
+        if (trailing != null) ...[
+          const SizedBox(width: 8),
+          trailing,
+        ],
       ],
+    );
+  }
+
+  Widget _buildSmallSwitchButton(BuildContext context, {required bool isToAsatidz}) {
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.swap_horiz, color: Colors.purple, size: 28),
+                SizedBox(width: 12),
+                Text('Ganti Role'),
+              ],
+            ),
+            content: Text(
+              'Apakah Anda yakin ingin beralih ke role ${isToAsatidz ? 'Asatidz' : 'Admin'}?',
+              style: const TextStyle(fontSize: 15),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Batal',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  context.read<AuthCubit>().switchRole();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Ya, Ganti',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.purple.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.purple.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_horiz, size: 16, color: Colors.purple.shade700),
+            const SizedBox(width: 4),
+            Text(
+              "Switch",
+              style: TextStyle(
+                color: Colors.purple.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
