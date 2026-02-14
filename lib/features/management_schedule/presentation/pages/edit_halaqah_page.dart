@@ -115,7 +115,8 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             foregroundColor: Colors.black,
             elevation: 0,
           ),
-          body: SingleChildScrollView(
+          body: SafeArea(
+            child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,6 +135,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
               ],
             ),
           ),
+        ),
         );
       },
     );

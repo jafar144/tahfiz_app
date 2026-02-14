@@ -65,7 +65,8 @@ class HalaqahDetailPage extends StatelessWidget {
 
           if (halaqah == null) return const SizedBox();
 
-          return SingleChildScrollView(
+          return SafeArea(
+            child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
@@ -77,7 +78,8 @@ class HalaqahDetailPage extends StatelessWidget {
                 const SizedBox(height: 80), // Space for FAB
               ],
             ),
-          );
+          ),
+        );
         },
       ),
     );

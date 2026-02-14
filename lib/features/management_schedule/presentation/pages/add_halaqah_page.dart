@@ -63,7 +63,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
             title: const Text('Tambah Halaqah'),
             elevation: 0,
           ),
-          body: Form(
+          body: SafeArea(
+            child: Form(
             key: _formKey,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -83,6 +84,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               ),
             ),
           ),
+        ),
         );
       },
     );

@@ -17,6 +17,7 @@ class ScheduleViewPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        surfaceTintColor: Colors.white,
         title: const Text(
           'Manajemen Halaqah',
           style: TextStyle(
@@ -67,14 +68,16 @@ class ScheduleViewPage extends StatelessWidget {
 
           return Skeletonizer(
             enabled: isLoading,
-            child: Column(
-              children: [
+            child: SafeArea(
+              child: Column(
+                children: [
                 _buildGenderSelector(context, selectedGender),
                 Expanded(
                   child: _buildHalaqahList(schedules, halaqahs, programs),
                 ),
               ],
             ),
+          ),
           );
         },
       ),
