@@ -315,14 +315,13 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                           separatorBuilder: (_, _) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final item = recentTransactions[index];
-                            // Calculate if transaction is older than 30 days
                             final isOldTransaction = DateTime.now().difference(item.createdAt).inDays > 30;
 
                             return Dismissible(
                               key: Key(item.id),
                               direction: DismissDirection.endToStart,
                               dismissThresholds: {
-                                DismissDirection.endToStart: 0.5, // Requires 60% swipe to trigger, making it "harder"
+                                DismissDirection.endToStart: 0.5,
                               },
                               background: Container(
                                 padding: const EdgeInsets.only(right: 20),

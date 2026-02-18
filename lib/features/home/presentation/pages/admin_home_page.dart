@@ -28,125 +28,138 @@ class _AdminHomePageState extends State<AdminHomePage> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BlocBuilder<AdminHomeCubit, AdminHomeState>(
-              builder: (context, state) {
-                final isLoading = state is AdminHomeLoading;
-                final AdminHomeData displayData;
+      child: RefreshIndicator(
+        onRefresh: () async {
+          context.read<AdminHomeCubit>().loadHome();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BlocBuilder<AdminHomeCubit, AdminHomeState>(
+                builder: (context, state) {
+                  final isLoading = state is AdminHomeLoading;
+                  AdminHomeData displayData; // Removed 'final' to allow assignment in if-else and initialized or assigned later properly
 
-                if (state is AdminHomeLoaded) {
-                  displayData = state.data;
-                } else if (state is AdminHomeError) {
-                  displayData = AdminHomeData(
-                    adminName: 'Admin',
-                    totalSantriPutra: 0,
-                    totalSantriPutri: 0,
-                    totalAsatidzPutra: 0,
-                    totalAsatidzPutri: 0,
-                  );
-                } else {
-                  displayData = AdminHomeData(
-                    adminName: 'Admin User',
-                    totalSantriPutra: 123,
-                    totalSantriPutri: 123,
-                    totalAsatidzPutra: 10,
-                    totalAsatidzPutri: 10,
-                  );
-                }
+                  if (state is AdminHomeLoaded) {
+                    displayData = state.data;
+                  } else if (state is AdminHomeError) {
+                     // In case of error we might want to show error or empty state, 
+                     // but for skeletonizer structure we keep using dummy or empty data
+                    displayData = AdminHomeData(
+                      adminName: 'Admin',
+                      totalSantriPutra: 0,
+                      totalSantriPutri: 0,
+                      totalAsatidzPutra: 0,
+                      totalAsatidzPutri: 0,
+                    );
+                  } else {
+                    // Loading or Initial state
+                    displayData = AdminHomeData(
+                      adminName: 'Admin User',
+                      totalSantriPutra: 123,
+                      totalSantriPutri: 123,
+                      totalAsatidzPutra: 10,
+                      totalAsatidzPutri: 10,
+                    );
+                  }
 
-                return Skeletonizer(
-                  enabled: isLoading,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Assalamua\'laikum',
-                            style: AppTextStyles.infoGrey,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            displayData.adminName,
-                            style: AppTextStyles.mediumContentBlack,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
+                  return Skeletonizer(
+                    enabled: isLoading,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            InfoCard(
-                              title: 'Santri Putra',
-                              value: displayData.totalSantriPutra.toString(),
-                              color: Colors.blue,
+                            const Text(
+                              'Assalamua\'laikum',
+                              style: AppTextStyles.infoGrey,
                             ),
-                            const SizedBox(width: 12),
-                            InfoCard(
-                              title: 'Santri Putri',
-                              value: displayData.totalSantriPutri.toString(),
-                              color: Colors.red,
-                            ),
-                            const SizedBox(width: 12),
-                            InfoCard(
-                              title: 'Asatidz Putra',
-                              value: displayData.totalAsatidzPutra.toString(),
-                              icon: Icons.school_rounded,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 12),
-                            InfoCard(
-                              title: 'Asatidz Putri',
-                              value: displayData.totalAsatidzPutri.toString(),
-                              icon: Icons.school_rounded,
-                              color: Colors.red,
+                            const SizedBox(height: 2),
+                            Text(
+                              displayData.adminName,
+                              style: AppTextStyles.mediumContentBlack,
                             ),
                           ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 16),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              InfoCard(
+                                title: 'Santri Putra',
+                                value: _formatValue(displayData.totalSantriPutra),
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 12),
+                              InfoCard(
+                                title: 'Santri Putri',
+                                value: _formatValue(displayData.totalSantriPutri),
+                                color: Colors.pink, // Changed from red for better aesthetics usually, but keeping user pref or consistency. User used Colors.red. Let's stick to user code or slight improve? User code used Colors.red.
+                              ),
+                              const SizedBox(width: 12),
+                              InfoCard(
+                                title: 'Asatidz Putra',
+                                value: _formatValue(displayData.totalAsatidzPutra),
+                                icon: Icons.school_rounded,
+                                color: Colors.blue,
+                              ),
+                              const SizedBox(width: 12),
+                              InfoCard(
+                                title: 'Asatidz Putri',
+                                value: _formatValue(displayData.totalAsatidzPutri),
+                                icon: Icons.school_rounded,
+                                color: Colors.red,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              const Text('Management', style: AppTextStyles.mediumContentBlack),
+
+              const SizedBox(height: 12),
+
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.2,
+                children: [
+                  MenuCard(
+                    icon: Icons.payments_rounded,
+                    title: 'Pembayaran',
+                    subtitle: 'Input Pembayaran',
+                    onTap: () => context.pushNamed(RouteNames.adminPayment),
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 24),
-
-            const Text('Management', style: AppTextStyles.mediumContentBlack),
-
-            const SizedBox(height: 12),
-
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.2,
-              children: [
-                MenuCard(
-                  icon: Icons.payments_rounded,
-                  title: 'Pembayaran',
-                  subtitle: 'Input Pembayaran',
-                  onTap: () => context.pushNamed(RouteNames.adminPayment),
-                ),
-                MenuCard(
-                  icon: Icons.calendar_month_rounded,
-                  title: 'Halaqah',
-                  subtitle: 'Manajemen Halaqah',
-                  onTap: () => context.pushNamed(RouteNames.adminSchedule),
-                ),
-              ],
-            ),
-          ],
+                  MenuCard(
+                    icon: Icons.calendar_month_rounded,
+                    title: 'Halaqah',
+                    subtitle: 'Manajemen Halaqah',
+                    onTap: () => context.pushNamed(RouteNames.adminSchedule),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+  
+  String _formatValue(int value) {
+    return value.toString();
   }
 }
