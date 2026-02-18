@@ -53,4 +53,23 @@ class PaymentCubit extends Cubit<PaymentState> {
       emit(PaymentError(e.toString()));
     }
   }
+
+  Future<void> deletePayment(String paymentId) async {
+    // Current state check to revert if necessary or keep date
+    final currentState = state;
+    DateTime selectedDate = DateTime.now();
+    if (currentState is PaymentLoaded) {
+      selectedDate = currentState.selectedDate;
+    }
+    
+    try {
+      await paymentRepository.deletePayment(paymentId);
+      // Reload dashboard after successful deletion
+      loadDashboard(selectedDate);
+    } catch (e) {
+      emit(PaymentError(e.toString()));
+      // Optionally reload to restore state
+      loadDashboard(selectedDate);
+    }
+  }
 }

@@ -67,7 +67,7 @@ class PaymentListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'SPP $monthName $year • $timeStr',
+                    'SPP $monthName $year',
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 10,
@@ -90,7 +90,7 @@ class PaymentListItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  dateStr,
+                  '$dateStr • $timeStr',
                   style: TextStyle(
                     color: Colors.grey[400],
                     fontSize: 10,

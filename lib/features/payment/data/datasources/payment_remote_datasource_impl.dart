@@ -84,4 +84,9 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
     
     await firestore.collection('payments').add(model.toMap());
   }
+
+  @override
+  Future<void> deletePayment(String paymentId) async {
+    await firestore.collection('payments').doc(paymentId).delete();
+  }
 }

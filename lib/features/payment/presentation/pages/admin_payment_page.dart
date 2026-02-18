@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
@@ -12,6 +13,8 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state
 import 'package:khoirunnasyien/features/payment/presentation/widgets/student_payment_list_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_wheel_picker.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_list_item.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 
 class AdminPaymentPage extends StatelessWidget {
   const AdminPaymentPage({super.key});
@@ -163,146 +166,229 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
       appBar: AiwaAppBar(title: 'Pembayaran'),
       body: BlocBuilder<PaymentCubit, PaymentState>(
         builder: (context, state) {
-          if (state is PaymentLoading) {
-            return const Center(child: CircularProgressIndicator());
+          final isLoading = state is PaymentLoading;
+          
+          DateTime displayDateObj = DateTime.now();
+          int paidCount = 0;
+          int unpaidCount = 0;
+          List<PaymentEntity> recentTransactions = [];
+          
+          if (state is PaymentLoaded) {
+            displayDateObj = state.selectedDate;
+            paidCount = state.paidCount;
+            unpaidCount = state.unpaidCount;
+            recentTransactions = state.recentTransactions;
+          } else if (isLoading) {
+             // Mock data for skeleton
+             displayDateObj = DateTime.now();
+             paidCount = 120;
+             unpaidCount = 45;
+             recentTransactions = List.generate(5, (index) => PaymentEntity(
+               id: '1', santriId: '1', bulan: '1', tahun: '2025', total: 100000, 
+               method: 'cash', createdAt: DateTime.now(), createdBy: 'admin', santriName: 'Nama Santri'
+             ));
           }
 
           if (state is PaymentError) {
             return Center(child: Text(state.message));
           }
 
-          if (state is PaymentLoaded) {
-            final displayDate = DateFormat('MMMM yyyy', 'id_ID').format(state.selectedDate);
+          final displayDate = DateFormat('MMMM yyyy', 'id_ID').format(displayDateObj);
             
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Month Selector
-                    Center(
-                      child: InkWell(
-                        onTap: () => _showMonthYearPicker(context, state.selectedDate),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.calendar_month, color: Colors.blue, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                displayDate,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Summary Cards
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSummaryCard(
-                            label: 'Sudah Bayar',
-                            count: state.paidCount,
-                            color: const Color(0xFF0CAF60), // Green
-                            icon: Icons.check_circle_outline,
-                            onTap: () => _showStudentList(
-                              context, 
-                              state.paidStudents, 
-                              'Daftar Sudah Bayar',
-                              state.selectedDate,
-                              showWhatsApp: false,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            label: 'Belum Bayar',
-                            count: state.unpaidCount,
-                            color: const Color(0xFFFD5D6F), // Red
-                            icon: Icons.pending_actions_outlined,
-                            onTap: () => _showStudentList(
-                              context, 
-                              state.unpaidStudents, 
-                              'Daftar Belum Bayar',
-                              state.selectedDate,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Transaction History Title
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Riwayat SPP',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            context.pushNamed(RouteNames.paymentHistory);
-                          },
-                          child: const Text('Lihat Semua'),
-                        ),
-                      ],
-                    ),
-                    // Transaction List
-                    if (state.recentTransactions.isEmpty)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24.0),
-                          child: Text('Belum ada transaksi baru.'),
-                        ),
-                      )
-                    else 
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: state.recentTransactions.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final item = state.recentTransactions[index];
-                          return Container(
+          return Skeletonizer(
+              enabled: isLoading,
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  context.read<PaymentCubit>().loadDashboard(displayDateObj);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Month Selector
+                      Center(
+                        child: InkWell(
+                          onTap: isLoading ? null : () => _showMonthYearPicker(context, displayDateObj),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.grey.shade300),
                             ),
-                            child: PaymentListItem(payment: item),
-                          );
-                        },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_month, color: Colors.blue, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  displayDate,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    const SizedBox(height: 80), // Space for FAB
-                  ],
+            
+                      // Summary Cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSummaryCard(
+                              label: 'Sudah Bayar',
+                              count: paidCount,
+                              color: const Color(0xFF0CAF60), // Green
+                              icon: Icons.check_circle_outline,
+                              onTap: isLoading ? () {} : () => _showStudentList(
+                                context, 
+                                state is PaymentLoaded ? state.paidStudents : [], 
+                                'Daftar Sudah Bayar',
+                                displayDateObj,
+                                showWhatsApp: false,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildSummaryCard(
+                              label: 'Belum Bayar',
+                              count: unpaidCount,
+                              color: const Color(0xFFFD5D6F), // Red
+                              icon: Icons.pending_actions_outlined,
+                              onTap: isLoading ? () {} : () => _showStudentList(
+                                context, 
+                                state is PaymentLoaded ? state.unpaidStudents : [], 
+                                'Daftar Belum Bayar',
+                                displayDateObj,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+            
+                      // Transaction History Title
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Riwayat SPP',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          if (!isLoading)
+                          TextButton(
+                            onPressed: () {
+                              context.pushNamed(RouteNames.paymentHistory);
+                            },
+                            child: const Text('Lihat Semua', style: AppTextStyles.infoGrey),
+                          ),
+                        ],
+                      ),
+                      // Transaction List
+                      if (!isLoading && recentTransactions.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: Text('Belum ada transaksi baru.'),
+                          ),
+                        )
+                      else 
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: recentTransactions.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final item = recentTransactions[index];
+                            // Calculate if transaction is older than 30 days
+                            final isOldTransaction = DateTime.now().difference(item.createdAt).inDays > 30;
+
+                            return Dismissible(
+                              key: Key(item.id),
+                              direction: DismissDirection.endToStart,
+                              dismissThresholds: {
+                                DismissDirection.endToStart: 0.5, // Requires 60% swipe to trigger, making it "harder"
+                              },
+                              background: Container(
+                                padding: const EdgeInsets.only(right: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                alignment: Alignment.centerRight,
+                                child: Icon(Icons.delete_outline, color: Colors.red.shade700),
+                              ),
+                              confirmDismiss: (direction) async {
+                                if (isOldTransaction) {
+                                  await showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Tidak Dapat Menghapus'),
+                                      content: const Text('Transaksi yang sudah lebih dari 1 bulan tidak dapat dihapus demi keamanan data.'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  return false; // Prevent dismiss
+                                }
+
+                                return await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Hapus Transaksi'),
+                                    content: const Text('Apakah Anda yakin ingin menghapus transaksi ini? Data yang dihapus tidak dapat dikembalikan.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              onDismissed: (direction) {
+                                context.read<PaymentCubit>().deletePayment(item.id);
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: PaymentListItem(payment: item),
+                              ),
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 80), // Space for FAB
+                    ],
+                  ),
                 ),
               ),
+              ),
             );
-          }
-
-          return const SizedBox();
         },
       ),
       floatingActionButton: FloatingActionButton(

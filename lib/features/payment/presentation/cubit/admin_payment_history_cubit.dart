@@ -45,4 +45,20 @@ class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
       }
     }
   }
+
+  Future<void> deletePayment(String paymentId) async {
+    final currentState = state;
+    if (currentState is AdminPaymentHistoryLoaded) {
+      try {
+        await repository.deletePayment(paymentId);
+        
+        // Optimistically remove from list
+        final updatedList = List.of(currentState.payments)..removeWhere((p) => p.id == paymentId);
+        emit(currentState.copyWith(payments: updatedList));
+      } catch (e) {
+        // Just reload in case of error mismatch
+        loadHistory();
+      }
+    }
+  }
 }
