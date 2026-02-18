@@ -69,6 +69,35 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
+  Future<List<PaymentEntity>> getPaymentHistory({int limit = 10, String? lastDocumentId}) async {
+    final payments = await remoteDataSource.getPaymentHistory(limit: limit, lastDocumentId: lastDocumentId);
+    
+    // Enrich with Santri details
+    final List<PaymentEntity> enrichedPayments = [];
+    
+    // Optimization: we could fetch all unique santri IDs in one go if API supported it, but here we loop
+    for (var p in payments) {
+      try {
+        final santri = await santriRepository.getSantriDetail(p.santriId);
+        enrichedPayments.add(PaymentEntity(
+          id: p.id,
+          santriId: p.santriId,
+          bulan: p.bulan,
+          tahun: p.tahun,
+          total: p.total,
+          method: p.method,
+          createdAt: p.createdAt,
+          createdBy: p.createdBy,
+          santriName: santri.name,
+        ));
+      } catch (e) {
+         enrichedPayments.add(p);
+      }
+    }
+    return enrichedPayments;
+  }
+
+  @override
   Future<void> addPayment(PaymentEntity payment) async {
     await remoteDataSource.addPayment(payment);
   }

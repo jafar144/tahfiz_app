@@ -10,6 +10,8 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/student_payment_list_bottom_sheet.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_wheel_picker.dart';
+import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_list_item.dart';
 
 class AdminPaymentPage extends StatelessWidget {
   const AdminPaymentPage({super.key});
@@ -34,11 +36,11 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
   
   void _showMonthYearPicker(BuildContext context, DateTime currentDate) {
     final now = DateTime.now();
-    final years = List.generate(3, (index) => now.year - index);
+    final years = List.generate(3, (index) => now.year - 1 + index);
     final months = List.generate(12, (index) => index + 1);
 
     int selectedYearIndex = years.indexOf(currentDate.year);
-    if (selectedYearIndex == -1) selectedYearIndex = 0; // Fallback
+    if (selectedYearIndex == -1) selectedYearIndex = 0;
     
     int selectedMonthIndex = currentDate.month - 1;
 
@@ -90,42 +92,31 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                   children: [
                     // Month Picker
                     Expanded(
-                      child: CupertinoPicker(
-                        scrollController: FixedExtentScrollController(
-                          initialItem: selectedMonthIndex,
+                      flex: 3,
+                      child: AiwaWheelPicker<int>(
+                        initialItem: selectedMonthIndex,
+                        items: months,
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) => selectedMonthIndex = index,
+                        itemBuilder: (m) => Text(
+                          DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
-                        itemExtent: 32,
-                        onSelectedItemChanged: (index) {
-                          selectedMonthIndex = index;
-                        },
-                        children: months.map((m) {
-                          return Center(
-                            child: Text(
-                              DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     // Year Picker
                     Expanded(
-                      child: CupertinoPicker(
-                        scrollController: FixedExtentScrollController(
-                          initialItem: selectedYearIndex,
+                      flex: 2,
+                      child: AiwaWheelPicker<int>(
+                        initialItem: selectedYearIndex,
+                        items: years,
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) => selectedYearIndex = index,
+                        itemBuilder: (y) => Text(
+                          y.toString(),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
-                        itemExtent: 32,
-                        onSelectedItemChanged: (index) {
-                          selectedYearIndex = index;
-                        },
-                        children: years.map((y) {
-                          return Center(
-                            child: Text(
-                              y.toString(),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
                       ),
                     ),
                   ],
@@ -272,7 +263,9 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                           ),
                         ),
                         TextButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            context.pushNamed(RouteNames.paymentHistory);
+                          },
                           child: const Text('Lihat Semua'),
                         ),
                       ],
@@ -293,7 +286,13 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                         separatorBuilder: (_, _) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final item = state.recentTransactions[index];
-                          return _buildTransactionItem(item);
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: PaymentListItem(payment: item),
+                          );
                         },
                       ),
                     const SizedBox(height: 80), // Space for FAB
@@ -385,88 +384,5 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
       ),
     );
   }
-
-  Widget _buildTransactionItem(dynamic item) {
-    // Handling dynamic item for PaymentEntity or mock map (since we switched to real data, it is PaymentEntity)
-    // But let's check what state passes. It passes PaymentEntity.
-    
-    // Safety check just in case
-    // ignore: avoid_dynamic_calls
-    final name = (item.santriName) ?? 'Unknown';
-    // ignore: avoid_dynamic_calls
-    final amount = (item.total) ?? 0;
-    // ignore: avoid_dynamic_calls
-    final date = (item.createdAt) as DateTime;
-    // ignore: avoid_dynamic_calls
-    final month = (item.bulan) ?? 0;
-    
-    final formatCurrency = NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: '+Rp ',
-      decimalDigits: 0,
-    );
-    final timeStr = DateFormat('HH:mm').format(date);
-    final dateStr = DateFormat('d MMM').format(date);
-    final monthName = DateFormat('MMMM', 'id_ID').format(DateTime(2024, int.parse(month)));
-
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: Colors.orange.withValues(alpha: 0.2),
-          child: Text(
-            name.isNotEmpty ? name.substring(0, 2).toUpperCase() : 'UR',
-            style: const TextStyle(
-              color: Colors.deepOrange,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'SPP $monthName • $timeStr',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              formatCurrency.format(amount),
-              style: const TextStyle(
-                color: Color(0xFF0CAF60),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              dateStr,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
+

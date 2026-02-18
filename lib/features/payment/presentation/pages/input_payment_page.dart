@@ -15,6 +15,8 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_paymen
 import 'package:khoirunnasyien/features/payment/presentation/widgets/santri_payment_history_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_exists_bottom_sheet.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_wheel_picker.dart';
 
 class InputPaymentPage extends StatelessWidget {
   const InputPaymentPage({super.key});
@@ -88,11 +90,11 @@ class _InputPaymentViewState extends State<InputPaymentView> {
 
   void _showMonthYearPicker() {
     final now = DateTime.now();
-    final years = List.generate(5, (index) => now.year - 1 + index);
+    final years = List.generate(3, (index) => now.year - 1 + index);
     final months = List.generate(12, (index) => index + 1);
 
     int selectedYearIndex = years.indexOf(_selectedYear);
-    if (selectedYearIndex == -1) selectedYearIndex = 1; // Default to current year index if found, simple fallback
+    if (selectedYearIndex == -1) selectedYearIndex = 1;
     
     int selectedMonthIndex = _selectedMonth - 1;
 
@@ -142,42 +144,31 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                   children: [
                     // Month Picker
                     Expanded(
-                      child: CupertinoPicker(
-                        scrollController: FixedExtentScrollController(
-                          initialItem: selectedMonthIndex,
+                      flex: 3,
+                      child: AiwaWheelPicker<int>(
+                        initialItem: selectedMonthIndex,
+                        items: months,
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) => selectedMonthIndex = index,
+                        itemBuilder: (m) => Text(
+                          DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
-                        itemExtent: 32,
-                        onSelectedItemChanged: (index) {
-                          selectedMonthIndex = index;
-                        },
-                        children: months.map((m) {
-                          return Center(
-                            child: Text(
-                              DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     // Year Picker
                     Expanded(
-                      child: CupertinoPicker(
-                        scrollController: FixedExtentScrollController(
-                          initialItem: selectedYearIndex,
+                      flex: 2,
+                      child: AiwaWheelPicker<int>(
+                        initialItem: selectedYearIndex,
+                        items: years,
+                        itemExtent: 40,
+                        onSelectedItemChanged: (index) => selectedYearIndex = index,
+                        itemBuilder: (y) => Text(
+                          y.toString(),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
-                        itemExtent: 32,
-                        onSelectedItemChanged: (index) {
-                          selectedYearIndex = index;
-                        },
-                        children: years.map((y) {
-                          return Center(
-                            child: Text(
-                              y.toString(),
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                          );
-                        }).toList(),
                       ),
                     ),
                   ],
@@ -292,12 +283,13 @@ class _InputPaymentViewState extends State<InputPaymentView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: 16),
                 _buildSectionTitle('Data Santri'),
                 const SizedBox(height: 8),
                 AiwaClickableInput(
                   label: 'Pilih Santri',
                   value: _selectedSantri == null 
-                      ? 'Cari Santri (Nama/ID)...' 
+                      ? 'Cari Santri' 
                       : '${_selectedSantri!.name} (${_selectedSantri!.nis})',
                   icon: Icons.person_search,
                   onTap: _pickSantri,
@@ -308,15 +300,15 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 const SantriPaymentHistoryWidget(),
                 
                 const SizedBox(height: 24),
-                const Center(child: Text('DETAIL TRANSAKSI', style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.2))),
-                const SizedBox(height: 24),
+                const Center(child: Text('DETAIL PEMBAYARAN', style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.w600))),
+                const SizedBox(height: 16),
 
-                _buildSectionTitle('Bulan & Tahun'),
+                _buildSectionTitle('Periode Pembayaran'),
                 const SizedBox(height: 8),
                 InkWell(
                   onTap: _showMonthYearPicker,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -327,9 +319,9 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                       children: [
                         Text(
                           displayMonthYear,
-                          style: const TextStyle(fontSize: 16, color: Colors.black87),
+                          style: const TextStyle(fontSize: 14, color: Colors.black87),
                         ),
-                        const Icon(Icons.calendar_today, color: Colors.blue),
+                        const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
                       ],
                     ),
                   ),
@@ -343,15 +335,16 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                   child: IgnorePointer(
                     child: TextFormField(
                       controller: _dateController,
+                      style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
-                        suffixIcon: const Icon(Icons.access_time, color: Colors.grey),
+                        suffixIcon: const Icon(Icons.access_time, color: Colors.grey, size: 20),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                     ),
                   ),
@@ -378,12 +371,12 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     hintText: 'Rp 0',
                   ),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black54),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.teal),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Nominal datat harus diisi';
+                    if (value == null || value.isEmpty) return 'Nominal harus diisi';
                     return null;
                   },
                 ),
@@ -392,24 +385,10 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 BlocBuilder<InputPaymentCubit, InputPaymentState>(
                   builder: (context, state) {
                     final isLoading = state is InputPaymentLoading;
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: isLoading ? null : _submit,
-                        icon: isLoading 
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
-                            : const Icon(Icons.save),
-                        label: Text(isLoading ? 'Menyimpan...' : 'Simpan Pembayaran'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
+                    return AiwaButton(
+                      text: 'Simpan Pembayaran',
+                      onPressed: _submit,
+                      isLoading: isLoading,
                     );
                   },
                 ),
@@ -428,6 +407,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       style: const TextStyle(
         fontWeight: FontWeight.bold,
         color: Colors.black87,
+        fontSize: 13,
       ),
     );
   }
