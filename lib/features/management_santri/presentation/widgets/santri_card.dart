@@ -8,8 +8,15 @@ class SantriCard extends StatelessWidget {
   final SantriEntity santri;
   final VoidCallback? onReturn;
   final Map<String, dynamic>? extra;
+  final Widget? trailing;
 
-  const SantriCard(this.santri, {super.key, this.onReturn, this.extra});
+  const SantriCard(
+    this.santri, {
+    super.key,
+    this.onReturn,
+    this.extra,
+    this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -203,6 +210,10 @@ class SantriCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
               ],
             ),
           ),
