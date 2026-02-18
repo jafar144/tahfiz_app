@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 
 class PaymentListItem extends StatelessWidget {
@@ -35,17 +36,18 @@ class PaymentListItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
         child: Row(
           children: [
             CircleAvatar(
-              radius: 24,
+              radius: 22,
               backgroundColor: Colors.orange.withValues(alpha: 0.2),
               child: Text(
-                name.isNotEmpty ? name.substring(0, 2).toUpperCase() : 'UR',
+                UiUtils.getInitials(name),
                 style: const TextStyle(
                   color: Colors.deepOrange,
                   fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -57,8 +59,9 @@ class PaymentListItem extends StatelessWidget {
                   Text(
                     name,
                     style: const TextStyle(
+                      color: Colors.black87,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -67,7 +70,7 @@ class PaymentListItem extends StatelessWidget {
                     'SPP $monthName $year • $timeStr',
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontSize: 12,
+                      fontSize: 10,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -82,7 +85,7 @@ class PaymentListItem extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF0CAF60),
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -90,7 +93,7 @@ class PaymentListItem extends StatelessWidget {
                   dateStr,
                   style: TextStyle(
                     color: Colors.grey[400],
-                    fontSize: 12,
+                    fontSize: 10,
                   ),
                 ),
               ],
