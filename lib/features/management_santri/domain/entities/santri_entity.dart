@@ -9,6 +9,7 @@ class SantriEntity {
   final String? pembimbing;
   final String? nomorWali;
   final String? tipeKelas;
+  final DateTime? freeUntil;
 
   SantriEntity({
     required this.id,
@@ -18,6 +19,7 @@ class SantriEntity {
     required this.jenisKelamin,
     required this.isActive,
     required this.isFree,
+    this.freeUntil,
     this.pembimbing,
     this.nomorWali,
     this.tipeKelas,

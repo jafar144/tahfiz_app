@@ -34,6 +34,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
   String? _classType;
   late DateTime _entryDate;
   late bool _isFree;
+  DateTime? _freeUntil;
   bool _isLoading = false;
 
   @override
@@ -55,6 +56,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
     _classType = widget.santri.tipeKelas;
     _entryDate = widget.santri.tanggalMasuk ?? DateTime.now();
     _isFree = widget.santri.isFree;
+    _freeUntil = widget.santri.freeUntil;
   }
 
   @override
@@ -68,16 +70,16 @@ class _EditSantriPageState extends State<EditSantriPage> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context, bool isBirthDate) async {
+  Future<void> _selectDate(BuildContext context, bool isBirthDate, {bool isFreeUntil = false}) async {
     await UiUtils.dismissKeyboard(context);
 
     if (!context.mounted) return;
 
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isBirthDate ? (_birthDate ?? DateTime(2010)) : _entryDate,
+      initialDate: isFreeUntil ? (_freeUntil ?? DateTime.now()) : (isBirthDate ? (_birthDate ?? DateTime(2010)) : _entryDate),
       firstDate: DateTime(1990),
-      lastDate: DateTime.now(),
+      lastDate: isFreeUntil ? DateTime(2050) : DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -92,7 +94,9 @@ class _EditSantriPageState extends State<EditSantriPage> {
 
     if (picked != null) {
       setState(() {
-        if (isBirthDate) {
+        if (isFreeUntil) {
+          _freeUntil = picked;
+        } else if (isBirthDate) {
           _birthDate = picked;
         } else {
           _entryDate = picked;
@@ -193,6 +197,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
         tipeKelas: _classType!,
         entryDate: _entryDate,
         isFree: _isFree,
+        freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
       );
 
       // Call Cubit to update
@@ -409,7 +414,10 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           isSelected: !_isFree,
                           onTap: () {
                             UiUtils.unfocus(context);
-                            setState(() => _isFree = false);
+                            setState(() {
+                              _isFree = false;
+                              _freeUntil = null;
+                            });
                           },
                           activeColor: Colors.green,
                         ),
@@ -422,13 +430,28 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           isSelected: _isFree,
                           onTap: () {
                             UiUtils.unfocus(context);
-                            setState(() => _isFree = true);
+                            setState(() {
+                              _isFree = true;
+                              // Only set default if null
+                              _freeUntil ??= DateTime(DateTime.now().year + 7, DateTime.now().month, DateTime.now().day);
+                            });
                           },
                           activeColor: Colors.orange,
                         ),
                       ),
                     ],
                   ),
+                  if (_isFree) ...[
+                    const SizedBox(height: 12),
+                    AiwaClickableInput(
+                      label: 'Gratis Sampai',
+                      value: _freeUntil == null
+                          ? 'Pilih Tanggal'
+                          : DateFormat('dd MMMM yyyy').format(_freeUntil!),
+                      icon: Icons.event,
+                      onTap: () => _selectDate(context, false, isFreeUntil: true),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   AiwaButton(
                     text: 'Simpan Perubahan',

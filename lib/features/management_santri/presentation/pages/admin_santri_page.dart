@@ -246,7 +246,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                       AiwaChip(
                         label: _selectedIsFree == null 
                             ? 'Status' 
-                            : (_selectedIsFree! ? 'Beasiswa' : 'Reguler'),
+                            : (_selectedIsFree! ? 'Gratis' : 'Reguler'),
                         isSelected: _selectedIsFree != null,
                         onTap: () => _showStatusFilter(context),
                       ),

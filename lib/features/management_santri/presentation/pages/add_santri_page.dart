@@ -35,6 +35,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
   DateTime _entryDate = DateTime.now();
   String? _selectedClass; // Example: 'Kelas A'
   String? _classType; // Pagi, Sore, Malam
+  DateTime? _freeUntil;
   bool _isFree = false;
   bool _isLoading = false;
 
@@ -84,6 +85,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
         tipeKelas: _classType!,
         entryDate: _entryDate,
         isFree: _isFree,
+        freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
       );
 
       context.read<SantriCubit>().addSantri(params);
@@ -99,11 +101,15 @@ class _AddSantriPageState extends State<AddSantriPage> {
     
     if (!context.mounted) return;
 
+    final safeInitialDate = initialDate.year < 2000 
+        ? DateTime(2000, 1, 1) 
+        : (initialDate.year > 2050 ? DateTime(2050, 12, 31) : initialDate);
+
     final picked = await showDatePicker(
       context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(1990),
-      lastDate: DateTime(2030),
+      initialDate: safeInitialDate,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
     );
     if (picked != null) {
       setState(() {
@@ -426,7 +432,10 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               isSelected: !_isFree,
                               onTap: () {
                                 UiUtils.unfocus(context);
-                                setState(() => _isFree = false);
+                                setState(() {
+                                  _isFree = false;
+                                  _freeUntil = null;
+                                });
                               },
                               activeColor: Colors.green,
                             ),
@@ -439,13 +448,31 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               isSelected: _isFree,
                               onTap: () {
                                 UiUtils.unfocus(context);
-                                setState(() => _isFree = true);
+                                setState(() {
+                                  _isFree = true;
+                                  _freeUntil = DateTime(DateTime.now().year + 7, DateTime.now().month, DateTime.now().day);
+                                });
                               },
                               activeColor: Colors.orange,
                             ),
                           ),
                         ],
                       ),
+                      if (_isFree) ...[
+                        const SizedBox(height: 12),
+                        AiwaClickableInput(
+                          label: 'Gratis Sampai',
+                          value: _freeUntil == null
+                              ? 'Pilih Tanggal'
+                              : DateFormat('dd MMMM yyyy').format(_freeUntil!),
+                          icon: Icons.event,
+                          onTap: () => _pickDate(
+                            context: context,
+                            initialDate: _freeUntil ?? DateTime.now(),
+                            onPicked: (d) => _freeUntil = d,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       AiwaButton(
                         text: 'Tambah Santri',

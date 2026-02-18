@@ -14,6 +14,7 @@ class SantriDetail {
   final String? tipeKelas;
   final String? pembimbing;
   final String? phone;
+  final DateTime? freeUntil;
 
   const SantriDetail({
     required this.id,
@@ -23,6 +24,7 @@ class SantriDetail {
     required this.jenisKelamin,
     required this.isActive,
     required this.isFree,
+    this.freeUntil,
     this.namaWali,
     this.nomorWali,
     this.tanggalMasuk,

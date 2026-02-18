@@ -71,20 +71,28 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           query = query.where('kelas', isEqualTo: kelas);
         }
         if (isFree != null) {
-          query = query.where('is_free', isEqualTo: isFree);
+          if (isFree) {
+            query = query.where('free_until', isGreaterThan: Timestamp.now());
+          } else {
+            query = query.where('free_until', isNull: true);
+          }
         }
 
         final snapshot = await query.get();
         final items = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          return SantriEntity(
+            final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+            final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+
+            return SantriEntity(
             id: doc.id,
             name: data['name'],
             nis: data['nis'],
             kelas: data['kelas'],
             jenisKelamin: data['jenis_kelamin'],
             isActive: data['is_active'] ?? true,
-            isFree: data['is_free'] ?? false,
+            isFree: isFree,
+            freeUntil: freeUntil,
             nomorWali: data['nomor_wali'],
             pembimbing: null,
             tipeKelas: data['tipe_kelas'],
@@ -126,7 +134,11 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     }
 
     if (isFree != null) {
-      query = query.where('is_free', isEqualTo: isFree);
+      if (isFree) {
+        query = query.where('free_until', isGreaterThan: Timestamp.now());
+      } else {
+        query = query.where('free_until', isNull: true);
+      }
     }
 
     // Only paginate if NOT searching by keyword (client-side filter needs all data)
@@ -160,6 +172,9 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     return docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
 
+      final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+      final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+
       return SantriEntity(
         id: doc.id,
         name: data['name'],
@@ -167,7 +182,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         kelas: data['kelas'],
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
-        isFree: data['is_free'] ?? false,
+        isFree: isFree,
+        freeUntil: freeUntil,
         nomorWali: data['nomor_wali'],
         pembimbing: null,
         tipeKelas: data['tipe_kelas'],
@@ -187,6 +203,9 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     final data = doc.data() as Map<String, dynamic>;
     final userData = userDoc.exists ? userDoc.data() as Map<String, dynamic> : <String, dynamic>{};
 
+    final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+    final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+
     return SantriDetail(
       id: doc.id,
       name: data['name'] ?? '',
@@ -194,7 +213,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       kelas: data['kelas'] ?? '',
       jenisKelamin: data['jenis_kelamin'] ?? '',
       isActive: data['is_active'] ?? true,
-      isFree: data['is_free'] ?? false,
+      isFree: isFree,
+      freeUntil: freeUntil,
       namaWali: data['nama_wali'],
       nomorWali: data['nomor_wali'],
       tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
@@ -240,7 +260,11 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       await firestore.collection('santri_profiles').doc(uid).set({
         'is_active': true,
-        'is_free': params.isFree,
+        'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
+          DateTime.now().year + 7,
+          DateTime.now().month,
+          DateTime.now().day,
+        )) : null,
         'jenis_kelamin': params.jenisKelamin,
         'kelas': params.kelas,
         'nama_wali': params.waliName,
@@ -267,7 +291,12 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'nis': params.nis,
       'kelas': params.kelas,
       'jenis_kelamin': params.jenisKelamin,
-      'is_free': params.isFree,
+      'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
+          DateTime.now().year + 7,
+          DateTime.now().month,
+          DateTime.now().day,
+        )) : null,
+      'is_free': FieldValue.delete(), // Ensure old field is removed if present
       'nama_wali': params.waliName,
       'nomor_wali': params.waliPhone,
       'tanggal_masuk': Timestamp.fromDate(params.entryDate),
@@ -302,6 +331,9 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       final items = snapshot.docs.map((doc) {
         final data = doc.data();
+        final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+        final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+
         return SantriEntity(
           id: doc.id,
           name: data['name'] ?? '',
@@ -309,7 +341,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           kelas: data['kelas'] ?? '',
           jenisKelamin: data['jenis_kelamin'] ?? '',
           isActive: data['is_active'] ?? true,
-          isFree: data['is_free'] ?? false,
+          isFree: isFree,
+          freeUntil: freeUntil,
           nomorWali: data['nomor_wali'],
           pembimbing: null,
           tipeKelas: data['tipe_kelas'],

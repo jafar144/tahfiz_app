@@ -153,7 +153,9 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                    AiwaDetailInfoRow(
                      icon: Icons.payments,
                      label: 'Status Biaya',
-                     value: detail.isFree ? 'Gratis' : 'Reguler',
+                     value: detail.isFree 
+                        ? 'Gratis (Sampai ${detail.freeUntil != null ? DateFormat('d MMM yyyy').format(detail.freeUntil!) : '-'})' 
+                        : 'Reguler',
                    ),
                    AiwaDetailInfoRow(
                      icon: Icons.calendar_today,
