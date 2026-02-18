@@ -10,6 +10,7 @@ class SantriEntity {
   final String? nomorWali;
   final String? tipeKelas;
   final DateTime? freeUntil;
+  final DateTime? tanggalMasuk;
 
   SantriEntity({
     required this.id,
@@ -20,8 +21,22 @@ class SantriEntity {
     required this.isActive,
     required this.isFree,
     this.freeUntil,
+    this.tanggalMasuk,
     this.pembimbing,
     this.nomorWali,
     this.tipeKelas,
   });
+
+  factory SantriEntity.dummy() {
+    return SantriEntity(
+      id: 'dummy_id',
+      name: 'Nama Santri Dummy Panjang',
+      nis: '12345678',
+      kelas: 'XII-A',
+      jenisKelamin: 'L',
+      isActive: true,
+      isFree: false,
+      tanggalMasuk: DateTime.now(),
+    );
+  }
 }

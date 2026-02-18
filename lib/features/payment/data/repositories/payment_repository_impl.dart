@@ -64,6 +64,11 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
+  Future<List<PaymentEntity>> getPaymentHistoryBySantri(String santriId, int limit) {
+    return remoteDataSource.getPaymentHistoryBySantri(santriId, limit);
+  }
+
+  @override
   Future<void> addPayment(PaymentEntity payment) async {
     await remoteDataSource.addPayment(payment);
   }

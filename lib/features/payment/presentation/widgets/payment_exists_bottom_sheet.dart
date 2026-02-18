@@ -24,80 +24,82 @@ class PaymentExistsBottomSheet extends StatelessWidget {
     final dateStr = DateFormat('d MMMM yyyy, HH:mm', 'id_ID').format(payment.createdAt);
     final monthName = DateFormat('MMMM', 'id_ID').format(DateTime(2024, int.tryParse(payment.bulan) ?? 1));
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.info_outline, color: Colors.orange, size: 32),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Pembayaran Sudah Ada',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Santri $santriName sudah melakukan pembayaran SPP untuk periode:',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$monthName ${payment.tahun}',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 24),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Column(
-              children: [
-                _buildDetailRow('Nominal', formatCurrency.format(payment.total)),
-                const SizedBox(height: 8),
-                _buildDetailRow('Tanggal Bayar', dateStr),
-                const SizedBox(height: 8),
-                _buildDetailRow('Metode', payment.method),
-              ],
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: onClose,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+    return SafeArea(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              child: const Text('Tutup'),
+              child: const Icon(Icons.info_outline, color: Colors.orange, size: 32),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Text(
+              'Pembayaran Sudah Ada',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Santri $santriName sudah melakukan pembayaran SPP untuk periode:',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$monthName ${payment.tahun}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Column(
+                children: [
+                  _buildDetailRow('Nominal', formatCurrency.format(payment.total)),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Tanggal Bayar', dateStr),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Metode', payment.method),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: onClose,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Tutup'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -10,6 +10,7 @@ class AiwaTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final bool obscureText;
   final bool enabled;
+  final ValueChanged<String>? onChanged;
 
   const AiwaTextField({
     super.key,
@@ -22,6 +23,7 @@ class AiwaTextField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.sentences,
     this.obscureText = false,
     this.enabled = true,
+    this.onChanged,
   });
 
   @override
@@ -57,6 +59,7 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
             fontSize: 13,
             color: widget.enabled ? Colors.black : Colors.grey.shade600,
           ),
+          onChanged: widget.onChanged,
           controller: widget.controller,
           keyboardType: widget.keyboardType,
           textCapitalization: widget.textCapitalization,

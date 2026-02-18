@@ -6,9 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
-import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/input_payment_cubit.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
+import 'package:khoirunnasyien/features/payment/presentation/widgets/santri_payment_history_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_exists_bottom_sheet.dart';
 
@@ -17,8 +21,15 @@ class InputPaymentPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => getIt<InputPaymentCubit>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => getIt<InputPaymentCubit>(),
+        ),
+        BlocProvider(
+          create: (_) => getIt<SantriPaymentHistoryCubit>(),
+        ),
+      ],
       child: const InputPaymentView(),
     );
   }
@@ -41,34 +52,21 @@ class _InputPaymentViewState extends State<InputPaymentView> {
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
-  List<SantriEntity> _allSantri = [];
-  bool _isLoadingSantri = true;
-
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null);
     _dateController.text = DateFormat('dd/MM/yyyy').format(_selectedDate);
-    _loadSantri();
   }
 
-  Future<void> _loadSantri() async {
-    try {
-      final santri = await getIt<SantriRepository>().getSantriList(isActive: true);
-      if (mounted) {
-        setState(() {
-          _allSantri = santri.where((s) => !s.isFree).toList();
-          _isLoadingSantri = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat data santri: $e')),
-        );
-        setState(() {
-          _isLoadingSantri = false;
-        });
+  Future<void> _pickSantri() async {
+    final result = await context.pushNamed(RouteNames.selectSantri);
+    if (result != null && result is SantriEntity) {
+      setState(() {
+        _selectedSantri = result;
+      });
+      if (context.mounted) {
+        context.read<SantriPaymentHistoryCubit>().loadHistory(result.id);
       }
     }
   }
@@ -201,6 +199,43 @@ class _InputPaymentViewState extends State<InputPaymentView> {
         return;
       }
 
+      // 1. Validation: Payment for duplicate month/year is handled in Cubit (InputPaymentAlreadyExists)
+      // but we can also double check here if we had the history locally, but Cubit is safer.
+
+      // 2. Validation: Payment Date cannot be before entry date
+       if (_selectedSantri!.tanggalMasuk != null) {
+          final tanggalMasuk = _selectedSantri!.tanggalMasuk!;
+          final paymentMonthDate = DateTime(_selectedYear, _selectedMonth);
+          final entryMonthDate = DateTime(tanggalMasuk.year, tanggalMasuk.month);
+
+          if (paymentMonthDate.isBefore(entryMonthDate)) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               SnackBar(content: Text('Pembayaran tidak bisa sebelum tanggal masuk santri (${DateFormat('dd MMMM yyyy', 'id_ID').format(tanggalMasuk)})')),
+             );
+             return;
+          }
+       }
+
+      // 3. Validation: Free User
+      if (_selectedSantri!.isFree && _selectedSantri!.freeUntil != null) {
+         final freeUntil = _selectedSantri!.freeUntil!;
+         final paymentMonthDate = DateTime(_selectedYear, _selectedMonth);
+         // If payment month is BEFORE or EQUAL to freeUntil, block it? 
+         // "jika bulan yang dipilih itu kurang dari free_until"
+         // If freeUntil is March 2024. Payment for Feb 2024 should be blocked? Yes.
+         // If payment for April 2024? Allowed.
+         
+         // We need to compare Month and Year.
+         final freeUntilMonthYear = DateTime(freeUntil.year, freeUntil.month);
+         
+         if (paymentMonthDate.isBefore(freeUntilMonthYear) || paymentMonthDate.isAtSameMomentAs(freeUntilMonthYear)) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Santri ini gratis pembayaran hingga ${DateFormat('MMMM yyyy', 'id_ID').format(freeUntil)}')),
+            );
+            return;
+         }
+      }
+
       // Remove Rp, dot, space to get int
       final rawAmount = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final amount = int.tryParse(rawAmount) ?? 0;
@@ -223,19 +258,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          'Input Pembayaran',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => context.pop(),
-        ),
-      ),
+      appBar: AiwaAppBar(title: 'Input Pembayaran'),
       body: BlocListener<InputPaymentCubit, InputPaymentState>(
         listener: (context, state) {
           if (state is InputPaymentSuccess) {
@@ -271,7 +294,18 @@ class _InputPaymentViewState extends State<InputPaymentView> {
               children: [
                 _buildSectionTitle('Data Santri'),
                 const SizedBox(height: 8),
-                _buildSantriAutocomplete(),
+                AiwaClickableInput(
+                  label: 'Pilih Santri',
+                  value: _selectedSantri == null 
+                      ? 'Cari Santri (Nama/ID)...' 
+                      : '${_selectedSantri!.name} (${_selectedSantri!.nis})',
+                  icon: Icons.person_search,
+                  onTap: _pickSantri,
+                ),
+                
+                const SizedBox(height: 24),
+                
+                const SantriPaymentHistoryWidget(),
                 
                 const SizedBox(height: 24),
                 const Center(child: Text('DETAIL TRANSAKSI', style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.2))),
@@ -398,81 +432,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     );
   }
 
-  Widget _buildSantriAutocomplete() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Autocomplete<SantriEntity>(
-          optionsBuilder: (TextEditingValue textEditingValue) {
-            if (_isLoadingSantri) {
-              return const Iterable<SantriEntity>.empty();
-            }
-            if (textEditingValue.text == '') {
-              return const Iterable<SantriEntity>.empty();
-            }
-            return _allSantri.where((SantriEntity option) {
-              return option.name.toLowerCase().contains(textEditingValue.text.toLowerCase()) || 
-                     option.nis.toLowerCase().contains(textEditingValue.text.toLowerCase());
-            });
-          },
-          displayStringForOption: (SantriEntity option) => '${option.name} (${option.nis})',
-          onSelected: (SantriEntity selection) {
-            setState(() {
-              _selectedSantri = selection;
-            });
-          },
-          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-            return TextFormField(
-              controller: textEditingController,
-              focusNode: focusNode,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Cari Santri (Nama/ID)...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-              validator: (val) {
-                if (_selectedSantri == null) return 'Wajib dipilih';
-                return null;
-              },
-            );
-          },
-          optionsViewBuilder: (context, onSelected, options) {
-            return Align(
-              alignment: Alignment.topLeft,
-              child: Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.white,
-                child: SizedBox(
-                  width: constraints.maxWidth,
-                  height: 200, // Limit height
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    itemCount: options.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final SantriEntity option = options.elementAt(index);
-                      return ListTile(
-                        title: Text(option.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('NIS: ${option.nis} • Kelas ${option.kelas}'),
-                        onTap: () {
-                          onSelected(option);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      }
-    );
-  }
+
 }
 
 class CurrencyInputFormatter extends TextInputFormatter {

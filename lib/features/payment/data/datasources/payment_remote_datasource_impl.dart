@@ -43,6 +43,18 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<List<PaymentEntity>> getPaymentHistoryBySantri(String santriId, int limit) async {
+    final snapshot = await firestore
+        .collection('payments')
+        .where('santri_id', isEqualTo: santriId)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .get();
+
+    return snapshot.docs.map((doc) => PaymentModel.fromFirestore(doc)).toList();
+  }
+
+  @override
   Future<void> addPayment(PaymentEntity payment) async {
     final model = PaymentModel(
       id: '', // Not used for add

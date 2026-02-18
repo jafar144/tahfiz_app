@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
@@ -167,17 +168,8 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background
-      appBar: AppBar(
-        title: const Text(
-          'Pembayaran',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
+      backgroundColor: Colors.grey[50],
+      appBar: AiwaAppBar(title: 'Pembayaran'),
       body: BlocBuilder<PaymentCubit, PaymentState>(
         builder: (context, state) {
           if (state is PaymentLoading) {

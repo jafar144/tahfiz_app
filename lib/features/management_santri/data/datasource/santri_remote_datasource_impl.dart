@@ -96,6 +96,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             nomorWali: data['nomor_wali'],
             pembimbing: null,
             tipeKelas: data['tipe_kelas'],
+            tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
           );
         }).toList();
 
@@ -115,6 +116,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       return allSantris;
     }
 
+    // Standard query building
     Query query = firestore.collection('santri_profiles');
 
     if (isActive != null) {
@@ -141,33 +143,53 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       }
     }
 
-    // Only paginate if NOT searching by keyword (client-side filter needs all data)
-    bool isSearching = keyword != null && keyword.isNotEmpty;
-    
-    if (!isSearching) {
-      query = query.limit(limit);
-      if (lastDocumentId != null) {
-        final lastDoc = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
-        if (lastDoc.exists) {
-          query = query.startAfterDocument(lastDoc);
+    // Server-side search if keyword present
+    if (keyword != null && keyword.isNotEmpty) {
+      // Logic:
+      // If keyword contains only digits, assume it's a NIS search.
+      // Otherwise, assume it's a Name search.
+      final isNumeric = RegExp(r'^[0-9]+$').hasMatch(keyword);
+
+      if (isNumeric) {
+        // Query by NIS
+        query = query
+            .where('nis', isGreaterThanOrEqualTo: keyword)
+            .where('nis', isLessThan: '$keyword\uf8ff')
+            .orderBy('nis');
+      } else {
+        // Query by Name
+        // NOTE: This is case-sensitive and prefix-only.
+        
+        // Attempt to capitalize first letter for better matching if names are Title Case
+        String searchTerm = keyword;
+        if (keyword.length > 1) {
+           searchTerm = keyword[0].toUpperCase() + keyword.substring(1);
+        } else {
+           searchTerm = keyword.toUpperCase();
         }
+        
+        query = query
+          .where('name', isGreaterThanOrEqualTo: searchTerm)
+          .where('name', isLessThan: '$searchTerm\uf8ff')
+          .orderBy('name');
+      }
+    } else {
+      // Default ordering if no search
+      query = query.orderBy('name');
+    }
+
+    query = query.limit(limit);
+
+    if (lastDocumentId != null) {
+      final lastDoc = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
+      if (lastDoc.exists) {
+        query = query.startAfterDocument(lastDoc);
       }
     }
 
     final snapshot = await query.get();
-
     var docs = snapshot.docs;
 
-    // Filter by keyword (Search logic) - client side for flexibility
-    if (isSearching) {
-      final k = keyword.toLowerCase();
-      docs = docs.where((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        final name = (data['name'] ?? '').toString().toLowerCase();
-        final nis = (data['nis'] ?? '').toString().toLowerCase();
-        return name.contains(k) || nis.contains(k);
-      }).toList();
-    }
 
     return docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
@@ -187,6 +209,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         nomorWali: data['nomor_wali'],
         pembimbing: null,
         tipeKelas: data['tipe_kelas'],
+        tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
       );
     }).toList();
   }
@@ -346,6 +369,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           nomorWali: data['nomor_wali'],
           pembimbing: null,
           tipeKelas: data['tipe_kelas'],
+          tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
         );
       }).toList();
       

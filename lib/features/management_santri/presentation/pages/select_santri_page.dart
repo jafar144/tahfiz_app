@@ -1,21 +1,28 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:khoirunnasyien/core/utils/ui_utils.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
-import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 
 class SelectSantriPage extends StatefulWidget {
   final String? genderFiltered;
   final List<SantriEntity> initialSelection;
   final List<String> disabledIds;
+  final bool isMultiSelect;
 
   const SelectSantriPage({
     super.key,
     this.genderFiltered,
     this.initialSelection = const [],
     this.disabledIds = const [],
+    this.isMultiSelect = false,
   });
 
   @override
@@ -25,14 +32,13 @@ class SelectSantriPage extends StatefulWidget {
 class _SelectSantriPageState extends State<SelectSantriPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
-  // Map untuk menyimpan entity yang terpilih agar data tidak hilang saat search/pagination
-  late Map<String, SantriEntity> _selectedMap;
+  List<SantriEntity> _selectedSantri = [];
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _selectedMap = {for (var e in widget.initialSelection) e.id: e};
+    _selectedSantri = List.from(widget.initialSelection);
     _scrollController.addListener(_onScroll);
   }
 
@@ -40,16 +46,12 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
-  int _lastLoadTime = 0;
-
   void _onScroll() {
     if (_isBottom) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - _lastLoadTime < 500) return; // Throttle 500ms
-      _lastLoadTime = now;
       context.read<SantriCubit>().loadMoreSantri();
     }
   }
@@ -58,174 +60,131 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.offset;
-    return currentScroll >= (maxScroll * 0.8);
+    return currentScroll >= (maxScroll * 0.9);
   }
 
-  void _onSearch(BuildContext context) {
-    UiUtils.unfocus(context);
+  void _onSearch() {
     context.read<SantriCubit>().loadSantri(
-      keyword: _searchController.text,
       isActive: true,
       gender: widget.genderFiltered,
+      keyword: _searchController.text,
+      isFree: false,
     );
   }
 
   void _toggleSelection(SantriEntity santri) {
     setState(() {
-      if (_selectedMap.containsKey(santri.id)) {
-        _selectedMap.remove(santri.id);
+      if (_selectedSantri.any((s) => s.id == santri.id)) {
+        _selectedSantri.removeWhere((s) => s.id == santri.id);
       } else {
-        _selectedMap[santri.id] = santri;
+        _selectedSantri.add(santri);
       }
     });
+  }
+
+  void _submit() {
+    context.pop(_selectedSantri);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pilih Santri'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, _selectedMap.values.toList());
-            },
-            child: Text(
-              'Selesai (${_selectedMap.length})',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari Santri...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
+      backgroundColor: Colors.white,
+      appBar: AiwaAppBar(title: 'Pilih Santri'),
+      bottomNavigationBar: widget.isMultiSelect
+        ? SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: AiwaButton(
+                text: 'Pilih (${_selectedSantri.length})',
+                onPressed: _submit,
               ),
-              onSubmitted: (_) => _onSearch(context),
             ),
-          ),
-          Expanded(
-            child: BlocListener<SantriCubit, SantriState>(
-              listener: (context, state) {
-                if (state is SantriLoaded) {
-                  setState(() {
-                    for (final santri in state.santri) {
-                      if (_selectedMap.containsKey(santri.id)) {
-                        _selectedMap[santri.id] = santri;
-                      }
-                    }
-                  });
-                }
-              },
-              child: BlocBuilder<SantriCubit, SantriState>(
-                builder: (context, state) {
-                      final isLoading = state is SantriLoading;
-                      // Dummy data for skeleton
-                      final List<SantriEntity> dataList;
-                      if (state is SantriLoaded) {
-                        dataList = state.santri;
-                      } else {
-                        dataList = List.generate(
-                          6,
-                          (index) => SantriEntity(
-                            id: 'dummy_$index',
-                            name: 'Nama Santri Placeholder',
-                            nis: '12345',
-                            jenisKelamin: widget.genderFiltered ?? 'L',
-                            isActive: true,
-                            kelas: '1A',
-                            isFree: false,
-                            nomorWali: '',
-                            pembimbing: '',
-                          ),
-                        );
-                      }
+          )
+        : null,
+      body: BlocBuilder<SantriCubit, SantriState>(
+        builder: (context, state) {
+          // Determine list to show
+          List<SantriEntity> santriList = [];
+          if (state is SantriLoaded) {
+            santriList = state.santri;
+          }
 
-                      if (state is SantriLoaded && state.santri.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'Tidak ada data santri ditemukan',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        );
-                      }
-
-                      if (state is SantriError) {
-                        return Center(child: Text(state.message));
-                      }
-
-                      return Skeletonizer(
-                        enabled: isLoading,
-                        child: ListView.separated(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          itemCount: dataList.length + (state is SantriLoaded && state.isFetchingMore ? 1 : 0),
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) {
-                            if (index >= dataList.length) {
-                               return const Center(child: Padding(
-                                 padding: EdgeInsets.all(8.0),
-                                 child: CircularProgressIndicator(),
-                               ));
-                            }
-                            
-                            final santri = dataList[index];
-                            final isSelected = _selectedMap.containsKey(santri.id);
-                            final isDisabled = widget.disabledIds.contains(santri.id);
-
-                            return CheckboxListTile(
-                              value: isSelected,
-                              enabled: !isDisabled,
-                              onChanged: (isLoading || isDisabled) ? null : (_) => _toggleSelection(santri),
-                              title: Text(
-                                santri.name, 
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: isDisabled ? Colors.grey : Colors.black87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                isDisabled ? '${santri.nis} (Tidak Tersedia)' : santri.nis,
-                                style: TextStyle(
-                                  color: isDisabled ? Colors.red.shade300 : null,
-                                ),
-                              ),
-                              secondary: CircleAvatar(
-                                backgroundColor: isDisabled 
-                                    ? Colors.grey 
-                                    : (isSelected ? Colors.green : Colors.grey.shade200),
-                                child: Text(
-                                  santri.name[0], 
-                                  style: TextStyle(color: isSelected && !isDisabled ? Colors.white : Colors.black87)
-                                ),
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              tileColor: isDisabled ? Colors.grey.shade50 : Colors.white,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            );
-                          },
-                        ),
-                      );
-                    },
+          return SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: AiwaSearch(
+                    controller: _searchController,
+                    onSubmitted: (_) => _onSearch(),
+                    onSearch: _onSearch,
+                    hintText: 'Cari Santri...',
                   ),
                 ),
-              ),
-            ],
-          ),
-      );
+                Expanded(
+                  child: Skeletonizer(
+                    enabled: state is SantriLoading,
+                    child: santriList.isEmpty && state is! SantriLoading
+                        ? const Center(
+                            child: Text(
+                              'Data santri tidak ditemukan',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            itemCount: state is SantriLoading ? 10 : santriList.length + (state is SantriLoaded && !state.hasReachedMax ? 1 : 0),
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              // Show spinner at bottom when fetching more (or if there is more data to load)
+                              if (state is! SantriLoading && index >= santriList.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Skeletonizer(
+                                    enabled: true,
+                                    child: SantriCard(SantriEntity.dummy()),
+                                  ),
+                                );
+                              }
+
+                              final santri = (state is SantriLoading || santriList.isEmpty)
+                                  ? SantriEntity.dummy()
+                                  : santriList[index];
+
+                              final isSelected = _selectedSantri.any((s) => s.id == santri.id);
+                              final isDisabled = widget.disabledIds.contains(santri.id);
+
+                              return Opacity(
+                                opacity: isDisabled ? 0.5 : 1.0,
+                                child: SantriCard(
+                                  santri,
+                                  trailing: widget.isMultiSelect 
+                                    ? Checkbox(
+                                        value: isSelected, 
+                                        onChanged: isDisabled ? null : (v) => _toggleSelection(santri),
+                                        activeColor: Colors.blue,
+                                      )
+                                    : null,
+                                  onTap: isDisabled ? null : () {
+                                    if (widget.isMultiSelect) {
+                                      _toggleSelection(santri);
+                                    } else {
+                                      context.pop(santri);
+                                    }
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 }

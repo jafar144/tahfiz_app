@@ -9,6 +9,7 @@ class SantriCard extends StatelessWidget {
   final VoidCallback? onReturn;
   final Map<String, dynamic>? extra;
   final Widget? trailing;
+  final VoidCallback? onTap;
 
   const SantriCard(
     this.santri, {
@@ -16,6 +17,7 @@ class SantriCard extends StatelessWidget {
     this.onReturn,
     this.extra,
     this.trailing,
+    this.onTap,
   });
 
   @override
@@ -40,7 +42,7 @@ class SantriCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () async {
+          onTap: onTap ?? () async {
             await context.pushNamed(
               RouteNames.detailSantri,
               pathParameters: {'id': santri.id},

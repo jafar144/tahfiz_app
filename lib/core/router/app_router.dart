@@ -142,6 +142,7 @@ class AppRouter {
           final extras = state.extra as Map<String, dynamic>? ?? {};
           final gender = extras['gender'] as String?;
           final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
+          final isMultiSelect = extras['isMultiSelect'] as bool? ?? false;
           
           return BlocProvider(
             create: (_) => getIt<SantriCubit>()..loadSantri(
@@ -152,6 +153,7 @@ class AppRouter {
               genderFiltered: gender,
               initialSelection: (extras['initialSelection'] as List?)?.cast<SantriEntity>() ?? [],
               disabledIds: disabledIds,
+              isMultiSelect: isMultiSelect,
             ),
           );
         },

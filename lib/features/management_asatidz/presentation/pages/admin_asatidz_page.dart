@@ -129,11 +129,9 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // List
           Expanded(
             child: BlocBuilder<AsatidzCubit, AsatidzState>(
               builder: (context, state) {
-                // Determine logic for Skeletonizer
                 final isLoading = state is AsatidzLoading;
                 final List<AsatidzEntity> displayList;
                 

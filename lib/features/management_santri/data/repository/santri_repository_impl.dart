@@ -71,6 +71,7 @@ class SantriRepositoryImpl implements SantriRepository {
         freeUntil: s.freeUntil,
         nomorWali: s.nomorWali,
         tipeKelas: s.tipeKelas,
+        tanggalMasuk: s.tanggalMasuk,
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();
@@ -167,6 +168,7 @@ class SantriRepositoryImpl implements SantriRepository {
         freeUntil: s.freeUntil,
         nomorWali: s.nomorWali,
         tipeKelas: s.tipeKelas,
+        tanggalMasuk: s.tanggalMasuk,
         pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
       );
     }).toList();

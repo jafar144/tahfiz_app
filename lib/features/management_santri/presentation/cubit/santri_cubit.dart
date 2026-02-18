@@ -50,13 +50,11 @@ class SantriCubit extends Cubit<SantriState> {
         limit: _limit,
       );
 
-      // If filtering by keyword, pagination is disabled (all data returned)
-      // So hasReachedMax is effectively true
-      final isSearching = keyword != null && keyword.isNotEmpty;
+      final hasReachedMax = result.length < _limit;
       
       emit(SantriLoaded(
         result,
-        hasReachedMax: isSearching ? true : result.length < _limit,
+        hasReachedMax: hasReachedMax,
       ));
     } catch (e) {
       emit(SantriError(e.toString()));
@@ -68,8 +66,7 @@ class SantriCubit extends Cubit<SantriState> {
     if (currentState is! SantriLoaded) return;
     if (currentState.hasReachedMax || currentState.isFetchingMore) return;
 
-    // Search logic fetches all data at once, so no "load more" needed
-    if (_currentKeyword != null && _currentKeyword!.isNotEmpty) return;
+
 
     // Already loading more
     emit(currentState.copyWith(isFetchingMore: true));
