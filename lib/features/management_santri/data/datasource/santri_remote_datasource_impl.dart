@@ -70,13 +70,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         if (kelas != null) {
           query = query.where('kelas', isEqualTo: kelas);
         }
-        if (isFree != null) {
-          if (isFree) {
-            query = query.where('free_until', isGreaterThan: Timestamp.now());
-          } else {
-            query = query.where('free_until', isNull: true);
-          }
-        }
+        // isFree tidak bisa difilter server-side di sini karena
+        // Firestore melarang whereIn + isGreaterThan dalam satu query
 
         final snapshot = await query.get();
         final items = snapshot.docs.map((doc) {
@@ -103,17 +98,28 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         allSantris.addAll(items);
       }
 
+      // Filter status client-side karena Firestore melarang whereIn + inequality filter
+      List<SantriEntity> result = allSantris;
+      if (isFree != null) {
+        final now = DateTime.now();
+        if (isFree == true) {
+          result = result.where((s) => s.freeUntil != null && s.freeUntil!.isAfter(now)).toList();
+        } else {
+          result = result.where((s) => s.freeUntil == null || s.freeUntil!.isBefore(now)).toList();
+        }
+      }
+
       // 3. Filter by keyword in memory
       if (keyword != null && keyword.isNotEmpty) {
         final k = keyword.toLowerCase();
-        return allSantris.where((s) {
+        return result.where((s) {
           final name = s.name.toLowerCase();
           final nis = s.nis.toLowerCase();
           return name.contains(k) || nis.contains(k);
         }).toList();
       }
 
-      return allSantris;
+      return result;
     }
 
     // Standard query building
@@ -135,12 +141,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       query = query.where('kelas', isEqualTo: kelas);
     }
 
-    if (isFree != null) {
-      if (isFree) {
-        query = query.where('free_until', isGreaterThan: Timestamp.now());
-      } else {
-        query = query.where('free_until', isNull: true);
-      }
+    if (isFree == true) {
+      query = query.where('free_until', isGreaterThan: Timestamp.now());
     }
 
     // Server-side search if keyword present
@@ -188,14 +190,13 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     }
 
     final snapshot = await query.get();
-    var docs = snapshot.docs;
+    final now = DateTime.now();
 
-
-    return docs.map((doc) {
+    var result = snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
 
       final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-      final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+      final isFreeVal = freeUntil != null && freeUntil.isAfter(now);
 
       return SantriEntity(
         id: doc.id,
@@ -204,7 +205,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         kelas: data['kelas'],
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
-        isFree: isFree,
+        isFree: isFreeVal,
         freeUntil: freeUntil,
         nomorWali: data['nomor_wali'],
         pembimbing: null,
@@ -212,6 +213,13 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
       );
     }).toList();
+
+    // Filter Reguler client-side karena Firestore tidak support OR query (null OR < now)
+    if (isFree == false) {
+      result = result.where((s) => s.freeUntil == null || s.freeUntil!.isBefore(now)).toList();
+    }
+
+    return result;
   }
 
   @override

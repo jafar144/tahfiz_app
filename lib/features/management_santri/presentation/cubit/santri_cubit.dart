@@ -50,8 +50,10 @@ class SantriCubit extends Cubit<SantriState> {
         limit: _limit,
       );
 
-      final hasReachedMax = result.length < _limit;
-      
+      // Jika asatidzId aktif, semua data sudah di-fetch sekaligus (tanpa cursor)
+      // sehingga pagination tidak berlaku
+      final hasReachedMax = asatidzId != null || result.length < _limit;
+
       emit(SantriLoaded(
         result,
         hasReachedMax: hasReachedMax,
