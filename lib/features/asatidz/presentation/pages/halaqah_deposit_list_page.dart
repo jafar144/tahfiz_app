@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
@@ -29,40 +30,33 @@ class HalaqahDepositListPage extends StatelessWidget {
       )..loadData(),
       child: Scaffold(
         backgroundColor: Colors.grey.shade50,
-        appBar: AppBar(
-          title: const Text(
-            'Deposit List',
-            style: TextStyle(fontWeight: FontWeight.bold),
+        appBar: AiwaAppBar(title: "Setoran Santri"),
+        body: SafeArea(
+          child: BlocBuilder<HalaqahDepositListCubit, HalaqahDepositListState>(
+            builder: (context, state) {
+              if (state is HalaqahDepositListLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+          
+              if (state is HalaqahDepositListError) {
+                return Center(child: Text('Error: ${state.message}'));
+              }
+          
+              if (state is HalaqahDepositListLoaded) {
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.summaries.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final summary = state.summaries[index];
+                    return _buildSantriCard(context, summary, dashboardCubit.asatidzId);
+                  },
+                );
+              }
+          
+              return const SizedBox.shrink();
+            },
           ),
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
-        ),
-        body: BlocBuilder<HalaqahDepositListCubit, HalaqahDepositListState>(
-          builder: (context, state) {
-            if (state is HalaqahDepositListLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is HalaqahDepositListError) {
-              return Center(child: Text('Error: ${state.message}'));
-            }
-
-            if (state is HalaqahDepositListLoaded) {
-              return ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: state.summaries.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final summary = state.summaries[index];
-                  return _buildSantriCard(context, summary, dashboardCubit.asatidzId);
-                },
-              );
-            }
-
-            return const SizedBox.shrink();
-          },
         ),
       ),
     );

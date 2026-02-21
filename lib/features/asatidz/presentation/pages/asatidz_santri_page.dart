@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
@@ -45,17 +46,8 @@ class _AsatidzSantriView extends StatelessWidget {
     );
 
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Match Admin Page background
-      appBar: AppBar(
-        title: const Text(
-          'Santri Saya',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black87),
-      ),
+      backgroundColor: Colors.grey[50],
+      appBar: AiwaAppBar(title: "Santri Saya"),
       body: BlocBuilder<AsatidzSantriCubit, AsatidzSantriState>(
         builder: (context, state) {
           final isLoading = state is AsatidzSantriLoading;

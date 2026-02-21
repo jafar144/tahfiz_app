@@ -295,57 +295,59 @@ class SantriAttendancePage extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (sheetContext) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'REASON FOR ABSENCE',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-                letterSpacing: 1,
+      builder: (sheetContext) => SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Alasan Tidak Hadir',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 1,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildReasonOption(
-              context,
-              santriId,
-              'Sakit (Sick)',
-              'sakit',
-              Icons.local_hospital,
-              Colors.blue,
-            ),
-            const Divider(height: 1),
-            _buildReasonOption(
-              context,
-              santriId,
-              'Izin (Permission)',
-              'izin',
-              Icons.info,
-              Colors.orange,
-            ),
-            const Divider(height: 1),
-            _buildReasonOption(
-              context,
-              santriId,
-              'Alpha (Absent)',
-              'alpha',
-              Icons.cancel,
-              Colors.red,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: () => Navigator.pop(sheetContext),
-                child: const Text('Batal'),
+              const SizedBox(height: 16),
+              _buildReasonOption(
+                context,
+                santriId,
+                'Sakit',
+                'sakit',
+                Icons.local_hospital,
+                Colors.blue,
               ),
-            ),
-          ],
+              const Divider(height: 1),
+              _buildReasonOption(
+                context,
+                santriId,
+                'Iziz',
+                'izin',
+                Icons.info,
+                Colors.orange,
+              ),
+              const Divider(height: 1),
+              _buildReasonOption(
+                context,
+                santriId,
+                'Alpha',
+                'alpha',
+                Icons.cancel,
+                Colors.red,
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Batal'),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
