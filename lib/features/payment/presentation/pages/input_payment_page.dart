@@ -12,7 +12,8 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/input_payment_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
-import 'package:khoirunnasyien/features/payment/presentation/widgets/santri_payment_history_widget.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
+import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_exists_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
@@ -297,7 +298,52 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 
                 const SizedBox(height: 24),
                 
-                const SantriPaymentHistoryWidget(),
+                if (_selectedSantri != null)
+                  BlocBuilder<SantriPaymentHistoryCubit, SantriPaymentHistoryState>(
+                    builder: (context, state) {
+                      if (state is SantriPaymentHistoryLoading) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+
+                      if (state is SantriPaymentHistoryError) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Gagal memuat riwayat: ${state.message}',
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                          ),
+                        );
+                      }
+
+                      if (state is SantriPaymentHistoryLoaded) {
+                        final paidData = <int, Set<int>>{};
+                        for (final p in state.payments) {
+                          final year = int.tryParse(p.tahun);
+                          final month = int.tryParse(p.bulan);
+                          if (year != null && month != null) {
+                            paidData.putIfAbsent(year, () => {}).add(month);
+                          }
+                        }
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
+                          child: PaymentYearView(
+                            paidData: paidData,
+                            startDate: _resolveStartDate(),
+                          ),
+                        );
+                      }
+
+                      return const SizedBox.shrink();
+                    },
+                  ),
                 
                 const SizedBox(height: 24),
                 const Center(child: Text('DETAIL PEMBAYARAN', style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.w600))),
@@ -399,6 +445,30 @@ class _InputPaymentViewState extends State<InputPaymentView> {
         ),
       ),
     );
+  }
+
+  /// Menghitung bulan pertama santri wajib membayar.
+  /// - free_until null → mulai dari tanggal_masuk
+  /// - free_until ada dan sudah lewat → mulai dari bulan setelah free_until
+  DateTime? _resolveStartDate() {
+    final santri = _selectedSantri;
+    if (santri == null) return null;
+
+    final freeUntil = santri.freeUntil;
+    final tanggalMasuk = santri.tanggalMasuk;
+
+    if (freeUntil != null && !freeUntil.isAfter(DateTime.now())) {
+      // Masa gratis sudah selesai → mulai bayar dari bulan setelah free_until
+      final afterFree = DateTime(freeUntil.year, freeUntil.month + 1);
+      return DateTime(afterFree.year, afterFree.month);
+    }
+
+    // Reguler → mulai dari tanggal_masuk
+    if (tanggalMasuk != null) {
+      return DateTime(tanggalMasuk.year, tanggalMasuk.month);
+    }
+
+    return null;
   }
 
   Widget _buildSectionTitle(String title) {

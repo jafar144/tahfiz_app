@@ -11,7 +11,7 @@ class SantriPaymentHistoryCubit extends Cubit<SantriPaymentHistoryState> {
     emit(SantriPaymentHistoryLoading());
 
     try {
-      final history = await paymentRepository.getPaymentHistoryBySantri(santriId, 5);
+      final history = await paymentRepository.getPaymentHistoryBySantri(santriId, null);
       emit(SantriPaymentHistoryLoaded(history));
     } catch (e) {
       emit(SantriPaymentHistoryError(e.toString()));
