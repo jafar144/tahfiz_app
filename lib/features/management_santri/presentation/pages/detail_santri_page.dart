@@ -14,6 +14,9 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposit_history_page.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
+import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
+import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
 
 class SantriDetailPage extends StatefulWidget {
   final String santriId;
@@ -46,8 +49,13 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => _cubit,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => _cubit),
+        BlocProvider(
+          create: (_) => getIt<SantriPaymentHistoryCubit>()..loadHistory(widget.santriId),
+        ),
+      ],
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         extendBodyBehindAppBar: true,
@@ -202,6 +210,10 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      value: detail.nomorWali ?? '-',
                    ),
                 ]),
+                const SizedBox(height: 20),
+                const AiwaFormSectionTitle(title: 'Riwayat Pembayaran'),
+                const SizedBox(height: 10),
+                _buildPaymentSection(detail),
                 const SizedBox(height: 80),
               ],
             ),
@@ -209,6 +221,70 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildPaymentSection(SantriDetail detail) {
+    return BlocBuilder<SantriPaymentHistoryCubit, SantriPaymentHistoryState>(
+      builder: (context, state) {
+        if (state is SantriPaymentHistoryLoading) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (state is SantriPaymentHistoryError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              'Gagal memuat riwayat pembayaran',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+            ),
+          );
+        }
+
+        if (state is SantriPaymentHistoryLoaded) {
+          final paidData = <int, Set<int>>{};
+          for (final p in state.payments) {
+            final year = int.tryParse(p.tahun);
+            final month = int.tryParse(p.bulan);
+            if (year != null && month != null) {
+              paidData.putIfAbsent(year, () => {}).add(month);
+            }
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
+            child: PaymentYearView(
+              paidData: paidData,
+              startDate: _resolveStartDate(detail),
+            ),
+          );
+        }
+
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  DateTime? _resolveStartDate(SantriDetail detail) {
+    final freeUntil = detail.freeUntil;
+    final tanggalMasuk = detail.tanggalMasuk;
+
+    if (freeUntil != null && !freeUntil.isAfter(DateTime.now())) {
+      final afterFree = DateTime(freeUntil.year, freeUntil.month + 1);
+      return DateTime(afterFree.year, afterFree.month);
+    }
+
+    if (tanggalMasuk != null) {
+      return DateTime(tanggalMasuk.year, tanggalMasuk.month);
+    }
+
+    return null;
   }
 
   Widget _buildHeader(SantriDetail detail) {

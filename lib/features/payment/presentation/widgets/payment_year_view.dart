@@ -118,6 +118,7 @@ class _PaymentYearViewState extends State<PaymentYearView> {
   Widget _buildGrid(DateTime now) {
     return GridView.builder(
       shrinkWrap: true,
+      padding: EdgeInsets.zero,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 12,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
