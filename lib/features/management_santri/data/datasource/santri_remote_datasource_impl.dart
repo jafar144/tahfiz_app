@@ -128,76 +128,68 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     if (isActive != null) {
       query = query.where('is_active', isEqualTo: isActive);
     }
-
     if (gender != null) {
       query = query.where('jenis_kelamin', isEqualTo: gender);
     }
-
     if (session != null) {
       query = query.where('tipe_kelas', isEqualTo: session);
     }
-
     if (kelas != null) {
       query = query.where('kelas', isEqualTo: kelas);
     }
 
-    if (isFree == true) {
-      query = query.where('free_until', isGreaterThan: Timestamp.now());
-    }
-
-    // Server-side search if keyword present
     if (keyword != null && keyword.isNotEmpty) {
-      // Logic:
-      // If keyword contains only digits, assume it's a NIS search.
-      // Otherwise, assume it's a Name search.
       final isNumeric = RegExp(r'^[0-9]+$').hasMatch(keyword);
-
       if (isNumeric) {
-        // Query by NIS
         query = query
             .where('nis', isGreaterThanOrEqualTo: keyword)
             .where('nis', isLessThan: '$keyword\uf8ff')
             .orderBy('nis');
       } else {
-        // Query by Name
-        // NOTE: This is case-sensitive and prefix-only.
-        
-        // Attempt to capitalize first letter for better matching if names are Title Case
         String searchTerm = keyword;
         if (keyword.length > 1) {
-           searchTerm = keyword[0].toUpperCase() + keyword.substring(1);
+          searchTerm = keyword[0].toUpperCase() + keyword.substring(1);
         } else {
-           searchTerm = keyword.toUpperCase();
+          searchTerm = keyword.toUpperCase();
         }
-        
         query = query
-          .where('name', isGreaterThanOrEqualTo: searchTerm)
-          .where('name', isLessThan: '$searchTerm\uf8ff')
-          .orderBy('name');
+            .where('name', isGreaterThanOrEqualTo: searchTerm)
+            .where('name', isLessThan: '$searchTerm\uf8ff')
+            .orderBy('name');
       }
     } else {
-      // Default ordering if no search
       query = query.orderBy('name');
     }
 
-    query = query.limit(limit);
+    // isFree filter selalu dilakukan client-side agar tidak ada implisit orderBy dari Firestore
+    // yang merusak cursor pagination (startAfterDocument)
+    if (isFree != null) {
+      return _fetchByFreeStatus(
+        baseQuery: query,
+        isFree: isFree,
+        limit: limit,
+        lastDocumentId: lastDocumentId,
+      );
+    }
 
     if (lastDocumentId != null) {
       final lastDoc = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
       if (lastDoc.exists) {
-        query = query.startAfterDocument(lastDoc);
+        final lastName = lastDoc.data()?['name'];
+        if (lastName != null) {
+          query = query.startAfter([lastName]);
+        }
       }
     }
+
+    query = query.limit(limit);
 
     final snapshot = await query.get();
     final now = DateTime.now();
 
-    var result = snapshot.docs.map((doc) {
+    return snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
-
       final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-      final isFreeVal = freeUntil != null && freeUntil.isAfter(now);
-
       return SantriEntity(
         id: doc.id,
         name: data['name'],
@@ -205,7 +197,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         kelas: data['kelas'],
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
-        isFree: isFreeVal,
+        isFree: freeUntil != null && freeUntil.isAfter(now),
         freeUntil: freeUntil,
         nomorWali: data['nomor_wali'],
         pembimbing: null,
@@ -213,10 +205,60 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
       );
     }).toList();
+  }
 
-    // Filter Reguler client-side karena Firestore tidak support OR query (null OR < now)
-    if (isFree == false) {
-      result = result.where((s) => s.freeUntil == null || s.freeUntil!.isBefore(now)).toList();
+  // Loop fetch client-side untuk filter isFree (true=Gratis, false=Reguler).
+  // Tidak menggunakan server-side where('free_until', ...) agar tidak ada implicit
+  // orderBy conflict yang merusak cursor pagination.
+  Future<List<SantriEntity>> _fetchByFreeStatus({
+    required Query baseQuery,
+    required bool isFree,
+    required int limit,
+    String? lastDocumentId,
+  }) async {
+    final now = DateTime.now();
+    final List<SantriEntity> result = [];
+    DocumentSnapshot? lastDoc;
+    const int batchSize = 50;
+
+    if (lastDocumentId != null) {
+      final snap = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
+      if (snap.exists) lastDoc = snap;
+    }
+
+    while (result.length < limit) {
+      Query q = baseQuery.limit(batchSize);
+      if (lastDoc != null) q = q.startAfterDocument(lastDoc);
+
+      final snapshot = await q.get();
+      if (snapshot.docs.isEmpty) break;
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+        final isCurrentlyFree = freeUntil != null && freeUntil.isAfter(now);
+
+        if (isCurrentlyFree == isFree) {
+          result.add(SantriEntity(
+            id: doc.id,
+            name: data['name'],
+            nis: data['nis'],
+            kelas: data['kelas'],
+            jenisKelamin: data['jenis_kelamin'],
+            isActive: data['is_active'] ?? true,
+            isFree: isCurrentlyFree,
+            freeUntil: freeUntil,
+            nomorWali: data['nomor_wali'],
+            pembimbing: null,
+            tipeKelas: data['tipe_kelas'],
+            tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+          ));
+          if (result.length >= limit) break;
+        }
+      }
+
+      if (snapshot.docs.length < batchSize) break;
+      lastDoc = snapshot.docs.last;
     }
 
     return result;
