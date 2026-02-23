@@ -485,6 +485,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                 'gender': _selectedGender,
                 'initialSelection': initialEntities,
                 'disabledIds': unavailable,
+                'isMultiSelect': true,
               },
             );
 
