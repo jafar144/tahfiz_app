@@ -81,18 +81,20 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
     final currentState = state as SantriAttendanceLoaded;
     emit(currentState.copyWith(isSubmitting: true));
 
-    final attendanceList = currentState.attendanceMap.entries.map((entry) {
-      final santri = activeHalaqah.halaqah.santris.firstWhere(
-        (s) => s.id == entry.key,
-      );
-      
-      return SantriAttendanceItem(
+    final attendanceList = <SantriAttendanceItem>[];
+    for (final entry in currentState.attendanceMap.entries) {
+      final santri = activeHalaqah.halaqah.santris
+          .where((s) => s.id == entry.key)
+          .firstOrNull;
+      if (santri == null) continue;
+
+      attendanceList.add(SantriAttendanceItem(
         santriId: entry.key,
         santriName: santri.name,
         status: entry.value,
         notes: '',
-      );
-    }).toList();
+      ));
+    }
 
     final result = await repository.createSantriAttendance(
       halaqahId: activeHalaqah.halaqah.id,

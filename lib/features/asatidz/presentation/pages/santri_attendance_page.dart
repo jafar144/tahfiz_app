@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_outline_button.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_state.dart';
 import 'package:intl/intl.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriAttendancePage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
@@ -33,6 +36,7 @@ class SantriAttendancePage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        surfaceTintColor: Colors.white,
         elevation: 0,
       ),
       body: BlocConsumer<SantriAttendanceCubit, SantriAttendanceState>(
@@ -57,7 +61,7 @@ class SantriAttendancePage extends StatelessWidget {
         },
         builder: (context, state) {
           if (state is SantriAttendanceLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildSkeletonList();
           }
 
           if (state is SantriAttendanceLoaded) {
@@ -74,6 +78,68 @@ class SantriAttendancePage extends StatelessWidget {
           }
 
           return const SizedBox();
+        },
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList() {
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 14,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          width: 90,
+                          height: 12,
+                          color: Colors.grey.shade200,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 52,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         },
       ),
     );
@@ -324,7 +390,7 @@ class SantriAttendancePage extends StatelessWidget {
               _buildReasonOption(
                 context,
                 santriId,
-                'Iziz',
+                'Izin',
                 'izin',
                 Icons.info,
                 Colors.orange,
@@ -339,12 +405,9 @@ class SantriAttendancePage extends StatelessWidget {
                 Colors.red,
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(sheetContext),
-                  child: const Text('Batal'),
-                ),
+              AiwaOutlineButton(
+                text: 'Batal',
+                onPressed: () => Navigator.pop(sheetContext),
               ),
             ],
           ),
@@ -406,47 +469,12 @@ class SantriAttendancePage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: state.isSubmitting
-                ? null
-                : () {
-                    context.read<SantriAttendanceCubit>().submitAttendance();
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              elevation: 0,
-            ),
-            child: state.isSubmitting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'Submit Attendance',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
+        child: AiwaButton(
+          text: 'Simpan Absensi',
+          isLoading: state.isSubmitting,
+          onPressed: () {
+            context.read<SantriAttendanceCubit>().submitAttendance();
+          },
         ),
       ),
     );

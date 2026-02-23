@@ -41,13 +41,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
               BlocBuilder<AdminHomeCubit, AdminHomeState>(
                 builder: (context, state) {
                   final isLoading = state is AdminHomeLoading;
-                  AdminHomeData displayData; // Removed 'final' to allow assignment in if-else and initialized or assigned later properly
+                  AdminHomeData displayData;
 
                   if (state is AdminHomeLoaded) {
                     displayData = state.data;
                   } else if (state is AdminHomeError) {
-                     // In case of error we might want to show error or empty state, 
-                     // but for skeletonizer structure we keep using dummy or empty data
                     displayData = AdminHomeData(
                       adminName: 'Admin',
                       totalSantriPutra: 0,
@@ -56,7 +54,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
                       totalAsatidzPutri: 0,
                     );
                   } else {
-                    // Loading or Initial state
                     displayData = AdminHomeData(
                       adminName: 'Admin User',
                       totalSantriPutra: 123,
@@ -99,7 +96,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                               InfoCard(
                                 title: 'Santri Putri',
                                 value: _formatValue(displayData.totalSantriPutri),
-                                color: Colors.pink, // Changed from red for better aesthetics usually, but keeping user pref or consistency. User used Colors.red. Let's stick to user code or slight improve? User code used Colors.red.
+                                color: Colors.pink,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(

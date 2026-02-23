@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriDepositHistoryPage extends StatelessWidget {
   final String santriId;
@@ -41,7 +41,7 @@ class SantriDepositHistoryPage extends StatelessWidget {
         future: getIt<AsatidzRepository>().getSetoranHistory(santriId: santriId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildSkeletonList();
           }
 
           if (snapshot.hasError) {
@@ -164,6 +164,43 @@ class SantriDepositHistoryPage extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList() {
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 100, height: 12, color: Colors.grey.shade300),
+                const SizedBox(height: 8),
+                Container(width: 180, height: 16, color: Colors.grey.shade300),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

@@ -10,6 +10,7 @@ class AiwaTextField extends StatefulWidget {
   final TextCapitalization textCapitalization;
   final bool obscureText;
   final bool enabled;
+  final int maxLines;
   final ValueChanged<String>? onChanged;
 
   const AiwaTextField({
@@ -23,6 +24,7 @@ class AiwaTextField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.sentences,
     this.obscureText = false,
     this.enabled = true,
+    this.maxLines = 1,
     this.onChanged,
   });
 
@@ -64,6 +66,7 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
           keyboardType: widget.keyboardType,
           textCapitalization: widget.textCapitalization,
           obscureText: _obscureText,
+          maxLines: widget.maxLines,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: (value) {
             if (widget.isOptional) return null;
@@ -75,7 +78,9 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
           decoration: InputDecoration(
             hintText: widget.hint,
             hintStyle: const TextStyle(color: Colors.black38, fontSize: 13),
-            prefixIcon: Icon(widget.icon, color: Colors.grey, size: 18),
+            prefixIcon: widget.maxLines > 1
+                ? null
+                : Icon(widget.icon, color: Colors.grey, size: 18),
             suffixIcon: widget.obscureText
                 ? IconButton(
                     icon: Icon(

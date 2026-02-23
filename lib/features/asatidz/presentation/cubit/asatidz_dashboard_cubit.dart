@@ -121,6 +121,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
     if (state is! AsatidzDashboardLoaded) return;
 
     final currentState = state as AsatidzDashboardLoaded;
+    emit(currentState.copyWith(isCheckingIn: true));
 
     final result = await asatidzRepository.createAttendance(
       asatidzId: asatidzId,
@@ -132,8 +133,9 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
 
     result.fold(
       ifLeft: (failure) {
+        emit(currentState.copyWith(isCheckingIn: false));
         emit(AsatidzDashboardError(failure.message));
-        emit(currentState);
+        emit(currentState.copyWith(isCheckingIn: false));
       },
       ifRight: (_) {
         final updatedActiveHalaqah = ActiveHalaqah(
@@ -147,6 +149,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
         emit(currentState.copyWith(
           activeHalaqah: updatedActiveHalaqah,
           hasAttendedToday: true,
+          isCheckingIn: false,
         ));
       },
     );

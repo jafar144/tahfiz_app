@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
@@ -20,7 +21,6 @@ class HalaqahDepositListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Capture dependencies to pass to Cubit
     final dashboardCubit = context.read<AsatidzDashboardCubit>();
     
     return BlocProvider(
@@ -35,7 +35,7 @@ class HalaqahDepositListPage extends StatelessWidget {
           child: BlocBuilder<HalaqahDepositListCubit, HalaqahDepositListState>(
             builder: (context, state) {
               if (state is HalaqahDepositListLoading) {
-                return const Center(child: CircularProgressIndicator());
+                return _buildSkeletonList();
               }
           
               if (state is HalaqahDepositListError) {
@@ -46,7 +46,7 @@ class HalaqahDepositListPage extends StatelessWidget {
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: state.summaries.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 16),
                   itemBuilder: (context, index) {
                     final summary = state.summaries[index];
                     return _buildSantriCard(context, summary, dashboardCubit.asatidzId);
@@ -58,6 +58,87 @@ class HalaqahDepositListPage extends StatelessWidget {
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList() {
+    return Skeletonizer(
+      enabled: true,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(width: 120, height: 14, color: Colors.grey.shade300),
+                          const SizedBox(height: 4),
+                          Container(width: 80, height: 12, color: Colors.grey.shade200),
+                        ],
+                      ),
+                    ),
+                    Container(width: 32, height: 32, color: Colors.grey.shade200),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -118,7 +199,7 @@ class HalaqahDepositListPage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildDepositInfo(
-                        label: 'LAST DEPOSIT',
+                        label: 'Setoran Terakhir',
                         setoran: summary.lastDeposit,
                         isToday: false,
                       ),
@@ -126,7 +207,7 @@ class HalaqahDepositListPage extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildDepositInfo(
-                        label: "TODAY'S DEPOSIT",
+                        label: "Setoran Hari Ini",
                         setoran: summary.todayDeposit,
                         isToday: true,
                       ),
@@ -147,7 +228,7 @@ class HalaqahDepositListPage extends StatelessWidget {
                       Icon(
                         hasTodayDeposit ? Icons.edit : Icons.add_circle,
                         color: hasTodayDeposit ? Colors.grey.shade700 : Colors.white,
-                        size: 20,
+                        size: 16,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -155,7 +236,7 @@ class HalaqahDepositListPage extends StatelessWidget {
                         style: TextStyle(
                           color: hasTodayDeposit ? Colors.grey.shade700 : Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -174,14 +255,14 @@ class HalaqahDepositListPage extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 20,
+          radius: 18,
           backgroundColor: Colors.blue.shade50,
           child: Text(
             initial,
             style: const TextStyle(
               color: Colors.blue,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
         ),
@@ -193,7 +274,7 @@ class HalaqahDepositListPage extends StatelessWidget {
               Text(
                 santri.name,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -201,7 +282,7 @@ class HalaqahDepositListPage extends StatelessWidget {
               Text(
                 'NIS: ${santri.nis}',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: Colors.grey.shade600,
                 ),
               ),

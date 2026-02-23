@@ -13,12 +13,14 @@ class AsatidzDashboardLoaded extends AsatidzDashboardState {
   final ActiveHalaqah? activeHalaqah;
   final List<dynamic> upcomingHalaqahs;
   final bool hasAttendedToday;
+  final bool isCheckingIn;
 
   const AsatidzDashboardLoaded({
     required this.totalSantri,
     this.activeHalaqah,
     this.upcomingHalaqahs = const [],
     this.hasAttendedToday = false,
+    this.isCheckingIn = false,
   });
 
   AsatidzDashboardLoaded copyWith({
@@ -26,12 +28,14 @@ class AsatidzDashboardLoaded extends AsatidzDashboardState {
     ActiveHalaqah? activeHalaqah,
     List<dynamic>? upcomingHalaqahs,
     bool? hasAttendedToday,
+    bool? isCheckingIn,
   }) {
     return AsatidzDashboardLoaded(
       totalSantri: totalSantri ?? this.totalSantri,
       activeHalaqah: activeHalaqah ?? this.activeHalaqah,
       upcomingHalaqahs: upcomingHalaqahs ?? this.upcomingHalaqahs,
       hasAttendedToday: hasAttendedToday ?? this.hasAttendedToday,
+      isCheckingIn: isCheckingIn ?? this.isCheckingIn,
     );
   }
 }

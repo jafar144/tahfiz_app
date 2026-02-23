@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_state.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
@@ -28,17 +32,11 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: BlocBuilder<AsatidzDashboardCubit, AsatidzDashboardState>(
-        builder: (context, state) {
+      body: SafeArea(
+        child: BlocBuilder<AsatidzDashboardCubit, AsatidzDashboardState>(
+          builder: (context, state) {
           if (state is AsatidzDashboardLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return _buildSkeletonDashboard();
           }
 
           if (state is AsatidzDashboardError) {
@@ -66,8 +64,12 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildGreetingHeader(context),
-                    const SizedBox(height: 20),
-                    _buildStatsCard(state.totalSantri),
+                    const SizedBox(height: 16),
+                    InfoCard(
+                      title: 'Total Santri',
+                      value: '${state.totalSantri}',
+                      color: Colors.blue,
+                    ),
                     const SizedBox(height: 20),
                     if (state.activeHalaqah != null) ...[ 
                       _buildActiveSessionCard(context, state),
@@ -80,8 +82,166 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
             );
           }
 
-          return const SizedBox();
-        },
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonDashboard() {
+    return Skeletonizer(
+      enabled: true,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 140, height: 14, color: Colors.grey.shade300),
+                const SizedBox(height: 6),
+                Container(width: 100, height: 18, color: Colors.grey.shade300),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 80, height: 12, color: Colors.grey.shade200),
+                      const SizedBox(height: 6),
+                      Container(width: 40, height: 20, color: Colors.grey.shade300),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(width: 100, height: 12, color: Colors.grey.shade200),
+                            const SizedBox(height: 4),
+                            Container(width: 140, height: 12, color: Colors.grey.shade200),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  Container(width: 180, height: 18, color: Colors.grey.shade300),
+                  const SizedBox(height: 12),
+                  Container(width: 200, height: 14, color: Colors.grey.shade200),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(width: 60, height: 14, color: Colors.grey.shade200),
+                        const SizedBox(height: 4),
+                        Container(width: 80, height: 12, color: Colors.grey.shade200),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(width: 60, height: 14, color: Colors.grey.shade200),
+                        const SizedBox(height: 4),
+                        Container(width: 80, height: 12, color: Colors.grey.shade200),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -94,85 +254,18 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Assalamu\'alaikum',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTextStyles.infoGrey,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               userName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style: AppTextStyles.mediumContentBlack,
             ),
           ],
         );
       },
-    );
-  }
-
-  Widget _buildStatsCard(int totalSantri) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.people, color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Total Santri',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.9),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$totalSantri',
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -212,7 +305,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TEACHING SESSION',
+                      'SESI MENGAJAR',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.green.shade700,
@@ -270,7 +363,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
               Icon(Icons.class_, size: 18, color: Colors.grey.shade600),
               const SizedBox(width: 8),
               Text(
-                'Halaqah Name',
+                'Nama Halaqah',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
@@ -295,20 +388,20 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '• ${activeHalaqah.halaqah.santris.length} Students',
+                '• ${activeHalaqah.halaqah.santris.length} Santri',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildAttendanceButton(context, activeHalaqah, state.hasAttendedToday),
+          _buildAttendanceButton(context, activeHalaqah, state),
         ],
       ),
     );
   }
 
-  Widget _buildAttendanceButton(BuildContext context, ActiveHalaqah activeHalaqah, bool hasAttended) {
-    if (hasAttended) {
+  Widget _buildAttendanceButton(BuildContext context, ActiveHalaqah activeHalaqah, AsatidzDashboardLoaded state) {
+    if (state.hasAttendedToday) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -347,142 +440,133 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          context.read<AsatidzDashboardCubit>().checkInAsatidz(activeHalaqah);
-        },
-        icon: const Icon(Icons.login, size: 20),
-        label: const Text(
-          'Absen Sekarang',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 0,
-        ),
-      ),
+    return AiwaButton(
+      text: 'Absen Sekarang',
+      isLoading: state.isCheckingIn,
+      onPressed: () {
+        context.read<AsatidzDashboardCubit>().checkInAsatidz(activeHalaqah);
+      },
     );
   }
 
   Widget _buildQuickActions(BuildContext context, AsatidzDashboardLoaded state) {
-    final hasActiveSession = state.activeHalaqah != null;
+    if (state.activeHalaqah == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.teal.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.event_busy_rounded,
+                color: Colors.teal.shade400,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'Tidak Ada Halaqah Aktif',
+              style: AppTextStyles.smallContentBlack,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Belum ada sesi halaqah yang berjalan saat ini',
+              style: AppTextStyles.infoLightGrey,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final canAccess = state.hasAttendedToday;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick Actions',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (!hasActiveSession) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.orange.shade700, size: 28),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tidak Ada Halaqah Aktif',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Quick actions akan tersedia saat ada sesi halaqah aktif',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.orange.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ] else ...[
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionCard(
-                  icon: Icons.how_to_reg,
-                  label: 'Attendance',
-                  subtitle: 'Student presence',
-                  color: Colors.orange,
-                  enabled: hasActiveSession,
-                  onTap: () {
-                    if (state.activeHalaqah != null) {
-                      final authState = context.read<AuthCubit>().state;
-                      if (authState is AuthAuthenticated) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BlocProvider(
-                              create: (_) => SantriAttendanceCubit(
-                                repository: getIt(),
-                                activeHalaqah: state.activeHalaqah!,
-                                asatidzId: authState.user.uid,
-                                asatidzName: authState.user.name,
-                              )..init(),
-                              child: SantriAttendancePage(
-                                activeHalaqah: state.activeHalaqah!,
-                              ),
-                            ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.how_to_reg_rounded,
+                title: 'Absensi',
+                subtitle: 'Kehadiran Santri',
+                enabled: canAccess,
+                onTap: () {
+                  final authState = context.read<AuthCubit>().state;
+                  if (authState is AuthAuthenticated) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider(
+                          create: (_) => SantriAttendanceCubit(
+                            repository: getIt(),
+                            activeHalaqah: state.activeHalaqah!,
+                            asatidzId: authState.user.uid,
+                            asatidzName: authState.user.name,
+                          )..init(),
+                          child: SantriAttendancePage(
+                            activeHalaqah: state.activeHalaqah!,
                           ),
-                        );
-                      }
-                    }
-                  },
-                ),
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  icon: Icons.book,
-                  label: 'Input Deposit',
-                  subtitle: 'Record recital',
-                  color: Colors.purple,
-                  enabled: hasActiveSession,
-                  onTap: () {
-                    if (state.activeHalaqah != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: context.read<AsatidzDashboardCubit>(),
-                            child: HalaqahDepositListPage(
-                              activeHalaqah: state.activeHalaqah!,
-                            ),
-                          ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.menu_book_rounded,
+                title: 'Input Setoran',
+                subtitle: 'Setoran Santri',
+                enabled: canAccess,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider.value(
+                        value: context.read<AsatidzDashboardCubit>(),
+                        child: HalaqahDepositListPage(
+                          activeHalaqah: state.activeHalaqah!,
                         ),
-                      );
-                    }
-                  },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        if (!canAccess) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey.shade500),
+              const SizedBox(width: 6),
+              Text(
+                'Silakan absen terlebih dahulu',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -494,60 +578,47 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
 
   Widget _buildActionCard({
     required IconData icon,
-    required String label,
+    required String title,
     required String subtitle,
-    required Color color,
-    required bool enabled,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
+    final theme = Theme.of(context);
+    final cardColor = enabled ? theme.primaryColor : Colors.grey;
+
     return Opacity(
-      opacity: enabled ? 1.0 : 0.5,
+      opacity: enabled ? 1.0 : 0.45,
       child: InkWell(
-        onTap: enabled ? onTap : null,
         borderRadius: BorderRadius.circular(16),
+        onTap: enabled ? onTap : null,
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: enabled ? color.withOpacity(0.3) : Colors.grey.shade300),
-            boxShadow: enabled
-                ? [
-                    BoxShadow(
-                      color: color.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: enabled ? color.withOpacity(0.1) : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: enabled ? color : Colors.grey, size: 28),
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: cardColor.withValues(alpha: 0.1),
+                child: Icon(icon, color: cardColor, size: 24),
               ),
-              const SizedBox(height: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: enabled ? Colors.black87 : Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 14),
+              Text(title, style: AppTextStyles.smallContentBlack),
+              const SizedBox(height: 1),
               Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: enabled ? Colors.grey.shade600 : Colors.grey.shade400,
-                ),
+                style: AppTextStyles.infoLightGrey,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -556,3 +627,4 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
     );
   }
 }
+
