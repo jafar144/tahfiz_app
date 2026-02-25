@@ -198,11 +198,12 @@ class SantriAttendancePage extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: santris.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final santri = santris[index];
         final status = state.attendanceMap[santri.id] ?? 'hadir';
         final initial = santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?';
+        final isGuest = santri.halaqahId != activeHalaqah.halaqah.id;
 
         return Container(
           decoration: BoxDecoration(
@@ -252,12 +253,35 @@ class SantriAttendancePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        'NIS: ${santri.nis}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade500,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            'NIS: ${santri.nis}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                          if (isGuest) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.orange.shade200),
+                              ),
+                              child: Text(
+                                'Tamu',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ]
                       ),
                       if (status != 'hadir') ...[
                         const SizedBox(height: 4),

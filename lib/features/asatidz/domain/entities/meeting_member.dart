@@ -2,6 +2,7 @@ class MeetingMember {
   final String id;
   final String santriId;
   final String santriName;
+  final String? santriNis;
   final String halaqahAsalId;
   final String attendanceStatus;
   final String? setoranValue;
@@ -12,6 +13,7 @@ class MeetingMember {
     required this.id,
     required this.santriId,
     required this.santriName,
+    this.santriNis,
     required this.halaqahAsalId,
     required this.attendanceStatus,
     this.setoranValue,

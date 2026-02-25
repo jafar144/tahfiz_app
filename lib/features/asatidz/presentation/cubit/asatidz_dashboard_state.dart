@@ -44,3 +44,8 @@ class AsatidzDashboardError extends AsatidzDashboardState {
   final String message;
   const AsatidzDashboardError(this.message);
 }
+
+class AsatidzDashboardSuccess extends AsatidzDashboardState {
+  final String message;
+  const AsatidzDashboardSuccess(this.message);
+}

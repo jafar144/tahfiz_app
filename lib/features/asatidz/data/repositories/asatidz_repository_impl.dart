@@ -116,6 +116,7 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
         id: m.id,
         santriId: m.santriId,
         santriName: m.santriName,
+        santriNis: m.santriNis,
         halaqahAsalId: m.halaqahAsalId,
         attendanceStatus: m.attendanceStatus,
         setoranValue: m.setoranValue,

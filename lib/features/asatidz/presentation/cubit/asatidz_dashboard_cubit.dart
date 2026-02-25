@@ -1,8 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/constants/app_constants.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/meeting_member.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_state.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 
@@ -153,5 +156,104 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
         ));
       },
     );
+  }
+
+  Future<Map<String, dynamic>?> getGuestSantriParams(ActiveHalaqah activeHalaqah) async {
+    if (state is! AsatidzDashboardLoaded) return null;
+    final currentState = state as AsatidzDashboardLoaded;
+    emit(currentState.copyWith(isCheckingIn: true));
+
+    try {
+      final DateFormat formatter = DateFormat('yyyy-MM-dd');
+      final String dateStr = formatter.format(DateTime.now());
+
+      final meetingResult = await asatidzRepository.getMeeting(
+        halaqahId: activeHalaqah.halaqah.id,
+        scheduleId: activeHalaqah.schedule.id,
+        date: dateStr,
+      );
+
+      return await meetingResult.fold(
+        ifLeft: (l) {
+          emit(currentState.copyWith(isCheckingIn: false));
+          emit(AsatidzDashboardError(l.message));
+          emit(currentState.copyWith(isCheckingIn: false));
+          return null;
+        },
+        ifRight: (meeting) async {
+          if (meeting == null) {
+            emit(currentState.copyWith(isCheckingIn: false));
+            emit(const AsatidzDashboardError("Meeting belum dibuat. Silakan absen terlebih dahulu."));
+            emit(currentState.copyWith(isCheckingIn: false));
+            return null;
+          }
+
+          final membersResult = await asatidzRepository.getMeetingMembers(meeting.id);
+          final disabledIds = membersResult.fold(
+            ifLeft: (_) => <String>[],
+            ifRight: (members) => members.map((m) => m.santriId).toList(),
+          );
+
+          final programResult = await scheduleRepository.getProgramById(activeHalaqah.halaqah.programId);
+          final gender = programResult.fold(
+            ifLeft: (_) => null, 
+            ifRight: (p) => p.gender
+          );
+
+          emit(currentState.copyWith(isCheckingIn: false));
+
+          return {
+            'meetingId': meeting.id,
+            'disabledIds': disabledIds,
+            'gender': gender,
+          };
+        },
+      );
+    } catch (e) {
+      emit(currentState.copyWith(isCheckingIn: false));
+      emit(AsatidzDashboardError("Gagal memuat peserta meeting."));
+      emit(currentState.copyWith(isCheckingIn: false));
+      return null;
+    }
+  }
+
+  Future<void> addGuestSantri(String meetingId, SantriEntity santri) async {
+    if (state is! AsatidzDashboardLoaded) return;
+    final currentState = state as AsatidzDashboardLoaded;
+    emit(currentState.copyWith(isCheckingIn: true));
+
+    try {
+      final newMember = MeetingMember(
+        id: santri.id,
+        santriId: santri.id,
+        santriName: santri.name,
+        santriNis: santri.nis,
+        halaqahAsalId: santri.halaqahId ?? '',
+        attendanceStatus: 'hadir',
+        createdAt: DateTime.now(),
+      );
+
+      final saveResult = await asatidzRepository.saveMeetingMembers(
+        meetingId: meetingId,
+        members: [newMember],
+      );
+
+      saveResult.fold(
+        ifLeft: (l) {
+          emit(currentState.copyWith(isCheckingIn: false));
+          emit(AsatidzDashboardError(l.message));
+          emit(currentState.copyWith(isCheckingIn: false));
+        },
+        ifRight: (r) {
+           emit(currentState.copyWith(isCheckingIn: false));
+           emit(const AsatidzDashboardSuccess("Santri berhasil ditambahkan ke sesi ini."));
+           emit(currentState.copyWith(isCheckingIn: false));
+        },
+      );
+    } catch (e) {
+      emit(currentState.copyWith(isCheckingIn: false));
+      emit(AsatidzDashboardError("Gagal menambahkan santri."));
+      emit(currentState.copyWith(isCheckingIn: false));
+    }
   }
 }

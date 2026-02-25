@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
@@ -50,8 +51,42 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
       final santrisResult = await scheduleRepository.getSantrisByHalaqahId(activeHalaqah.halaqah.id);
       final santris = santrisResult.fold(
         ifLeft: (_) => <SantriEntity>[],
-        ifRight: (s) => s,
+        ifRight: (s) => List<SantriEntity>.from(s),
       );
+
+      final DateFormat formatter = DateFormat('yyyy-MM-dd');
+      final String dateStr = formatter.format(DateTime.now());
+
+      final meetingResult = await repository.getMeeting(
+        halaqahId: activeHalaqah.halaqah.id,
+        scheduleId: activeHalaqah.schedule.id,
+        date: dateStr,
+      );
+
+      final meeting = meetingResult.fold(ifLeft: (l) => null, ifRight: (r) => r);
+      if (meeting != null) {
+        final membersResult = await repository.getMeetingMembers(meeting.id);
+        membersResult.fold(
+          ifLeft: (l) => null,
+          ifRight: (members) {
+            for (final member in members) {
+              final isGuest = !santris.any((s) => s.id == member.santriId);
+              if (isGuest) {
+                santris.add(SantriEntity(
+                  id: member.santriId,
+                  name: member.santriName,
+                  nis: member.santriNis ?? '-',
+                  kelas: '-',
+                  jenisKelamin: '-',
+                  isActive: true,
+                  isFree: false,
+                  halaqahId: member.halaqahAsalId,
+                ));
+              }
+            }
+          }
+        );
+      }
 
       final List<SantriDepositSummary> summaries = [];
       final now = DateTime.now();

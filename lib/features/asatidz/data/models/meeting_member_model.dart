@@ -6,6 +6,7 @@ class MeetingMemberModel extends MeetingMember {
     required super.id,
     required super.santriId,
     required super.santriName,
+    super.santriNis,
     required super.halaqahAsalId,
     required super.attendanceStatus,
     super.setoranValue,
@@ -19,6 +20,7 @@ class MeetingMemberModel extends MeetingMember {
       id: doc.id,
       santriId: data['santri_id'] ?? '',
       santriName: data['santri_name'] ?? '',
+      santriNis: data['santri_nis'],
       halaqahAsalId: data['halaqah_asal_id'] ?? '',
       attendanceStatus: data['attendance_status'] ?? 'hadir',
       setoranValue: data['setoran_value'],
@@ -31,6 +33,7 @@ class MeetingMemberModel extends MeetingMember {
     return {
       'santri_id': santriId,
       'santri_name': santriName,
+      if (santriNis != null) 'santri_nis': santriNis,
       'halaqah_asal_id': halaqahAsalId,
       'attendance_status': attendanceStatus,
       if (setoranValue != null) 'setoran_value': setoranValue,

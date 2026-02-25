@@ -11,6 +11,9 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart'
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_attendance_page.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/halaqah_deposit_list_page.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 
@@ -33,13 +36,32 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
-        child: BlocBuilder<AsatidzDashboardCubit, AsatidzDashboardState>(
+        child: BlocConsumer<AsatidzDashboardCubit, AsatidzDashboardState>(
+          listener: (context, state) {
+            if (state is AsatidzDashboardSuccess) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              // Refresh to load the newly added santri
+              context.read<AsatidzDashboardCubit>().loadDashboard();
+            } else if (state is AsatidzDashboardError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
           builder: (context, state) {
           if (state is AsatidzDashboardLoading) {
             return _buildSkeletonDashboard();
           }
 
-          if (state is AsatidzDashboardError) {
+          if (state is AsatidzDashboardError && state.message.contains('Error loading dashboard')) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -553,6 +575,53 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                 },
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.person_add_rounded,
+                title: 'Santri Tambahan',
+                subtitle: 'Tambah Sementara',
+                enabled: canAccess,
+                onTap: () async {
+                  final cubit = context.read<AsatidzDashboardCubit>();
+                  final params = await cubit.getGuestSantriParams(state.activeHalaqah!);
+                  
+                  if (params == null || !context.mounted) return;
+
+                  final gender = params['gender'] as String?;
+                  final disabledIds = params['disabledIds'] as List<String>;
+                  final meetingId = params['meetingId'] as String;
+
+                  final selectedSantri = await Navigator.push<SantriEntity>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BlocProvider(
+                        create: (_) => SantriCubit(getIt())..loadSantri(
+                          isActive: true,
+                          gender: gender,
+                          isFree: false,
+                        ),
+                        child: SelectSantriPage(
+                          genderFiltered: gender,
+                          disabledIds: disabledIds,
+                          isMultiSelect: false,
+                        ),
+                      ),
+                    ),
+                  );
+
+                  if (selectedSantri != null && context.mounted) {
+                     cubit.addGuestSantri(meetingId, selectedSantri);
+                  }
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: const SizedBox()),
           ],
         ),
         if (!canAccess) ...[

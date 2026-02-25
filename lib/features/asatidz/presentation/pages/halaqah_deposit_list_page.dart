@@ -254,6 +254,7 @@ class HalaqahDepositListPage extends StatelessWidget {
 
   Widget _buildCardHeader(BuildContext context, SantriEntity santri) {
     final initial = santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?';
+    final isGuest = santri.halaqahId != activeHalaqah.halaqah.id;
     return Row(
       children: [
         CircleAvatar(
@@ -281,12 +282,35 @@ class HalaqahDepositListPage extends StatelessWidget {
                   color: Colors.black87,
                 ),
               ),
-              Text(
-                'NIS: ${santri.nis}',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+              Row(
+                children: [
+                  Text(
+                    'NIS: ${santri.nis}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  if (isGuest) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                         color: Colors.orange.shade50,
+                         borderRadius: BorderRadius.circular(4),
+                         border: Border.all(color: Colors.orange.shade200),
+                      ),
+                      child: Text(
+                        'Tamu',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

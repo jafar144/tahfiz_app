@@ -28,7 +28,7 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
     final santrisResult = await scheduleRepository.getSantrisByHalaqahId(activeHalaqah.halaqah.id);
     final santris = santrisResult.fold(
       ifLeft: (_) => <SantriEntity>[],
-      ifRight: (s) => s,
+      ifRight: (s) => List<SantriEntity>.from(s),
     );
 
     final DateFormat formatter = DateFormat('yyyy-MM-dd');
@@ -53,6 +53,20 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
                 final attendanceMap = <String, String>{};
                 for (final item in members) {
                   attendanceMap[item.santriId] = item.attendanceStatus;
+                  
+                  final isGuest = !santris.any((s) => s.id == item.santriId);
+                  if (isGuest) {
+                    santris.add(SantriEntity(
+                      id: item.santriId,
+                      name: item.santriName,
+                      nis: item.santriNis ?? '-',
+                      kelas: '-',
+                      jenisKelamin: '-',
+                      isActive: true,
+                      isFree: false,
+                      halaqahId: item.halaqahAsalId,
+                    ));
+                  }
                 }
 
                 for (final santri in santris) {
