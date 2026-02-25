@@ -6,7 +6,6 @@ import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
 
@@ -24,7 +23,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   String _status = 'Active';
-  List<HalaqahSantri> _selectedSantris = [];
+  List<SantriEntity> _selectedSantris = [];
   List<String> _selectedScheduleIds = [];
   List<String> _selectedScheduleDisplays = [];
 
@@ -44,7 +43,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         _selectedTeacherId = halaqah.teacherId;
         _selectedTeacherName = halaqah.teacherName;
         _status = halaqah.status;
-        _selectedSantris = List.from(halaqah.santris);
+        _selectedSantris = List.from(state.santriList);
         _selectedScheduleIds = List.from(halaqah.scheduleIds);
         
         _selectedScheduleDisplays = halaqah.scheduleIds.map((scheduleId) {
@@ -371,17 +370,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         const SizedBox(height: 12),
         InkWell(
           onTap: () async {
-            final initialEntities = _selectedSantris.map((h) => SantriEntity(
-              id: h.id, 
-              name: h.name, 
-              nis: h.nis, 
-              jenisKelamin: 'L',
-              isActive: true, 
-              kelas: '', 
-              isFree: false, 
-              nomorWali: '', 
-              pembimbing: ''
-            )).toList();
+            final initialEntities = List<SantriEntity>.from(_selectedSantris);
 
             final unavailable = state.unavailableSantriIds;
 
@@ -397,7 +386,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
 
             if (result != null && result is List<SantriEntity>) {
               setState(() {
-                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name, nis: e.nis)).toList();
+                _selectedSantris = result;
               });
             }
           },
@@ -541,9 +530,13 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
       teacherId: _selectedTeacherId ?? halaqah.teacherId,
       teacherName: _selectedTeacherName ?? halaqah.teacherName,
       status: _status,
-      santris: _selectedSantris,
     );
 
-    cubit.updateHalaqah(updatedHalaqah);
+    final currentSantriIds = currentState.santriList.map((s) => s.id).toSet();
+    final newSantriIds = _selectedSantris.map((s) => s.id).toSet();
+    final addedIds = newSantriIds.difference(currentSantriIds).toList();
+    final removedIds = currentSantriIds.difference(newSantriIds).toList();
+
+    cubit.updateHalaqah(updatedHalaqah, addedIds, removedIds);
   }
 }

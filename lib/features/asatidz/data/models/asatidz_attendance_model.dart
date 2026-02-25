@@ -14,6 +14,9 @@ class AsatidzAttendanceModel extends AsatidzAttendance {
     required super.status,
     super.notes,
     required super.createdAt,
+    super.substituteAsatidzId,
+    super.substituteAsatidzName,
+    super.triggeredByRole,
   });
 
   factory AsatidzAttendanceModel.fromFirestore(DocumentSnapshot doc) {
@@ -25,11 +28,14 @@ class AsatidzAttendanceModel extends AsatidzAttendance {
       halaqahId: data['halaqah_id'] ?? '',
       halaqahName: data['halaqah_name'] ?? '',
       scheduleId: data['schedule_id'] ?? '',
-      date: (data['date'] as Timestamp).toDate(),
+      date: data['date'] ?? '',
       checkInTime: (data['check_in_time'] as Timestamp).toDate(),
       status: data['status'] ?? 'hadir',
       notes: data['notes'] ?? '',
       createdAt: (data['created_at'] as Timestamp).toDate(),
+      substituteAsatidzId: data['substitute_asatidz_id'],
+      substituteAsatidzName: data['substitute_asatidz_name'],
+      triggeredByRole: data['triggered_by_role'] ?? 'asatidz',
     );
   }
 
@@ -40,11 +46,14 @@ class AsatidzAttendanceModel extends AsatidzAttendance {
       'halaqah_id': halaqahId,
       'halaqah_name': halaqahName,
       'schedule_id': scheduleId,
-      'date': Timestamp.fromDate(date),
+      'date': date,
       'check_in_time': Timestamp.fromDate(checkInTime),
       'status': status,
       'notes': notes,
       'created_at': Timestamp.fromDate(createdAt),
+      if (substituteAsatidzId != null) 'substitute_asatidz_id': substituteAsatidzId,
+      if (substituteAsatidzName != null) 'substitute_asatidz_name': substituteAsatidzName,
+      'triggered_by_role': triggeredByRole,
     };
   }
 }

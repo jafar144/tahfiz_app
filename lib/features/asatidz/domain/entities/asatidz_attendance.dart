@@ -5,11 +5,14 @@ class AsatidzAttendance {
   final String halaqahId;
   final String halaqahName;
   final String scheduleId;
-  final DateTime date;
+  final String date;
   final DateTime checkInTime;
   final String status;
   final String notes;
   final DateTime createdAt;
+  final String? substituteAsatidzId;
+  final String? substituteAsatidzName;
+  final String triggeredByRole;
 
   AsatidzAttendance({
     required this.id,
@@ -23,5 +26,8 @@ class AsatidzAttendance {
     required this.status,
     this.notes = '',
     required this.createdAt,
+    this.substituteAsatidzId,
+    this.substituteAsatidzName,
+    this.triggeredByRole = 'asatidz',
   });
 }

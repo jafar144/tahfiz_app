@@ -37,29 +37,26 @@ class SantriRepositoryImpl implements SantriRepository {
       lastDocumentId: lastDocumentId,
     );
 
+    // Ambil semua halaqah aktif, buat map halaqahId -> teacherName
     final halaqahSnap = await firestore
         .collection('halaqahs')
         .where('status', isEqualTo: 'Active')
         .get();
 
-    final classMap = <String, String>{};
-
+    final halaqahTeacherMap = <String, String>{};
     for (var doc in halaqahSnap.docs) {
       final data = doc.data();
       final asatidzData = data['asatidz'] as Map<String, dynamic>?;
-      final namaPembimbing = asatidzData?['name'] as String?;
-      
-      if (data['santris'] != null && namaPembimbing != null) {
-        final santrisList = List<dynamic>.from(data['santris']);
-         for (final item in santrisList) {
-           if (item is Map && item['id'] != null) {
-              classMap[item['id'].toString().trim()] = namaPembimbing;
-           }
-        }
+      final teacherName = asatidzData?['name'] as String?;
+      if (teacherName != null) {
+        halaqahTeacherMap[doc.id] = teacherName;
       }
     }
 
     return santriList.map((s) {
+      final pembimbing = s.halaqahId != null
+          ? halaqahTeacherMap[s.halaqahId]
+          : null;
       return SantriEntity(
         id: s.id,
         name: s.name,
@@ -72,7 +69,9 @@ class SantriRepositoryImpl implements SantriRepository {
         nomorWali: s.nomorWali,
         tipeKelas: s.tipeKelas,
         tanggalMasuk: s.tanggalMasuk,
-        pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
+        halaqahId: s.halaqahId,
+        halaqahName: s.halaqahName,
+        pembimbing: pembimbing ?? 'Belum ada',
       );
     }).toList();
   }
@@ -81,21 +80,15 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<SantriDetail> getSantriDetail(String id) async {
     final detail = await remote.getSantriDetail(id);
 
-    // Fetch pembimbing from halaqahs collection
-    final halaqahSnap = await firestore
-        .collection('halaqahs')
-        .where('status', isEqualTo: 'Active')
-        .get();
-
     String? namaPembimbing;
-    for (var doc in halaqahSnap.docs) {
-      final data = doc.data();
-      final santris = data['santris'] as List<dynamic>? ?? [];
-      final found = santris.any((s) => s is Map && s['id'] == id);
-      if (found) {
-        final asatidz = data['asatidz'] as Map<String, dynamic>?;
+    if (detail.halaqahId != null) {
+      final halaqahDoc = await firestore
+          .collection('halaqahs')
+          .doc(detail.halaqahId)
+          .get();
+      if (halaqahDoc.exists) {
+        final asatidz = halaqahDoc.data()?['asatidz'] as Map<String, dynamic>?;
         namaPembimbing = asatidz?['name'];
-        break;
       }
     }
 
@@ -116,6 +109,8 @@ class SantriRepositoryImpl implements SantriRepository {
       tipeKelas: detail.tipeKelas,
       pembimbing: namaPembimbing ?? 'Belum ada',
       phone: detail.phone,
+      halaqahId: detail.halaqahId,
+      halaqahName: detail.halaqahName,
     );
   }
 
@@ -133,30 +128,26 @@ class SantriRepositoryImpl implements SantriRepository {
   Future<List<SantriEntity>> getSantriByIds(List<String> ids) async {
     final santriList = await remote.getSantriByIds(ids);
 
-    // Fetch pembimbing info
+    // Ambil halaqah aktif, buat map halaqahId -> teacherName
     final halaqahSnap = await firestore
         .collection('halaqahs')
         .where('status', isEqualTo: 'Active')
         .get();
 
-    final classMap = <String, String>{};
-
+    final halaqahTeacherMap = <String, String>{};
     for (var doc in halaqahSnap.docs) {
       final data = doc.data();
       final asatidzData = data['asatidz'] as Map<String, dynamic>?;
-      final namaPembimbing = asatidzData?['name'] as String?;
-      
-      if (data['santris'] != null && namaPembimbing != null) {
-        final santrisList = List<dynamic>.from(data['santris']);
-         for (final item in santrisList) {
-           if (item is Map && item['id'] != null) {
-              classMap[item['id'].toString().trim()] = namaPembimbing;
-           }
-        }
+      final teacherName = asatidzData?['name'] as String?;
+      if (teacherName != null) {
+        halaqahTeacherMap[doc.id] = teacherName;
       }
     }
 
     return santriList.map((s) {
+      final pembimbing = s.halaqahId != null
+          ? halaqahTeacherMap[s.halaqahId]
+          : null;
       return SantriEntity(
         id: s.id,
         name: s.name,
@@ -169,7 +160,9 @@ class SantriRepositoryImpl implements SantriRepository {
         nomorWali: s.nomorWali,
         tipeKelas: s.tipeKelas,
         tanggalMasuk: s.tanggalMasuk,
-        pembimbing: classMap[s.id.trim()] ?? 'Belum ada',
+        halaqahId: s.halaqahId,
+        halaqahName: s.halaqahName,
+        pembimbing: pembimbing ?? 'Belum ada',
       );
     }).toList();
   }

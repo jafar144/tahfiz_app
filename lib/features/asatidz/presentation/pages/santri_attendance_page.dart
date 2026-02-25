@@ -193,7 +193,7 @@ class SantriAttendancePage extends StatelessWidget {
   }
 
   Widget _buildAttendanceList(BuildContext context, SantriAttendanceLoaded state) {
-    final santris = activeHalaqah.halaqah.santris;
+    final santris = state.santris;
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),

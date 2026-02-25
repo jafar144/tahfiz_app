@@ -30,7 +30,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
 
       final totalSantri = halaqahs.fold<int>(
         0,
-        (sum, halaqah) => sum + halaqah.santris.length,
+        (sum, halaqah) => sum + halaqah.santriCount,
       );
 
       final activeHalaqah = await _findActiveHalaqah(halaqahs);

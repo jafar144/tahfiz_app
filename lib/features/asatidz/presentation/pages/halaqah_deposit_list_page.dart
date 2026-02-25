@@ -8,8 +8,9 @@ import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashb
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/halaqah_deposit_list_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_setoran_page.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposit_history_page.dart';
+import 'package:khoirunnasyien/core/di/injection.dart';
 
 class HalaqahDepositListPage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
@@ -26,6 +27,7 @@ class HalaqahDepositListPage extends StatelessWidget {
     return BlocProvider(
       create: (context) => HalaqahDepositListCubit(
         repository: dashboardCubit.asatidzRepository,
+        scheduleRepository: getIt(),
         activeHalaqah: activeHalaqah,
       )..loadData(),
       child: Scaffold(
@@ -250,7 +252,7 @@ class HalaqahDepositListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCardHeader(BuildContext context, HalaqahSantri santri) {
+  Widget _buildCardHeader(BuildContext context, SantriEntity santri) {
     final initial = santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?';
     return Row(
       children: [

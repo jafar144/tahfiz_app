@@ -6,7 +6,6 @@ import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_state.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
@@ -31,7 +30,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   
-  List<HalaqahSantri> _selectedSantris = [];
+  List<SantriEntity> _selectedSantris = [];
 
   @override
   void dispose() {
@@ -491,7 +490,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
 
             if (result != null && result is List<SantriEntity>) {
               setState(() {
-                _selectedSantris = result.map((e) => HalaqahSantri(id: e.id, name: e.name, nis: e.nis)).toList();
+                _selectedSantris = result;
               });
             }
           },
@@ -623,10 +622,10 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       teacherId: _selectedTeacherId!,
       teacherName: _selectedTeacherName!,
       status: 'Active',
-      santris: _selectedSantris,
     );
 
-    context.read<AddHalaqahCubit>().createHalaqah(halaqah);
+    final santriIds = _selectedSantris.map((s) => s.id).toList();
+    context.read<AddHalaqahCubit>().createHalaqah(halaqah, santriIds);
   }
   
   void _showSnack(BuildContext context, String message) {

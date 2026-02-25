@@ -1,5 +1,3 @@
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
-
 class Halaqah {
   final String id;
   final String programId;
@@ -9,7 +7,7 @@ class Halaqah {
   final String teacherId;
   final String teacherName;
   final String status;
-  final List<HalaqahSantri> santris;
+  final int santriCount;
 
   const Halaqah({
     required this.id,
@@ -20,6 +18,6 @@ class Halaqah {
     required this.teacherId,
     required this.teacherName,
     required this.status,
-    required this.santris,
+    this.santriCount = 0,
   });
 }

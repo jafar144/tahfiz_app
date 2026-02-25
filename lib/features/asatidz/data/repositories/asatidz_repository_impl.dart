@@ -2,8 +2,11 @@ import 'package:dart_either/dart_either.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/asatidz/data/datasources/asatidz_remote_datasource.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/asatidz_attendance.dart';
-import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_attendance.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_attendance.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/meeting.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/meeting_member.dart';
+import 'package:khoirunnasyien/features/asatidz/data/models/meeting_member_model.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 
 class AsatidzRepositoryImpl implements AsatidzRepository {
@@ -19,11 +22,12 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
     required DateTime date,
   }) async {
     try {
+      final dateStr = "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
       final result = await remoteDataSource.checkAttendance(
         asatidzId: asatidzId,
         halaqahId: halaqahId,
         scheduleId: scheduleId,
-        date: date,
+        date: dateStr,
       );
       return Right(result);
     } catch (e) {
@@ -41,13 +45,14 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   }) async {
     try {
       final asatidzName = 'Asatidz'; // TODO: Get from auth/user data
+      final dateStr = "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
       final result = await remoteDataSource.createAttendance(
         asatidzId: asatidzId,
         asatidzName: asatidzName,
         halaqahId: halaqahId,
         halaqahName: halaqahName,
         scheduleId: scheduleId,
-        date: date,
+        date: dateStr,
       );
       return Right(result);
     } catch (e) {
@@ -68,6 +73,61 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
         endDate: endDate,
       );
       return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Meeting?>> getMeeting({
+    required String halaqahId,
+    required String scheduleId,
+    required String date,
+  }) async {
+    try {
+      final result = await remoteDataSource.getMeeting(
+        halaqahId: halaqahId,
+        scheduleId: scheduleId,
+        date: date,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(String meetingId) async {
+    try {
+      final result = await remoteDataSource.getMeetingMembers(meetingId);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> saveMeetingMembers({
+    required String meetingId,
+    required List<MeetingMember> members,
+  }) async {
+    try {
+      final memberModels = members.map((m) => MeetingMemberModel(
+        id: m.id,
+        santriId: m.santriId,
+        santriName: m.santriName,
+        halaqahAsalId: m.halaqahAsalId,
+        attendanceStatus: m.attendanceStatus,
+        setoranValue: m.setoranValue,
+        setoranNotes: m.setoranNotes,
+        createdAt: m.createdAt,
+      )).toList();
+      
+      await remoteDataSource.saveMeetingMembers(
+        meetingId: meetingId,
+        members: memberModels,
+      );
+      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

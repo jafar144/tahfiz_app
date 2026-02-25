@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:khoirunnasyien/features/asatidz/data/models/asatidz_attendance_model.dart';
 import 'package:khoirunnasyien/features/asatidz/data/models/santri_attendance_model.dart';
 import 'package:khoirunnasyien/features/asatidz/data/models/santri_setoran_model.dart';
+import 'package:khoirunnasyien/features/asatidz/data/models/meeting_model.dart';
+import 'package:khoirunnasyien/features/asatidz/data/models/meeting_member_model.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_attendance.dart';
 
 abstract class AsatidzRemoteDataSource {
@@ -9,7 +11,7 @@ abstract class AsatidzRemoteDataSource {
     required String asatidzId,
     required String halaqahId,
     required String scheduleId,
-    required DateTime date,
+    required String date,
   });
 
   Future<AsatidzAttendanceModel> createAttendance({
@@ -18,7 +20,23 @@ abstract class AsatidzRemoteDataSource {
     required String halaqahId,
     required String halaqahName,
     required String scheduleId,
-    required DateTime date,
+    required String date,
+    String? substituteAsatidzId,
+    String? substituteAsatidzName,
+    String triggeredByRole = 'asatidz',
+  });
+
+  Future<MeetingModel?> getMeeting({
+    required String halaqahId,
+    required String scheduleId,
+    required String date,
+  });
+
+  Future<List<MeetingMemberModel>> getMeetingMembers(String meetingId);
+
+  Future<void> saveMeetingMembers({
+    required String meetingId,
+    required List<MeetingMemberModel> members,
   });
 
   Future<List<AsatidzAttendanceModel>> getAttendanceHistory({
@@ -77,56 +95,19 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String asatidzId,
     required String halaqahId,
     required String scheduleId,
-    required DateTime date,
+    required String date,
   }) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      print('=== CHECK ATTENDANCE ===');
-      print('asatidzId: $asatidzId');
-      print('halaqahId: $halaqahId');
-      print('scheduleId: $scheduleId');
-      print('date: $date');
-      print('startOfDay: $startOfDay');
-      print('endOfDay: $endOfDay');
-
       final query = await firestore
           .collection('asatidz_attendance')
           .where('asatidz_id', isEqualTo: asatidzId)
-          .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('date', isLessThan: Timestamp.fromDate(endOfDay))
+          .where('halaqah_id', isEqualTo: halaqahId)
+          .where('schedule_id', isEqualTo: scheduleId)
+          .where('date', isEqualTo: date)
           .get();
 
-      print('Found ${query.docs.length} total documents');
-
-      final matchingDoc = query.docs.where((doc) {
-        final data = doc.data();
-        final matchHalaqah = data['halaqah_id'] == halaqahId;
-        final matchSchedule = data['schedule_id'] == scheduleId;
-        print('Doc ${doc.id}: halaqah_id=${data['halaqah_id']} (match: $matchHalaqah), schedule_id=${data['schedule_id']} (match: $matchSchedule)');
-        return matchHalaqah && matchSchedule;
-      }).firstOrNull;
-
-      final hasAttended = matchingDoc != null;
-      
-      if (hasAttended) {
-        print('✅ FOUND MATCHING ATTENDANCE');
-        print('Document ID: ${matchingDoc.id}');
-        print('Document data: ${matchingDoc.data()}');
-      } else {
-        print('❌ NO MATCHING ATTENDANCE FOUND');
-      }
-      
-      print('Result: $hasAttended');
-      print('========================');
-
-      return hasAttended;
-    } catch (e, stackTrace) {
-      print('=== ERROR CHECK ATTENDANCE ===');
-      print('Error: $e');
-      print('Stack: $stackTrace');
-      print('==============================');
+      return query.docs.isNotEmpty;
+    } catch (e) {
       return false;
     }
   }
@@ -138,11 +119,17 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String halaqahId,
     required String halaqahName,
     required String scheduleId,
-    required DateTime date,
+    required String date,
+    String? substituteAsatidzId,
+    String? substituteAsatidzName,
+    String triggeredByRole = 'asatidz',
   }) async {
     final now = DateTime.now();
-    final model = AsatidzAttendanceModel(
-      id: '',
+    final asatidzDocRef = firestore.collection('asatidz_attendance').doc();
+    final meetingDocRef = firestore.collection('meetings').doc();
+    
+    final asatidzModel = AsatidzAttendanceModel(
+      id: asatidzDocRef.id,
       asatidzId: asatidzId,
       asatidzName: asatidzName,
       halaqahId: halaqahId,
@@ -150,26 +137,82 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       scheduleId: scheduleId,
       date: date,
       checkInTime: now,
-      status: 'hadir',
+      status: substituteAsatidzId != null ? 'tidak_masuk' : 'hadir',
       notes: '',
+      createdAt: now,
+      substituteAsatidzId: substituteAsatidzId,
+      substituteAsatidzName: substituteAsatidzName,
+      triggeredByRole: triggeredByRole,
+    );
+
+    final meetingAsatidzId = substituteAsatidzId ?? asatidzId;
+    final meetingAsatidzName = substituteAsatidzName ?? asatidzName;
+
+    final meetingModel = MeetingModel(
+      id: meetingDocRef.id,
+      date: date,
+      halaqahId: halaqahId,
+      scheduleId: scheduleId,
+      asatidzAttendanceId: asatidzDocRef.id,
+      asatidzId: meetingAsatidzId,
+      asatidzName: meetingAsatidzName,
+      createdByRole: triggeredByRole,
       createdAt: now,
     );
 
-    final docRef = await firestore.collection('asatidz_attendance').add(model.toFirestore());
-    
-    return AsatidzAttendanceModel(
-      id: docRef.id,
-      asatidzId: asatidzId,
-      asatidzName: asatidzName,
-      halaqahId: halaqahId,
-      halaqahName: halaqahName,
-      scheduleId: scheduleId,
-      date: date,
-      checkInTime: now,
-      status: 'hadir',
-      notes: '',
-      createdAt: now,
-    );
+    final batch = firestore.batch();
+    batch.set(asatidzDocRef, asatidzModel.toFirestore());
+    batch.set(meetingDocRef, meetingModel.toFirestore());
+
+    await batch.commit();
+
+    return asatidzModel;
+  }
+
+  @override
+  Future<MeetingModel?> getMeeting({
+    required String halaqahId,
+    required String scheduleId,
+    required String date,
+  }) async {
+    final query = await firestore
+        .collection('meetings')
+        .where('halaqah_id', isEqualTo: halaqahId)
+        .where('schedule_id', isEqualTo: scheduleId)
+        .where('date', isEqualTo: date)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+    return MeetingModel.fromFirestore(query.docs.first);
+  }
+
+  @override
+  Future<List<MeetingMemberModel>> getMeetingMembers(String meetingId) async {
+    final query = await firestore
+        .collection('meetings')
+        .doc(meetingId)
+        .collection('members')
+        .get();
+
+    return query.docs.map((doc) => MeetingMemberModel.fromFirestore(doc)).toList();
+  }
+
+  @override
+  Future<void> saveMeetingMembers({
+    required String meetingId,
+    required List<MeetingMemberModel> members,
+  }) async {
+    final batch = firestore.batch();
+    for (final member in members) {
+      final docRef = firestore
+          .collection('meetings')
+          .doc(meetingId)
+          .collection('members')
+          .doc(member.id); // member.id is typically santri_id
+      batch.set(docRef, member.toFirestore(), SetOptions(merge: true));
+    }
+    await batch.commit();
   }
 
   @override
@@ -184,10 +227,12 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
         .orderBy('date', descending: true);
 
     if (startDate != null) {
-      query = query.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+      final startStr = "${startDate.year.toString().padLeft(4, '0')}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}";
+      query = query.where('date', isGreaterThanOrEqualTo: startStr);
     }
     if (endDate != null) {
-      query = query.where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+      final endStr = "${endDate.year.toString().padLeft(4, '0')}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}";
+      query = query.where('date', isLessThanOrEqualTo: endStr);
     }
 
     final snapshot = await query.get();
@@ -348,25 +393,51 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String surah,
     String catatan = '',
   }) async {
-    final now = DateTime.now();
-    final model = SantriSetoranModel(
-      id: '',
-      santriId: santriId,
-      santriName: santriName,
-      halaqahId: halaqahId,
-      halaqahName: halaqahName,
-      asatidzId: asatidzId,
-      asatidzName: asatidzName,
-      date: date,
-      surah: surah,
-      catatan: catatan,
-      createdAt: now,
-    );
-
-    final docRef = await firestore.collection('santri_setoran').add(model.toFirestore());
+    final dateStr = "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
     
+    // Find today's meeting for this halaqah
+    final meetingQuery = await firestore
+        .collection('meetings')
+        .where('halaqah_id', isEqualTo: halaqahId)
+        .where('date', isEqualTo: dateStr)
+        .limit(1)
+        .get();
+
+    if (meetingQuery.docs.isEmpty) {
+        throw Exception("Meeting belum dibuat. Asatidz harus absen terlebih dahulu.");
+    }
+    
+    final meetingId = meetingQuery.docs.first.id;
+    final now = DateTime.now();
+
+    final memberDocRef = firestore
+       .collection('meetings')
+       .doc(meetingId)
+       .collection('members')
+       .doc(santriId);
+
+    final memberDoc = await memberDocRef.get();
+
+    if (memberDoc.exists) {
+        await memberDocRef.update({
+             'setoran_value': surah,
+             'setoran_notes': catatan,
+             'updated_at': FieldValue.serverTimestamp(),
+        });
+    } else {
+        await memberDocRef.set({
+             'santri_id': santriId,
+             'santri_name': santriName,
+             'halaqah_asal_id': halaqahId,
+             'attendance_status': 'hadir',
+             'setoran_value': surah,
+             'setoran_notes': catatan,
+             'created_at': Timestamp.fromDate(now),
+        });
+    }
+
     return SantriSetoranModel(
-      id: docRef.id,
+      id: "${meetingId}___${santriId}",
       santriId: santriId,
       santriName: santriName,
       halaqahId: halaqahId,
@@ -386,9 +457,21 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     required String surah,
     required String catatan,
   }) async {
-    await firestore.collection('santri_setoran').doc(setoranId).update({
-      'surah': surah,
-      'catatan': catatan,
+    if (!setoranId.contains('___')) return; // Fallback for old data?
+    final parts = setoranId.split('___');
+    if (parts.length != 2) return;
+    
+    final meetingId = parts[0];
+    final santriId = parts[1];
+
+    await firestore
+        .collection('meetings')
+        .doc(meetingId)
+        .collection('members')
+        .doc(santriId)
+        .update({
+      'setoran_value': surah,
+      'setoran_notes': catatan,
       'updated_at': FieldValue.serverTimestamp(),
     });
   }
@@ -400,18 +483,46 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     DateTime? endDate,
   }) async {
     Query query = firestore
-        .collection('santri_setoran')
-        .where('santri_id', isEqualTo: santriId)
-        .orderBy('date', descending: true);
-
-    if (startDate != null) {
-      query = query.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
-    }
-    if (endDate != null) {
-      query = query.where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
-    }
+        .collectionGroup('members')
+        .where('santri_id', isEqualTo: santriId);
 
     final snapshot = await query.get();
-    return snapshot.docs.map((doc) => SantriSetoranModel.fromFirestore(doc)).toList();
+    
+    List<SantriSetoranModel> items = [];
+    
+    for (final doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      
+      // Filter out those without setoran
+      if (data['setoran_value'] == null || (data['setoran_value'] as String).isEmpty) {
+        continue;
+      }
+      
+      final createdAt = (data['created_at'] as Timestamp).toDate();
+      
+      // Apply date filters in memory since collectionGroup orderBy needs an index
+      if (startDate != null && createdAt.isBefore(startDate)) continue;
+      if (endDate != null && createdAt.isAfter(endDate)) continue;
+      
+      // Get meeting ID from reference path: meetings/meetingId/members/santriId
+      final meetingId = doc.reference.parent.parent?.id ?? '';
+      
+      items.add(SantriSetoranModel(
+        id: "${meetingId}___${santriId}",
+        santriId: santriId,
+        santriName: data['santri_name'] ?? '',
+        halaqahId: data['halaqah_asal_id'] ?? '',
+        halaqahName: '', 
+        asatidzId: '', 
+        asatidzName: '', 
+        date: createdAt,
+        surah: data['setoran_value'] ?? '',
+        catatan: data['setoran_notes'] ?? '',
+        createdAt: createdAt,
+      ));
+    }
+    
+    items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return items;
   }
 }

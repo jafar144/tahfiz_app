@@ -144,13 +144,21 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
         ifLeft: (failure) {
           print('Availability check failed: ${failure.message}');
         },
-        ifRight: (halaqahs) {
+        ifRight: (halaqahs) async {
           final busyTeachers = halaqahs.map((h) => h.teacherId).toList();
-          final busySantris = halaqahs.expand((h) => h.santris.map((s) => s.id)).toList();
+          
+          final busySantriIds = <String>[];
+          for (final h in halaqahs) {
+            final santrisResult = await scheduleRepository.getSantrisByHalaqahId(h.id);
+            santrisResult.fold(
+              ifLeft: (_) {},
+              ifRight: (santris) => busySantriIds.addAll(santris.map((s) => s.id)),
+            );
+          }
           
           emit(currentState.copyWith(
             unavailableTeacherIds: busyTeachers,
-            unavailableSantriIds: busySantris,
+            unavailableSantriIds: busySantriIds,
           ));
         },
       );
@@ -159,10 +167,10 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
     }
   }
 
-  Future<void> createHalaqah(Halaqah halaqah) async {
+  Future<void> createHalaqah(Halaqah halaqah, List<String> santriIds) async {
     emit(AddHalaqahLoading());
     try {
-      final result = await scheduleRepository.createHalaqah(halaqah);
+      final result = await scheduleRepository.createHalaqah(halaqah, santriIds);
       
       result.fold(
         ifLeft: (failure) => emit(AddHalaqahError(failure.message)),

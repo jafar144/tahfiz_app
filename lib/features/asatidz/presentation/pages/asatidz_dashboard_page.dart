@@ -388,7 +388,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                '• ${activeHalaqah.halaqah.santris.length} Santri',
+                '• ${activeHalaqah.halaqah.santriCount} Santri',
                 style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
               ),
             ],
@@ -516,6 +516,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                         builder: (context) => BlocProvider(
                           create: (_) => SantriAttendanceCubit(
                             repository: getIt(),
+                            scheduleRepository: getIt(),
                             activeHalaqah: state.activeHalaqah!,
                             asatidzId: authState.user.uid,
                             asatidzName: authState.user.name,

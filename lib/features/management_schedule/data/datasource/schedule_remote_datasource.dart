@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/halaqah_model.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/program_schedule_model.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/schedule_program_model.dart';
@@ -10,9 +11,11 @@ abstract class ScheduleRemoteDataSource {
   Future<List<HalaqahModel>> getHalaqahs(String programId);
   Future<List<HalaqahModel>> getHalaqahsBySchedule(String scheduleId);
   Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId);
-  Future<void> updateHalaqah(HalaqahModel halaqah);
-  Future<void> createHalaqah(HalaqahModel halaqah);
+  Future<void> updateHalaqah(HalaqahModel halaqah, List<String> newSantriIds, List<String> removedSantriIds);
+  Future<void> createHalaqah(HalaqahModel halaqah, List<String> santriIds);
   Future<HalaqahModel?> getHalaqahBySantriId(String santriId);
+  Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId);
+  Future<void> migrateHalaqahIds();
 }
 
 class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
@@ -26,7 +29,6 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .collection('sessions')
         .where('tipe', isEqualTo: gender)
         .get();
-    
     return query.docs.map((doc) => ScheduleProgramModel.fromFirestore(doc)).toList();
   }
 
@@ -36,8 +38,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .collection('halaqahs')
         .where('schedule_ids', arrayContains: scheduleId)
         .get();
-        
-    return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
+    return _getHalaqahsWithCount(query.docs);
   }
 
   @override
@@ -46,32 +47,31 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .collection('session_schedules')
         .where('session_id', isEqualTo: programId)
         .get();
-
     return query.docs.map((doc) => ProgramScheduleModel.fromFirestore(doc)).toList();
   }
 
   @override
   Future<List<HalaqahModel>> getHalaqahs(String programId) async {
-    // Try session_id first
     QuerySnapshot query = await firestore
         .collection('halaqahs')
         .where('session_id', isEqualTo: programId)
         .get();
 
-    // If empty, try schedule_id (alias per user spec)
     if (query.docs.isEmpty) {
       query = await firestore
           .collection('halaqahs')
           .where('schedule_id', isEqualTo: programId)
           .get();
     }
-
-    return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
+    return _getHalaqahsWithCount(query.docs);
   }
 
   @override
-  Future<void> updateHalaqah(HalaqahModel halaqah) async {
-    await firestore.collection('halaqahs').doc(halaqah.id).update({
+  Future<void> updateHalaqah(HalaqahModel halaqah, List<String> newSantriIds, List<String> removedSantriIds) async {
+    final batch = firestore.batch();
+
+    final halaqahRef = firestore.collection('halaqahs').doc(halaqah.id);
+    batch.update(halaqahRef, {
       'name': halaqah.name,
       'room': halaqah.room,
       'schedule_ids': halaqah.scheduleIds,
@@ -80,13 +80,30 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         'id': halaqah.teacherId,
         'name': halaqah.teacherName,
       },
-      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name, 'nis': s.nis}).toList(),
+      'santri_count': newSantriIds.length,
     });
+
+    for (final santriId in newSantriIds) {
+      final santriRef = firestore.collection('santri_profiles').doc(santriId);
+      batch.update(santriRef, {'halaqah_id': halaqah.id});
+    }
+
+    for (final santriId in removedSantriIds) {
+      final santriRef = firestore.collection('santri_profiles').doc(santriId);
+      batch.update(santriRef, {'halaqah_id': FieldValue.delete()});
+    }
+
+    await batch.commit();
   }
 
   @override
-  Future<void> createHalaqah(HalaqahModel halaqah) async {
-    await firestore.collection('halaqahs').add({
+  Future<void> createHalaqah(HalaqahModel halaqah, List<String> santriIds) async {
+    final docRef = firestore.collection('halaqahs').doc();
+    final halaqahId = docRef.id;
+
+    final batch = firestore.batch();
+
+    batch.set(docRef, {
       'name': halaqah.name,
       'room': halaqah.room,
       'schedule_ids': halaqah.scheduleIds,
@@ -96,18 +113,21 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         'id': halaqah.teacherId,
         'name': halaqah.teacherName,
       },
-      'santris': halaqah.santris.map((s) => {'id': s.id, 'name': s.name, 'nis': s.nis}).toList(),
+      'santri_count': santriIds.length,
     });
+
+    for (final santriId in santriIds) {
+      final santriRef = firestore.collection('santri_profiles').doc(santriId);
+      batch.update(santriRef, {'halaqah_id': halaqahId});
+    }
+
+    await batch.commit();
   }
 
   @override
   Future<ProgramScheduleModel> getScheduleById(String scheduleId) async {
     final doc = await firestore.collection('session_schedules').doc(scheduleId).get();
-    
-    if (!doc.exists) {
-      throw Exception('Schedule not found');
-    }
-    
+    if (!doc.exists) throw Exception('Schedule not found');
     return ProgramScheduleModel.fromFirestore(doc);
   }
 
@@ -117,26 +137,112 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .collection('halaqahs')
         .where('asatidz.id', isEqualTo: teacherId)
         .get();
-        
-    return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
+    return _getHalaqahsWithCount(query.docs);
   }
 
   @override
   Future<HalaqahModel?> getHalaqahBySantriId(String santriId) async {
-    // Note: iterating all halaqahs is not scalable for very large datasets,
-    // but without santris_ids array field, this is the only way.
-    final query = await firestore.collection('halaqahs').get();
+    final santriDoc = await firestore.collection('santri_profiles').doc(santriId).get();
+    if (!santriDoc.exists) return null;
+
+    final halaqahId = santriDoc.data()?['halaqah_id'] as String?;
+    if (halaqahId == null || halaqahId.isEmpty) return null;
+
+    final halaqahDoc = await firestore.collection('halaqahs').doc(halaqahId).get();
+    if (!halaqahDoc.exists) return null;
+
+    final halaqah = HalaqahModel.fromFirestore(halaqahDoc);
+    final countQuery = await firestore
+        .collection('santri_profiles')
+        .where('halaqah_id', isEqualTo: halaqah.id)
+        .count()
+        .get();
     
-    for (var doc in query.docs) {
+    return HalaqahModel(
+      id: halaqah.id,
+      programId: halaqah.programId,
+      scheduleIds: halaqah.scheduleIds,
+      name: halaqah.name,
+      room: halaqah.room,
+      teacherId: halaqah.teacherId,
+      teacherName: halaqah.teacherName,
+      status: halaqah.status,
+      santriCount: countQuery.count ?? 0,
+    );
+  }
+
+  @override
+  Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId) async {
+    final snapshot = await firestore
+        .collection('santri_profiles')
+        .where('halaqah_id', isEqualTo: halaqahId)
+        .get();
+
+    final now = DateTime.now();
+    return snapshot.docs.map((doc) {
       final data = doc.data();
-      if (data['santris'] != null && data['santris'] is List) {
-        final santris =List.from(data['santris']);
-        final found = santris.any((s) => s is Map && s['id'] == santriId);
-        if (found) {
-          return HalaqahModel.fromFirestore(doc);
-        }
+      final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+      return SantriEntity(
+        id: doc.id,
+        name: data['name'] ?? '',
+        nis: data['nis'] ?? '',
+        kelas: data['kelas'] ?? '',
+        jenisKelamin: data['jenis_kelamin'] ?? '',
+        isActive: data['is_active'] ?? true,
+        isFree: freeUntil != null && freeUntil.isAfter(now),
+        freeUntil: freeUntil,
+        nomorWali: data['nomor_wali'],
+        tipeKelas: data['tipe_kelas'],
+        halaqahId: halaqahId,
+        tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+      );
+    }).toList();
+  }
+
+  @override
+  Future<void> migrateHalaqahIds() async {
+    final halaqahsSnapshot = await firestore.collection('halaqahs').get();
+
+    for (final halaqahDoc in halaqahsSnapshot.docs) {
+      final data = halaqahDoc.data();
+      final halaqahId = halaqahDoc.id;
+
+      if (data['santris'] == null || data['santris'] is! List) continue;
+
+      final santrisList = List.from(data['santris'] as List);
+      if (santrisList.isEmpty) continue;
+
+      final batch = firestore.batch();
+      for (final item in santrisList) {
+        if (item is! Map || item['id'] == null) continue;
+        final santriId = item['id'].toString();
+        final santriRef = firestore.collection('santri_profiles').doc(santriId);
+        batch.update(santriRef, {'halaqah_id': halaqahId});
       }
+      await batch.commit();
     }
-    return null;
+  }
+
+  Future<List<HalaqahModel>> _getHalaqahsWithCount(List<DocumentSnapshot> docs) async {
+    final futures = docs.map((doc) async {
+      final halaqah = HalaqahModel.fromFirestore(doc);
+      final countQuery = await firestore
+          .collection('santri_profiles')
+          .where('halaqah_id', isEqualTo: halaqah.id)
+          .count()
+          .get();
+      return HalaqahModel(
+        id: halaqah.id,
+        programId: halaqah.programId,
+        scheduleIds: halaqah.scheduleIds,
+        name: halaqah.name,
+        room: halaqah.room,
+        teacherId: halaqah.teacherId,
+        teacherName: halaqah.teacherName,
+        status: halaqah.status,
+        santriCount: countQuery.count ?? 0,
+      );
+    });
+    return Future.wait(futures);
   }
 }

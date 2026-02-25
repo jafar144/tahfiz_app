@@ -8,7 +8,9 @@ import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 
+import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/home/domain/entities/admin_home_data.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class AdminHomePage extends StatefulWidget {

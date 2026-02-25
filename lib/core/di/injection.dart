@@ -205,7 +205,6 @@ Future<void> initDI() async {
   getIt.registerFactory(
     () => AsatidzSantriCubit(
       scheduleRepository: getIt(),
-      santriRepository: getIt(),
     ),
   );
 

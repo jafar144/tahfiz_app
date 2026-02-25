@@ -3,12 +3,12 @@ import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.d
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_state.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 
 class SantriSetoranCubit extends Cubit<SantriSetoranState> {
   final AsatidzRepository repository;
   final ActiveHalaqah activeHalaqah;
-  final HalaqahSantri santri;
+  final SantriEntity santri;
   final String asatidzId;
   final String asatidzName;
 

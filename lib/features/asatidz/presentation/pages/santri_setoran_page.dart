@@ -6,12 +6,12 @@ import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_state.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah_santri.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriSetoranPage extends StatefulWidget {
   final ActiveHalaqah activeHalaqah;
-  final HalaqahSantri santri;
+  final SantriEntity santri;
 
   const SantriSetoranPage({
     super.key,

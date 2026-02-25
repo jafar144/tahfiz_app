@@ -9,6 +9,8 @@ class SantriEntity {
   final String? pembimbing;
   final String? nomorWali;
   final String? tipeKelas;
+  final String? halaqahId;
+  final String? halaqahName;
   final DateTime? freeUntil;
   final DateTime? tanggalMasuk;
 
@@ -25,6 +27,8 @@ class SantriEntity {
     this.pembimbing,
     this.nomorWali,
     this.tipeKelas,
+    this.halaqahId,
+    this.halaqahName,
   });
 
   factory SantriEntity.dummy() {

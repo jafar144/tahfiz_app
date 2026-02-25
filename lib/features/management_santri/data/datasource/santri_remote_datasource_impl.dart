@@ -26,96 +26,68 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     String? lastDocumentId,
   }) async {
     if (asatidzId != null) {
-      // 1. Get halaqahs for this asatidz
-      final halaqahs = await firestore
+      // 1. Get halaqah IDs for this asatidz
+      final halaqahsSnapshot = await firestore
           .collection('halaqahs')
           .where('asatidz.id', isEqualTo: asatidzId)
           .get();
 
-      final santriIds = <String>{};
-      for (var doc in halaqahs.docs) {
-        final data = doc.data();
-        if (data['santris'] != null) {
-          final list = data['santris'] as List;
-          for (var item in list) {
-             if (item is Map && item['id'] != null) {
-              santriIds.add(item['id'].toString());
-            }
-          }
-        }
-      }
+      final halaqahIds = halaqahsSnapshot.docs.map((doc) => doc.id).toList();
+      if (halaqahIds.isEmpty) return [];
 
-      if (santriIds.isEmpty) return [];
-
-      // 2. Fetch santris by IDs with other filters applied
+      // 2. Query santri_profiles where halaqah_id in halaqahIds
       final List<SantriEntity> allSantris = [];
-      final idsList = santriIds.toList();
 
-      // Chunking because whereIn supports max 10
-      for (var i = 0; i < idsList.length; i += 10) {
-        final end = (i + 10 < idsList.length) ? i + 10 : idsList.length;
-        final chunk = idsList.sublist(i, end);
+      for (var i = 0; i < halaqahIds.length; i += 10) {
+        final end = (i + 10 < halaqahIds.length) ? i + 10 : halaqahIds.length;
+        final chunk = halaqahIds.sublist(i, end);
 
-        Query query = firestore.collection('santri_profiles').where(FieldPath.documentId, whereIn: chunk);
+        Query query = firestore
+            .collection('santri_profiles')
+            .where('halaqah_id', whereIn: chunk);
 
-        if (isActive != null) {
-          query = query.where('is_active', isEqualTo: isActive);
-        }
-        if (gender != null) {
-          query = query.where('jenis_kelamin', isEqualTo: gender);
-        }
-        if (session != null) {
-          query = query.where('tipe_kelas', isEqualTo: session);
-        }
-        if (kelas != null) {
-          query = query.where('kelas', isEqualTo: kelas);
-        }
-        // isFree tidak bisa difilter server-side di sini karena
-        // Firestore melarang whereIn + isGreaterThan dalam satu query
+        if (isActive != null) query = query.where('is_active', isEqualTo: isActive);
+        if (gender != null) query = query.where('jenis_kelamin', isEqualTo: gender);
+        if (session != null) query = query.where('tipe_kelas', isEqualTo: session);
+        if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
 
         final snapshot = await query.get();
+        final now = DateTime.now();
         final items = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-            final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-            final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
-
-            return SantriEntity(
+          final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+          return SantriEntity(
             id: doc.id,
             name: data['name'],
             nis: data['nis'],
             kelas: data['kelas'],
             jenisKelamin: data['jenis_kelamin'],
             isActive: data['is_active'] ?? true,
-            isFree: isFree,
+            isFree: freeUntil != null && freeUntil.isAfter(now),
             freeUntil: freeUntil,
             nomorWali: data['nomor_wali'],
-            pembimbing: null,
             tipeKelas: data['tipe_kelas'],
+            halaqahId: data['halaqah_id'],
             tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
           );
         }).toList();
-
         allSantris.addAll(items);
       }
 
-      // Filter status client-side karena Firestore melarang whereIn + inequality filter
       List<SantriEntity> result = allSantris;
       if (isFree != null) {
         final now = DateTime.now();
-        if (isFree == true) {
+        if (isFree) {
           result = result.where((s) => s.freeUntil != null && s.freeUntil!.isAfter(now)).toList();
         } else {
           result = result.where((s) => s.freeUntil == null || s.freeUntil!.isBefore(now)).toList();
         }
       }
 
-      // 3. Filter by keyword in memory
       if (keyword != null && keyword.isNotEmpty) {
         final k = keyword.toLowerCase();
         return result.where((s) {
-          final name = s.name.toLowerCase();
-          final nis = s.nis.toLowerCase();
-          return name.contains(k) || nis.contains(k);
+          return s.name.toLowerCase().contains(k) || s.nis.toLowerCase().contains(k);
         }).toList();
       }
 
@@ -138,27 +110,45 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       query = query.where('kelas', isEqualTo: kelas);
     }
 
+    query = query.orderBy('name');
+
+    // Jika ada keyword, kita ambil semua data untuk difilter secara substring di client (karena Firestore tidak support substring search)
     if (keyword != null && keyword.isNotEmpty) {
-      final isNumeric = RegExp(r'^[0-9]+$').hasMatch(keyword);
-      if (isNumeric) {
-        query = query
-            .where('nis', isGreaterThanOrEqualTo: keyword)
-            .where('nis', isLessThan: '$keyword\uf8ff')
-            .orderBy('nis');
-      } else {
-        String searchTerm = keyword;
-        if (keyword.length > 1) {
-          searchTerm = keyword[0].toUpperCase() + keyword.substring(1);
+      final snapshot = await query.get();
+      final now = DateTime.now();
+
+      final allItems = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+        return SantriEntity(
+          id: doc.id,
+          name: data['name'],
+          nis: data['nis'],
+          kelas: data['kelas'],
+          jenisKelamin: data['jenis_kelamin'],
+          isActive: data['is_active'] ?? true,
+          isFree: freeUntil != null && freeUntil.isAfter(now),
+          freeUntil: freeUntil,
+          nomorWali: data['nomor_wali'],
+          tipeKelas: data['tipe_kelas'],
+          halaqahId: data['halaqah_id'],
+          tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+        );
+      }).toList();
+
+      List<SantriEntity> result = allItems;
+      if (isFree != null) {
+        if (isFree) {
+          result = result.where((s) => s.isFree).toList();
         } else {
-          searchTerm = keyword.toUpperCase();
+          result = result.where((s) => !s.isFree).toList();
         }
-        query = query
-            .where('name', isGreaterThanOrEqualTo: searchTerm)
-            .where('name', isLessThan: '$searchTerm\uf8ff')
-            .orderBy('name');
       }
-    } else {
-      query = query.orderBy('name');
+
+      final k = keyword.toLowerCase();
+      return result.where((s) {
+        return s.name.toLowerCase().contains(k) || s.nis.toLowerCase().contains(k);
+      }).toList();
     }
 
     // isFree filter selalu dilakukan client-side agar tidak ada implisit orderBy dari Firestore
@@ -200,8 +190,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: freeUntil != null && freeUntil.isAfter(now),
         freeUntil: freeUntil,
         nomorWali: data['nomor_wali'],
-        pembimbing: null,
         tipeKelas: data['tipe_kelas'],
+        halaqahId: data['halaqah_id'],
         tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
       );
     }).toList();
@@ -252,6 +242,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             pembimbing: null,
             tipeKelas: data['tipe_kelas'],
             tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+            halaqahId: data['halaqah_id'],
           ));
           if (result.length >= limit) break;
         }
@@ -295,6 +286,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       tempatLahir: data['tempat_lahir'],
       tipeKelas: data['tipe_kelas'],
       phone: userData['phone'],
+      halaqahId: data['halaqah_id'],
     );
   }
 
@@ -420,6 +412,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           pembimbing: null,
           tipeKelas: data['tipe_kelas'],
           tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+          halaqahId: data['halaqah_id'],
         );
       }).toList();
       

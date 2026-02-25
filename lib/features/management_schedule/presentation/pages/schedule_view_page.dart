@@ -61,7 +61,6 @@ class ScheduleViewPage extends StatelessWidget {
                 teacherId: 'teacher',
                 teacherName: 'Ustadz Fulan',
                 status: 'Active',
-                santris: [],
               ),
             );
           }
@@ -402,7 +401,7 @@ class ScheduleViewPage extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${halaqah.santris.length} Santri',
+                          '${halaqah.santriCount} Santri',
                           style: TextStyle(
                             color: Colors.grey.shade700,
                             fontWeight: FontWeight.w600,

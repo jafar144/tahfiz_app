@@ -3,6 +3,8 @@ import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/asatidz_attendance.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_attendance.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/meeting.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/meeting_member.dart';
 
 abstract class AsatidzRepository {
   Future<Either<Failure, bool>> checkAttendance({
@@ -24,6 +26,19 @@ abstract class AsatidzRepository {
     required String asatidzId,
     DateTime? startDate,
     DateTime? endDate,
+  });
+
+  Future<Either<Failure, Meeting?>> getMeeting({
+    required String halaqahId,
+    required String scheduleId,
+    required String date,
+  });
+
+  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(String meetingId);
+
+  Future<Either<Failure, void>> saveMeetingMembers({
+    required String meetingId,
+    required List<MeetingMember> members,
   });
 
   Future<Either<Failure, SantriAttendance>> createSantriAttendance({

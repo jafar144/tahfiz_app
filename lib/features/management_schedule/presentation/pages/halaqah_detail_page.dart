@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 
 class HalaqahDetailPage extends StatelessWidget {
   final String sessionName;
@@ -74,7 +75,7 @@ class HalaqahDetailPage extends StatelessWidget {
                 const SizedBox(height: 24),
                 _buildInfoSection(context, halaqah, state),
                 const SizedBox(height: 24),
-                _buildSantriSection(halaqah),
+                _buildSantriSection(halaqah, state is HalaqahDetailLoaded ? state.santriList : []),
                 const SizedBox(height: 80), // Space for FAB
               ],
             ),
@@ -414,7 +415,7 @@ class HalaqahDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSantriSection(Halaqah halaqah) {
+  Widget _buildSantriSection(Halaqah halaqah, List<SantriEntity> santriList) {
     return Column(
       children: [
         Row(
@@ -435,7 +436,7 @@ class HalaqahDetailPage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                '${halaqah.santris.length} Santri',
+                '${santriList.length} Santri',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -461,13 +462,13 @@ class HalaqahDetailPage extends StatelessWidget {
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: halaqah.santris.length,
+            itemCount: santriList.length,
             separatorBuilder: (_, __) => const Padding(
               padding: EdgeInsets.only(left: 60),
               child: Divider(height: 1),
             ),
             itemBuilder: (context, index) {
-              final santri = halaqah.santris[index];
+              final santri = santriList[index];
               final initial = santri.name.isNotEmpty
                   ? (santri.name.length >= 2 
                       ? santri.name.substring(0, 2).toUpperCase() 

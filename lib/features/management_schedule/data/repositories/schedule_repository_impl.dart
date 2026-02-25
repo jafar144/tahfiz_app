@@ -1,12 +1,12 @@
 import 'package:dart_either/dart_either.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/datasource/schedule_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/halaqah_model.dart';
-
 
 class ScheduleRepositoryImpl implements ScheduleRepository {
   final ScheduleRemoteDataSource remoteDataSource;
@@ -54,7 +54,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah) async {
+  Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah, List<String> newSantriIds, List<String> removedSantriIds) async {
     try {
       final model = HalaqahModel(
         id: halaqah.id,
@@ -65,9 +65,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         teacherId: halaqah.teacherId,
         teacherName: halaqah.teacherName,
         status: halaqah.status,
-        santris: halaqah.santris,
+        santriCount: newSantriIds.length,
       );
-      await remoteDataSource.updateHalaqah(model);
+      await remoteDataSource.updateHalaqah(model, newSantriIds, removedSantriIds);
       return const Either.right(null);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
@@ -75,7 +75,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, void>> createHalaqah(Halaqah halaqah) async {
+  Future<Either<Failure, void>> createHalaqah(Halaqah halaqah, List<String> santriIds) async {
     try {
       final model = HalaqahModel(
         id: halaqah.id,
@@ -86,9 +86,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         teacherId: halaqah.teacherId,
         teacherName: halaqah.teacherName,
         status: halaqah.status,
-        santris: halaqah.santris,
+        santriCount: santriIds.length,
       );
-      await remoteDataSource.createHalaqah(model);
+      await remoteDataSource.createHalaqah(model, santriIds);
       return const Either.right(null);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
@@ -114,11 +114,32 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       return Either.left(ServerFailure(e.toString()));
     }
   }
+
   @override
   Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(String santriId) async {
     try {
       final result = await remoteDataSource.getHalaqahBySantriId(santriId);
       return Either.right(result);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(String halaqahId) async {
+    try {
+      final result = await remoteDataSource.getSantrisByHalaqahId(halaqahId);
+      return Either.right(result);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> migrateHalaqahIds() async {
+    try {
+      await remoteDataSource.migrateHalaqahIds();
+      return const Either.right(null);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
     }
