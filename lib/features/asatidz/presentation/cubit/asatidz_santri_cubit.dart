@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_state.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 
 class AsatidzSantriCubit extends Cubit<AsatidzSantriState> {
@@ -29,7 +30,25 @@ class AsatidzSantriCubit extends Cubit<AsatidzSantriState> {
           final santrisResult = await scheduleRepository.getSantrisByHalaqahId(halaqah.id);
           santrisResult.fold(
             ifLeft: (_) {},
-            ifRight: (santris) => allSantris.addAll(santris),
+            ifRight: (santris) {
+              final mapped = santris.map((s) => SantriEntity(
+                id: s.id,
+                name: s.name,
+                nis: s.nis,
+                kelas: s.kelas,
+                jenisKelamin: s.jenisKelamin,
+                isActive: s.isActive,
+                isFree: s.isFree,
+                freeUntil: s.freeUntil,
+                nomorWali: s.nomorWali,
+                tipeKelas: s.tipeKelas,
+                halaqahId: s.halaqahId,
+                halaqahName: halaqah.name,
+                pembimbing: halaqah.teacherName,
+                tanggalMasuk: s.tanggalMasuk,
+              )).toList();
+              allSantris.addAll(mapped);
+            },
           );
         }
 
