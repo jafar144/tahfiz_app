@@ -69,6 +69,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             tipeKelas: data['tipe_kelas'],
             halaqahId: data['halaqah_id'],
             tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+            photoUrl: data['photo_url'],
           );
         }).toList();
         allSantris.addAll(items);
@@ -133,6 +134,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           tipeKelas: data['tipe_kelas'],
           halaqahId: data['halaqah_id'],
           tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+          photoUrl: data['photo_url'],
         );
       }).toList();
 
@@ -193,6 +195,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         tipeKelas: data['tipe_kelas'],
         halaqahId: data['halaqah_id'],
         tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+        photoUrl: data['photo_url'],
       );
     }).toList();
   }
@@ -243,6 +246,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             tipeKelas: data['tipe_kelas'],
             tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
             halaqahId: data['halaqah_id'],
+            photoUrl: data['photo_url'],
           ));
           if (result.length >= limit) break;
         }
@@ -287,6 +291,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       tipeKelas: data['tipe_kelas'],
       phone: userData['phone'],
       halaqahId: data['halaqah_id'],
+      photoUrl: data['photo_url'],
     );
   }
 
@@ -342,6 +347,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         'tipe_kelas': params.tipeKelas,
         'uid': uid,
         'created_at': FieldValue.serverTimestamp(),
+        if (params.photoUrl != null) 'photo_url': params.photoUrl,
       });
     } finally {
       await tempApp?.delete();
@@ -368,6 +374,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'tanggal_lahir': Timestamp.fromDate(params.birthDate),
       'tempat_lahir': params.birthPlace,
       'tipe_kelas': params.tipeKelas,
+      if (params.photoUrl != null) 'photo_url': params.photoUrl,
     });
 
     // Update User Document
@@ -413,6 +420,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           tipeKelas: data['tipe_kelas'],
           tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
           halaqahId: data['halaqah_id'],
+          photoUrl: data['photo_url'],
         );
       }).toList();
       

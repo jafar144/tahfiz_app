@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
@@ -38,6 +40,8 @@ class _AddSantriPageState extends State<AddSantriPage> {
   DateTime? _freeUntil;
   bool _isFree = false;
   bool _isLoading = false;
+  bool _isUploadingPhoto = false;
+  String? _photoUrl;
 
   @override
   void dispose() {
@@ -86,6 +90,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
         entryDate: _entryDate,
         isFree: _isFree,
         freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
+        photoUrl: _photoUrl,
       );
 
       context.read<SantriCubit>().addSantri(params);
@@ -115,6 +120,35 @@ class _AddSantriPageState extends State<AddSantriPage> {
       setState(() {
         onPicked(picked);
       });
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final file = await ImageUtils.pickImage(ImageSource.gallery);
+    if (file == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+
+    try {
+      final compressed = await ImageUtils.compressImage(file);
+      if (compressed != null) {
+        final url = await ImageUtils.uploadImageToFirebase(compressed, 'santri_photos');
+        if (url != null) {
+          setState(() => _photoUrl = url);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengupload foto')));
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingPhoto = false);
+      }
     }
   }
 
@@ -256,6 +290,51 @@ class _AddSantriPageState extends State<AddSantriPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Center(
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey.shade200,
+                                image: _photoUrl != null
+                                    ? DecorationImage(
+                                        image: NetworkImage(_photoUrl!),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: _photoUrl == null
+                                  ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                  : null,
+                            ),
+                            if (_isUploadingPhoto)
+                              const Positioned.fill(
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap: _isUploadingPhoto ? null : _pickAndUploadImage,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.blue,
+                                  ),
+                                  child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
                       const SizedBox(height: 12),
                       AiwaTextField(

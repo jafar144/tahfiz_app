@@ -17,6 +17,7 @@ class SantriDetail {
   final DateTime? freeUntil;
   final String? halaqahId;
   final String? halaqahName;
+  final String? photoUrl;
 
   const SantriDetail({
     required this.id,
@@ -37,5 +38,6 @@ class SantriDetail {
     this.phone,
     this.halaqahId,
     this.halaqahName,
+    this.photoUrl,
   });
 }

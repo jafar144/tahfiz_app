@@ -72,6 +72,7 @@ class SantriRepositoryImpl implements SantriRepository {
         halaqahId: s.halaqahId,
         halaqahName: s.halaqahName,
         pembimbing: pembimbing ?? 'Belum ada',
+        photoUrl: s.photoUrl,
       );
     }).toList();
   }
@@ -111,6 +112,7 @@ class SantriRepositoryImpl implements SantriRepository {
       phone: detail.phone,
       halaqahId: detail.halaqahId,
       halaqahName: detail.halaqahName,
+      photoUrl: detail.photoUrl,
     );
   }
 
@@ -163,6 +165,7 @@ class SantriRepositoryImpl implements SantriRepository {
         halaqahId: s.halaqahId,
         halaqahName: s.halaqahName,
         pembimbing: pembimbing ?? 'Belum ada',
+        photoUrl: s.photoUrl,
       );
     }).toList();
   }

@@ -33,6 +33,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/hala
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/select_asatidz_page.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
 
 class AppRouter {
 
@@ -214,6 +215,11 @@ class AppRouter {
             child: const EditHalaqahPage(),
           );
         },
+      ),
+      GoRoute(
+        path: RoutePaths.adminSyahadah,
+        name: RouteNames.adminSyahadah,
+        builder: (context, state) => const SyahadahGeneratorPage(),
       ),
     ],
   );

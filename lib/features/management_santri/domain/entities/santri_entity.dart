@@ -13,6 +13,7 @@ class SantriEntity {
   final String? halaqahName;
   final DateTime? freeUntil;
   final DateTime? tanggalMasuk;
+  final String? photoUrl;
 
   SantriEntity({
     required this.id,
@@ -29,6 +30,7 @@ class SantriEntity {
     this.tipeKelas,
     this.halaqahId,
     this.halaqahName,
+    this.photoUrl,
   });
 
   factory SantriEntity.dummy() {
@@ -41,6 +43,7 @@ class SantriEntity {
       isActive: true,
       isFree: false,
       tanggalMasuk: DateTime.now(),
+      photoUrl: null,
     );
   }
 }

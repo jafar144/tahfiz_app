@@ -149,6 +149,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     subtitle: 'Manajemen Halaqah',
                     onTap: () => context.pushNamed(RouteNames.adminSchedule),
                   ),
+                  MenuCard(
+                    icon: Icons.workspace_premium_rounded,
+                    title: 'Kelulusan',
+                    subtitle: 'Foto Kelulusan',
+                    onTap: () => context.pushNamed(RouteNames.adminSyahadah),
+                  ),
                 ],
               ),
             ],

@@ -21,4 +21,6 @@ abstract class RoutePaths {
   static const selectAsatidz = '/select_asatidz';
   static const detailHalaqah = '/detail_halaqah';
   static const editHalaqah = '/edit_halaqah';
+
+  static const adminSyahadah = '/admin_syahadah';
 }
