@@ -17,6 +17,7 @@ import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposi
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
+import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 
 class SantriDetailPage extends StatefulWidget {
   final String santriId;
@@ -261,7 +262,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
             child: PaymentYearView(
               paidData: paidData,
-              startDate: _resolveStartDate(detail),
+              startDate: PaymentUtils.resolveStartDate(detail),
             ),
           );
         }
@@ -271,21 +272,6 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
     );
   }
 
-  DateTime? _resolveStartDate(SantriDetail detail) {
-    final freeUntil = detail.freeUntil;
-    final tanggalMasuk = detail.tanggalMasuk;
-
-    if (freeUntil != null && !freeUntil.isAfter(DateTime.now())) {
-      final afterFree = DateTime(freeUntil.year, freeUntil.month + 1);
-      return DateTime(afterFree.year, afterFree.month);
-    }
-
-    if (tanggalMasuk != null) {
-      return DateTime(tanggalMasuk.year, tanggalMasuk.month);
-    }
-
-    return null;
-  }
 
   Widget _buildHeader(SantriDetail detail) {
     return Stack(

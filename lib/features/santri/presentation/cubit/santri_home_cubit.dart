@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asa
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
+import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 
 class SantriHomeCubit extends Cubit<SantriHomeState> {
   final SantriRepository santriRepository;
@@ -31,13 +32,31 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       // 1. Fetch Santri Profile
       final santri = await santriRepository.getSantriDetail(santriId);
       
-      // 2. Fetch Payment Status (Current Month)
+      // 2. Fetch Payment Status (Full History)
       final now = DateTime.now();
-      final month = _getMonthName(now.month);
-      final year = now.year.toString();
+      final paymentHistory = await paymentRepository.getPaymentHistoryBySantri(santriId, null);
       
-      final payments = await paymentRepository.getPaymentBySantri(santriId, month, year);
-      final isPaid = payments.isNotEmpty;
+      // Calculate overdue months from startDate up to now.
+      int overdueMonthsCount = 0;
+      final startDate = PaymentUtils.resolveStartDate(santri);
+      
+      if (startDate != null) {
+        DateTime current = DateTime(startDate.year, startDate.month);
+        final end = DateTime(now.year, now.month);
+        
+        while (!current.isAfter(end)) {
+          final monthName = PaymentUtils.getMonthName(current.month);
+          final yearStr = current.year.toString();
+          
+          final isPaid = paymentHistory.any((p) => p.bulan == monthName && p.tahun == yearStr);
+          if (!isPaid) {
+            overdueMonthsCount++;
+          }
+          
+          // Move to next month
+          current = DateTime(current.year, current.month + 1);
+        }
+      }
 
       // 3. Fetch Latest Setoran
       SantriSetoran? latestSetoran;
@@ -84,7 +103,8 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       emit(state.copyWith(
         status: SantriHomeStatus.success,
         santri: santri,
-        isPaidThisMonth: isPaid,
+        overdueMonthsCount: overdueMonthsCount,
+        paymentHistory: paymentHistory,
         latestSetoran: latestSetoran,
         pembimbingName: pembimbingName,
         pembimbingPhone: pembimbingPhone,
@@ -98,11 +118,4 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     }
   }
 
-  String _getMonthName(int month) {
-    const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    return months[month - 1];
-  }
 }

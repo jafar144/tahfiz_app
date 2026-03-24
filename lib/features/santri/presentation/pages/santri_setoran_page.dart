@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
+import 'package:khoirunnasyien/features/santri/presentation/widgets/santri_setoran_card.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_chip.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
@@ -65,6 +65,7 @@ class SantriSetoranPage extends StatelessWidget {
   }
 
   void _showFilterBottomSheet(BuildContext context, SetoranFilter currentFilter) {
+    final cubit = context.read<SantriSetoranCubit>();
     SetoranFilter selectedFilter = currentFilter;
 
     showModalBottomSheet(
@@ -72,7 +73,7 @@ class SantriSetoranPage extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (bottomSheetContext) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (childContext, setState) {
           return AiwaBottomSheet(
             title: 'Filter Waktu',
             onReset: () {
@@ -81,8 +82,8 @@ class SantriSetoranPage extends StatelessWidget {
                });
             },
             onApply: () {
-               Navigator.pop(context);
-               context.read<SantriSetoranCubit>().loadSetoran(filter: selectedFilter);
+               Navigator.pop(childContext);
+               cubit.loadSetoran(filter: selectedFilter);
             },
             content: Wrap(
                   spacing: 8,
@@ -197,135 +198,9 @@ class SantriSetoranPage extends StatelessWidget {
   }
 
   Widget _buildSetoranCard(SantriSetoran setoran) {
-    final dateFormat = DateFormat('dd MMM yyyy', 'id_ID');
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.menu_book_rounded, color: Colors.blue, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        setoran.surah,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        dateFormat.format(setoran.date),
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.person_outline_rounded, size: 16, color: Colors.grey.shade500),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Disimak oleh ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-                  Flexible(
-                    child: Text(
-                      setoran.asatidzName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (setoran.catatan.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.amber.withOpacity(0.15)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.sticky_note_2_outlined, size: 16, color: Colors.amber.shade700),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Catatan Pengajar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.amber.shade800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            setoran.catatan,
-                            style: TextStyle(
-                              fontStyle: FontStyle.italic,
-                              fontSize: 13,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SantriSetoranCard(setoran: setoran),
     );
   }
 

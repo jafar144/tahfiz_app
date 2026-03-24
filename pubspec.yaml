@@ -35,6 +35,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   share_plus: ^12.0.1
   path_provider: ^2.1.5
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
