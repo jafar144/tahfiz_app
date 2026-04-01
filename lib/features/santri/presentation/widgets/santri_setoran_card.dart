@@ -35,7 +35,7 @@ class SantriSetoranCard extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade100),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -43,7 +43,7 @@ class SantriSetoranCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -51,10 +51,10 @@ class SantriSetoranCard extends StatelessWidget {
                   child: Icon(
                     Icons.menu_book_rounded,
                     color: Colors.blue.shade700,
-                    size: 28,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +62,7 @@ class SantriSetoranCard extends StatelessWidget {
                       Text(
                         setoran.surah,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
@@ -86,13 +86,13 @@ class SantriSetoranCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             if (setoran.catatan.isNotEmpty)
               Stack(
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8FAFC), // Very light grey/blue
                       borderRadius: BorderRadius.circular(12),
@@ -113,7 +113,7 @@ class SantriSetoranCard extends StatelessWidget {
                         Text(
                           '"${setoran.catatan}"',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontStyle: FontStyle.italic,
                             color: Colors.grey.shade800,
                             height: 1.4,
@@ -139,12 +139,12 @@ class SantriSetoranCard extends StatelessWidget {
                   ),
                 ],
               ),
-            if (setoran.catatan.isNotEmpty) const SizedBox(height: 20),
+            if (setoran.catatan.isNotEmpty) const SizedBox(height: 16),
             Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     color: Colors.indigo.shade50,
                     shape: BoxShape.circle,
@@ -172,7 +172,7 @@ class SantriSetoranCard extends StatelessWidget {
                     Text(
                       setoran.asatidzName,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),

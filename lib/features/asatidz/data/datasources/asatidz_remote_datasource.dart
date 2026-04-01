@@ -489,6 +489,8 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     final snapshot = await query.get();
     
     List<SantriSetoranModel> items = [];
+    final meetingCache = <String, Map<String, dynamic>>{};
+    final asatidzCache = <String, String>{};
     
     for (final doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
@@ -507,14 +509,48 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       // Get meeting ID from reference path: meetings/meetingId/members/santriId
       final meetingId = doc.reference.parent.parent?.id ?? '';
       
+      String asatidzId = '';
+      String asatidzName = '';
+
+      if (meetingId.isNotEmpty) {
+        if (!meetingCache.containsKey(meetingId)) {
+          final meetingDoc = await firestore.collection('meetings').doc(meetingId).get();
+          if (meetingDoc.exists) {
+            meetingCache[meetingId] = meetingDoc.data() as Map<String, dynamic>;
+          } else {
+            meetingCache[meetingId] = {};
+          }
+        }
+        
+        final mData = meetingCache[meetingId]!;
+        asatidzId = mData['asatidz_id'] ?? '';
+        
+        if (asatidzId.isNotEmpty) {
+          if (!asatidzCache.containsKey(asatidzId)) {
+             try {
+               final profileDoc = await firestore.collection('asatidz_profiles').doc(asatidzId).get();
+               if (profileDoc.exists) {
+                 final pData = profileDoc.data() as Map<String, dynamic>;
+                 asatidzCache[asatidzId] = pData['name'] ?? mData['asatidz_name'] ?? '';
+               } else {
+                 asatidzCache[asatidzId] = mData['asatidz_name'] ?? '';
+               }
+             } catch (_) {
+               asatidzCache[asatidzId] = mData['asatidz_name'] ?? '';
+             }
+          }
+          asatidzName = asatidzCache[asatidzId] ?? '';
+        }
+      }
+      
       items.add(SantriSetoranModel(
         id: "${meetingId}___${santriId}",
         santriId: santriId,
         santriName: data['santri_name'] ?? '',
         halaqahId: data['halaqah_asal_id'] ?? '',
         halaqahName: '', 
-        asatidzId: '', 
-        asatidzName: '', 
+        asatidzId: asatidzId, 
+        asatidzName: asatidzName, 
         date: createdAt,
         surah: data['setoran_value'] ?? '',
         catatan: data['setoran_notes'] ?? '',

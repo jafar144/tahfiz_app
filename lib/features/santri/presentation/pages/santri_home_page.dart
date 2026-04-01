@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/santri/presentation/widgets/santri_setor
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
+import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -35,8 +36,9 @@ class _SantriHomePageState extends State<SantriHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: BlocBuilder<SantriHomeCubit, SantriHomeState>(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: BlocBuilder<SantriHomeCubit, SantriHomeState>(
         builder: (context, state) {
           if (state.status == SantriHomeStatus.loading || state.status == SantriHomeStatus.initial) {
             return _buildLoading();
@@ -64,6 +66,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
             onRefresh: () async => _loadData(),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -79,26 +82,37 @@ class _SantriHomePageState extends State<SantriHomePage> {
           );
         },
       ),
-    );
+    ));
   }
 
   Widget _buildLoading() {
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Shimmer.fromColors(
             baseColor: Colors.grey.shade300,
             highlightColor: Colors.grey.shade100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 14, width: 120, color: Colors.white),
+                const SizedBox(height: 8),
+                Container(height: 24, width: 200, color: Colors.white),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
             child: Container(
-              height: 280,
-              decoration: const BoxDecoration(
+              height: 120,
+              decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
+                borderRadius: BorderRadius.circular(24),
               ),
             ),
           ),
@@ -106,37 +120,12 @@ class _SantriHomePageState extends State<SantriHomePage> {
           Shimmer.fromColors(
             baseColor: Colors.grey.shade300,
             highlightColor: Colors.grey.shade100,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                ),
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
               ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (int i = 0; i < 3; i++)
-                  Shimmer.fromColors(
-                    baseColor: Colors.grey.shade300,
-                    highlightColor: Colors.grey.shade100,
-                    child: Container(
-                      width: 100,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-              ],
             ),
           ),
         ],
@@ -146,126 +135,48 @@ class _SantriHomePageState extends State<SantriHomePage> {
 
   Widget _buildHeader(SantriHomeState state) {
     final santri = state.santri;
-    final String greeting = _getGreeting();
 
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 32,
-        bottom: 32,
-        left: 24,
-        right: 24,
-      ),
-      decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      greeting,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      santri?.name ?? 'Santri',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
+              const Text(
+                'Assalamua\'laikum',
+                style: AppTextStyles.infoGrey,
               ),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.5),
-                    width: 2,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.person,
-                  color: Colors.white,
-                  size: 32,
-                ),
+              const SizedBox(height: 2),
+              Text(
+                santri?.name ?? 'Santri',
+                style: AppTextStyles.mediumContentBlack,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+        ),
+        const SizedBox(width: 16),
+        CircleAvatar(
+          radius: 22,
+          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+          backgroundImage: (santri?.photoUrl != null && santri!.photoUrl!.isNotEmpty)
+              ? NetworkImage(santri.photoUrl!)
+              : null,
+          child: (santri?.photoUrl == null || santri!.photoUrl!.isEmpty)
+              ? Text(
+                  _getInitials(santri?.name ?? 'S'),
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
-                  child: const Icon(
-                    Icons.school_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Pembimbing',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        state.pembimbingName ?? 'Belum ditentukan',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                )
+              : null,
+        ),
+      ],
     );
   }
 
@@ -273,101 +184,115 @@ class _SantriHomePageState extends State<SantriHomePage> {
     final isPaidAll = state.overdueMonthsCount == 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
+      padding: const EdgeInsets.only(top: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Informasi SPP',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
-          ],
-          border: Border.all(color: Colors.grey.shade100),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isPaidAll ? Colors.green.shade50 : Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    isPaidAll ? Icons.check_circle_rounded : Icons.warning_rounded,
-                    color: isPaidAll ? Colors.green : Colors.red,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Status SPP',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isPaidAll ? 'Lunas Bulan Ini' : '${state.overdueMonthsCount} Bulan Menunggak',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isPaidAll ? Colors.green.shade700 : Colors.red.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(color: Colors.grey.shade100),
             ),
-            const SizedBox(height: 20),
-            InkWell(
-              onTap: () {
-                final startDate = state.santri != null ? PaymentUtils.resolveStartDate(state.santri!) : null;
-                context.pushNamed(RouteNames.santriPayment, extra: startDate);
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Icon(
-                      Icons.history_rounded,
-                      size: 20,
-                      color: Theme.of(context).primaryColor,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isPaidAll ? Colors.green.shade50 : Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        isPaidAll ? Icons.check_circle_rounded : Icons.warning_rounded,
+                        color: isPaidAll ? Colors.green : Colors.red,
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Lihat Data Pembayaran',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Status SPP',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isPaidAll ? 'Lunas Bulan Ini' : '${state.overdueMonthsCount} Bulan Menunggak',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isPaidAll ? Colors.green.shade700 : Colors.red.shade700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 16),
+                InkWell(
+                  onTap: () {
+                    final startDate = state.santri != null ? PaymentUtils.resolveStartDate(state.santri!) : null;
+                    context.pushNamed(RouteNames.santriPayment, extra: startDate);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.history_rounded,
+                          size: 16,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Lihat Data Pembayaran',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -478,32 +403,24 @@ class _SantriHomePageState extends State<SantriHomePage> {
     final setoran = state.latestSetoran!;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Setoran Terakhir',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade800,
-                ),
-              ),
-              Text(
-                'Lihat Semua',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).primaryColor,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SantriSetoranCard(setoran: setoran),
         ],
       ),
@@ -512,15 +429,15 @@ class _SantriHomePageState extends State<SantriHomePage> {
   
   Widget _buildPembimbingSection(SantriHomeState state) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.only(top: 28),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withOpacity(0.06),
               spreadRadius: 1,
               blurRadius: 10,
               offset: const Offset(0, 4),
@@ -533,19 +450,23 @@ class _SantriHomePageState extends State<SantriHomePage> {
             const Text(
               'Pengajar',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 CircleAvatar(
-                  radius: 24,
+                  radius: 20,
                   backgroundColor: Colors.grey.shade200, 
-                  child: Text(_getInitials(state.pembimbingName!)),
+                  child: Text(
+                    _getInitials(state.pembimbingName!),
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -553,15 +474,16 @@ class _SantriHomePageState extends State<SantriHomePage> {
                       Text(
                         state.pembimbingName!, 
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
                       if (state.pembimbingPhone != null)
                       Text(
                         state.pembimbingPhone!, 
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 12,
                           color: Colors.grey[600],
                         ),
                       ),
@@ -596,11 +518,13 @@ class _SantriHomePageState extends State<SantriHomePage> {
                       }
                     }
                   },
-                  icon: const Icon(Icons.chat, size: 18),
-                  label: const Text('Hubungi'),
+                  icon: const Icon(Icons.chat, size: 16),
+                  label: const Text('Hubungi', style: TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: const Size(0, 32),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -614,14 +538,6 @@ class _SantriHomePageState extends State<SantriHomePage> {
     );
   }
 
-  String _getGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 10) return 'Selamat Pagi,';
-    if (hour < 15) return 'Selamat Siang,';
-    if (hour < 18) return 'Selamat Sore,';
-    return 'Selamat Malam,';
-  }
-  
   String _getInitials(String name) {
     if (name.isEmpty) return '';
     final parts = name.split(' ');
