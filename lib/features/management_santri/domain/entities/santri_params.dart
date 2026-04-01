@@ -11,6 +11,7 @@ class SantriParams {
   final String tipeKelas;
   final DateTime entryDate;
   final bool isFree; // Status Pembayaran (Gratis/Berbayar)
+  final bool isActive; // Status Aktif
   final DateTime? freeUntil;
   final String? photoUrl;
 
@@ -27,6 +28,7 @@ class SantriParams {
     required this.tipeKelas,
     required this.entryDate,
     required this.isFree,
+    this.isActive = true,
     this.freeUntil,
     this.photoUrl,
   });

@@ -362,6 +362,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'nis': params.nis,
       'kelas': params.kelas,
       'jenis_kelamin': params.jenisKelamin,
+      'is_active': params.isActive,
       'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
           DateTime.now().year + 7,
           DateTime.now().month,

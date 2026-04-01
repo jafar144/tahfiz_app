@@ -28,15 +28,16 @@ class SantriCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: santri.isActive ? Colors.white : Colors.grey.shade200,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Colors.grey.shade300),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          if (santri.isActive)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
         ],
       ),
       child: Material(
@@ -51,12 +52,14 @@ class SantriCard extends StatelessWidget {
             onReturn?.call();
           },
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Avatar Inisial (Abu-abu)
+          child: Opacity(
+            opacity: santri.isActive ? 1.0 : 0.6,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Avatar Inisial (Abu-abu)
                 Container(
                   width: 40,
                   height: 40,
@@ -129,6 +132,27 @@ class SantriCard extends StatelessWidget {
                                       ),
                                     ),
                                   ],
+                                ),
+                              ),
+                            ],
+                            if (!santri.isActive) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade300,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Tidak Aktif',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade800,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 10,
+                                  ),
                                 ),
                               ),
                             ],
@@ -221,6 +245,7 @@ class SantriCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 

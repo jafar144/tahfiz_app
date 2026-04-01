@@ -40,6 +40,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
   bool _isLoading = false;
   bool _isUploadingPhoto = false;
   String? _photoUrl;
+  late bool _isActive;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
     _isFree = widget.santri.isFree;
     _freeUntil = widget.santri.freeUntil;
     _photoUrl = widget.santri.photoUrl;
+    _isActive = widget.santri.isActive;
   }
 
   @override
@@ -231,6 +233,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
         tipeKelas: _classType!,
         entryDate: _entryDate,
         isFree: _isFree,
+        isActive: _isActive,
         freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
         photoUrl: _photoUrl,
       );
@@ -474,6 +477,45 @@ class _EditSantriPageState extends State<EditSantriPage> {
                     value: DateFormat('dd MMMM yyyy').format(_entryDate),
                     icon: Icons.login,
                     onTap: () => _selectDate(context, false),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Status Akun',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AiwaSelectionCard(
+                          label: 'Aktif',
+                          icon: Icons.check_circle_outline,
+                          isSelected: _isActive,
+                          onTap: () {
+                            UiUtils.unfocus(context);
+                            setState(() => _isActive = true);
+                          },
+                          activeColor: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AiwaSelectionCard(
+                          label: 'Tidak Aktif',
+                          icon: Icons.cancel_outlined,
+                          isSelected: !_isActive,
+                          onTap: () {
+                            UiUtils.unfocus(context);
+                            setState(() => _isActive = false);
+                          },
+                          activeColor: Colors.red,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   const Text(

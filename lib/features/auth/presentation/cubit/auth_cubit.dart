@@ -1,4 +1,4 @@
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
@@ -26,6 +26,24 @@ class AuthCubit extends Cubit<AuthState> {
     }
 
     final user = await userRepository.getUserByUid(firebaseUser.uid);
+
+    if (user.role == UserRole.santri) {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('santri_profiles')
+          .where('nis', isEqualTo: user.nis)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        final data = querySnapshot.docs.first.data();
+        if (data['is_active'] == false) {
+          await authRepository.logout();
+          emit(AuthUnauthenticated());
+          return;
+        }
+      }
+    }
+
     emit(AuthAuthenticated(user));
   }
 
@@ -40,6 +58,23 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       final user = await userRepository.getUserByUid(firebaseUser.uid);
+
+      if (user.role == UserRole.santri) {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('santri_profiles')
+            .where('nis', isEqualTo: user.nis)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          final data = querySnapshot.docs.first.data();
+          if (data['is_active'] == false) {
+            await authRepository.logout();
+            throw Exception('Gagal masuk. Akun santri ini sudah tidak aktif.');
+          }
+        }
+      }
+
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(e.toString()));

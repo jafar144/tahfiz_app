@@ -33,6 +33,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   String? _selectedAsatidzId;
   String? _selectedAsatidzName; // For display
   bool? _selectedIsFree;
+  bool? _selectedIsActive = true;
   
   List<AsatidzEntity> _asatidzList = [];
 
@@ -41,7 +42,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   void _fetchData() {
     context.read<SantriCubit>().loadSantri(
       keyword: _searchKeyword,
-      isActive: true, 
+      isActive: _selectedIsActive, 
       session: _selectedSession,
       gender: _selectedGender,
       kelas: _selectedClass,
@@ -68,6 +69,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       _selectedAsatidzId = null;
       _selectedAsatidzName = null;
       _selectedIsFree = null;
+      _selectedIsActive = true;
     });
     _fetchData();
   }
@@ -245,10 +247,17 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                       ),
                       AiwaChip(
                         label: _selectedIsFree == null 
-                            ? 'Status' 
+                            ? 'Status Bayar' 
                             : (_selectedIsFree! ? 'Gratis' : 'Reguler'),
                         isSelected: _selectedIsFree != null,
                         onTap: () => _showStatusFilter(context),
+                      ),
+                      AiwaChip(
+                        label: _selectedIsActive == null 
+                            ? 'Semua Status' 
+                            : (_selectedIsActive! ? 'Aktif' : 'Tidak Aktif'),
+                        isSelected: _selectedIsActive != null,
+                        onTap: () => _showActiveStatusFilter(context),
                       ),
                     ],
                   ),
@@ -369,6 +378,61 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                       'Gratis',
                       tempIsFree == true,
                       () => setModalState(() => tempIsFree = tempIsFree == true ? null : true),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showActiveStatusFilter(BuildContext context) {
+    bool? tempIsActive = _selectedIsActive;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AiwaBottomSheet(
+            title: 'Filter Status Aktif',
+            onReset: () {
+              setModalState(() {
+                tempIsActive = null;
+              });
+            },
+            onApply: () {
+              setState(() {
+                _selectedIsActive = tempIsActive;
+              });
+              Navigator.pop(context);
+              _fetchData();
+            },
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildModalChip(
+                      'Semua',
+                      tempIsActive == null,
+                      () => setModalState(() => tempIsActive = null),
+                    ),
+                    _buildModalChip(
+                      'Aktif',
+                      tempIsActive == true,
+                      () => setModalState(() => tempIsActive = true),
+                    ),
+                    _buildModalChip(
+                      'Tidak Aktif',
+                      tempIsActive == false,
+                      () => setModalState(() => tempIsActive = false),
                     ),
                   ],
                 ),

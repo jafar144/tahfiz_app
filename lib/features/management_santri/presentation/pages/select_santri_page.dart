@@ -40,6 +40,13 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
     super.initState();
     _selectedSantri = List.from(widget.initialSelection);
     _scrollController.addListener(_onScroll);
+    
+    // Paksa load santri yang aktif saja ketika halaman ini dibuka
+    context.read<SantriCubit>().loadSantri(
+      isActive: true,
+      gender: widget.genderFiltered,
+      keyword: '',
+    );
   }
 
   @override
@@ -68,7 +75,6 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
       isActive: true,
       gender: widget.genderFiltered,
       keyword: _searchController.text,
-      isFree: false,
     );
   }
 
