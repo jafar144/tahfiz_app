@@ -2,8 +2,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
-
 class PaymentCubit extends Cubit<PaymentState> {
   final PaymentRepository paymentRepository;
   final SantriRepository santriRepository;
@@ -38,8 +38,21 @@ class PaymentCubit extends Cubit<PaymentState> {
         }
       }
 
-      // 4. Fetch Recent Transactions
-      final recentTransactions = await paymentRepository.getRecentPayments(5);
+      // 4. Use payments for that month as recent transactions
+      final santriMap = {for (var s in allSantri) s.id: s.name};
+      final recentTransactions = payments.map((p) {
+        return PaymentEntity(
+          id: p.id,
+          santriId: p.santriId,
+          bulan: p.bulan,
+          tahun: p.tahun,
+          total: p.total,
+          method: p.method,
+          createdAt: p.createdAt,
+          createdBy: p.createdBy,
+          santriName: santriMap[p.santriId],
+        );
+      }).toList();
 
       emit(PaymentLoaded(
         paidCount: paidStudents.length,
