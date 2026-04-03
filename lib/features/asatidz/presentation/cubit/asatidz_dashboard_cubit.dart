@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashb
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
   final AsatidzRepository asatidzRepository;
@@ -53,7 +54,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
         hasAttendedToday: hasAttendedToday,
       ));
     } catch (e) {
-      emit(AsatidzDashboardError(e.toString()));
+      emit(AsatidzDashboardError(ErrorHandler.getMessage(e)));
     }
   }
 

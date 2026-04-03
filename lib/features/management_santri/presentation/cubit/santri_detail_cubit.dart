@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class SantriDetailCubit extends Cubit<SantriDetailState> {
   final SantriRepository repository;
@@ -14,7 +15,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
       final detail = await repository.getSantriDetail(id);
       emit(SantriDetailLoaded(detail));
     } catch (e) {
-      emit(SantriDetailError(e.toString()));
+      emit(SantriDetailError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -24,7 +25,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
       await repository.updateSantri(id, params);
       loadDetail(id);
     } catch (e) {
-      emit(SantriDetailError(e.toString()));
+      emit(SantriDetailError(ErrorHandler.getMessage(e)));
     }
   }
 }

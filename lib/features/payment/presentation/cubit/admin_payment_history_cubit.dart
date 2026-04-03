@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/admin_payment_history_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
   final PaymentRepository repository;
@@ -18,7 +19,7 @@ class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
         hasReachedMax: payments.length < _limit,
       ));
     } catch (e) {
-      emit(AdminPaymentHistoryError(e.toString()));
+      emit(AdminPaymentHistoryError(ErrorHandler.getMessage(e)));
     }
   }
 

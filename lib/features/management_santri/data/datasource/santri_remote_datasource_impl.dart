@@ -265,7 +265,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     final userDoc = await firestore.collection('users').doc(id).get();
 
     if (!doc.exists) {
-      throw Exception('Santri not found');
+      throw Exception('Data santri tidak ditemukan');
     }
 
     final data = doc.data() as Map<String, dynamic>;

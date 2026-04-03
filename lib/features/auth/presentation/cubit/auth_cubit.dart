@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
 import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;
@@ -54,7 +55,7 @@ class AuthCubit extends Cubit<AuthState> {
       
       final firebaseUser = authRepository.currentUser();
       if (firebaseUser == null) {
-        throw Exception('Login failed');
+        throw Exception('Proses login gagal, silakan periksa kredensial Anda.');
       }
 
       final user = await userRepository.getUserByUid(firebaseUser.uid);
@@ -77,7 +78,7 @@ class AuthCubit extends Cubit<AuthState> {
 
       emit(AuthAuthenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -103,7 +104,7 @@ class AuthCubit extends Cubit<AuthState> {
         final user = await userRepository.getUserByUid(currentUser.uid);
         emit(AuthAuthenticated(user));
       } catch (e) {
-        emit(AuthError(e.toString()));
+        emit(AuthError(ErrorHandler.getMessage(e)));
         // Restore previous state if needed, but for now error state is fine or could log and restore
         emit(currentState);
       }

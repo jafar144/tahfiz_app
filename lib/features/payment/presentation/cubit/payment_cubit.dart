@@ -4,6 +4,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/repository/sant
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 class PaymentCubit extends Cubit<PaymentState> {
   final PaymentRepository paymentRepository;
   final SantriRepository santriRepository;
@@ -63,7 +64,7 @@ class PaymentCubit extends Cubit<PaymentState> {
         selectedDate: date,
       ));
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -80,7 +81,7 @@ class PaymentCubit extends Cubit<PaymentState> {
       // Reload dashboard after successful deletion
       loadDashboard(selectedDate);
     } catch (e) {
-      emit(PaymentError(e.toString()));
+      emit(PaymentError(ErrorHandler.getMessage(e)));
       // Optionally reload to restore state
       loadDashboard(selectedDate);
     }

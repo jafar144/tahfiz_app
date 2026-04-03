@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
 import '../../domain/repositories/admin_home_repository.dart';
 import 'admin_home_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AdminHomeCubit extends Cubit<AdminHomeState> {
   final AdminHomeRepository repository;
@@ -18,7 +19,7 @@ class AdminHomeCubit extends Cubit<AdminHomeState> {
 
       final firebaseUser = authRepository.currentUser();
       if (firebaseUser == null) {
-        throw Exception('User not logged in');
+        throw Exception('Sesi telah berakhir, silakan login kembali');
       }
 
       final data = await repository.getHomeData(
@@ -27,7 +28,7 @@ class AdminHomeCubit extends Cubit<AdminHomeState> {
 
       emit(AdminHomeLoaded(data));
     } catch (e) {
-      emit(AdminHomeError(e.toString()));
+      emit(AdminHomeError(ErrorHandler.getMessage(e)));
     }
   }
 }

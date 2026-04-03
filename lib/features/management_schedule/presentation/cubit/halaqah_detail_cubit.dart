@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/prog
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
   final ScheduleRepository scheduleRepository;
@@ -59,7 +60,7 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
         _checkAvailability(currentHalaqah.scheduleIds.first, currentHalaqah.id);
       }
     } catch (e) {
-      emit(HalaqahDetailError(e.toString()));
+      emit(HalaqahDetailError(ErrorHandler.getMessage(e)));
     }
   }
 

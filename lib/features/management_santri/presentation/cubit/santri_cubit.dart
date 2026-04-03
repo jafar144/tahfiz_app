@@ -4,6 +4,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class SantriCubit extends Cubit<SantriState> {
   final SantriRepository repository;
@@ -59,7 +60,7 @@ class SantriCubit extends Cubit<SantriState> {
         hasReachedMax: hasReachedMax,
       ));
     } catch (e) {
-      emit(SantriError(e.toString()));
+      emit(SantriError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -107,7 +108,7 @@ class SantriCubit extends Cubit<SantriState> {
       await repository.addSantri(params);
       loadSantri(keyword: _currentKeyword, isActive: _currentIsActive);
     } catch (e) {
-      emit(SantriError(e.toString()));
+      emit(SantriError(ErrorHandler.getMessage(e)));
     }
   }
   Future<List<AsatidzEntity>> fetchAsatidzList() {

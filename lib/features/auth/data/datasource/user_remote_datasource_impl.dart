@@ -15,7 +15,7 @@ class UserRemoteDatasourceImpl implements UserRemoteDatasource {
     final doc = await firestore.collection('users').doc(uid).get();
 
     if (!doc.exists || doc.data() == null) {
-      throw Exception('User not found');
+      throw Exception('Pengguna tidak ditemukan');
     }
 
     debugPrint(doc.data()!.toString());

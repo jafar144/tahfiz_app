@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.d
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 abstract class HalaqahDepositListState {}
 
@@ -128,7 +129,7 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
 
       emit(HalaqahDepositListLoaded(summaries));
     } catch (e) {
-      emit(HalaqahDepositListError(e.toString()));
+      emit(HalaqahDepositListError(ErrorHandler.getMessage(e)));
     }
   }
 }

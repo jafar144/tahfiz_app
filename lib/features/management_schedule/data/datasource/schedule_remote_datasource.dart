@@ -36,7 +36,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   @override
   Future<ScheduleProgramModel> getProgramById(String programId) async {
     final doc = await firestore.collection('sessions').doc(programId).get();
-    if (!doc.exists) throw Exception('Program not found');
+    if (!doc.exists) throw Exception('Program tidak ditemukan');
     return ScheduleProgramModel.fromFirestore(doc);
   }
 
@@ -135,7 +135,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   @override
   Future<ProgramScheduleModel> getScheduleById(String scheduleId) async {
     final doc = await firestore.collection('session_schedules').doc(scheduleId).get();
-    if (!doc.exists) throw Exception('Schedule not found');
+    if (!doc.exists) throw Exception('Jadwal tidak ditemukan');
     return ProgramScheduleModel.fromFirestore(doc);
   }
 

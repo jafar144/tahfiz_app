@@ -75,7 +75,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     final userDoc = await firestore.collection('users').doc(id).get();
 
     if (!doc.exists) {
-      throw Exception('Asatidz not found');
+      throw Exception('Data Asatidz tidak ditemukan');
     }
 
     final data = doc.data() as Map<String, dynamic>;

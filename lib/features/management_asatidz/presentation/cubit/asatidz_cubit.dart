@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_params.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AsatidzCubit extends Cubit<AsatidzState> {
   final AsatidzRepository repository;
@@ -40,7 +41,7 @@ class AsatidzCubit extends Cubit<AsatidzState> {
         hasReachedMax: isSearching ? true : result.length < _limit,
       ));
     } catch (e) {
-      emit(AsatidzError(e.toString()));
+      emit(AsatidzError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -79,7 +80,7 @@ class AsatidzCubit extends Cubit<AsatidzState> {
       await repository.addAsatidz(params);
       loadAsatidz(keyword: _currentKeyword, isActive: _currentIsActive);
     } catch (e) {
-      emit(AsatidzError(e.toString()));
+      emit(AsatidzError(ErrorHandler.getMessage(e)));
     }
   }
 }

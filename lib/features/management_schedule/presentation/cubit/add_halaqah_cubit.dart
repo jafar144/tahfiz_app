@@ -4,6 +4,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/repository/sant
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class AddHalaqahCubit extends Cubit<AddHalaqahState> {
   final ScheduleRepository scheduleRepository;
@@ -33,7 +34,7 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
         },
       );
     } catch (e) {
-      emit(AddHalaqahError(e.toString()));
+      emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -60,7 +61,7 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
       );
     } catch (e) {
       print('DEBUG: loadSchedules ERROR: $e');
-      emit(AddHalaqahError(e.toString()));
+      emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -102,7 +103,7 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
       );
     } catch (e) {
       print('DEBUG: loadSchedulesAndPeople ERROR: $e');
-      emit(AddHalaqahError(e.toString()));
+      emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -129,7 +130,7 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
       ));
     } catch (e) {
       print('DEBUG ERROR loadAsatidzAndSantri: $e');
-      emit(AddHalaqahError(e.toString()));
+      emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
@@ -177,7 +178,7 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
         ifRight: (_) => emit(AddHalaqahSuccess()),
       );
     } catch (e) {
-      emit(AddHalaqahError(e.toString()));
+      emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 }

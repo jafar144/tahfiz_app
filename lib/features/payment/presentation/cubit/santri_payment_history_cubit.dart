@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
+import 'package:khoirunnasyien/core/utils/error_handler.dart';
 
 class SantriPaymentHistoryCubit extends Cubit<SantriPaymentHistoryState> {
   final PaymentRepository paymentRepository;
@@ -14,7 +15,7 @@ class SantriPaymentHistoryCubit extends Cubit<SantriPaymentHistoryState> {
       final history = await paymentRepository.getPaymentHistoryBySantri(santriId, null);
       emit(SantriPaymentHistoryLoaded(history));
     } catch (e) {
-      emit(SantriPaymentHistoryError(e.toString()));
+      emit(SantriPaymentHistoryError(ErrorHandler.getMessage(e)));
     }
   }
 
