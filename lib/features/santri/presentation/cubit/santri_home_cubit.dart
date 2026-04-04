@@ -49,10 +49,10 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         final end = DateTime(now.year, now.month);
         
         while (!current.isAfter(end)) {
-          final monthName = PaymentUtils.getMonthName(current.month);
+          final monthStr = current.month.toString();
           final yearStr = current.year.toString();
           
-          final isPaid = paymentHistory.any((p) => p.bulan == monthName && p.tahun == yearStr);
+          final isPaid = paymentHistory.any((p) => p.bulan == monthStr && p.tahun == yearStr);
           if (!isPaid) {
             overdueMonthsCount++;
           }

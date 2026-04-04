@@ -94,7 +94,7 @@ class _SantriPaymentPageState extends State<SantriPaymentPage> {
     final Map<int, Set<int>> paidData = {};
     for (var payment in payments) {
       final year = int.tryParse(payment.tahun) ?? 0;
-      final month = _getMonthNumber(payment.bulan);
+      final month = int.tryParse(payment.bulan) ?? 0;
       
       if (year > 0 && month > 0) {
         paidData.putIfAbsent(year, () => <int>{});
@@ -102,14 +102,5 @@ class _SantriPaymentPageState extends State<SantriPaymentPage> {
       }
     }
     return paidData;
-  }
-
-  int _getMonthNumber(String monthName) {
-    const months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
-    final index = months.indexOf(monthName);
-    return index >= 0 ? index + 1 : 0;
   }
 }
