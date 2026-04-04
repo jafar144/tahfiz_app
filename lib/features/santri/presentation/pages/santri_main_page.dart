@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:khoirunnasyien/core/di/injection.dart';
-import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_home_page.dart';
-import 'package:khoirunnasyien/features/santri/presentation/pages/santri_setoran_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_profile_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_monthly_report_page.dart';
 
 class SantriMainPage extends StatefulWidget {
   const SantriMainPage({super.key});
@@ -17,13 +13,10 @@ class SantriMainPage extends StatefulWidget {
 class _SantriMainPageState extends State<SantriMainPage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const SantriHomePage(),
-    BlocProvider(
-      create: (context) => getIt<SantriSetoranCubit>()..init(FirebaseAuth.instance.currentUser!.uid),
-      child: const SantriSetoranPage(),
-    ),
-    const SantriProfilePage(),
+  final List<Widget> _pages = const [
+    SantriHomePage(),
+    SantriMonthlyReportPage(),
+    SantriProfilePage(),
   ];
 
   @override
@@ -63,9 +56,9 @@ class _SantriMainPageState extends State<SantriMainPage> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book_outlined),
-              activeIcon: Icon(Icons.menu_book),
-              label: 'Setoran',
+              icon: Icon(Icons.assessment_outlined),
+              activeIcon: Icon(Icons.assessment),
+              label: 'Penilaian',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
@@ -78,3 +71,4 @@ class _SantriMainPageState extends State<SantriMainPage> {
     );
   }
 }
+

@@ -33,7 +33,6 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/as
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
 
-
 import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource.dart';
 import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource_impl.dart';
 import 'package:khoirunnasyien/features/payment/data/repositories/payment_repository_impl.dart';
@@ -54,6 +53,12 @@ import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashb
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_setoran_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/data/datasources/monthly_report_remote_datasource.dart';
+import 'package:khoirunnasyien/features/monthly_report/data/repositories/monthly_report_repository_impl.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -215,10 +220,35 @@ Future<void> initDI() async {
       scheduleRepository: getIt(),
       asatidzRepository: getIt(),
       mgmtAsatidzRepository: getIt(),
+      monthlyReportRepository: getIt(),
     ),
   );
 
   getIt.registerFactory(
     () => SantriSetoranCubit(getIt()),
+  );
+
+  // Monthly Report
+  getIt.registerLazySingleton<MonthlyReportRemoteDataSource>(
+    () => MonthlyReportRemoteDataSourceImpl(firestore: getIt()),
+  );
+
+  getIt.registerLazySingleton<MonthlyReportRepository>(
+    () => MonthlyReportRepositoryImpl(remoteDataSource: getIt()),
+  );
+
+  getIt.registerFactory(
+    () => MonthlyReportCubit(
+      reportRepository: getIt(),
+      scheduleRepository: getIt(),
+    ),
+  );
+
+  getIt.registerFactory(
+    () => MonthlyReportInputCubit(repository: getIt()),
+  );
+
+  getIt.registerFactory(
+    () => SantriMonthlyReportCubit(repository: getIt()),
   );
 }

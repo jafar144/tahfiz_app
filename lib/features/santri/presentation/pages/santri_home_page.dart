@@ -11,6 +11,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -73,7 +74,8 @@ class _SantriHomePageState extends State<SantriHomePage> {
                   _buildHeader(state),
                   _buildPaymentStatus(state),
                   // _buildMenuSection(context),
-                  if (state.latestSetoran != null) _buildLatestSetoran(state),
+                  // if (state.latestSetoran != null) _buildLatestSetoran(state),
+                  if (state.latestReport != null) _buildLatestReport(state),
                   if (state.pembimbingName != null) _buildPembimbingSection(state),
                   const SizedBox(height: 100),
                 ],
@@ -427,6 +429,27 @@ class _SantriHomePageState extends State<SantriHomePage> {
     );
   }
   
+  Widget _buildLatestReport(SantriHomeState state) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Penilaian Terakhir',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 12),
+          MonthlyReportCard(report: state.latestReport!),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPembimbingSection(SantriHomeState state) {
     return Padding(
       padding: const EdgeInsets.only(top: 28),

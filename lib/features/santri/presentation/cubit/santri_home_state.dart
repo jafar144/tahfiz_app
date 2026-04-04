@@ -2,6 +2,7 @@
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 
 enum SantriHomeStatus { initial, loading, success, failure }
 
@@ -14,6 +15,7 @@ class SantriHomeState {
   final SantriSetoran? latestSetoran;
   final String? pembimbingName;
   final String? pembimbingPhone;
+  final MonthlyReport? latestReport;
 
   const SantriHomeState({
     this.status = SantriHomeStatus.initial,
@@ -24,6 +26,7 @@ class SantriHomeState {
     this.latestSetoran,
     this.pembimbingName,
     this.pembimbingPhone,
+    this.latestReport,
   });
 
   SantriHomeState copyWith({
@@ -35,6 +38,7 @@ class SantriHomeState {
     SantriSetoran? latestSetoran,
     String? pembimbingName,
     String? pembimbingPhone,
+    MonthlyReport? latestReport,
   }) {
     return SantriHomeState(
       status: status ?? this.status,
@@ -45,6 +49,7 @@ class SantriHomeState {
       latestSetoran: latestSetoran ?? this.latestSetoran,
       pembimbingName: pembimbingName ?? this.pembimbingName,
       pembimbingPhone: pembimbingPhone ?? this.pembimbingPhone,
+      latestReport: latestReport ?? this.latestReport,
     );
   }
 }

@@ -16,6 +16,8 @@ import 'package:khoirunnasyien/features/management_santri/presentation/pages/sel
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
+import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
 
 class AsatidzDashboardPage extends StatefulWidget {
   const AsatidzDashboardPage({super.key});
@@ -93,11 +95,24 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                       color: Colors.blue,
                     ),
                     const SizedBox(height: 20),
-                    if (state.activeHalaqah != null) ...[ 
-                      _buildActiveSessionCard(context, state),
-                      const SizedBox(height: 20),
-                    ],
-                    _buildQuickActions(context, state),
+                    MenuCard(
+                      icon: Icons.assessment_rounded,
+                      title: 'Penilaian',
+                      subtitle: 'Penilaian Bulanan Santri',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MonthlyReportListPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    // if (state.activeHalaqah != null) ...[
+                    //   _buildActiveSessionCard(context, state),
+                    //   const SizedBox(height: 20),
+                    // ],
+                    // _buildQuickActions(context, state),
                   ],
                 ),
               ),

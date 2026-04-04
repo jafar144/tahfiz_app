@@ -8,13 +8,16 @@ import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_st
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 
 class SantriHomeCubit extends Cubit<SantriHomeState> {
   final SantriRepository santriRepository;
   final PaymentRepository paymentRepository;
   final ScheduleRepository scheduleRepository;
-  final AsatidzRepository asatidzRepository; // features/asatidz
-  final mgmt_asatidz_domain.AsatidzRepository mgmtAsatidzRepository; // features/management_asatidz
+  final AsatidzRepository asatidzRepository;
+  final mgmt_asatidz_domain.AsatidzRepository mgmtAsatidzRepository;
+  final MonthlyReportRepository monthlyReportRepository;
 
   SantriHomeCubit({
     required this.santriRepository,
@@ -22,6 +25,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     required this.scheduleRepository,
     required this.asatidzRepository,
     required this.mgmtAsatidzRepository,
+    required this.monthlyReportRepository,
   }) : super(const SantriHomeState());
 
   Future<void> loadData(String santriId) async {
@@ -98,6 +102,14 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         },
       );
 
+      // 5. Fetch Latest Monthly Report
+      MonthlyReport? latestReport;
+      final reportResult = await monthlyReportRepository.getLatestReportBySantri(santriId);
+      reportResult.fold(
+        ifLeft: (_) {},
+        ifRight: (r) => latestReport = r,
+      );
+
       if (isClosed) return;
       
       emit(state.copyWith(
@@ -108,6 +120,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         latestSetoran: latestSetoran,
         pembimbingName: pembimbingName,
         pembimbingPhone: pembimbingPhone,
+        latestReport: latestReport,
       ));
     } catch (e) {
       if (isClosed) return;
