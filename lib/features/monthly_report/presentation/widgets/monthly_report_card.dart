@@ -188,7 +188,6 @@ class MonthlyReportCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          _buildNilaiDots(nilai, color),
         ],
       ),
     );
