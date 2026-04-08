@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class SyahadahTemplate extends StatelessWidget {
   final String santriName;
@@ -65,15 +66,14 @@ class SyahadahTemplate extends StatelessWidget {
           ),
 
           Positioned(
-            left: 30,
-            top: 700,
+            left: 15,
+            top: 760,
             child: SizedBox(
                width: 280,
                child: Text(
                 hafalan.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
+                style: GoogleFonts.hammersmithOne(
                   fontSize: 38,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,
@@ -88,7 +88,7 @@ class SyahadahTemplate extends StatelessWidget {
 
           Positioned(
             right: 20,
-            bottom: 250,
+            bottom: 300,
             child: SizedBox(
                width: 300,
                child: Text(
@@ -96,8 +96,7 @@ class SyahadahTemplate extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
+                style: GoogleFonts.hammersmithOne(
                   fontSize: 40,
                   fontWeight: FontWeight.w900,
                   color: Colors.white,

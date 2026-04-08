@@ -193,23 +193,6 @@ class MonthlyReportCard extends StatelessWidget {
     );
   }
 
-  Widget _buildNilaiDots(int nilai, Color color) {
-    return Row(
-      children: List.generate(5, (index) {
-        final isActive = index < nilai;
-        return Container(
-          width: 8,
-          height: 8,
-          margin: const EdgeInsets.only(right: 4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive ? color : Colors.grey.shade200,
-          ),
-        );
-      }),
-    );
-  }
-
   Widget _buildNotesSection() {
     return Container(
       width: double.infinity,
