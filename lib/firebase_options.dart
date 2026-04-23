@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCFRS6boRx92_hgfqrB8qBBZDXFlZeRVlQ',
-    appId: '1:1098267931109:android:d09bc86fa84f4c3af87f0c',
+    appId: '1:1098267931109:android:46cd33f3b8393dddf87f0c',
     messagingSenderId: '1098267931109',
     projectId: 'khoirun-app',
     storageBucket: 'khoirun-app.firebasestorage.app',
@@ -59,10 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCpPXWS8_6NBtrW8sA6un078ICsJuYxZRA',
-    appId: '1:1098267931109:ios:68681e79d820f347f87f0c',
+    appId: '1:1098267931109:ios:1753b04701b45053f87f0c',
     messagingSenderId: '1098267931109',
     projectId: 'khoirun-app',
     storageBucket: 'khoirun-app.firebasestorage.app',
-    iosBundleId: 'com.example.tahfizApp',
+    iosBundleId: 'com.khoirunnasyien.tahfiz',
   );
+
 }

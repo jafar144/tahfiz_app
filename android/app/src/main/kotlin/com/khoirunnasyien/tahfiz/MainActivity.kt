@@ -1,4 +1,4 @@
-package com.example.tahfiz_app
+package com.khoirunnasyien.tahfiz
 
 import io.flutter.embedding.android.FlutterActivity
 

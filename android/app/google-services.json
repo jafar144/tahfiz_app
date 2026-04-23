@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1098267931109:android:d09bc86fa84f4c3af87f0c",
+        "mobilesdk_app_id": "1:1098267931109:android:46cd33f3b8393dddf87f0c",
         "android_client_info": {
-          "package_name": "com.example.tahfiz_app"
+          "package_name": "com.khoirunnasyien.tahfiz"
         }
       },
       "oauth_client": [],
