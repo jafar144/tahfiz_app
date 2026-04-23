@@ -10,7 +10,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
-import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
+
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -25,6 +25,7 @@ class SyahadahGeneratorPage extends StatefulWidget {
 class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   final _formKey = GlobalKey<FormState>();
   final _hafalanController = TextEditingController();
+  final _namaController = TextEditingController();
   final GlobalKey _repaintBoundaryKey = GlobalKey();
 
   SantriEntity? _selectedSantri;
@@ -33,6 +34,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   @override
   void dispose() {
     _hafalanController.dispose();
+    _namaController.dispose();
     super.dispose();
   }
 
@@ -40,11 +42,19 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
     final result = await context.pushNamed(RouteNames.selectSantri);
 
     if (result != null) {
+      final santri = result as SantriEntity;
       setState(() {
-        _selectedSantri = result as SantriEntity;
+        _selectedSantri = santri;
+        _namaController.text = santri.name;
       });
     }
   }
+
+  bool get _isTahsin =>
+      _selectedSantri != null &&
+      _selectedSantri!.kelas.toLowerCase().startsWith('tahsin');
+
+
 
   Future<void> _generateAndShare() async {
     if (!_formKey.currentState!.validate()) return;
@@ -69,32 +79,28 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
     setState(() => _isGenerating = true);
 
     try {
-      // 1. Give it a tiny delay to ensure the UI has updated (if it was hidden)
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // 2. Capture the widget as an image
       RenderRepaintBoundary boundary =
           _repaintBoundaryKey.currentContext!.findRenderObject()
               as RenderRepaintBoundary;
-      ui.Image image = await boundary.toImage(
-        pixelRatio: 2.0,
-      ); // Higher pixel ratio for better quality
+      ui.Image image = await boundary.toImage(pixelRatio: 2.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final pngBytes = byteData!.buffer.asUint8List();
 
-      // 3. Save to temp file
       final directory = await getTemporaryDirectory();
       final imagePath =
           '${directory.path}/syahadah_${_selectedSantri!.name.replaceAll(' ', '_')}.png';
       final file = File(imagePath);
       await file.writeAsBytes(pngBytes);
 
-      // 4. Share using share_plus
       final xfile = XFile(imagePath);
-      await Share.shareXFiles(
-        [xfile],
-        text:
-            'Syahadah Kelulusan ${_selectedSantri!.name} - ${_hafalanController.text}',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xfile],
+          text:
+              'Syahadah Kelulusan ${_namaController.text} - ${_hafalanController.text}',
+        ),
       );
     } catch (e) {
       if (mounted) {
@@ -127,6 +133,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Pilih Santri
                         const Text(
                           'Pilih Santri',
                           style: TextStyle(
@@ -182,7 +189,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                       if (_selectedSantri != null) ...[
                                         const SizedBox(height: 4),
                                         Text(
-                                          'NIS: ${_selectedSantri!.nis}',
+                                          'NIS: ${_selectedSantri!.nis} • Kelas: ${_selectedSantri!.kelas}',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey,
@@ -200,17 +207,67 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                             ),
                           ),
                         ),
+
+                        if (_selectedSantri != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isTahsin
+                                  ? Colors.orange.shade50
+                                  : Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _isTahsin ? Icons.auto_stories : Icons.menu_book,
+                                  size: 16,
+                                  color: _isTahsin
+                                      ? Colors.orange.shade700
+                                      : Colors.blue.shade700,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Template: ${_isTahsin ? "Tahsin" : "Tahfidz"}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: _isTahsin
+                                        ? Colors.orange.shade700
+                                        : Colors.blue.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: 24),
 
+                        // Nama tampil di syahadah
+                        AiwaTextField(
+                          label: 'Nama di Syahadah',
+                          hint: 'Nama yang ditampilkan di syahadah',
+                          controller: _namaController,
+                          icon: Icons.badge_outlined,
+                          textCapitalization: TextCapitalization.words,
+                          enabled: _selectedSantri != null,
+                          onChanged: (val) => setState(() {}),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Nama Surah & Juz
                         AiwaTextField(
                           label: 'Nama Surah & Juz',
                           hint: 'Contoh: Q.s Al Muthofifin Juz 30',
                           controller: _hafalanController,
                           icon: Icons.menu_book,
                           textCapitalization: TextCapitalization.words,
-                          onChanged: (val) {
-                            setState(() {}); // trigger rebuild to show preview
-                          },
+                          onChanged: (val) => setState(() {}),
                         ),
                         const SizedBox(height: 32),
 
@@ -226,9 +283,10 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                           _buildEmptyPreview(
                             'Santri ini belum memiliki foto profil.\nSilakan edit profil santri di menu Manage Santri.',
                           )
-                        else if (_hafalanController.text.isEmpty)
+                        else if (_hafalanController.text.isEmpty ||
+                            _namaController.text.isEmpty)
                           _buildEmptyPreview(
-                            'Silakan isi "Nama Surah & Juz"\ndi atas untuk melihat preview.',
+                            'Silakan isi "Nama di Syahadah" dan\n"Nama Surah & Juz" untuk melihat preview.',
                           )
                         else
                           Center(
@@ -243,9 +301,10 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                       child: RepaintBoundary(
                                         key: _repaintBoundaryKey,
                                         child: SyahadahTemplate(
-                                          santriName: _selectedSantri!.name,
+                                          displayName: _namaController.text,
                                           hafalan: _hafalanController.text,
                                           photoUrl: _selectedSantri!.photoUrl!,
+                                          kelas: _selectedSantri!.kelas,
                                           date: DateTime.now(),
                                         ),
                                       ),
@@ -261,14 +320,13 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                 ),
               ),
 
-              // Bottom Button
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, -5),
                     ),
