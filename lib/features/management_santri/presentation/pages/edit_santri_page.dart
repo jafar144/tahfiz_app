@@ -182,7 +182,6 @@ class _EditSantriPageState extends State<EditSantriPage> {
       if (compressed != null) {
         setState(() {
           _localPhotoFile = compressed;
-          _photoUrl = null;
         });
       }
     } catch (e) {

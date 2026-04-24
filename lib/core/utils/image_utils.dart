@@ -52,4 +52,12 @@ class ImageUtils {
       return null;
     }
   }
+
+  /// Menghapus file dari Firebase Storage berdasarkan download URL
+  static Future<void> deleteImageFromFirebase(String url) async {
+    try {
+      final ref = FirebaseStorage.instance.refFromURL(url);
+      await ref.delete();
+    } catch (_) {}
+  }
 }

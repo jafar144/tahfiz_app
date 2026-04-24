@@ -26,6 +26,10 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
       String? finalPhotoUrl = params.photoUrl;
 
       if (params.localPhotoFile != null) {
+        if (params.photoUrl != null && params.photoUrl!.isNotEmpty) {
+          await ImageUtils.deleteImageFromFirebase(params.photoUrl!);
+        }
+
         finalPhotoUrl = await ImageUtils.uploadImageToFirebase(
           params.localPhotoFile!,
           'santri_photos',
