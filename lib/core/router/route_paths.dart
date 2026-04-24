@@ -24,4 +24,7 @@ abstract class RoutePaths {
 
   static const adminSyahadah = '/admin_syahadah';
   static const santriPayment = '/santri_payment';
+
+  static const adminFamily = '/admin_family';
+  static const familyForm = '/family_form';
 }

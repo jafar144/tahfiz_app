@@ -155,6 +155,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     subtitle: 'Foto Kelulusan',
                     onTap: () => context.pushNamed(RouteNames.adminSyahadah),
                   ),
+                  MenuCard(
+                    icon: Icons.family_restroom_rounded,
+                    title: 'Keluarga',
+                    subtitle: 'Kelola Keluarga',
+                    onTap: () => context.pushNamed(RouteNames.adminFamily),
+                  ),
                 ],
               ),
             ],

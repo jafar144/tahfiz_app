@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:khoirunnasyien/core/utils/error_handler.dart';
+import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;
@@ -83,8 +84,34 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> logout() async {
+    SantriHomeCubit.overrideSantriId = null;
     await authRepository.logout();
     emit(AuthUnauthenticated());
+  }
+
+  Future<void> switchSantri(String santriId) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('santri_profiles')
+          .doc(santriId)
+          .get();
+
+      if (!doc.exists) return;
+
+      final data = doc.data()!;
+      SantriHomeCubit.overrideSantriId = santriId;
+
+      final switchedUser = currentState.user.copyWith(
+        name: data['name'] ?? currentState.user.name,
+        nis: data['nis'] ?? currentState.user.nis,
+        phone: data['phone'] ?? currentState.user.phone,
+      );
+
+      emit(AuthAuthenticated(switchedUser));
+    } catch (_) {}
   }
 
   Future<void> switchRole() async {

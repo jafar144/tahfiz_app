@@ -36,6 +36,10 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_payment_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
+import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
+import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.dart';
+import 'package:khoirunnasyien/features/family/presentation/pages/family_list_page.dart';
+import 'package:khoirunnasyien/features/family/presentation/pages/family_form_page.dart';
 
 class AppRouter {
 
@@ -227,10 +231,31 @@ class AppRouter {
         path: RoutePaths.santriPayment,
         name: RouteNames.santriPayment,
         builder: (context, state) {
-          final startDate = state.extra as DateTime?;
+          final extras = state.extra as Map<String, dynamic>? ?? {};
+          final startDate = extras['startDate'] as DateTime?;
+          final santriId = extras['santriId'] as String?;
           return BlocProvider(
             create: (_) => getIt<SantriPaymentHistoryCubit>(),
-            child: SantriPaymentPage(startDate: startDate),
+            child: SantriPaymentPage(startDate: startDate, santriId: santriId),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.adminFamily,
+        name: RouteNames.adminFamily,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<FamilyCubit>()..loadFamilies(),
+          child: const FamilyListPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.familyForm,
+        name: RouteNames.familyForm,
+        builder: (context, state) {
+          final existing = state.extra as FamilyWithMembers?;
+          return BlocProvider(
+            create: (_) => getIt<FamilyCubit>(),
+            child: FamilyFormPage(existing: existing),
           );
         },
       ),

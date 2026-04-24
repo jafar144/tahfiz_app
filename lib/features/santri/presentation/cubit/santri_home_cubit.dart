@@ -28,8 +28,14 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     required this.monthlyReportRepository,
   }) : super(const SantriHomeState());
 
+  static String? overrideSantriId;
+
+  String? _currentSantriId;
+  String? get currentSantriId => _currentSantriId;
+
   Future<void> loadData(String santriId) async {
     if (isClosed) return;
+    _currentSantriId = santriId;
     emit(state.copyWith(status: SantriHomeStatus.loading));
 
     try {

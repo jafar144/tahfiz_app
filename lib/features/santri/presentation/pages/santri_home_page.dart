@@ -1,7 +1,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
@@ -21,16 +20,11 @@ class SantriHomePage extends StatefulWidget {
 }
 
 class _SantriHomePageState extends State<SantriHomePage> {
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
   void _loadData() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      context.read<SantriHomeCubit>().loadData(user.uid);
+    final cubit = context.read<SantriHomeCubit>();
+    final santriId = cubit.currentSantriId;
+    if (santriId != null) {
+      cubit.loadData(santriId);
     }
   }
 
@@ -260,7 +254,11 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 InkWell(
                   onTap: () {
                     final startDate = state.santri != null ? PaymentUtils.resolveStartDate(state.santri!) : null;
-                    context.pushNamed(RouteNames.santriPayment, extra: startDate);
+                    final currentSantriId = context.read<SantriHomeCubit>().currentSantriId;
+                    context.pushNamed(RouteNames.santriPayment, extra: {
+                      'startDate': startDate,
+                      'santriId': currentSantriId,
+                    });
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(

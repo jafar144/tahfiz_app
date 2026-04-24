@@ -5,12 +5,12 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_paymen
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriPaymentPage extends StatefulWidget {
   final DateTime? startDate;
-  const SantriPaymentPage({super.key, this.startDate});
+  final String? santriId;
+  const SantriPaymentPage({super.key, this.startDate, this.santriId});
 
   @override
   State<SantriPaymentPage> createState() => _SantriPaymentPageState();
@@ -24,9 +24,9 @@ class _SantriPaymentPageState extends State<SantriPaymentPage> {
   }
 
   void _loadPaymentHistory() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      context.read<SantriPaymentHistoryCubit>().loadHistory(user.uid);
+    final santriId = widget.santriId;
+    if (santriId != null) {
+      context.read<SantriPaymentHistoryCubit>().loadHistory(santriId);
     }
   }
 

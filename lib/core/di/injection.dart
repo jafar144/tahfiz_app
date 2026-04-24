@@ -59,6 +59,8 @@ import 'package:khoirunnasyien/features/monthly_report/domain/repositories/month
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
+import 'package:khoirunnasyien/features/family/data/family_repository.dart';
+import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -250,5 +252,17 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => SantriMonthlyReportCubit(repository: getIt()),
+  );
+
+  // Family
+  getIt.registerLazySingleton(
+    () => FamilyRepository(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => FamilyCubit(
+      familyRepository: getIt(),
+      santriRepository: getIt(),
+    ),
   );
 }

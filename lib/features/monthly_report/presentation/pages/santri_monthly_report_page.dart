@@ -1,7 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_state.dart';
@@ -14,9 +14,9 @@ class SantriMonthlyReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) {
-        final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-        return SantriMonthlyReportCubit(repository: getIt())..loadReports(userId);
+      create: (ctx) {
+        final santriId = ctx.read<SantriHomeCubit>().currentSantriId ?? '';
+        return SantriMonthlyReportCubit(repository: getIt())..loadReports(santriId);
       },
       child: const _SantriMonthlyReportView(),
     );
@@ -48,8 +48,8 @@ class _SantriMonthlyReportView extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-                      context.read<SantriMonthlyReportCubit>().loadReports(userId);
+                      final santriId = context.read<SantriHomeCubit>().currentSantriId ?? '';
+                      context.read<SantriMonthlyReportCubit>().loadReports(santriId);
                     },
                     child: const Text('Coba Lagi'),
                   ),
@@ -65,8 +65,8 @@ class _SantriMonthlyReportView extends StatelessWidget {
 
             return RefreshIndicator(
               onRefresh: () async {
-                final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-                context.read<SantriMonthlyReportCubit>().loadReports(userId);
+                final santriId = context.read<SantriHomeCubit>().currentSantriId ?? '';
+                context.read<SantriMonthlyReportCubit>().loadReports(santriId);
               },
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
