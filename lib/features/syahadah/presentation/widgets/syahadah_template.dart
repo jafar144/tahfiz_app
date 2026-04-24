@@ -223,12 +223,12 @@ class SyahadahTemplate extends StatelessWidget {
 
           // ===== LAYER 4: Logo =====
           Positioned(
-            right: 90,
-            top: 70,
+            right: -180,
+            top: -210,
             child: Image.asset(
               'assets/images/logo_bg.png',
-              width: 170,
-              height: 170,
+              width: 700,
+              height: 700,
             ),
           ),
 
