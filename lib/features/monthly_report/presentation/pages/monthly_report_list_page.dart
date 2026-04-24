@@ -218,15 +218,15 @@ class _SantriReportCard extends StatelessWidget {
   }
 
   void _onTap(BuildContext context) {
-    // if (!isInWindow) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(
-    //       content: Text('Penilaian hanya dapat diinput 1 minggu sebelum akhir bulan'),
-    //       backgroundColor: Colors.orange,
-    //     ),
-    //   );
-    //   return;
-    // }
+    if (!isInWindow) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Penilaian hanya dapat diinput 1 minggu sebelum akhir bulan'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     final authState = context.read<AuthCubit>().state;
     if (authState is! AuthAuthenticated) return;
