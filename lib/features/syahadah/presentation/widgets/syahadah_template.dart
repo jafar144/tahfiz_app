@@ -226,7 +226,7 @@ class SyahadahTemplate extends StatelessWidget {
             right: 90,
             top: 70,
             child: Image.asset(
-              'assets/images/logo.png',
+              'assets/images/logo_bg.png',
               width: 170,
               height: 170,
             ),
