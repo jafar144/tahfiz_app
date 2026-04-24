@@ -97,9 +97,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       final xfile = XFile(imagePath);
       await SharePlus.instance.share(
         ShareParams(
-          files: [xfile],
-          text:
-              'Syahadah Kelulusan ${_namaController.text} - ${_hafalanController.text}',
+          files: [xfile]
         ),
       );
     } catch (e) {
