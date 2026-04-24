@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
@@ -101,11 +102,39 @@ class SantriCubit extends Cubit<SantriState> {
   }
 
   Future<void> addSantri(SantriParams params) async {
-    // We emit specific loading state if needed, or stick to SantriLoading which clears list
-    // Or better: keep list but show overlay loading. For now, following existing pattern:
     emit(SantriLoading());
     try {
-      await repository.addSantri(params);
+      String? finalPhotoUrl = params.photoUrl;
+
+      if (params.localPhotoFile != null) {
+        finalPhotoUrl = await ImageUtils.uploadImageToFirebase(
+          params.localPhotoFile!,
+          'santri_photos',
+        );
+        if (finalPhotoUrl == null) {
+          emit(SantriError('Gagal mengupload foto'));
+          return;
+        }
+      }
+
+      final finalParams = SantriParams(
+        name: params.name,
+        nis: params.nis,
+        phone: params.phone,
+        jenisKelamin: params.jenisKelamin,
+        birthPlace: params.birthPlace,
+        birthDate: params.birthDate,
+        waliName: params.waliName,
+        waliPhone: params.waliPhone,
+        kelas: params.kelas,
+        tipeKelas: params.tipeKelas,
+        entryDate: params.entryDate,
+        isFree: params.isFree,
+        freeUntil: params.freeUntil,
+        photoUrl: finalPhotoUrl,
+      );
+
+      await repository.addSantri(finalParams);
       loadSantri(keyword: _currentKeyword, isActive: _currentIsActive);
     } catch (e) {
       emit(SantriError(ErrorHandler.getMessage(e)));

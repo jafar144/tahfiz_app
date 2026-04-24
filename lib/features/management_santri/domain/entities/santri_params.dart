@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class SantriParams {
   final String name;
   final String nis;
@@ -14,6 +16,7 @@ class SantriParams {
   final bool isActive; // Status Aktif
   final DateTime? freeUntil;
   final String? photoUrl;
+  final File? localPhotoFile;
 
   SantriParams({
     required this.name,
@@ -31,5 +34,6 @@ class SantriParams {
     this.isActive = true,
     this.freeUntil,
     this.photoUrl,
+    this.localPhotoFile,
   });
 }

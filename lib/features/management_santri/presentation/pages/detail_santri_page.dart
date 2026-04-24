@@ -327,14 +327,19 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white,
-                  child: Text(
-                    detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: 32, // Reduced from 36
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
+                  backgroundImage: detail.photoUrl != null && detail.photoUrl!.isNotEmpty
+                      ? NetworkImage(detail.photoUrl!)
+                      : null,
+                  child: detail.photoUrl == null || detail.photoUrl!.isEmpty
+                      ? Text(
+                          detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ],

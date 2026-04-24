@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,8 +42,8 @@ class _AddSantriPageState extends State<AddSantriPage> {
   DateTime? _freeUntil;
   bool _isFree = false;
   bool _isLoading = false;
-  bool _isUploadingPhoto = false;
-  String? _photoUrl;
+  bool _isPickingPhoto = false;
+  File? _localPhotoFile;
 
   @override
   void dispose() {
@@ -90,7 +92,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
         entryDate: _entryDate,
         isFree: _isFree,
         freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
-        photoUrl: _photoUrl,
+        localPhotoFile: _localPhotoFile,
       );
 
       context.read<SantriCubit>().addSantri(params);
@@ -123,23 +125,16 @@ class _AddSantriPageState extends State<AddSantriPage> {
     }
   }
 
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _pickImage() async {
     final file = await ImageUtils.pickImage(ImageSource.gallery);
     if (file == null) return;
 
-    setState(() => _isUploadingPhoto = true);
+    setState(() => _isPickingPhoto = true);
 
     try {
       final compressed = await ImageUtils.compressImage(file);
       if (compressed != null) {
-        final url = await ImageUtils.uploadImageToFirebase(compressed, 'santri_photos');
-        if (url != null) {
-          setState(() => _photoUrl = url);
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal mengupload foto')));
-          }
-        }
+        setState(() => _localPhotoFile = compressed);
       }
     } catch (e) {
       if (mounted) {
@@ -147,7 +142,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isUploadingPhoto = false);
+        setState(() => _isPickingPhoto = false);
       }
     }
   }
@@ -299,18 +294,18 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.grey.shade200,
-                                image: _photoUrl != null
+                                image: _localPhotoFile != null
                                     ? DecorationImage(
-                                        image: NetworkImage(_photoUrl!),
+                                        image: FileImage(_localPhotoFile!),
                                         fit: BoxFit.cover,
                                       )
                                     : null,
                               ),
-                              child: _photoUrl == null
+                              child: _localPhotoFile == null
                                   ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                   : null,
                             ),
-                            if (_isUploadingPhoto)
+                            if (_isPickingPhoto)
                               const Positioned.fill(
                                 child: Center(
                                   child: CircularProgressIndicator(),
@@ -320,7 +315,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               bottom: 0,
                               right: 0,
                               child: GestureDetector(
-                                onTap: _isUploadingPhoto ? null : _pickAndUploadImage,
+                                onTap: _isPickingPhoto ? null : _pickImage,
                                 child: Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: const BoxDecoration(
