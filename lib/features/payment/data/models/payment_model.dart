@@ -17,13 +17,13 @@ class PaymentModel extends PaymentEntity {
     final data = doc.data() as Map<String, dynamic>;
     return PaymentModel(
       id: doc.id,
-      santriId: data['santri_id'] ?? '',
-      bulan: data['bulan'] ?? '',
-      tahun: data['tahun'] ?? '',
+      santriId: data['santri_id']?.toString() ?? '',
+      bulan: data['bulan']?.toString() ?? '',
+      tahun: data['tahun']?.toString() ?? '',
       total: (data['total'] ?? 0).toInt(),
-      method: data['metode'] ?? 'Manual',
+      method: data['metode']?.toString() ?? 'Manual',
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      createdBy: data['created_by'] ?? '',
+      createdBy: data['created_by']?.toString() ?? '',
     );
   }
 

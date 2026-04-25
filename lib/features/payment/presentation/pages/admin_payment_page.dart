@@ -36,6 +36,47 @@ class AdminPaymentView extends StatefulWidget {
 }
 
 class _AdminPaymentViewState extends State<AdminPaymentView> {
+  int _displayedCount = 10;
+  bool _isPaginating = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() async {
+    if (!_scrollController.hasClients || _isPaginating) return;
+    
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    
+    if (currentScroll >= (maxScroll * 0.9)) {
+      final cubit = context.read<PaymentCubit>();
+      if (cubit.state is PaymentLoaded) {
+         final totalItems = (cubit.state as PaymentLoaded).recentTransactions.length;
+         if (_displayedCount < totalItems) {
+            setState(() {
+              _isPaginating = true;
+            });
+            await Future.delayed(const Duration(milliseconds: 800));
+            if (mounted) {
+               setState(() {
+                 _displayedCount += 10;
+                 _isPaginating = false;
+               });
+            }
+         }
+      }
+    }
+  }
   
   void _showMonthYearPicker(BuildContext context, DateTime currentDate) {
     final now = DateTime.now();
@@ -79,6 +120,9 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                           months[selectedMonthIndex],
                         );
                         context.pop();
+                        setState(() {
+                          _displayedCount = 10;
+                        });
                         // Reload data
                         context.read<PaymentCubit>().loadDashboard(newDate);
                       },
@@ -199,9 +243,13 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
               enabled: isLoading,
               child: RefreshIndicator(
                 onRefresh: () async {
+                  setState(() {
+                    _displayedCount = 10;
+                  });
                   context.read<PaymentCubit>().loadDashboard(displayDateObj);
                 },
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -311,7 +359,7 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: recentTransactions.length,
+                          itemCount: recentTransactions.length > _displayedCount ? _displayedCount : recentTransactions.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
                             final item = recentTransactions[index];
@@ -380,6 +428,25 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                               ),
                             );
                           },
+                        ),
+                      if (_isPaginating)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Skeletonizer(
+                            enabled: true,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200)
+                              ),
+                              child: PaymentListItem(
+                                payment: PaymentEntity(
+                                  id: '1', santriId: '1', bulan: '1', tahun: '2024', total: 100000, method: 'cash', createdAt: DateTime.now(), createdBy: 'admin', santriName: 'Loading Santri'
+                                )
+                              ),
+                            ),
+                          ),
                         ),
                       const SizedBox(height: 80), // Space for FAB
                     ],

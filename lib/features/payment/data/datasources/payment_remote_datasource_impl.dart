@@ -10,13 +10,32 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
 
   @override
   Future<List<PaymentEntity>> getPayments(String month, String year) async {
-    final snapshot = await firestore
-        .collection('payments')
-        .where('bulan', isEqualTo: month)
-        .where('tahun', isEqualTo: year)
-        .get();
+    final intMonth = int.tryParse(month);
+    final intYear = int.tryParse(year);
+    final paddedMonth = month.padLeft(2, '0');
 
-    return snapshot.docs.map((doc) => PaymentModel.fromFirestore(doc)).toList();
+    final queries = [
+      firestore.collection('payments').where('bulan', isEqualTo: month).where('tahun', isEqualTo: year).get(),
+      if (intMonth != null && intYear != null)
+        firestore.collection('payments').where('bulan', isEqualTo: intMonth).where('tahun', isEqualTo: intYear).get(),
+      if (intYear != null)
+        firestore.collection('payments').where('bulan', isEqualTo: month).where('tahun', isEqualTo: intYear).get(),
+      if (intMonth != null)
+        firestore.collection('payments').where('bulan', isEqualTo: intMonth).where('tahun', isEqualTo: year).get(),
+      firestore.collection('payments').where('bulan', isEqualTo: paddedMonth).where('tahun', isEqualTo: year).get(),
+      if (intYear != null)
+        firestore.collection('payments').where('bulan', isEqualTo: paddedMonth).where('tahun', isEqualTo: intYear).get(),
+    ];
+
+    final results = await Future.wait(queries);
+    final allDocs = results.expand((snapshot) => snapshot.docs).toList();
+    
+    final uniqueDocs = <String, DocumentSnapshot>{};
+    for (var doc in allDocs) {
+      uniqueDocs[doc.id] = doc;
+    }
+
+    return uniqueDocs.values.map((doc) => PaymentModel.fromFirestore(doc)).toList();
   }
 
   @override
@@ -32,14 +51,32 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
 
   @override
   Future<List<PaymentEntity>> getPaymentBySantri(String santriId, String month, String year) async {
-    final snapshot = await firestore
-        .collection('payments')
-        .where('santri_id', isEqualTo: santriId)
-        .where('bulan', isEqualTo: month)
-        .where('tahun', isEqualTo: year)
-        .get();
+    final intMonth = int.tryParse(month);
+    final intYear = int.tryParse(year);
+    final paddedMonth = month.padLeft(2, '0');
 
-    return snapshot.docs.map((doc) => PaymentModel.fromFirestore(doc)).toList();
+    final queries = [
+      firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: month).where('tahun', isEqualTo: year).get(),
+      if (intMonth != null && intYear != null)
+        firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: intMonth).where('tahun', isEqualTo: intYear).get(),
+      if (intYear != null)
+        firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: month).where('tahun', isEqualTo: intYear).get(),
+      if (intMonth != null)
+        firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: intMonth).where('tahun', isEqualTo: year).get(),
+      firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: paddedMonth).where('tahun', isEqualTo: year).get(),
+      if (intYear != null)
+        firestore.collection('payments').where('santri_id', isEqualTo: santriId).where('bulan', isEqualTo: paddedMonth).where('tahun', isEqualTo: intYear).get(),
+    ];
+
+    final results = await Future.wait(queries);
+    final allDocs = results.expand((snapshot) => snapshot.docs).toList();
+    
+    final uniqueDocs = <String, DocumentSnapshot>{};
+    for (var doc in allDocs) {
+      uniqueDocs[doc.id] = doc;
+    }
+
+    return uniqueDocs.values.map((doc) => PaymentModel.fromFirestore(doc)).toList();
   }
 
   @override

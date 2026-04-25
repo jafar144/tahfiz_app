@@ -85,10 +85,18 @@ class _AdminPaymentHistoryViewState extends State<AdminPaymentHistoryView> {
               separatorBuilder: (_, __) => const SizedBox(height: 8), // Replaced Divider with SizedBox for cleaner look or consistent with AdminPaymentPage which uses SizedBox(height: 16)
               itemBuilder: (context, index) {
                 if (index >= state.payments.length) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+                  final mockPayment = PaymentEntity(
+                    id: '1', santriId: '1', bulan: '1', tahun: '2024', total: 100000, method: 'cash', createdAt: DateTime.now(), createdBy: 'admin', santriName: 'Santri Name',
+                  );
+                  return Skeletonizer(
+                    enabled: true,
+                    child: Container(
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200)
+                      ),
+                      child: PaymentListItem(payment: mockPayment),
                     ),
                   );
                 }
