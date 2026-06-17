@@ -32,6 +32,23 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
   > phone, tempat_lahir, created_at`. Kalau nama kolom berbeda, sesuaikan query
   > `SELECT ... FROM santris` di `index.js`.
 
+- `importPayments` — migrasi pembayaran **tahun 2026**, hanya yang **sudah bayar**
+  (`payments.status = 1`):
+  - **Bagian A** — santri `status_spp = 2` (gratis) → set
+    `santri_profiles.free_until = tanggal_masuk + 10 tahun`.
+  - **Bagian B** — tiap baris `payments` → buat dokumen `payments` Firestore:
+    `santri_id`=uid, `bulan` (angka), `tahun`=2026, `total`=200000,
+    `metode`="migrasi", `created_by`="SYSTEM_MIGRATION", `created_at`=serverTimestamp.
+  - **Anti-duplikat:** sebelum insert, cek apakah pembayaran santri+bulan+tahun
+    sudah ada di Firestore. `bulan` dinormalisasi ke angka karena data migrasi
+    lama tersimpan campur (int / "1" / "01"), jadi tidak akan dobel.
+  - Resolusi id: `payments.santri_id` → `santris.id` → `nis` → `uid`.
+  - **Default DRY-RUN.** Jalankan tanpa parameter dulu (periksa `summary`,
+    `previewPayments`, `previewFreeUntil`, dan `*Dilewati`), lalu `?apply=true`.
+
+  > Mengasumsikan PK tabel `santris` bernama `id` dan `payments` punya kolom
+  > `santri_id, bulan, tahun, status`. Sesuaikan query di `index.js` bila beda.
+
 ## Setup
 
 ### 1. Install dependency
@@ -72,8 +89,12 @@ https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri?format=json
 # Migrasi — LIHAT DULU (dry-run, tidak menulis)
 https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri
 
-# Migrasi — EKSEKUSI (menulis data)
+# Migrasi santri — EKSEKUSI (menulis data)
 https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri?apply=true
+
+# Migrasi pembayaran 2026 — LIHAT DULU lalu EKSEKUSI
+https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments
+https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments?apply=true
 ```
 
 - `compareSantri` → tampil 2 list dalam tabel HTML (`?format=json` untuk JSON).
