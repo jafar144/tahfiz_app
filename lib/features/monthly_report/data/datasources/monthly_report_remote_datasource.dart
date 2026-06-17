@@ -24,6 +24,9 @@ abstract class MonthlyReportRemoteDataSource {
   );
 
   Future<MonthlyReportModel> createOrUpdateReport(MonthlyReport report);
+
+  /// Mengembalikan kumpulan santri_id yang sudah dinilai pada bulan & tahun tertentu.
+  Future<Set<String>> getReportedSantriIds(int bulan, int tahun);
 }
 
 class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource {
@@ -181,5 +184,19 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
       createdAt: now,
       updatedAt: now,
     );
+  }
+
+  @override
+  Future<Set<String>> getReportedSantriIds(int bulan, int tahun) async {
+    final snapshot = await firestore
+        .collection(_collection)
+        .where('bulan', isEqualTo: bulan)
+        .where('tahun', isEqualTo: tahun)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => (doc.data()['santri_id'] ?? '').toString())
+        .where((id) => id.isNotEmpty)
+        .toSet();
   }
 }

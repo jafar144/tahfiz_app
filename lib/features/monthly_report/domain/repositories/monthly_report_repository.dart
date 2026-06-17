@@ -24,4 +24,6 @@ abstract class MonthlyReportRepository {
   );
 
   Future<Either<Failure, MonthlyReport>> createOrUpdateReport(MonthlyReport report);
+
+  Future<Either<Failure, Set<String>>> getReportedSantriIds(int bulan, int tahun);
 }

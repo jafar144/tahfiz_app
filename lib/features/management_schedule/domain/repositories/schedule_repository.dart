@@ -13,6 +13,7 @@ abstract class ScheduleRepository {
   Future<Either<Failure, List<Halaqah>>> getHalaqahs({required String programId});
   Future<Either<Failure, List<Halaqah>>> getHalaqahsBySchedule(String scheduleId);
   Future<Either<Failure, List<Halaqah>>> getHalaqahsByTeacher(String teacherId);
+  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs();
   Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah, List<String> newSantriIds, List<String> removedSantriIds);
   Future<Either<Failure, void>> createHalaqah(Halaqah halaqah, List<String> santriIds);
   Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(String santriId);

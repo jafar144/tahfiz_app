@@ -12,6 +12,7 @@ abstract class ScheduleRemoteDataSource {
   Future<List<HalaqahModel>> getHalaqahs(String programId);
   Future<List<HalaqahModel>> getHalaqahsBySchedule(String scheduleId);
   Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId);
+  Future<List<HalaqahModel>> getAllHalaqahs();
   Future<void> updateHalaqah(HalaqahModel halaqah, List<String> newSantriIds, List<String> removedSantriIds);
   Future<void> createHalaqah(HalaqahModel halaqah, List<String> santriIds);
   Future<HalaqahModel?> getHalaqahBySantriId(String santriId);
@@ -146,6 +147,12 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         .where('asatidz.id', isEqualTo: teacherId)
         .get();
     return _getHalaqahsWithCount(query.docs);
+  }
+
+  @override
+  Future<List<HalaqahModel>> getAllHalaqahs() async {
+    final query = await firestore.collection('halaqahs').get();
+    return query.docs.map((doc) => HalaqahModel.fromFirestore(doc)).toList();
   }
 
   @override

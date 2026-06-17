@@ -74,4 +74,14 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Set<String>>> getReportedSantriIds(int bulan, int tahun) async {
+    try {
+      final result = await remoteDataSource.getReportedSantriIds(bulan, tahun);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

@@ -40,6 +40,8 @@ import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.d
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.dart';
 import 'package:khoirunnasyien/features/family/presentation/pages/family_list_page.dart';
 import 'package:khoirunnasyien/features/family/presentation/pages/family_form_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_assessment_page.dart';
 
 class AppRouter {
 
@@ -246,6 +248,14 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (_) => getIt<FamilyCubit>()..loadFamilies(),
           child: const FamilyListPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.adminAssessment,
+        name: RouteNames.adminAssessment,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<AdminAssessmentCubit>(),
+          child: const AdminAssessmentPage(),
         ),
       ),
       GoRoute(

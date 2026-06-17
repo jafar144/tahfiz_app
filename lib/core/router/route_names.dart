@@ -27,4 +27,6 @@ abstract class RouteNames {
 
   static const adminFamily = 'admin_family';
   static const familyForm = 'family_form';
+
+  static const adminAssessment = 'admin_assessment';
 }
