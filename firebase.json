@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"khoirun-app","appId":"1:1098267931109:android:46cd33f3b8393dddf87f0c","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"khoirun-app","configurations":{"android":"1:1098267931109:android:46cd33f3b8393dddf87f0c","ios":"1:1098267931109:ios:1753b04701b45053f87f0c"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "khoirun-app",
+          "appId": "1:1098267931109:android:46cd33f3b8393dddf87f0c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "khoirun-app",
+          "configurations": {
+            "android": "1:1098267931109:android:46cd33f3b8393dddf87f0c",
+            "ios": "1:1098267931109:ios:1753b04701b45053f87f0c"
+          }
+        }
+      }
+    }
+  },
+  "functions": {
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "*.local"
+    ]
+  }
+}
