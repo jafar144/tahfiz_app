@@ -49,6 +49,28 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
   > Mengasumsikan PK tabel `santris` bernama `id` dan `payments` punya kolom
   > `santri_id, bulan, tahun, status`. Sesuaikan query di `index.js` bila beda.
 
+- `importMonthlyReports` — migrasi penilaian bulanan **tahun 2026** dari tabel
+  `nilais` → koleksi `monthly_reports` Firestore:
+  | Firestore | Sumber |
+  |-----------|--------|
+  | santri_id | uid (`nilais.santri_id` → `santris.id` → `nis` → uid) |
+  | santri_name | nama santri di Firestore |
+  | asatidz_id | uid asatidz (`nilais.operator_id` → `users.username` web → `nis` asatidz Firestore) |
+  | asatidz_name | nama asatidz Firestore; kalau operator bukan asatidz → nama operator web |
+  | hafalan_terakhir | `hafalan` |
+  | nilai_perkembangan | `perkembangan` |
+  | nilai_akhlaq | `akhlak` |
+  | notes | dikosongkan |
+  | bulan / tahun | `bulan` / 2026 |
+  | created_at / updated_at | kolom `created_at` / `updated_at` di `nilais` |
+  - **Anti-duplikat:** cek `monthly_reports` santri+bulan+tahun yang sudah ada
+    (bulan dinormalisasi ke angka).
+  - **Default DRY-RUN.** Jalankan dulu, periksa `previewDibuat` & `dilewati`,
+    lalu `?apply=true`.
+
+  > Operator dicocokkan lewat `users.username` (web) = `nis` asatidz Firestore.
+  > Mengasumsikan `nilais` punya kolom `created_at`/`updated_at`.
+
 ## Setup
 
 ### 1. Install dependency
@@ -95,6 +117,10 @@ https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri?apply=true
 # Migrasi pembayaran 2026 — LIHAT DULU lalu EKSEKUSI
 https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments
 https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments?apply=true
+
+# Migrasi penilaian bulanan 2026 — LIHAT DULU lalu EKSEKUSI
+https://asia-southeast2-khoirun-app.cloudfunctions.net/importMonthlyReports
+https://asia-southeast2-khoirun-app.cloudfunctions.net/importMonthlyReports?apply=true
 ```
 
 - `compareSantri` → tampil 2 list dalam tabel HTML (`?format=json` untuk JSON).
