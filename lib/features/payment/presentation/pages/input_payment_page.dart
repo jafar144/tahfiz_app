@@ -67,11 +67,26 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     if (result != null && result is SantriEntity) {
       setState(() {
         _selectedSantri = result;
+        _amountController.text = _defaultAmountFor(result);
       });
       if (context.mounted) {
         context.read<SantriPaymentHistoryCubit>().loadHistory(result.id);
       }
     }
+  }
+
+  /// Nominal default berdasarkan santri.
+  /// Putri Pagi (jenis_kelamin "P" & tipe_kelas "Pagi") → 100.000,
+  /// selain itu → 200.000.
+  String _defaultAmountFor(SantriEntity santri) {
+    final isPutriPagi = santri.jenisKelamin.toUpperCase() == 'P' &&
+        (santri.tipeKelas?.toLowerCase() == 'pagi');
+    final amount = isPutriPagi ? 100000 : 200000;
+    return NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    ).format(amount);
   }
 
   Future<void> _selectDate(BuildContext context) async {
