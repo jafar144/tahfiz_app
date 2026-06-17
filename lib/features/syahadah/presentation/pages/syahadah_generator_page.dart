@@ -89,8 +89,11 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       final pngBytes = byteData!.buffer.asUint8List();
 
       final directory = await getTemporaryDirectory();
+      // Pakai timestamp agar nama file selalu unik. Kalau nama file sama,
+      // share sheet OS bisa menampilkan thumbnail lama dari cache.
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
       final imagePath =
-          '${directory.path}/syahadah_${_selectedSantri!.name.replaceAll(' ', '_')}.png';
+          '${directory.path}/syahadah_${_selectedSantri!.name.replaceAll(' ', '_')}_$timestamp.png';
       final file = File(imagePath);
       await file.writeAsBytes(pngBytes);
 
