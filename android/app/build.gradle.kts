@@ -33,12 +33,12 @@ android {
     }
 
     signingConfigs {
-        // create("release") {
-        //    keyAlias = keystoreProperties["keyAlias"] as String
-        //    keyPassword = keystoreProperties["keyPassword"] as String
-        //    storeFile = file(keystoreProperties["storeFile"] as String)
-        //    storePassword = keystoreProperties["storePassword"] as String
-        // }
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
     }
 
     defaultConfig {
@@ -54,7 +54,7 @@ android {
 
     buildTypes {
         release {
-            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
         }
