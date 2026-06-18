@@ -216,6 +216,10 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: _hafalanController,
+          keyboardType: TextInputType.multiline,
+          minLines: 1,
+          maxLines: null,
+          textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
             hintText: 'Contoh: Al-Baqarah ayat 1-20',
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -242,67 +246,79 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
   }
 
   Widget _buildNilaiSection(String label, int currentValue, IconData icon, ValueChanged<int> onChanged) {
+    final primary = Theme.of(context).primaryColor;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionLabel(label, icon),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          children: List.generate(5, (index) {
-            final nilai = index + 1;
-            final isSelected = currentValue == nilai;
-            final color = _getNilaiColor(nilai);
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: List.generate(5, (index) {
+              final nilai = index + 1;
+              final isSelected = currentValue == nilai;
 
-            return GestureDetector(
-              onTap: () => onChanged(nilai),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? color : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? color : Colors.grey.shade200,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  boxShadow: isSelected
-                      ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))]
-                      : null,
-                ),
-                child: Column(
-                  children: [
-                    Text(
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(nilai),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    margin: const EdgeInsets.all(4),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: primary.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))]
+                          : null,
+                    ),
+                    child: Text(
                       '$nilai',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : Colors.grey.shade600,
+                        color: isSelected ? Colors.white : Colors.grey.shade500,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      MonthlyReport.getNilaiLabel(nilai),
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white.withOpacity(0.9) : Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          }),
-        ),
-        if (currentValue == 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Text(
-              'Pilih nilai',
-              style: TextStyle(fontSize: 12, color: Colors.red.shade400),
-            ),
+              );
+            }),
           ),
+        ),
+        const SizedBox(height: 8),
+        currentValue == 0
+            ? Text(
+                'Pilih nilai',
+                style: TextStyle(fontSize: 12, color: Colors.red.shade400, fontWeight: FontWeight.w500),
+              )
+            : Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: _getNilaiColor(currentValue), shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    MonthlyReport.getNilaiLabel(currentValue),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _getNilaiColor(currentValue),
+                    ),
+                  ),
+                ],
+              ),
       ],
     );
   }

@@ -77,7 +77,10 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
 
       if (state is MonthlyReportError) return;
 
-      final uniqueSantris = {for (var s in allSantris) s.id: s}.values.toList();
+      final uniqueSantris = {for (var s in allSantris) s.id: s}
+          .values
+          .where((s) => s.isActive)
+          .toList();
 
       final reportsResult = await reportRepository.getReportsByAsatidz(
         asatidzId,
