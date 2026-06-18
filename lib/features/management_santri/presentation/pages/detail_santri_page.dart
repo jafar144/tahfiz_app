@@ -243,7 +243,63 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
     );
   }
 
+  Widget _buildFreePaymentCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade600,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.volunteer_activism_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bebas SPP',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Santri ini gratis, tidak ada tagihan SPP',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPaymentSection(SantriDetail detail) {
+    if (detail.isFree) {
+      return _buildFreePaymentCard();
+    }
+
     return BlocBuilder<SantriPaymentHistoryCubit, SantriPaymentHistoryState>(
       builder: (context, state) {
         if (state is SantriPaymentHistoryLoading) {
