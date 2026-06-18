@@ -64,7 +64,37 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
       return b.bulan.compareTo(a.bulan);
     });
 
-    return reports;
+    return _attachAsatidzGender(reports);
+  }
+
+  /// Melengkapi laporan dengan gender pengajar (untuk gelar Ustadz/Ustadzah)
+  /// dengan join ke koleksi asatidz_profiles berdasarkan asatidz_id.
+  Future<List<MonthlyReportModel>> _attachAsatidzGender(
+    List<MonthlyReportModel> reports,
+  ) async {
+    if (reports.isEmpty) return reports;
+
+    final ids =
+        reports.map((r) => r.asatidzId).where((id) => id.isNotEmpty).toSet().toList();
+    if (ids.isEmpty) return reports;
+
+    final genderById = <String, String>{};
+    // whereIn maksimal 10 item per query.
+    for (var i = 0; i < ids.length; i += 10) {
+      final end = (i + 10 < ids.length) ? i + 10 : ids.length;
+      final chunk = ids.sublist(i, end);
+      final snapshot = await firestore
+          .collection('asatidz_profiles')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (final doc in snapshot.docs) {
+        genderById[doc.id] = (doc.data()['jenis_kelamin'] ?? '').toString();
+      }
+    }
+
+    return reports
+        .map((r) => r.withAsatidzGender(genderById[r.asatidzId] ?? ''))
+        .toList();
   }
 
   @override
@@ -78,7 +108,9 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
         .get();
 
     if (snapshot.docs.isEmpty) return null;
-    return MonthlyReportModel.fromFirestore(snapshot.docs.first);
+    final model = MonthlyReportModel.fromFirestore(snapshot.docs.first);
+    final enriched = await _attachAsatidzGender([model]);
+    return enriched.first;
   }
 
   @override

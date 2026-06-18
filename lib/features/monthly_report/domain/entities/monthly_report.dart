@@ -2,6 +2,10 @@ class MonthlyReport {
   final String id;
   final String asatidzId;
   final String asatidzName;
+
+  /// Gender pengajar ('L' / 'P'), dipakai untuk gelar Ustadz/Ustadzah.
+  /// Bisa kosong bila tidak diketahui.
+  final String asatidzGender;
   final String santriId;
   final String santriName;
   final int bulan;
@@ -17,6 +21,7 @@ class MonthlyReport {
     required this.id,
     required this.asatidzId,
     required this.asatidzName,
+    this.asatidzGender = '',
     required this.santriId,
     required this.santriName,
     required this.bulan,
@@ -28,6 +33,17 @@ class MonthlyReport {
     required this.createdAt,
     required this.updatedAt,
   });
+
+  /// Gelar pengajar berdasarkan gender: 'Ustadz' / 'Ustadzah' / '' (tak diketahui).
+  String get asatidzTitle => switch (asatidzGender) {
+        'L' => 'Ustadz',
+        'P' => 'Ustadzah',
+        _ => '',
+      };
+
+  /// Nama pengajar lengkap dengan gelar, mis. "Ustadz Ja'far Assegaf".
+  String get asatidzDisplayName =>
+      asatidzTitle.isEmpty ? asatidzName : '$asatidzTitle $asatidzName';
 
   static String getNilaiLabel(int nilai) {
     switch (nilai) {

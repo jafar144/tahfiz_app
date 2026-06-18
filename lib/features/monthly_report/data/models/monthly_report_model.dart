@@ -6,6 +6,7 @@ class MonthlyReportModel extends MonthlyReport {
     required super.id,
     required super.asatidzId,
     required super.asatidzName,
+    super.asatidzGender,
     required super.santriId,
     required super.santriName,
     required super.bulan,
@@ -24,6 +25,7 @@ class MonthlyReportModel extends MonthlyReport {
       id: doc.id,
       asatidzId: data['asatidz_id'] ?? '',
       asatidzName: data['asatidz_name'] ?? '',
+      asatidzGender: data['asatidz_gender'] ?? '',
       santriId: data['santri_id'] ?? '',
       santriName: data['santri_name'] ?? '',
       bulan: data['bulan'] ?? 1,
@@ -37,10 +39,29 @@ class MonthlyReportModel extends MonthlyReport {
     );
   }
 
+  /// Salinan model dengan gender pengajar terisi (dipakai saat join ke profil asatidz).
+  MonthlyReportModel withAsatidzGender(String gender) => MonthlyReportModel(
+        id: id,
+        asatidzId: asatidzId,
+        asatidzName: asatidzName,
+        asatidzGender: gender,
+        santriId: santriId,
+        santriName: santriName,
+        bulan: bulan,
+        tahun: tahun,
+        hafalanTerakhir: hafalanTerakhir,
+        nilaiPerkembangan: nilaiPerkembangan,
+        nilaiAkhlaq: nilaiAkhlaq,
+        notes: notes,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
   Map<String, dynamic> toFirestore() {
     return {
       'asatidz_id': asatidzId,
       'asatidz_name': asatidzName,
+      'asatidz_gender': asatidzGender,
       'santri_id': santriId,
       'santri_name': santriName,
       'bulan': bulan,
