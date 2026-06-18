@@ -39,6 +39,7 @@ import 'package:khoirunnasyien/features/payment/data/repositories/payment_reposi
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/input_payment_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
+import 'package:khoirunnasyien/features/financial_report/presentation/cubit/financial_report_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/datasource/schedule_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/repositories/schedule_repository_impl.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
@@ -179,6 +180,10 @@ Future<void> initDI() async {
 
   getIt.registerFactory(
     () => SantriPaymentHistoryCubit(getIt()),
+  );
+
+  getIt.registerFactory(
+    () => FinancialReportCubit(getIt(), getIt()),
   );
 
   getIt.registerFactory(

@@ -144,6 +144,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     onTap: () => context.pushNamed(RouteNames.adminPayment),
                   ),
                   MenuCard(
+                    icon: Icons.bar_chart_rounded,
+                    title: 'Laporan Keuangan',
+                    subtitle: 'Dashboard Keuangan',
+                    onTap: () => context.pushNamed(RouteNames.financialReport),
+                  ),
+                  MenuCard(
                     icon: Icons.calendar_month_rounded,
                     title: 'Halaqah',
                     subtitle: 'Manajemen Halaqah',

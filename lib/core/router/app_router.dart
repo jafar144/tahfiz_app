@@ -22,6 +22,7 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asati
 import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_history_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/input_payment_page.dart';
+import 'package:khoirunnasyien/features/financial_report/presentation/pages/financial_report_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/schedule_view_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/add_halaqah_page.dart';
@@ -133,6 +134,11 @@ class AppRouter {
         path: RoutePaths.inputPayment,
         name: RouteNames.inputPayment,
         builder: (context, state) => const InputPaymentPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.financialReport,
+        name: RouteNames.financialReport,
+        builder: (context, state) => const FinancialReportPage(),
       ),
       GoRoute(
         path: RoutePaths.adminSchedule,

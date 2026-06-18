@@ -22,6 +22,7 @@ dependencies:
   skeletonizer: ^2.1.2
   image_picker: ^1.2.1
   cupertino_icons: ^1.0.8
+  fl_chart: ^1.1.1
 
   # Firebase
   firebase_core: ^4.4.0
