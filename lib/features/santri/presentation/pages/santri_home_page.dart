@@ -178,6 +178,17 @@ class _SantriHomePageState extends State<SantriHomePage> {
 
   Widget _buildPaymentStatus(SantriHomeState state) {
     final isPaidAll = state.overdueMonthsCount == 0;
+    final primary = Theme.of(context).primaryColor;
+
+    final accent = isPaidAll ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+    final accentDark =
+        isPaidAll ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
+    final statusTitle = isPaidAll
+        ? 'Lunas Bulan Ini'
+        : '${state.overdueMonthsCount} Bulan Menunggak';
+    final statusSubtitle = isPaidAll
+        ? 'Pembayaran SPP kamu aman'
+        : 'Yuk segera selesaikan pembayaran';
 
     return Padding(
       padding: const EdgeInsets.only(top: 28),
@@ -197,30 +208,39 @@ class _SantriHomePageState extends State<SantriHomePage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              border: Border.all(color: Colors.grey.shade100),
             ),
             child: Column(
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isPaidAll ? Colors.green.shade50 : Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(16),
+                        color: accent,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accent.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
                       child: Icon(
-                        isPaidAll ? Icons.check_circle_rounded : Icons.warning_rounded,
-                        color: isPaidAll ? Colors.green : Colors.red,
-                        size: 24,
+                        isPaidAll
+                            ? Icons.verified_rounded
+                            : Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 22,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -229,20 +249,19 @@ class _SantriHomePageState extends State<SantriHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Status SPP',
+                            statusTitle,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: accentDark,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            isPaidAll ? 'Lunas Bulan Ini' : '${state.overdueMonthsCount} Bulan Menunggak',
+                            statusSubtitle,
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isPaidAll ? Colors.green.shade700 : Colors.red.shade700,
+                              fontSize: 12.5,
+                              color: Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -250,41 +269,41 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+                Divider(height: 1, color: Colors.grey.shade200),
+                const SizedBox(height: 4),
                 InkWell(
                   onTap: () {
-                    final startDate = state.santri != null ? PaymentUtils.resolveStartDate(state.santri!) : null;
-                    final currentSantriId = context.read<SantriHomeCubit>().currentSantriId;
+                    final startDate = state.santri != null
+                        ? PaymentUtils.resolveStartDate(state.santri!)
+                        : null;
+                    final currentSantriId =
+                        context.read<SantriHomeCubit>().currentSantriId;
                     context.pushNamed(RouteNames.santriPayment, extra: {
                       'startDate': startDate,
                       'santriId': currentSantriId,
                     });
                   },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.history_rounded,
-                          size: 16,
-                          color: Theme.of(context).primaryColor,
-                        ),
+                        Icon(Icons.receipt_long_rounded,
+                            size: 18, color: primary),
                         const SizedBox(width: 8),
-                        Text(
-                          'Lihat Data Pembayaran',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).primaryColor,
+                        Expanded(
+                          child: Text(
+                            'Lihat Data Pembayaran',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: primary,
+                            ),
                           ),
                         ),
+                        Icon(Icons.chevron_right_rounded,
+                            size: 20, color: primary),
                       ],
                     ),
                   ),
