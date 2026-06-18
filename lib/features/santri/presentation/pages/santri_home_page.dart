@@ -11,6 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
+import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_summary_card.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -66,6 +68,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(state),
+                  _buildJourneySection(state),
                   _buildPaymentStatus(state),
                   // _buildMenuSection(context),
                   // if (state.latestSetoran != null) _buildLatestSetoran(state),
@@ -173,6 +176,20 @@ class _SantriHomePageState extends State<SantriHomePage> {
               : null,
         ),
       ],
+    );
+  }
+
+  Widget _buildJourneySection(SantriHomeState state) {
+    final kelas = state.santri?.kelas;
+    final info = JourneyBuilder.build(kelas);
+    if (!info.hasCurrent) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: JourneySummaryCard(
+        info: info,
+        onTap: () => context.pushNamed(RouteNames.journey, extra: kelas),
+      ),
     );
   }
 
