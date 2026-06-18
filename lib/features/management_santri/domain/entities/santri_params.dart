@@ -17,6 +17,7 @@ class SantriParams {
   final DateTime? freeUntil;
   final String? photoUrl;
   final File? localPhotoFile;
+  final bool removePhoto; // Hapus foto profil yang ada saat menyimpan
 
   SantriParams({
     required this.name,
@@ -35,5 +36,6 @@ class SantriParams {
     this.freeUntil,
     this.photoUrl,
     this.localPhotoFile,
+    this.removePhoto = false,
   });
 }

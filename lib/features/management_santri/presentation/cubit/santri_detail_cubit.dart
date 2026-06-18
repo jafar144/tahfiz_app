@@ -38,6 +38,12 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
           emit(SantriDetailError('Gagal mengupload foto'));
           return;
         }
+      } else if (params.removePhoto) {
+        // Hapus foto lama dari Storage lalu kosongkan url
+        if (params.photoUrl != null && params.photoUrl!.isNotEmpty) {
+          await ImageUtils.deleteImageFromFirebase(params.photoUrl!);
+        }
+        finalPhotoUrl = null;
       }
 
       final finalParams = SantriParams(
@@ -56,6 +62,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
         isActive: params.isActive,
         freeUntil: params.freeUntil,
         photoUrl: finalPhotoUrl,
+        removePhoto: params.removePhoto && params.localPhotoFile == null,
       );
 
       await repository.updateSantri(id, finalParams);

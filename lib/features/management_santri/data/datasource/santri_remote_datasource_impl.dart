@@ -375,7 +375,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'tanggal_lahir': Timestamp.fromDate(params.birthDate),
       'tempat_lahir': params.birthPlace,
       'tipe_kelas': params.tipeKelas,
-      if (params.photoUrl != null) 'photo_url': params.photoUrl,
+      if (params.photoUrl != null)
+        'photo_url': params.photoUrl
+      else if (params.removePhoto)
+        'photo_url': FieldValue.delete(),
     });
 
     // Update User Document

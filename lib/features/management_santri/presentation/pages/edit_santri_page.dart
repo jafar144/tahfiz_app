@@ -43,7 +43,12 @@ class _EditSantriPageState extends State<EditSantriPage> {
   bool _isPickingPhoto = false;
   String? _photoUrl;
   File? _localPhotoFile;
+  bool _photoRemoved = false;
   late bool _isActive;
+
+  /// Ada foto yang sedang ditampilkan di preview (lokal baru atau url lama).
+  bool get _hasPhoto =>
+      _localPhotoFile != null || (_photoUrl != null && !_photoRemoved);
 
   @override
   void initState() {
@@ -182,6 +187,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
       if (compressed != null) {
         setState(() {
           _localPhotoFile = compressed;
+          _photoRemoved = false;
         });
       }
     } catch (e) {
@@ -193,6 +199,14 @@ class _EditSantriPageState extends State<EditSantriPage> {
         setState(() => _isPickingPhoto = false);
       }
     }
+  }
+
+  void _removePhoto() {
+    UiUtils.unfocus(context);
+    setState(() {
+      _localPhotoFile = null;
+      _photoRemoved = true;
+    });
   }
 
   void _submit() {
@@ -235,6 +249,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
         freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
         localPhotoFile: _localPhotoFile,
         photoUrl: _photoUrl,
+        removePhoto: _photoRemoved,
       );
 
       // Call Cubit to update
@@ -292,14 +307,14 @@ class _EditSantriPageState extends State<EditSantriPage> {
                                     image: FileImage(_localPhotoFile!),
                                     fit: BoxFit.cover,
                                   )
-                                : _photoUrl != null
+                                : (_photoUrl != null && !_photoRemoved)
                                     ? DecorationImage(
                                         image: NetworkImage(_photoUrl!),
                                         fit: BoxFit.cover,
                                       )
                                     : null,
                           ),
-                          child: _localPhotoFile == null && _photoUrl == null
+                          child: !_hasPhoto
                               ? const Icon(Icons.person, size: 50, color: Colors.grey)
                               : null,
                         ),
@@ -313,14 +328,20 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           bottom: 0,
                           right: 0,
                           child: GestureDetector(
-                            onTap: _isPickingPhoto ? null : _pickImage,
+                            onTap: _isPickingPhoto
+                                ? null
+                                : (_hasPhoto ? _removePhoto : _pickImage),
                             child: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.blue,
+                                color: _hasPhoto ? Colors.red.shade400 : Colors.blue,
                               ),
-                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                              child: Icon(
+                                _hasPhoto ? Icons.close : Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                         ),
