@@ -194,18 +194,35 @@ class _SantriHomePageState extends State<SantriHomePage> {
   }
 
   Widget _buildPaymentStatus(SantriHomeState state) {
-    final isPaidAll = state.overdueMonthsCount == 0;
     final primary = Theme.of(context).primaryColor;
+    final isFree = state.santri?.isFree ?? false;
+    final isPaidAll = state.overdueMonthsCount == 0;
 
-    final accent = isPaidAll ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
-    final accentDark =
-        isPaidAll ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
-    final statusTitle = isPaidAll
-        ? 'Lunas Bulan Ini'
-        : '${state.overdueMonthsCount} Bulan Menunggak';
-    final statusSubtitle = isPaidAll
-        ? 'Pembayaran SPP kamu aman'
-        : 'Yuk segera selesaikan pembayaran';
+    final Color accent;
+    final Color accentDark;
+    final IconData statusIcon;
+    final String statusTitle;
+    final String statusSubtitle;
+
+    if (isFree) {
+      accent = primary;
+      accentDark = const Color(0xFF1565C0);
+      statusIcon = Icons.volunteer_activism_rounded;
+      statusTitle = 'Bebas SPP';
+      statusSubtitle = 'Santri ini gratis, tidak ada tagihan SPP';
+    } else if (isPaidAll) {
+      accent = const Color(0xFF16A34A);
+      accentDark = const Color(0xFF15803D);
+      statusIcon = Icons.verified_rounded;
+      statusTitle = 'Lunas Bulan Ini';
+      statusSubtitle = 'Pembayaran SPP kamu aman';
+    } else {
+      accent = const Color(0xFFEF4444);
+      accentDark = const Color(0xFFB91C1C);
+      statusIcon = Icons.warning_amber_rounded;
+      statusTitle = '${state.overdueMonthsCount} Bulan Menunggak';
+      statusSubtitle = 'Yuk segera selesaikan pembayaran';
+    }
 
     return Padding(
       padding: const EdgeInsets.only(top: 28),
@@ -253,9 +270,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                         ],
                       ),
                       child: Icon(
-                        isPaidAll
-                            ? Icons.verified_rounded
-                            : Icons.warning_amber_rounded,
+                        statusIcon,
                         color: Colors.white,
                         size: 22,
                       ),
@@ -286,45 +301,47 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                Divider(height: 1, color: Colors.grey.shade200),
-                const SizedBox(height: 4),
-                InkWell(
-                  onTap: () {
-                    final startDate = state.santri != null
-                        ? PaymentUtils.resolveStartDate(state.santri!)
-                        : null;
-                    final currentSantriId =
-                        context.read<SantriHomeCubit>().currentSantriId;
-                    context.pushNamed(RouteNames.santriPayment, extra: {
-                      'startDate': startDate,
-                      'santriId': currentSantriId,
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Row(
-                      children: [
-                        Icon(Icons.receipt_long_rounded,
-                            size: 18, color: primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Lihat Data Pembayaran',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: primary,
+                if (!isFree) ...[
+                  const SizedBox(height: 14),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () {
+                      final startDate = state.santri != null
+                          ? PaymentUtils.resolveStartDate(state.santri!)
+                          : null;
+                      final currentSantriId =
+                          context.read<SantriHomeCubit>().currentSantriId;
+                      context.pushNamed(RouteNames.santriPayment, extra: {
+                        'startDate': startDate,
+                        'santriId': currentSantriId,
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long_rounded,
+                              size: 18, color: primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Lihat Data Pembayaran',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: primary,
+                              ),
                             ),
                           ),
-                        ),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 20, color: primary),
-                      ],
+                          Icon(Icons.chevron_right_rounded,
+                              size: 20, color: primary),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
