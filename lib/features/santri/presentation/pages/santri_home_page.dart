@@ -449,114 +449,145 @@ class _SantriHomePageState extends State<SantriHomePage> {
   }
 
   Widget _buildPembimbingSection(SantriHomeState state) {
+    final primary = Theme.of(context).primaryColor;
+    final phone = state.pembimbingPhone;
+
     return Padding(
       padding: const EdgeInsets.only(top: 28),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.06),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Pengajar',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Pengajar',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.grey.shade200, 
-                  child: Text(
-                    _getInitials(state.pembimbingName!),
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        state.pembimbingName!, 
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      if (state.pembimbingPhone != null)
-                      Text(
-                        state.pembimbingPhone!, 
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (state.pembimbingPhone != null)
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    var phone = state.pembimbingPhone!.replaceAll(RegExp(r'\D'), '');
-                    if (phone.isNotEmpty) {
-                      if (phone.startsWith('0')) {
-                        phone = '62${phone.substring(1)}';
-                      } else if (!phone.startsWith('62')) {
-                        phone = '62$phone';
-                      }
-                      
-                      final url = Uri.parse('https://wa.me/$phone');
-                      try {
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        } else {
-                          // Fallback attempt or show error
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        }
-                      } catch (e) {
-                         if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(
-                             const SnackBar(content: Text('Gagal membuka WhatsApp')),
-                           );
-                         }
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.chat, size: 16),
-                  label: const Text('Hubungi', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ],
-        ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: primary.withValues(alpha: 0.1),
+                      child: Text(
+                        _getInitials(state.pembimbingName!),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            state.pembimbingDisplayName!,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Icon(
+                                phone != null
+                                    ? Icons.phone_outlined
+                                    : Icons.school_outlined,
+                                size: 13,
+                                color: Colors.grey.shade500,
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  phone ?? 'Pembimbing halaqah',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (phone != null) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _launchWhatsApp(phone),
+                      icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                      label: const Text(
+                        'Hubungi via WhatsApp',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF25D366),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _launchWhatsApp(String rawPhone) async {
+    var phone = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (phone.isEmpty) return;
+    if (phone.startsWith('0')) {
+      phone = '62${phone.substring(1)}';
+    } else if (!phone.startsWith('62')) {
+      phone = '62$phone';
+    }
+
+    final url = Uri.parse('https://wa.me/$phone');
+    try {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal membuka WhatsApp')),
+        );
+      }
+    }
   }
 
   String _getInitials(String name) {

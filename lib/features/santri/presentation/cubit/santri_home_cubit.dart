@@ -89,20 +89,22 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       // 4. Fetch Pembimbing (via Halaqah)
       String? pembimbingName;
       String? pembimbingPhone;
+      String? pembimbingGender;
 
       final halaqahResult = await scheduleRepository.getHalaqahBySantriId(santriId);
-      
+
       await halaqahResult.fold(
-        ifLeft: (l) async {}, 
+        ifLeft: (l) async {},
         ifRight: (r) async {
           if (r != null) {
             pembimbingName = r.teacherName;
-            // Fetch phone from AsatidzDetail
+            // Fetch phone & gender from AsatidzDetail
             try {
               final asatidzDetail = await mgmtAsatidzRepository.getAsatidzDetail(r.teacherId);
               pembimbingPhone = asatidzDetail.phone;
+              pembimbingGender = asatidzDetail.jenisKelamin;
             } catch (e) {
-              // Could not fetch phone, use placeholder or leave null
+              // Could not fetch detail, use placeholder or leave null
             }
           }
         },
@@ -126,6 +128,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         latestSetoran: latestSetoran,
         pembimbingName: pembimbingName,
         pembimbingPhone: pembimbingPhone,
+        pembimbingGender: pembimbingGender,
         latestReport: latestReport,
       ));
     } catch (e) {

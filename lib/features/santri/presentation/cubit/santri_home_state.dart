@@ -15,6 +15,9 @@ class SantriHomeState {
   final SantriSetoran? latestSetoran;
   final String? pembimbingName;
   final String? pembimbingPhone;
+
+  /// Gender pembimbing ('L' / 'P') untuk gelar Ustadz/Ustadzah.
+  final String? pembimbingGender;
   final MonthlyReport? latestReport;
 
   const SantriHomeState({
@@ -26,8 +29,20 @@ class SantriHomeState {
     this.latestSetoran,
     this.pembimbingName,
     this.pembimbingPhone,
+    this.pembimbingGender,
     this.latestReport,
   });
+
+  /// Nama pembimbing lengkap dengan gelar, mis. "Ustadz Fulan".
+  String? get pembimbingDisplayName {
+    if (pembimbingName == null) return null;
+    final title = switch (pembimbingGender) {
+      'L' => 'Ustadz',
+      'P' => 'Ustadzah',
+      _ => '',
+    };
+    return title.isEmpty ? pembimbingName : '$title $pembimbingName';
+  }
 
   SantriHomeState copyWith({
     SantriHomeStatus? status,
@@ -38,6 +53,7 @@ class SantriHomeState {
     SantriSetoran? latestSetoran,
     String? pembimbingName,
     String? pembimbingPhone,
+    String? pembimbingGender,
     MonthlyReport? latestReport,
   }) {
     return SantriHomeState(
@@ -49,6 +65,7 @@ class SantriHomeState {
       latestSetoran: latestSetoran ?? this.latestSetoran,
       pembimbingName: pembimbingName ?? this.pembimbingName,
       pembimbingPhone: pembimbingPhone ?? this.pembimbingPhone,
+      pembimbingGender: pembimbingGender ?? this.pembimbingGender,
       latestReport: latestReport ?? this.latestReport,
     );
   }
