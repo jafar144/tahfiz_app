@@ -18,6 +18,7 @@ import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
+import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
 
 class AsatidzDashboardPage extends StatefulWidget {
   const AsatidzDashboardPage({super.key});
@@ -95,18 +96,43 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                       color: Colors.blue,
                     ),
                     const SizedBox(height: 20),
-                    MenuCard(
-                      icon: Icons.assessment_rounded,
-                      title: 'Penilaian',
-                      subtitle: 'Penilaian Bulanan Santri',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const MonthlyReportListPage(),
-                          ),
-                        );
-                      },
+                    const Text('Menu', style: AppTextStyles.mediumContentBlack),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: 1.2,
+                      children: [
+                        MenuCard(
+                          icon: Icons.assessment_rounded,
+                          title: 'Penilaian',
+                          subtitle: 'Penilaian Bulanan Santri',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MonthlyReportListPage(),
+                              ),
+                            );
+                          },
+                        ),
+                        MenuCard(
+                          icon: Icons.workspace_premium_rounded,
+                          title: 'Kelulusan',
+                          subtitle: 'Foto Kelulusan',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SyahadahGeneratorPage(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                     // if (state.activeHalaqah != null) ...[
                     //   _buildActiveSessionCard(context, state),
