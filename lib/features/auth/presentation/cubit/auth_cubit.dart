@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/notifications/notification_service.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/domain/auth_repository.dart';
 import 'package:khoirunnasyien/features/auth/domain/user_repository.dart';
@@ -11,8 +14,19 @@ import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cu
 class AuthCubit extends Cubit<AuthState> {
   final AuthRepository authRepository;
   final UserRepository userRepository;
+  final NotificationService notificationService;
 
-  AuthCubit(this.authRepository, this.userRepository) : super(AuthInitial());
+  AuthCubit(this.authRepository, this.userRepository, this.notificationService)
+      : super(AuthInitial());
+
+  /// Daftarkan token perangkat untuk user (role dipakai untuk penargetan
+  /// notifikasi di server). Fire-and-forget agar tidak menunda navigasi.
+  void _registerNotifications(UserRole role, String uid) {
+    unawaited(notificationService.registerForUser(
+      uid: uid,
+      role: role.toRoleString(),
+    ));
+  }
 
   Future<String> getVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
@@ -46,6 +60,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
     }
 
+    _registerNotifications(user.role, user.uid);
     emit(AuthAuthenticated(user));
   }
 
@@ -77,6 +92,7 @@ class AuthCubit extends Cubit<AuthState> {
         }
       }
 
+      _registerNotifications(user.role, user.uid);
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(ErrorHandler.getMessage(e)));
@@ -85,6 +101,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     SantriHomeCubit.overrideSantriId = null;
+    await notificationService.clear();
     await authRepository.logout();
     emit(AuthUnauthenticated());
   }
@@ -129,6 +146,7 @@ class AuthCubit extends Cubit<AuthState> {
         await userRepository.updateUserRole(currentUser.uid, newRole);
         
         final user = await userRepository.getUserByUid(currentUser.uid);
+        _registerNotifications(user.role, user.uid);
         emit(AuthAuthenticated(user));
       } catch (e) {
         emit(AuthError(ErrorHandler.getMessage(e)));

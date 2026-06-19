@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:khoirunnasyien/core/firebase/auth_client.dart';
 import 'package:khoirunnasyien/core/firebase/firestore_client.dart';
 import 'package:khoirunnasyien/core/firebase/storage_client.dart';
+import 'package:khoirunnasyien/core/notifications/fcm_token_datasource.dart';
+import 'package:khoirunnasyien/core/notifications/notification_service.dart';
 import 'package:khoirunnasyien/features/auth/data/datasource/auth_remote_datasource.dart';
 import 'package:khoirunnasyien/features/auth/data/datasource/auth_remote_datasource_impl.dart';
 import 'package:khoirunnasyien/features/auth/data/datasource/user_remote_datasource.dart';
@@ -72,11 +75,16 @@ Future<void> initDI() async {
   getIt.registerLazySingleton(() => FirebaseFirestore.instance);
   getIt.registerLazySingleton(() => FirebaseStorage.instance);
   getIt.registerLazySingleton(() => FirebaseAuth.instance);
+  getIt.registerLazySingleton(() => FirebaseMessaging.instance);
 
   // Clients
   getIt.registerLazySingleton(() => FirestoreClient(getIt()));
   getIt.registerLazySingleton(() => StorageClient(getIt()));
   getIt.registerLazySingleton(() => AuthClient(getIt()));
+
+  // Notifications
+  getIt.registerLazySingleton(() => FcmTokenDataSource(getIt()));
+  getIt.registerLazySingleton(() => NotificationService(getIt(), getIt()));
 
   // Datasource
   getIt.registerLazySingleton<AuthRemoteDatasource>(
@@ -138,7 +146,7 @@ Future<void> initDI() async {
 
   // Cubit
   getIt.registerFactory(
-    () => AuthCubit(getIt(), getIt()),
+    () => AuthCubit(getIt(), getIt(), getIt()),
   );
 
   getIt.registerFactory(

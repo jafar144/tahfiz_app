@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/notifications/notification_background_handler.dart';
+import 'package:khoirunnasyien/core/notifications/notification_service.dart';
 import 'package:khoirunnasyien/core/router/app_router.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:khoirunnasyien/core/theme/app_theme.dart';
@@ -13,10 +18,18 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
+  // Handler pesan FCM saat app di background/terminated (harus top-level).
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   await initializeDateFormatting('id_ID', null);
 
   initDI();
+
+  // Inisialisasi notifikasi (izin, channel, listener). Tidak diblok agar
+  // tidak menunda tampilnya UI.
+  unawaited(getIt<NotificationService>().init());
+
   runApp(
     BlocProvider(
       create: (_) => getIt<AuthCubit>(),

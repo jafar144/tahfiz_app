@@ -43,6 +43,7 @@ import 'package:khoirunnasyien/features/family/presentation/pages/family_list_pa
 import 'package:khoirunnasyien/features/family/presentation/pages/family_form_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_assessment_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 
 class AppRouter {
@@ -264,6 +265,11 @@ class AppRouter {
           create: (_) => getIt<AdminAssessmentCubit>(),
           child: const AdminAssessmentPage(),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.monthlyReport,
+        name: RouteNames.monthlyReport,
+        builder: (context, state) => const MonthlyReportListPage(),
       ),
       GoRoute(
         path: RoutePaths.journey,

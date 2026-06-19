@@ -13,6 +13,14 @@ const FUNCTION_OPTIONS = {
   secrets: [DB_PASSWORD],
 };
 
+// Opsi dasar untuk fungsi terjadwal (tanpa secret DB). Jadwal & timeZone
+// ditentukan per-fungsi di handler-nya.
+const SCHEDULE_OPTIONS = {
+  region: "asia-southeast2",
+  timeZone: "Asia/Jakarta",
+  memory: "256MiB",
+};
+
 module.exports = {
   DB_HOST,
   DB_PORT,
@@ -20,4 +28,5 @@ module.exports = {
   DB_NAME,
   DB_PASSWORD,
   FUNCTION_OPTIONS,
+  SCHEDULE_OPTIONS,
 };

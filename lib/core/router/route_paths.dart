@@ -30,6 +30,7 @@ abstract class RoutePaths {
   static const familyForm = '/family_form';
 
   static const adminAssessment = '/admin_assessment';
+  static const monthlyReport = '/monthly_report';
 
   static const journey = '/journey';
 }
