@@ -8,6 +8,11 @@ const {
   notifyAssessmentWindowOpen,
   notifyIncompleteAssessment,
 } = require("./handlers/assessmentNotifier");
+const {
+  notifyPaymentDue,
+  notifyArrearsMidMonth,
+  notifyArrearsMonthEnd,
+} = require("./handlers/paymentNotifier");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -19,3 +24,9 @@ exports.importMonthlyReports = importMonthlyReports;
 // Notifikasi penilaian bulanan (penjadwal harian 19:30 WIB).
 exports.notifyAssessmentWindowOpen = notifyAssessmentWindowOpen;
 exports.notifyIncompleteAssessment = notifyIncompleteAssessment;
+
+// Notifikasi SPP santri reguler (penjadwal 08:00 WIB):
+// tgl 5 ajakan bayar, tgl 15 & 3 hari sebelum akhir bulan pengingat tunggakan.
+exports.notifyPaymentDue = notifyPaymentDue;
+exports.notifyArrearsMidMonth = notifyArrearsMidMonth;
+exports.notifyArrearsMonthEnd = notifyArrearsMonthEnd;

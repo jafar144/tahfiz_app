@@ -95,6 +95,31 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
   > Operator dicocokkan lewat `users.username` (web) = `nis` asatidz Firestore.
   > Mengasumsikan `nilais` punya kolom `created_at`/`updated_at`.
 
+## Notifikasi terjadwal (FCM)
+
+Penjadwal mengirim notifikasi lewat token di koleksi `device_tokens` (per `uid`).
+Perhitungan tanggal memakai zona **WIB** (`lib/jakartaTime.js`).
+
+- **Penilaian bulanan asatidz** (`assessmentNotifier.js`, harian 19:30 WIB):
+  - `notifyAssessmentWindowOpen` — saat window penilaian dibuka (broadcast asatidz).
+  - `notifyIncompleteAssessment` — pengingat penilaian belum lengkap (per asatidz).
+
+- **SPP santri** (`paymentNotifier.js`, 08:00 WIB) — hanya **santri reguler aktif**:
+  `is_active == true` dan **tidak sedang gratis** (`free_until` kosong atau sudah
+  lewat; yang `free_until`-nya masih di masa depan dilewati).
+  - `notifyPaymentDue` — **tiap tanggal 5**: ajakan membayar SPP bulan berjalan
+    (broadcast ke semua santri reguler, ada catatan "abaikan jika sudah bayar").
+  - `notifyArrearsMidMonth` — **tiap tanggal 15**: pengingat **tunggakan** (bulan
+    berjalan + bulan-bulan sebelumnya yang belum ada dokumen `payments`).
+  - `notifyArrearsMonthEnd` — **3 hari sebelum akhir bulan**: pengingat tunggakan
+    yang sama (penjadwal harian, mengirim saat sisa hari = 3).
+  - Bulan mulai tagih = bulan `tanggal_masuk`, atau bulan **setelah** `free_until`
+    bila masa gratis sudah lewat — konsisten dengan `PaymentUtils.resolveStartDate`
+    di app. `bulan`/`tahun` pada `payments` dinormalisasi ke angka (data campur
+    int / "1" / "01").
+  - Tap notifikasi membuka beranda santri (`data.type` = `payment_due` /
+    `payment_arrears`).
+
 ## Setup
 
 ### 1. Install dependency

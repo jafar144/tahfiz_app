@@ -16,6 +16,11 @@ void handleNotificationTap(Map<String, dynamic> data) {
     case 'monthly_assessment_reminder':
       AppRouter.router.push(RoutePaths.monthlyReport);
       break;
+    case 'payment_due':
+    case 'payment_arrears':
+      // Beranda santri menampilkan ringkasan tunggakan + akses data pembayaran.
+      AppRouter.router.push(RoutePaths.home);
+      break;
     default:
       break;
   }
