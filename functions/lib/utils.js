@@ -45,6 +45,33 @@ function dateTimeToJakartaTimestamp(value) {
   );
 }
 
+// Normalisasi nilai tanggal apa pun (string MySQL "YYYY-MM-DD ..." atau
+// Firestore Timestamp) menjadi string "YYYY-MM-DD" di zona Jakarta, agar bisa
+// dibandingkan tanggal-vs-tanggal tanpa terganggu jam/zona. Mengembalikan null
+// bila tidak bisa diparse.
+function toJakartaDateString(value) {
+  if (value === null || value === undefined) return null;
+
+  // Firestore Timestamp (punya toDate) atau objek Date.
+  let date = null;
+  if (typeof value.toDate === "function") date = value.toDate();
+  else if (value instanceof Date) date = value;
+
+  if (date) {
+    if (isNaN(date.getTime())) return null;
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Jakarta",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+
+  // String tanggal (mis. DATE/DATETIME dari MySQL).
+  const m = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
 function passwordFromBirthDate(value) {
   const s = String(value ?? "").trim();
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -72,6 +99,7 @@ module.exports = {
   tipeKelasFromGolongan,
   dateOnlyToJakartaTimestamp,
   dateTimeToJakartaTimestamp,
+  toJakartaDateString,
   passwordFromBirthDate,
   plusYearsJakartaTimestamp,
 };

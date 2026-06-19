@@ -8,6 +8,30 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
   1. Santri yang ada di **Web** tapi **tidak ada di Mobile**
   2. Santri yang ada di **Mobile** tapi **tidak ada di Web**
 
+- `checkBirthDates` — bandingkan **tanggal lahir** Web (MySQL `santris`) vs Mobile
+  (Firestore `santri_profiles`), dicocokkan berdasarkan **NIS**. Menampilkan:
+  1. Santri yang tanggal lahirnya **beda** antara Web & Mobile.
+  2. Santri yang tanggal lahirnya **anomali** — tahun ≥ ambang (default `2024`,
+     ubah dengan `?minYear=2023`), mis. santri baru tak mungkin berumur 2-3 tahun.
+  - Tanggal dinormalisasi ke zona WIB (`YYYY-MM-DD`) agar perbandingan tidak
+    terganggu jam/zona. `?format=json` untuk output JSON.
+
+- `resetSantriPasswords` — **reset password** Firebase Auth santri yang sudah
+  terdaftar (mis. tanggal lahirnya salah saat impor → password ikut salah).
+  Login app pakai email `{nis}@khoirunnasyien.app`; password baru ditentukan
+  **manual per-NIS**:
+  - Kirim `password` eksplisit, **atau** `tanggal_lahir` (`YYYY-MM-DD`) yang akan
+    diturunkan jadi password `YYYYMMDD` (konvensi mobile).
+  - Input: JSON body `{ "items": [ { "nis": "123", "tanggal_lahir": "2010-05-12" },
+    { "nis": "456", "password": "rahasia123" } ] }` — atau satu santri lewat query
+    `?nis=123&tanggal_lahir=2010-05-12`.
+  - **Default DRY-RUN.** Jalankan dulu untuk lihat `preview` (NIS, nama, email,
+    `passwordBaru`), lalu `?apply=true`.
+  - **APPLY butuh token** (langkah sensitif). Set sekali:
+    `firebase functions:secrets:set RESET_TOKEN`, lalu kirim `?token=...` saat apply.
+  - Opsional `?syncProfile=true` → sekalian perbaiki `santri_profiles.tanggal_lahir`
+    bila `tanggal_lahir` diberikan.
+
 - `importSantri` — migrasi santri Web → Mobile:
   - Santri di Web tapi tidak di Mobile → buat akun Auth + dokumen
     `users/{uid}` & `santri_profiles/{uid}`.
@@ -107,6 +131,18 @@ Setelah deploy, jalankan link yang muncul:
 # Rekonsiliasi (read-only)
 https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri
 https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri?format=json
+https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates
+https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?format=json
+https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?minYear=2023
+
+# Reset password santri — LIHAT DULU (dry-run), lalu EKSEKUSI dengan token
+# Satu santri cepat:
+https://asia-southeast2-khoirun-app.cloudfunctions.net/resetSantriPasswords?nis=123&tanggal_lahir=2010-05-12
+https://asia-southeast2-khoirun-app.cloudfunctions.net/resetSantriPasswords?nis=123&tanggal_lahir=2010-05-12&apply=true&token=RAHASIA
+# Banyak santri (POST JSON):
+#   curl -X POST '.../resetSantriPasswords?apply=true&token=RAHASIA' \
+#     -H 'Content-Type: application/json' \
+#     -d '{"items":[{"nis":"123","tanggal_lahir":"2010-05-12"}]}'
 
 # Migrasi — LIHAT DULU (dry-run, tidak menulis)
 https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri

@@ -1,4 +1,6 @@
 const { compareSantri } = require("./handlers/compareSantri");
+const { checkBirthDates } = require("./handlers/checkBirthDates");
+const { resetSantriPasswords } = require("./handlers/resetSantriPasswords");
 const { importSantri } = require("./handlers/importSantri");
 const { importPayments } = require("./handlers/importPayments");
 const { importMonthlyReports } = require("./handlers/importMonthlyReports");
@@ -8,6 +10,8 @@ const {
 } = require("./handlers/assessmentNotifier");
 
 exports.compareSantri = compareSantri;
+exports.checkBirthDates = checkBirthDates;
+exports.resetSantriPasswords = resetSantriPasswords;
 exports.importSantri = importSantri;
 exports.importPayments = importPayments;
 exports.importMonthlyReports = importMonthlyReports;
