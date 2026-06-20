@@ -14,6 +14,9 @@ const {
   notifyArrearsMidMonth,
   notifyArrearsMonthEnd,
 } = require("./handlers/paymentNotifier");
+const {
+  cleanupExpiredSyahadah,
+} = require("./handlers/cleanupExpiredSyahadah");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -32,3 +35,6 @@ exports.notifyIncompleteAssessment = notifyIncompleteAssessment;
 exports.notifyPaymentDue = notifyPaymentDue;
 exports.notifyArrearsMidMonth = notifyArrearsMidMonth;
 exports.notifyArrearsMonthEnd = notifyArrearsMonthEnd;
+
+// Pembersih foto kelulusan kedaluwarsa (>7 hari), jalan tiap Senin 03:00 WIB.
+exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;

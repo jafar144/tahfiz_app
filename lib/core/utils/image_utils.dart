@@ -39,6 +39,36 @@ class ImageUtils {
     return null;
   }
 
+  /// Kompres gambar (JPEG) hingga ukurannya <= [maxBytes] (default 1 MB),
+  /// menurunkan kualitas bertahap bila perlu. Resolusi dijaga (minWidth/Height
+  /// 1080) agar syahadah tetap tajam. Mengembalikan file hasil kompresi.
+  static Future<File?> compressToMaxSize(
+    File file, {
+    int maxBytes = 1024 * 1024,
+  }) async {
+    final directory = await getTemporaryDirectory();
+    int quality = 90;
+    File? result;
+
+    for (var i = 0; i < 6; i++) {
+      final targetPath = '${directory.path}/${const Uuid().v4()}.jpg';
+      final out = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: quality,
+        minWidth: 1080,
+        minHeight: 1080,
+        format: CompressFormat.jpeg,
+      );
+      if (out == null) return result;
+      result = File(out.path);
+      if (await result.length() <= maxBytes) return result;
+      quality -= 15;
+      if (quality < 30) break;
+    }
+    return result;
+  }
+
   /// Uploads file to Firebase Storage under the given path
   static Future<String?> uploadImageToFirebase(File file, String path, {String? fileName}) async {
     try {

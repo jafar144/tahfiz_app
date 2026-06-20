@@ -15,6 +15,7 @@ import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
 import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_summary_card.dart';
+import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_carousel.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -71,6 +72,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 children: [
                   _buildHeader(state),
                   _buildJourneySection(state),
+                  const KelulusanCarousel(),
                   _buildPaymentStatus(state),
                   // _buildMenuSection(context),
                   // if (state.latestSetoran != null) _buildLatestSetoran(state),

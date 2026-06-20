@@ -130,6 +130,13 @@ Perhitungan tanggal memakai zona **WIB** (`lib/jakartaTime.js`).
   - Tap notifikasi membuka beranda santri (`data.type` = `payment_due` /
     `payment_arrears`).
 
+- **Pembersih foto kelulusan** (`cleanupExpiredSyahadah.js`, **tiap Senin 03:00
+  WIB**): menghapus entri koleksi `kelulusan` yang `created_at`-nya lebih dari
+  **7 hari** beserta file gambarnya di Storage (`syahadah_photos/`), agar storage
+  tidak penuh. Path file diambil dari `image_url`. Di app, carousel kelulusan
+  hanya menampilkan entri ≤ 7 hari, jadi yang kedaluwarsa sudah tidak tampil
+  meski belum sempat dibersihkan.
+
 ## Setup
 
 ### 1. Install dependency

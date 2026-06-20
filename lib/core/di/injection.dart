@@ -65,6 +65,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthl
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
 import 'package:khoirunnasyien/features/family/data/family_repository.dart';
+import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
 
 
@@ -280,6 +281,11 @@ Future<void> initDI() async {
   // Family
   getIt.registerLazySingleton(
     () => FamilyRepository(getIt()),
+  );
+
+  // Kelulusan (syahadah)
+  getIt.registerLazySingleton(
+    () => KelulusanRepository(getIt()),
   );
 
   getIt.registerFactory(

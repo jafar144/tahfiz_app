@@ -4,12 +4,15 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
@@ -56,6 +59,42 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
 
 
 
+  Future<bool?> _showConfirmDialog() {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: Colors.blue),
+            SizedBox(width: 10),
+            Expanded(child: Text('Konfirmasi Kelulusan')),
+          ],
+        ),
+        content: const Text(
+          'Foto kelulusan ini akan ditampilkan pada daftar Kelulusan Santri '
+          'di halaman Home semua santri, lalu dibagikan.\n\nLanjutkan?',
+          style: TextStyle(height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Batal',
+                style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Lanjut & Bagikan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _generateAndShare() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSantri == null) {
@@ -76,6 +115,9 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       return;
     }
 
+    final confirmed = await _showConfirmDialog();
+    if (confirmed != true) return;
+
     setState(() => _isGenerating = true);
 
     try {
@@ -94,10 +136,35 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final imagePath =
           '${directory.path}/syahadah_${_selectedSantri!.name.replaceAll(' ', '_')}_$timestamp.png';
-      final file = File(imagePath);
-      await file.writeAsBytes(pngBytes);
+      final rawFile = File(imagePath);
+      await rawFile.writeAsBytes(pngBytes);
 
-      final xfile = XFile(imagePath);
+      // Kompres hingga maksimal 1 MB (hemat storage & ringan dibagikan).
+      final file = await ImageUtils.compressToMaxSize(rawFile) ?? rawFile;
+
+      // Simpan ke Storage + catat di koleksi kelulusan agar tampil di
+      // carousel Home santri. Bila gagal, tetap lanjut membagikan.
+      final url =
+          await ImageUtils.uploadImageToFirebase(file, 'syahadah_photos');
+      if (url != null) {
+        await getIt<KelulusanRepository>().addKelulusan(
+          santriId: _selectedSantri!.id,
+          santriName: _namaController.text,
+          kelas: _selectedSantri!.kelas,
+          hafalan: _hafalanController.text,
+          imageUrl: url,
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Foto gagal disimpan ke daftar kelulusan, tetapi tetap dibagikan.',
+            ),
+          ),
+        );
+      }
+
+      final xfile = XFile(file.path);
       await SharePlus.instance.share(
         ShareParams(
           files: [xfile]
