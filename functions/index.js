@@ -4,6 +4,7 @@ const { resetSantriPasswords } = require("./handlers/resetSantriPasswords");
 const { importSantri } = require("./handlers/importSantri");
 const { importPayments } = require("./handlers/importPayments");
 const { importMonthlyReports } = require("./handlers/importMonthlyReports");
+const { groupPengajarSantri } = require("./handlers/groupPengajarSantri");
 const {
   notifyAssessmentWindowOpen,
   notifyIncompleteAssessment,
@@ -20,6 +21,7 @@ exports.resetSantriPasswords = resetSantriPasswords;
 exports.importSantri = importSantri;
 exports.importPayments = importPayments;
 exports.importMonthlyReports = importMonthlyReports;
+exports.groupPengajarSantri = groupPengajarSantri;
 
 // Notifikasi penilaian bulanan (penjadwal harian 19:30 WIB).
 exports.notifyAssessmentWindowOpen = notifyAssessmentWindowOpen;

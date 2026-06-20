@@ -95,6 +95,16 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
   > Operator dicocokkan lewat `users.username` (web) = `nis` asatidz Firestore.
   > Mengasumsikan `nilais` punya kolom `created_at`/`updated_at`.
 
+- `groupPengajarSantri` — **read-only**, mengelompokkan pengajar & santri yang
+  diajar langsung dari data website (MySQL). Grouping per **pembimbing**
+  (`santris.pembimbing_id` → `users.id`) **dan per sesi** (`santris.golongan`),
+  jadi satu ustadz yang mengajar mis. "Putra Sore" dan "Putra Malam" tampil
+  sebagai dua grup terpisah. Tiap grup berisi: nama pengajar, sesi, dan daftar
+  santri (NIS + nama). Tampil sebagai HTML; tambahkan `?format=json` untuk JSON.
+
+  > Mengasumsikan tabel `santris` punya kolom `pembimbing_id` (FK ke `users.id`)
+  > dan `golongan`. Santri tanpa `pembimbing_id` masuk grup "(tanpa pembimbing)".
+
 ## Notifikasi terjadwal (FCM)
 
 Penjadwal mengirim notifikasi lewat token di koleksi `device_tokens` (per `uid`).
@@ -159,6 +169,8 @@ https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri?format=json
 https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates
 https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?format=json
 https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?minYear=2023
+https://asia-southeast2-khoirun-app.cloudfunctions.net/groupPengajarSantri
+https://asia-southeast2-khoirun-app.cloudfunctions.net/groupPengajarSantri?format=json
 
 # Reset password santri — LIHAT DULU (dry-run), lalu EKSEKUSI dengan token
 # Satu santri cepat:
