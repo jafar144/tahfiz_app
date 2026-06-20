@@ -125,56 +125,58 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
               const SizedBox(height: 24),
 
-              const Text('Management', style: AppTextStyles.mediumContentBlack),
+              const Text('Menu', style: AppTextStyles.mediumContentBlack),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.2,
-                children: [
-                  MenuCard(
-                    icon: Icons.payments_rounded,
-                    title: 'Pembayaran',
-                    subtitle: 'Input Pembayaran',
-                    onTap: () => context.pushNamed(RouteNames.adminPayment),
-                  ),
-                  MenuCard(
-                    icon: Icons.bar_chart_rounded,
-                    title: 'Laporan Keuangan',
-                    subtitle: 'Dashboard Keuangan',
-                    onTap: () => context.pushNamed(RouteNames.financialReport),
-                  ),
-                  MenuCard(
-                    icon: Icons.calendar_month_rounded,
-                    title: 'Halaqah',
-                    subtitle: 'Manajemen Halaqah',
-                    onTap: () => context.pushNamed(RouteNames.adminSchedule),
-                  ),
-                  MenuCard(
-                    icon: Icons.workspace_premium_rounded,
-                    title: 'Kelulusan',
-                    subtitle: 'Foto Kelulusan',
-                    onTap: () => context.pushNamed(RouteNames.adminSyahadah),
-                  ),
-                  MenuCard(
-                    icon: Icons.family_restroom_rounded,
-                    title: 'Keluarga',
-                    subtitle: 'Kelola Keluarga',
-                    onTap: () => context.pushNamed(RouteNames.adminFamily),
-                  ),
-                  MenuCard(
-                    icon: Icons.fact_check_rounded,
-                    title: 'Penilaian',
-                    subtitle: 'Monitoring Penilaian',
-                    onTap: () => context.pushNamed(RouteNames.adminAssessment),
-                  ),
-                ],
-              ),
+              _menuSection('Akademik', [
+                MenuCard(
+                  icon: Icons.calendar_month_rounded,
+                  title: 'Halaqah',
+                  color: Colors.indigo,
+                  onTap: () => context.pushNamed(RouteNames.adminSchedule),
+                ),
+                MenuCard(
+                  icon: Icons.fact_check_rounded,
+                  title: 'Penilaian',
+                  color: Colors.teal,
+                  onTap: () => context.pushNamed(RouteNames.adminAssessment),
+                ),
+                MenuCard(
+                  icon: Icons.workspace_premium_rounded,
+                  title: 'Kelulusan',
+                  color: Colors.amber.shade700,
+                  onTap: () => context.pushNamed(RouteNames.adminSyahadah),
+                ),
+              ]),
+
+              const SizedBox(height: 20),
+
+              _menuSection('Keuangan', [
+                MenuCard(
+                  icon: Icons.payments_rounded,
+                  title: 'Pembayaran',
+                  color: Colors.green,
+                  onTap: () => context.pushNamed(RouteNames.adminPayment),
+                ),
+                MenuCard(
+                  icon: Icons.bar_chart_rounded,
+                  title: 'Laporan Keuangan',
+                  color: Colors.blue,
+                  onTap: () => context.pushNamed(RouteNames.financialReport),
+                ),
+              ]),
+
+              const SizedBox(height: 20),
+
+              _menuSection('Lainnya', [
+                MenuCard(
+                  icon: Icons.family_restroom_rounded,
+                  title: 'Keluarga',
+                  color: Colors.deepPurple,
+                  onTap: () => context.pushNamed(RouteNames.adminFamily),
+                ),
+              ]),
             ],
           ),
         ),
@@ -184,5 +186,24 @@ class _AdminHomePageState extends State<AdminHomePage> {
   
   String _formatValue(int value) {
     return value.toString();
+  }
+
+  Widget _menuSection(String title, List<Widget> cards) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: AppTextStyles.infoGrey),
+        const SizedBox(height: 8),
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 3,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.0,
+          children: cards,
+        ),
+      ],
+    );
   }
 }
