@@ -189,7 +189,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      icon: Icons.calendar_today,
                      label: 'Tanggal Masuk',
                      value: detail.tanggalMasuk != null
-                         ? DateFormat('dd MMMM yyyy').format(detail.tanggalMasuk!)
+                         ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalMasuk!)
                          : '-',
                    ),
                 ]),
@@ -206,7 +206,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      icon: Icons.cake,
                      label: 'Tanggal Lahir',
                      value: detail.tanggalLahir != null
-                         ? DateFormat('dd MMMM yyyy').format(detail.tanggalLahir!)
+                         ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalLahir!)
                          : '-',
                    ),
                    AiwaDetailInfoRow(
