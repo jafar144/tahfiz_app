@@ -6,14 +6,44 @@ import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_tim
 import 'package:khoirunnasyien/features/journey/presentation/widgets/level_detail_sheet.dart';
 
 /// Halaman peta perjalanan tahfiz santri (seluruh tingkat).
-class JourneyPage extends StatelessWidget {
+///
+/// Tingkat ditampilkan dari bawah ke atas: tingkat 1 di paling bawah, tingkat
+/// tertinggi di paling atas. Saat dibuka, posisi awal berada di bawah lalu
+/// santri scroll ke atas untuk melihat tingkat-tingkat berikutnya.
+class JourneyPage extends StatefulWidget {
   final String? currentKelas;
 
   const JourneyPage({super.key, required this.currentKelas});
 
   @override
+  State<JourneyPage> createState() => _JourneyPageState();
+}
+
+class _JourneyPageState extends State<JourneyPage> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Mulai dari posisi paling bawah (tingkat 1).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final info = JourneyBuilder.build(currentKelas);
+    final info = JourneyBuilder.build(widget.currentKelas);
+    // Urutan tampil dibalik: tingkat tertinggi di atas, tingkat 1 di bawah.
+    final levels = info.levels.reversed.toList();
 
     return Scaffold(
       backgroundColor: JourneyColors.sand,
@@ -22,6 +52,7 @@ class JourneyPage extends StatelessWidget {
           _Banner(info: info),
           Expanded(
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 40),
               children: [
                 const Padding(
@@ -36,13 +67,17 @@ class JourneyPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                for (var i = 0; i < info.levels.length; i++)
+                for (var i = 0; i < levels.length; i++)
                   JourneyTimelineTile(
-                    level: info.levels[i],
+                    level: levels[i],
                     total: info.total,
-                    isLast: i == info.levels.length - 1,
-                    onTap: () => LevelDetailSheet.show(
-                        context, info.levels[i], info.total),
+                    isLast: i == levels.length - 1,
+                    // Garis ke tile di bawahnya (tingkat lebih rendah) berwarna
+                    // emas bila tingkat tersebut sudah diselesaikan.
+                    connectorDone:
+                        i < levels.length - 1 && levels[i + 1].isCompleted,
+                    onTap: () =>
+                        LevelDetailSheet.show(context, levels[i], info.total),
                   ),
               ],
             ),

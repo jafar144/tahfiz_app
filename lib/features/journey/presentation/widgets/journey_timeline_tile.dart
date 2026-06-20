@@ -7,6 +7,10 @@ class JourneyTimelineTile extends StatelessWidget {
   final JourneyLevel level;
   final int total;
   final bool isLast;
+
+  /// Apakah garis penghubung ke tile di bawahnya (tingkat lebih rendah)
+  /// sudah ditempuh (emas solid) atau belum (putus-putus).
+  final bool connectorDone;
   final VoidCallback onTap;
 
   const JourneyTimelineTile({
@@ -14,6 +18,7 @@ class JourneyTimelineTile extends StatelessWidget {
     required this.level,
     required this.total,
     required this.isLast,
+    required this.connectorDone,
     required this.onTap,
   });
 
@@ -31,7 +36,7 @@ class JourneyTimelineTile extends StatelessWidget {
                 if (!isLast)
                   Expanded(
                     child: CustomPaint(
-                      painter: _ConnectorPainter(done: level.isCompleted),
+                      painter: _ConnectorPainter(done: connectorDone),
                       size: const Size(56, double.infinity),
                     ),
                   ),
