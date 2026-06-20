@@ -106,7 +106,8 @@ class SantriCubit extends Cubit<SantriState> {
     try {
       String? finalPhotoUrl = params.photoUrl;
 
-      if (params.localPhotoFile != null) {
+      // Santri non-aktif tidak menyimpan foto agar tidak membebani Storage.
+      if (params.isActive && params.localPhotoFile != null) {
         finalPhotoUrl = await ImageUtils.uploadImageToFirebase(
           params.localPhotoFile!,
           'santri_photos',
@@ -115,6 +116,8 @@ class SantriCubit extends Cubit<SantriState> {
           emit(SantriError('Gagal mengupload foto'));
           return;
         }
+      } else if (!params.isActive) {
+        finalPhotoUrl = null;
       }
 
       final finalParams = SantriParams(
@@ -130,6 +133,7 @@ class SantriCubit extends Cubit<SantriState> {
         tipeKelas: params.tipeKelas,
         entryDate: params.entryDate,
         isFree: params.isFree,
+        isActive: params.isActive,
         freeUntil: params.freeUntil,
         photoUrl: finalPhotoUrl,
       );

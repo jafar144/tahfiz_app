@@ -24,8 +24,17 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
     emit(SantriDetailLoading());
     try {
       String? finalPhotoUrl = params.photoUrl;
+      bool removePhoto = params.removePhoto && params.localPhotoFile == null;
 
-      if (params.localPhotoFile != null) {
+      if (!params.isActive) {
+        // Santri non-aktif: hapus foto dari Storage & kosongkan url agar tidak
+        // membebani memori. Foto baru yang dipilih pun tidak diunggah.
+        if (params.photoUrl != null && params.photoUrl!.isNotEmpty) {
+          await ImageUtils.deleteImageFromFirebase(params.photoUrl!);
+        }
+        finalPhotoUrl = null;
+        removePhoto = true;
+      } else if (params.localPhotoFile != null) {
         if (params.photoUrl != null && params.photoUrl!.isNotEmpty) {
           await ImageUtils.deleteImageFromFirebase(params.photoUrl!);
         }
@@ -62,7 +71,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
         isActive: params.isActive,
         freeUntil: params.freeUntil,
         photoUrl: finalPhotoUrl,
-        removePhoto: params.removePhoto && params.localPhotoFile == null,
+        removePhoto: removePhoto,
       );
 
       await repository.updateSantri(id, finalParams);
