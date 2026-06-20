@@ -93,6 +93,37 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
     );
   }
 
+  Future<void> deleteHalaqah() async {
+    final currentState = state;
+    Halaqah? currentHalaqah;
+
+    if (currentState is HalaqahDetailInitial) {
+      currentHalaqah = currentState.halaqah;
+    } else if (currentState is HalaqahDetailLoaded) {
+      currentHalaqah = currentState.halaqah;
+    }
+
+    if (currentHalaqah == null) {
+      emit(const HalaqahDetailError("Data halaqah tidak ditemukan"));
+      return;
+    }
+
+    final previousState = state;
+    emit(HalaqahDetailDeleting());
+
+    final result = await scheduleRepository.deleteHalaqah(currentHalaqah.id);
+
+    result.fold(
+      ifLeft: (failure) {
+        // Tampilkan error (untuk listener/snackbar) lalu kembalikan tampilan
+        // detail sebelumnya agar halaman tidak berubah menjadi layar error.
+        emit(HalaqahDetailError(failure.message));
+        emit(previousState);
+      },
+      ifRight: (_) => emit(HalaqahDetailDeleted()),
+    );
+  }
+
   Future<void> updateHalaqah(Halaqah updatedHalaqah, List<String> newSantriIds, List<String> removedSantriIds) async {
     final previousState = state;
 

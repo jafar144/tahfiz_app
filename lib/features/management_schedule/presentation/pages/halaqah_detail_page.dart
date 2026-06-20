@@ -39,6 +39,13 @@ class HalaqahDetailPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: 'Hapus Halaqah',
+            onPressed: () => _confirmDelete(context),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -48,9 +55,23 @@ class HalaqahDetailPage extends StatelessWidget {
         backgroundColor: Colors.blue,
         child: const Icon(Icons.edit, color: Colors.white),
       ),
-      body: BlocBuilder<HalaqahDetailCubit, HalaqahDetailState>(
+      body: BlocConsumer<HalaqahDetailCubit, HalaqahDetailState>(
+        listener: (context, state) {
+          if (state is HalaqahDetailDeleted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Halaqah berhasil dihapus')),
+            );
+            context.pop();
+          } else if (state is HalaqahDetailError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message)),
+            );
+          }
+        },
         builder: (context, state) {
-          if (state is HalaqahDetailLoading) {
+          if (state is HalaqahDetailLoading ||
+              state is HalaqahDetailDeleting ||
+              state is HalaqahDetailDeleted) {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is HalaqahDetailError) {
@@ -84,6 +105,35 @@ class HalaqahDetailPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final cubit = context.read<HalaqahDetailCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Hapus Halaqah'),
+        content: const Text(
+          'Yakin ingin menghapus halaqah ini? Semua santri akan dilepas dari '
+          'halaqah ini. Tindakan ini tidak dapat dibatalkan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      cubit.deleteHalaqah();
+    }
   }
 
   Widget _buildHeaderCard(BuildContext context, Halaqah halaqah) {

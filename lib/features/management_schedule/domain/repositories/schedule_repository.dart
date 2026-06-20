@@ -16,6 +16,7 @@ abstract class ScheduleRepository {
   Future<Either<Failure, List<Halaqah>>> getAllHalaqahs();
   Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah, List<String> newSantriIds, List<String> removedSantriIds);
   Future<Either<Failure, void>> createHalaqah(Halaqah halaqah, List<String> santriIds);
+  Future<Either<Failure, void>> deleteHalaqah(String halaqahId);
   Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(String santriId);
   Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(String halaqahId);
   Future<Either<Failure, void>> migrateHalaqahIds();

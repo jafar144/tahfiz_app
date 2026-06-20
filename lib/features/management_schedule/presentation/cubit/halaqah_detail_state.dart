@@ -59,6 +59,10 @@ class HalaqahDetailUpdating extends HalaqahDetailState {}
 
 class HalaqahDetailSuccess extends HalaqahDetailState {}
 
+class HalaqahDetailDeleting extends HalaqahDetailState {}
+
+class HalaqahDetailDeleted extends HalaqahDetailState {}
+
 class HalaqahDetailError extends HalaqahDetailState {
   final String message;
   const HalaqahDetailError(this.message);
