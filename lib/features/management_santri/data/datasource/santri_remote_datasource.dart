@@ -24,6 +24,12 @@ abstract class SantriRemoteDataSource {
   Future<void> addSantri(SantriParams params);
 
   Future<void> updateSantri(String id, SantriParams params);
-  
+
   Future<List<SantriEntity>> getSantriByIds(List<String> ids);
+
+  /// NIS otomatis berikutnya = NIS numerik tertinggi yang ada + 1.
+  Future<String> getNextNis();
+
+  /// Cek apakah sebuah NIS sudah dipakai santri lain.
+  Future<bool> isNisTaken(String nis);
 }

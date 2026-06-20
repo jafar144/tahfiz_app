@@ -122,6 +122,12 @@ class SantriRepositoryImpl implements SantriRepository {
   }
 
   @override
+  Future<String> getNextNis() => remote.getNextNis();
+
+  @override
+  Future<bool> isNisTaken(String nis) => remote.isNisTaken(nis);
+
+  @override
   Future<void> updateSantri(String id, SantriParams params) async {
     await remote.updateSantri(id, params);
   }

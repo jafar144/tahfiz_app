@@ -101,9 +101,18 @@ class SantriCubit extends Cubit<SantriState> {
     }
   }
 
+  /// NIS otomatis berikutnya untuk form tambah santri.
+  Future<String> getNextNis() => repository.getNextNis();
+
   Future<void> addSantri(SantriParams params) async {
     emit(SantriLoading());
     try {
+      // Pastikan NIS unik (field boleh diedit admin) sebelum membuat akun.
+      if (await repository.isNisTaken(params.nis)) {
+        emit(SantriError('NIS ${params.nis} sudah dipakai. Gunakan NIS lain.'));
+        return;
+      }
+
       String? finalPhotoUrl = params.photoUrl;
 
       // Santri non-aktif tidak menyimpan foto agar tidak membebani Storage.
