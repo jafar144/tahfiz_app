@@ -377,7 +377,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             final result = await context.pushNamed(
               RouteNames.selectSantri,
               extra: {
-                'gender': null,
+                'gender': state.gender.isNotEmpty ? state.gender : null,
                 'initialSelection': initialEntities,
                 'disabledIds': unavailable,
                 'isMultiSelect': true,

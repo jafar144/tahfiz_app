@@ -21,9 +21,13 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
   final List<SantriEntity> santriList;
   final List<String> unavailableTeacherIds;
   final List<String> unavailableSantriIds;
-  
+
+  /// Gender halaqah ('L'/'P'), diturunkan dari program/sesi. Dipakai untuk
+  /// memfilter pilihan santri agar sesuai jenis kelamin halaqah.
+  final String gender;
+
   final bool isSubmitting;
-  
+
   const HalaqahDetailLoaded({
     required this.halaqah,
     this.schedules = const [],
@@ -31,6 +35,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
     this.santriList = const [],
     this.unavailableTeacherIds = const [],
     this.unavailableSantriIds = const [],
+    this.gender = '',
     this.isSubmitting = false,
   });
 
@@ -41,6 +46,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
     List<SantriEntity>? santriList,
     List<String>? unavailableTeacherIds,
     List<String>? unavailableSantriIds,
+    String? gender,
     bool? isSubmitting,
   }) {
     return HalaqahDetailLoaded(
@@ -50,6 +56,7 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
       santriList: santriList ?? this.santriList,
       unavailableTeacherIds: unavailableTeacherIds ?? this.unavailableTeacherIds,
       unavailableSantriIds: unavailableSantriIds ?? this.unavailableSantriIds,
+      gender: gender ?? this.gender,
       isSubmitting: isSubmitting ?? this.isSubmitting,
     );
   }

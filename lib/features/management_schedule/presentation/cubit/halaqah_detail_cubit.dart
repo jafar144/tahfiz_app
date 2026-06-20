@@ -39,6 +39,7 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
     try {
       final schedulesResult = await scheduleRepository.getSchedules(programId: currentHalaqah.programId);
       final santrisResult = await scheduleRepository.getSantrisByHalaqahId(currentHalaqah.id);
+      final programResult = await scheduleRepository.getProgramById(currentHalaqah.programId);
 
       final schedules = schedulesResult.fold(
         ifLeft: (_) => <ProgramSchedule>[],
@@ -50,10 +51,16 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
         ifRight: (s) => s,
       );
 
+      final gender = programResult.fold(
+        ifLeft: (_) => '',
+        ifRight: (p) => p.gender,
+      );
+
       emit(HalaqahDetailLoaded(
         halaqah: currentHalaqah,
         schedules: schedules,
         santriList: santris,
+        gender: gender,
       ));
 
       if (currentHalaqah.scheduleIds.isNotEmpty) {
@@ -157,10 +164,15 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
           ifRight: (s) => s,
         );
 
+        final gender = previousState is HalaqahDetailLoaded
+            ? previousState.gender
+            : '';
+
         emit(HalaqahDetailLoaded(
           halaqah: updatedHalaqah,
           schedules: schedules,
           santriList: santris,
+          gender: gender,
         ));
 
         if (updatedHalaqah.scheduleIds.isNotEmpty) {
