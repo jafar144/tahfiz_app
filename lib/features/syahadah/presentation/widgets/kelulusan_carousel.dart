@@ -14,7 +14,10 @@ class KelulusanCarousel extends StatefulWidget {
 }
 
 class _KelulusanCarouselState extends State<KelulusanCarousel> {
-  final _controller = PageController(viewportFraction: 0.82);
+  // Satu-satunya pengatur ukuran kartu: makin kecil makin kecil pula kartunya.
+  // Tinggi kartu mengikuti rasio poster (4:5) secara otomatis.
+  static const _viewportFraction = 0.55;
+  final _controller = PageController(viewportFraction: _viewportFraction);
   Timer? _timer;
   List<KelulusanEntity> _items = [];
   bool _loading = true;
@@ -105,9 +108,9 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
                   size: 18, color: Color(0xFFB8860B)),
               const SizedBox(width: 6),
               const Text(
-                'Kelulusan Santri',
+                'Kelulusan Santri Minggu Ini',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -116,12 +119,25 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 320,
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: _items.length,
-              onPageChanged: (i) => setState(() => _current = i),
-              itemBuilder: (context, i) => _buildCard(_items[i]),
+            height: 270,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Tembus padding horizontal induk (16px kiri/kanan dari
+                // santri_home_page) agar kartu samping yang mengintip tidak
+                // terlihat terpotong di tepi.
+                const parentHPadding = 16.0;
+                return OverflowBox(
+                  maxWidth: constraints.maxWidth + parentHPadding * 2,
+                  minHeight: 270,
+                  maxHeight: 270,
+                  child: PageView.builder(
+                    controller: _controller,
+                    itemCount: _items.length,
+                    onPageChanged: (i) => setState(() => _current = i),
+                    itemBuilder: (context, i) => _buildCard(_items[i]),
+                  ),
+                );
+              },
             ),
           ),
           if (_items.length > 1) ...[

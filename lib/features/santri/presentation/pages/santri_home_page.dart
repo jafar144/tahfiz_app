@@ -331,7 +331,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
           const Text(
             'Informasi SPP',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -382,7 +382,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                           Text(
                             statusTitle,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: accentDark,
                             ),
@@ -391,7 +391,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                           Text(
                             statusSubtitle,
                             style: TextStyle(
-                              fontSize: 12.5,
+                              fontSize: 11.5,
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -418,24 +418,24 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     },
                     borderRadius: BorderRadius.circular(10),
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
                           Icon(Icons.receipt_long_rounded,
-                              size: 18, color: primary),
+                              size: 16, color: primary),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Lihat Data Pembayaran',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: primary,
                               ),
                             ),
                           ),
                           Icon(Icons.chevron_right_rounded,
-                              size: 20, color: primary),
+                              size: 16, color: primary),
                         ],
                       ),
                     ),
@@ -588,7 +588,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
           const Text(
             'Penilaian Terakhir',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -612,7 +612,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
           const Text(
             'Pengajar',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
             ),
@@ -637,12 +637,12 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 Row(
                   children: [
                     CircleAvatar(
-                      radius: 26,
+                      radius: 22,
                       backgroundColor: primary.withValues(alpha: 0.1),
                       child: Text(
                         _getInitials(state.pembimbingName!),
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: primary,
                         ),
@@ -656,7 +656,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                           Text(
                             state.pembimbingDisplayName!,
                             style: const TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF111827),
                             ),
@@ -695,11 +695,11 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () => _launchWhatsApp(phone),
-                      icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+                      icon: const Icon(Icons.chat_bubble_rounded, size: 14),
                       label: const Text(
                         'Hubungi via WhatsApp',
                         style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600),
+                            fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF25D366),
