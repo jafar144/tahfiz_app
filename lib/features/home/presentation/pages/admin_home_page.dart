@@ -133,19 +133,19 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.calendar_month_rounded,
                   title: 'Halaqah',
-                  color: Colors.indigo,
+                  color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminSchedule),
                 ),
                 MenuCard(
                   icon: Icons.fact_check_rounded,
                   title: 'Penilaian',
-                  color: Colors.teal,
+                  color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminAssessment),
                 ),
                 MenuCard(
                   icon: Icons.workspace_premium_rounded,
                   title: 'Kelulusan',
-                  color: Colors.amber.shade700,
+                  color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminSyahadah),
                 ),
               ]),
@@ -156,7 +156,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.payments_rounded,
                   title: 'Pembayaran',
-                  color: Colors.green,
+                  color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminPayment),
                 ),
                 MenuCard(
@@ -173,7 +173,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.family_restroom_rounded,
                   title: 'Keluarga',
-                  color: Colors.deepPurple,
+                  color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminFamily),
                 ),
               ]),
