@@ -9,10 +9,12 @@ import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/constants/app_constants.dart';
+import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 
 class EditSantriPage extends StatefulWidget {
   final SantriDetail santri;
@@ -209,7 +211,34 @@ class _EditSantriPageState extends State<EditSantriPage> {
     });
   }
 
-  void _submit() {
+  /// Konfirmasi mengeluarkan santri dari halaqah saat status diubah ke
+  /// Tidak Aktif. Mengembalikan true bila admin menyetujui.
+  Future<bool?> _confirmLeaveHalaqah(String halaqahName) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Keluarkan dari Halaqah?'),
+        content: Text(
+          'Santri ini masih terhubung dengan halaqah "$halaqahName". '
+          'Karena status diubah menjadi Tidak Aktif, santri akan dikeluarkan '
+          'dari halaqah tersebut. Lanjutkan?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Keluarkan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_birthDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -230,7 +259,40 @@ class _EditSantriPageState extends State<EditSantriPage> {
         return;
       }
 
+      // Bila status diubah ke Tidak Aktif & santri masih terhubung ke halaqah,
+      // minta konfirmasi untuk mengeluarkannya terlebih dahulu.
+      final scheduleRepo = getIt<ScheduleRepository>();
+      bool leaveHalaqah = false;
+      if (!_isActive) {
+        final halaqahResult =
+            await scheduleRepo.getHalaqahBySantriId(widget.santri.id);
+        if (!mounted) return;
+        final halaqah = halaqahResult.fold(ifLeft: (_) => null, ifRight: (h) => h);
+        if (halaqah != null) {
+          final confirmed = await _confirmLeaveHalaqah(halaqah.name);
+          if (!mounted || confirmed != true) return;
+          leaveHalaqah = true;
+        }
+      }
+
       setState(() => _isLoading = true);
+
+      // Keluarkan santri dari halaqah lebih dulu (bila dikonfirmasi).
+      if (leaveHalaqah) {
+        final removeResult =
+            await scheduleRepo.removeSantriFromHalaqah(widget.santri.id);
+        if (!mounted) return;
+        final failure = removeResult.fold(ifLeft: (f) => f, ifRight: (_) => null);
+        if (failure != null) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal mengeluarkan dari halaqah: ${failure.message}'),
+            ),
+          );
+          return;
+        }
+      }
 
       final params = SantriParams(
         name: _nameController.text,

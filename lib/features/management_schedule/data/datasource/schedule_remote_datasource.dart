@@ -17,6 +17,7 @@ abstract class ScheduleRemoteDataSource {
   Future<void> createHalaqah(HalaqahModel halaqah, List<String> santriIds);
   Future<void> deleteHalaqah(String halaqahId);
   Future<HalaqahModel?> getHalaqahBySantriId(String santriId);
+  Future<void> removeSantriFromHalaqah(String santriId);
   Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId);
   Future<void> migrateHalaqahIds();
 }
@@ -201,6 +202,23 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
       status: halaqah.status,
       santriCount: countQuery.count ?? 0,
     );
+  }
+
+  @override
+  Future<void> removeSantriFromHalaqah(String santriId) async {
+    final santriRef = firestore.collection('santri_profiles').doc(santriId);
+    final santriDoc = await santriRef.get();
+    if (!santriDoc.exists) return;
+
+    final halaqahId = santriDoc.data()?['halaqah_id'] as String?;
+    if (halaqahId == null || halaqahId.isEmpty) return;
+
+    final batch = firestore.batch();
+    batch.update(santriRef, {'halaqah_id': FieldValue.delete()});
+    batch.update(firestore.collection('halaqahs').doc(halaqahId), {
+      'santri_count': FieldValue.increment(-1),
+    });
+    await batch.commit();
   }
 
   @override
