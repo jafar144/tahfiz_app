@@ -10,6 +10,8 @@ import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repo
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
+import 'package:khoirunnasyien/features/family/data/family_repository.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 
 class SantriHomeCubit extends Cubit<SantriHomeState> {
   final SantriRepository santriRepository;
@@ -18,6 +20,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
   final AsatidzRepository asatidzRepository;
   final mgmt_asatidz_domain.AsatidzRepository mgmtAsatidzRepository;
   final MonthlyReportRepository monthlyReportRepository;
+  final FamilyRepository familyRepository;
 
   SantriHomeCubit({
     required this.santriRepository,
@@ -26,6 +29,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     required this.asatidzRepository,
     required this.mgmtAsatidzRepository,
     required this.monthlyReportRepository,
+    required this.familyRepository,
   }) : super(const SantriHomeState());
 
   static String? overrideSantriId;
@@ -118,8 +122,23 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         ifRight: (r) => latestReport = r,
       );
 
+      // 6. Fetch saudara (akun lain dalam satu keluarga) untuk fitur ganti akun.
+      final List<SantriDetail> familyMembers = [];
+      try {
+        final family = await familyRepository.getFamilyBySantriId(santriId);
+        if (family != null && family.santriIds.length >= 2) {
+          final otherIds =
+              family.santriIds.where((id) => id != santriId).toList();
+          for (final id in otherIds) {
+            try {
+              familyMembers.add(await santriRepository.getSantriDetail(id));
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
       if (isClosed) return;
-      
+
       emit(state.copyWith(
         status: SantriHomeStatus.success,
         santri: santri,
@@ -130,6 +149,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         pembimbingPhone: pembimbingPhone,
         pembimbingGender: pembimbingGender,
         latestReport: latestReport,
+        familyMembers: familyMembers,
       ));
     } catch (e) {
       if (isClosed) return;

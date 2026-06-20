@@ -20,6 +20,9 @@ class SantriHomeState {
   final String? pembimbingGender;
   final MonthlyReport? latestReport;
 
+  /// Saudara (akun lain dalam satu keluarga) untuk fitur ganti akun di home.
+  final List<SantriDetail> familyMembers;
+
   const SantriHomeState({
     this.status = SantriHomeStatus.initial,
     this.message,
@@ -31,6 +34,7 @@ class SantriHomeState {
     this.pembimbingPhone,
     this.pembimbingGender,
     this.latestReport,
+    this.familyMembers = const [],
   });
 
   /// Nama pembimbing lengkap dengan gelar, mis. "Ustadz Fulan".
@@ -55,6 +59,7 @@ class SantriHomeState {
     String? pembimbingPhone,
     String? pembimbingGender,
     MonthlyReport? latestReport,
+    List<SantriDetail>? familyMembers,
   }) {
     return SantriHomeState(
       status: status ?? this.status,
@@ -67,6 +72,7 @@ class SantriHomeState {
       pembimbingPhone: pembimbingPhone ?? this.pembimbingPhone,
       pembimbingGender: pembimbingGender ?? this.pembimbingGender,
       latestReport: latestReport ?? this.latestReport,
+      familyMembers: familyMembers ?? this.familyMembers,
     );
   }
 }

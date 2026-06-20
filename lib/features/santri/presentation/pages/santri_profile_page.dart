@@ -2,14 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
-import 'package:khoirunnasyien/features/family/data/family_repository.dart';
-import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
-import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
-import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 
 class SantriProfilePage extends StatefulWidget {
   const SantriProfilePage({super.key});
@@ -19,122 +14,6 @@ class SantriProfilePage extends StatefulWidget {
 }
 
 class _SantriProfilePageState extends State<SantriProfilePage> {
-  List<SantriDetail>? _familyMembers;
-  bool _loadingFamily = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFamily();
-  }
-
-  Future<void> _loadFamily() async {
-    final cubit = context.read<SantriHomeCubit>();
-    final currentId = cubit.currentSantriId;
-    if (currentId == null) {
-      setState(() => _loadingFamily = false);
-      return;
-    }
-
-    try {
-      final repo = getIt<FamilyRepository>();
-      final family = await repo.getFamilyBySantriId(currentId);
-
-      if (family == null || family.santriIds.length < 2) {
-        if (mounted) setState(() {
-          _familyMembers = null;
-          _loadingFamily = false;
-        });
-        return;
-      }
-
-      final santriRepo = getIt<SantriRepository>();
-      final otherIds = family.santriIds.where((id) => id != currentId).toList();
-      final members = <SantriDetail>[];
-
-      for (final id in otherIds) {
-        try {
-          final detail = await santriRepo.getSantriDetail(id);
-          members.add(detail);
-        } catch (_) {}
-      }
-
-      if (mounted) {
-        setState(() {
-          _familyMembers = members;
-          _loadingFamily = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loadingFamily = false);
-    }
-  }
-
-  void _showSwitchAccountSheet() {
-    if (_familyMembers == null || _familyMembers!.isEmpty) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Ganti Akun',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              ..._familyMembers!.map((member) {
-                final isMale = member.jenisKelamin == 'L';
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isMale ? Colors.blue.shade50 : Colors.pink.shade50,
-                    child: Text(
-                      member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isMale ? Colors.blue.shade700 : Colors.pink.shade700,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    member.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    'NIS: ${member.nis} • ${member.kelas}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-                  trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _switchToSantri(member.id);
-                  },
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _switchToSantri(String santriId) {
-    context.read<AuthCubit>().switchSantri(santriId);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -318,8 +197,6 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
   }
 
   Widget _buildMenuSection(BuildContext context) {
-    final bool hasFamily = !_loadingFamily && _familyMembers != null && _familyMembers!.isNotEmpty;
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -334,16 +211,6 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
       ),
       child: Column(
         children: [
-          if (hasFamily) ...[
-            _buildMenuItem(
-              icon: Icons.swap_horiz_rounded,
-              title: 'Ganti Akun',
-              subtitle: 'Beralih ke akun saudara',
-              color: Colors.purple,
-              onTap: _showSwitchAccountSheet,
-            ),
-            const Divider(height: 1),
-          ],
           _buildMenuItem(
             icon: Icons.info,
             title: 'Tentang Aplikasi',

@@ -237,6 +237,7 @@ Future<void> initDI() async {
       asatidzRepository: getIt(),
       mgmtAsatidzRepository: getIt(),
       monthlyReportRepository: getIt(),
+      familyRepository: getIt(),
     ),
   );
 
