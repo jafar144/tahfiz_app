@@ -212,7 +212,12 @@ class ScheduleViewPage extends StatelessWidget {
       List<ProgramSchedule> allSchedules,
       List<ScheduleProgram> programs) {
     final halaqahSchedules =
-        allSchedules.where((s) => halaqah.scheduleIds.contains(s.id)).toList();
+        allSchedules.where((s) => halaqah.scheduleIds.contains(s.id)).toList()
+          ..sort((a, b) {
+            final byDay = a.day.compareTo(b.day);
+            if (byDay != 0) return byDay;
+            return a.startTime.compareTo(b.startTime);
+          });
 
     final cubit = context.read<ScheduleCubit>();
     final currentState = cubit.state;

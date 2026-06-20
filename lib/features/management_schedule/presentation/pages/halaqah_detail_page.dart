@@ -318,7 +318,12 @@ class HalaqahDetailPage extends StatelessWidget {
     if (state is HalaqahDetailLoaded) {
       schedules = state.schedules
           .where((s) => halaqah.scheduleIds.contains(s.id))
-          .toList();
+          .toList()
+        ..sort((a, b) {
+          final byDay = a.day.compareTo(b.day);
+          if (byDay != 0) return byDay;
+          return a.startTime.compareTo(b.startTime);
+        });
     }
 
     return Padding(
