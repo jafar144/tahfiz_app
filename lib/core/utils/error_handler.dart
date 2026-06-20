@@ -1,11 +1,18 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ErrorHandler {
   static String getMessage(dynamic e) {
     if (e == null) return 'Terjadi kesalahan sistem yang tidak diketahui.';
 
     final String errorStr = e.toString();
+
+    // Handling Firebase Auth exceptions (login/registrasi).
+    // Harus dicek sebelum FirebaseException karena FirebaseAuthException
+    // adalah turunannya — jika tidak, error login jatuh ke pesan generik.
+    if (e is FirebaseAuthException) {
+      return _authMessage(e.code);
+    }
 
     // Handling Firebase exceptions
     if (e is FirebaseException || errorStr.contains('FirebaseException') || errorStr.contains('cloud_firestore')) {
@@ -34,6 +41,28 @@ class ErrorHandler {
 
     // If string itself contains useful standard translations but isn't explicitly an Exception block
     return _translateKnownMessage(errorStr);
+  }
+
+  static String _authMessage(String code) {
+    switch (code) {
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
+        return 'NIS atau password salah. Silakan periksa kembali.';
+      case 'wrong-password':
+        return 'Password salah. Silakan coba lagi.';
+      case 'user-not-found':
+        return 'NIS tidak terdaftar. Periksa kembali NIS Anda.';
+      case 'invalid-email':
+        return 'Format NIS tidak valid.';
+      case 'user-disabled':
+        return 'Akun ini telah dinonaktifkan. Silakan hubungi admin.';
+      case 'too-many-requests':
+        return 'Terlalu banyak percobaan gagal. Coba lagi beberapa saat.';
+      case 'network-request-failed':
+        return 'Koneksi internet bermasalah. Periksa jaringan Anda.';
+      default:
+        return 'Gagal masuk. Pastikan NIS dan password Anda benar.';
+    }
   }
 
   static String _translateKnownMessage(String originalMsg) {

@@ -74,7 +74,45 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: true,
                     textCapitalization: TextCapitalization.none,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              height: 1.4,
+                            ),
+                            children: [
+                              TextSpan(
+                                text:
+                                    'Password = Tanggal Lahir, mis. ',
+                              ),
+                              TextSpan(
+                                text: '12 April 2015, maka',
+                                
+                              ),
+                              TextSpan(text: ' 20150412',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black54,
+                                ),),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
                   AiwaButton(
                     text: 'Login',
                     onPressed: () {
@@ -85,7 +123,7 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     isLoading: isLoading,
                   ),
-                  const Spacer(flex: 2), // Push up more from bottom
+                  const Spacer(flex: 2),
                 ],
               ),
             ),
