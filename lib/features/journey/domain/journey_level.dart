@@ -51,18 +51,19 @@ class JourneyBuilder {
   const JourneyBuilder._();
 
   // Deskripsi singkat tiap tingkat (mudah disesuaikan ustadz bila perlu).
+  // Urutan mengikuti AppConstants.santriClasses.
   static const List<String> _descriptions = [
-    'Memperbaiki bacaan dasar & makhorijul huruf.',
-    'Memantapkan tajwid & kelancaran membaca.',
-    'Tahap menengah, penguatan bacaan & hafalan.',
-    'Persiapan awal menuju program takhossus.',
-    'Pemantapan sebelum masuk takhossus.',
-    'Memulai pendalaman hafalan Al-Qur\'an.',
-    'Melanjutkan penambahan & muroja\'ah hafalan.',
-    'Memperkuat hafalan dengan muroja\'ah rutin.',
-    'Hafalan semakin matang mendekati target.',
-    'Tahap lanjut menuju penyempurnaan hafalan.',
-    'Penyempurnaan hafalan & persiapan khatam 30 juz.',
+    'Belajar Iqro\' 1–3.', // Tahsin Awwal
+    'Belajar Iqro\' 4–6, bacaan sholat, dan hafalan At-Takatsur–An-Nas.', // Tahsin Akhir
+    'Memantapkan bacaan & menghafal Juz 30.', // Mutawassith
+    'Hafalan 6 surah Juz 29: Al-Mursalat, Al-Qiyamah, Al-Muddatstsir, Al-Ma\'arij, Al-Haqqah, & Al-Qalam.', // Pra Takhossus Awal
+    'Hafalan 5 surah Juz 29: Al-Insan, Al-Muzzammil, Al-Jinn, Nuh, & Al-Mulk.', // Pra Takhossus Akhir
+    'Menghafal Juz 1–5.', // Takhossus Awal
+    'Menghafal Juz 6–10.', // Takhossus Tsani
+    'Menghafal Juz 11–15.', // Takhossus Tsalits
+    'Menghafal Juz 16–20.', // Takhossus Robi
+    'Menghafal Juz 21–25.', // Takhossus Khomis
+    'Menghafal Juz 26–30 & persiapan khatam 30 juz.', // Takhossus Akhir
   ];
 
   static const List<IconData> _icons = [
