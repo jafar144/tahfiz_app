@@ -146,7 +146,7 @@ class HalaqahDetailPage extends StatelessWidget {
             children: [
               _buildBadge(
                 icon: _getSessionIcon(sessionName),
-                text: sessionName,
+                text: _capitalize(sessionName),
                 color: _getSessionColor(sessionName),
               ),
               const SizedBox(width: 8),
@@ -537,6 +537,11 @@ class HalaqahDetailPage extends StatelessWidget {
     );
   }
   
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   Color _getSessionColor(String session) {
     switch (session.toLowerCase()) {
       case 'pagi':

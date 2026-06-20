@@ -235,7 +235,9 @@ class ScheduleViewPage extends StatelessWidget {
       (p) => p.id == halaqah.programId,
       orElse: () => const ScheduleProgram(id: '', name: 'Regular', gender: ''),
     );
-    final session = program.name.isNotEmpty ? program.name : 'Regular';
+    final session = _capitalize(
+      program.name.isNotEmpty ? program.name : 'Regular',
+    );
 
     return InkWell(
       onTap: () async {
@@ -490,10 +492,15 @@ class ScheduleViewPage extends StatelessWidget {
     );
   }
 
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1);
+  }
+
   Color _getSessionColor(String session) {
     switch (session.toLowerCase()) {
       case 'pagi':
-        return Colors.blue; 
+        return Colors.blue;
       case 'sore':
         return Colors.orange.shade700;
       case 'malam':
