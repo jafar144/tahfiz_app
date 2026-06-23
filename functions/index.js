@@ -17,6 +17,7 @@ const {
 const {
   cleanupExpiredSyahadah,
 } = require("./handlers/cleanupExpiredSyahadah");
+const { guestLookup } = require("./handlers/guestLookup");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -38,3 +39,8 @@ exports.notifyArrearsMonthEnd = notifyArrearsMonthEnd;
 
 // Pembersih foto kelulusan kedaluwarsa (>7 hari), jalan tiap Senin 03:00 WIB.
 exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
+
+// Endpoint guest web (read-only): cek pembayaran & penilaian terakhir by NIS.
+// Dilindungi header x-api-key (secret GUEST_API_KEY). Dipakai web cPanel
+// sementara sampai web pensiun (September 2026).
+exports.guestLookup = guestLookup;
