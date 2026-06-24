@@ -101,15 +101,14 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
+                      crossAxisCount: 3,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      childAspectRatio: 1.2,
+                      childAspectRatio: 1.0,
                       children: [
                         MenuCard(
                           icon: Icons.assessment_rounded,
                           title: 'Penilaian',
-                          subtitle: 'Penilaian Bulanan Santri',
                           onTap: () {
                             Navigator.push(
                               context,
@@ -122,7 +121,6 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                         MenuCard(
                           icon: Icons.workspace_premium_rounded,
                           title: 'Kelulusan',
-                          subtitle: 'Foto Kelulusan',
                           onTap: () {
                             Navigator.push(
                               context,
