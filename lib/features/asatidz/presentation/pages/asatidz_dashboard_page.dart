@@ -15,6 +15,7 @@ import 'package:khoirunnasyien/features/management_santri/presentation/cubit/san
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/services/app_update_service.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
@@ -32,6 +33,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
   void initState() {
     super.initState();
     context.read<AsatidzDashboardCubit>().loadDashboard();
+    AppUpdateService.checkForFlexibleUpdate(context);
   }
 
   @override

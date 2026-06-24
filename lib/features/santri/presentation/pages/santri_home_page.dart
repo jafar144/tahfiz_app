@@ -16,6 +16,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/mont
 import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
 import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_summary_card.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_carousel.dart';
+import 'package:khoirunnasyien/core/services/app_update_service.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -25,6 +26,12 @@ class SantriHomePage extends StatefulWidget {
 }
 
 class _SantriHomePageState extends State<SantriHomePage> {
+  @override
+  void initState() {
+    super.initState();
+    AppUpdateService.checkForFlexibleUpdate(context);
+  }
+
   void _loadData() {
     final cubit = context.read<SantriHomeCubit>();
     final santriId = cubit.currentSantriId;
