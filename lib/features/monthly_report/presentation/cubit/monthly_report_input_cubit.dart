@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_state.dart';
 
 class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
@@ -88,7 +89,7 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
           emit(currentState.copyWith(isSaving: false));
         },
         ifRight: (_) {
-          emit(const MonthlyReportInputSuccess('Penilaian berhasil disimpan'));
+          emit(const MonthlyReportInputSuccess(MonthlyReportStrings.berhasilDisimpan));
         },
       );
     } catch (e) {

@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -38,7 +39,7 @@ class _MonthlyReportListView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AiwaAppBar(title: 'Penilaian Bulanan'),
+      appBar: AiwaAppBar(title: MonthlyReportStrings.penilaianBulanan),
       body: BlocBuilder<MonthlyReportCubit, MonthlyReportState>(
         builder: (context, state) {
           final isLoading = state is MonthlyReportLoading;
@@ -57,7 +58,7 @@ class _MonthlyReportListView extends StatelessWidget {
                       final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
                       context.read<MonthlyReportCubit>().loadData(userId);
                     },
-                    child: const Text('Coba Lagi'),
+                    child: const Text(MonthlyReportStrings.cobaLagi),
                   ),
                 ],
               ),
@@ -129,7 +130,7 @@ class _MonthlyReportListView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Periode: $bulanStr ${state.targetTahun}',
+                  MonthlyReportStrings.periode(bulanStr, state.targetTahun),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -141,8 +142,8 @@ class _MonthlyReportListView extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   state.isInWindow
-                      ? 'Penilaian terbuka • ${state.daysRemaining} hari tersisa'
-                      : 'Menunggu periode penilaian',
+                      ? MonthlyReportStrings.penilaianTerbuka(state.daysRemaining)
+                      : MonthlyReportStrings.menungguPeriode,
                   style: TextStyle(
                     fontSize: 12,
                     color: state.isInWindow
@@ -166,7 +167,7 @@ class _MonthlyReportListView extends StatelessWidget {
           Icon(Icons.person_off, size: 48, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
-            'Belum ada santri di halaqah Anda',
+            MonthlyReportStrings.listEmpty,
             style: TextStyle(color: Colors.grey[600]),
           ),
         ],

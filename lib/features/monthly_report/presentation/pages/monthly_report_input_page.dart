@@ -4,6 +4,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
@@ -47,7 +48,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AiwaAppBar(
-        title: 'Penilaian Santri',
+        title: MonthlyReportStrings.inputTitle,
       ),
       body: BlocConsumer<MonthlyReportInputCubit, MonthlyReportInputState>(
         listener: (context, state) {
@@ -99,25 +100,28 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                   if (state is MonthlyReportInputReady &&
                       state.latestReport != null) ...[
                     const SizedBox(height: 20),
-                    _buildSectionLabel('Penilaian Terakhir', Icons.history_rounded),
+                    _buildSectionLabel(
+                        MonthlyReportStrings.penilaianTerakhir, Icons.history_rounded),
                     const SizedBox(height: 10),
                     MonthlyReportCard(report: state.latestReport!),
                   ],
                   const SizedBox(height: 24),
                   _buildHafalanField(),
                   const SizedBox(height: 24),
-                  _buildNilaiSection('Perkembangan', _nilaiPerkembangan, Icons.trending_up_rounded, (val) {
+                  _buildNilaiSection(MonthlyReportStrings.perkembangan, _nilaiPerkembangan, Icons.trending_up_rounded, (val) {
                     setState(() => _nilaiPerkembangan = val);
                   }),
                   const SizedBox(height: 24),
-                  _buildNilaiSection('Akhlaq', _nilaiAkhlaq, Icons.favorite_rounded, (val) {
+                  _buildNilaiSection(MonthlyReportStrings.akhlaq, _nilaiAkhlaq, Icons.favorite_rounded, (val) {
                     setState(() => _nilaiAkhlaq = val);
                   }),
                   const SizedBox(height: 24),
                   _buildNotesField(),
                   const SizedBox(height: 32),
                   AiwaButton(
-                    text: isUpdate ? 'Perbarui Penilaian' : 'Simpan Penilaian',
+                    text: isUpdate
+                        ? MonthlyReportStrings.perbaruiPenilaian
+                        : MonthlyReportStrings.simpanPenilaian,
                     isLoading: isSaving,
                     onPressed: _submit,
                   ),
@@ -204,7 +208,8 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           Icon(Icons.calendar_month, size: 14, color: Colors.grey.shade500),
           const SizedBox(width: 6),
           Text(
-            'Periode: ${MonthlyReport.getNamaBulan(widget.bulan)} ${widget.tahun}',
+            MonthlyReportStrings.periode(
+                MonthlyReport.getNamaBulan(widget.bulan), widget.tahun),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade500,
@@ -220,7 +225,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Hafalan Terakhir', Icons.menu_book_rounded),
+        _buildSectionLabel(MonthlyReportStrings.hafalanTerakhir, Icons.menu_book_rounded),
         const SizedBox(height: 8),
         TextFormField(
           controller: _hafalanController,
@@ -229,7 +234,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           maxLines: null,
           textInputAction: TextInputAction.newline,
           decoration: InputDecoration(
-            hintText: 'Contoh: Al-Baqarah ayat 1-20',
+            hintText: MonthlyReportStrings.hafalanHint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
             filled: true,
             fillColor: Colors.white,
@@ -247,7 +252,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
-          validator: (val) => (val == null || val.trim().isEmpty) ? 'Wajib diisi' : null,
+          validator: (val) => (val == null || val.trim().isEmpty) ? MonthlyReportStrings.wajibDiisi : null,
         ),
       ],
     );
@@ -306,7 +311,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
         const SizedBox(height: 8),
         currentValue == 0
             ? Text(
-                'Pilih nilai',
+                MonthlyReportStrings.pilihNilai,
                 style: TextStyle(fontSize: 12, color: Colors.red.shade400, fontWeight: FontWeight.w500),
               )
             : Row(
@@ -335,13 +340,13 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Catatan (Opsional)', Icons.notes_rounded),
+        _buildSectionLabel(MonthlyReportStrings.catatanOpsional, Icons.notes_rounded),
         const SizedBox(height: 8),
         TextFormField(
           controller: _notesController,
           maxLines: 4,
           decoration: InputDecoration(
-            hintText: 'Tambahkan catatan...',
+            hintText: MonthlyReportStrings.catatanHint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
             filled: true,
             fillColor: Colors.white,
@@ -386,7 +391,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     if (_nilaiPerkembangan == 0 || _nilaiAkhlaq == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Harap pilih nilai Perkembangan dan Akhlaq'),
+          content: Text(MonthlyReportStrings.pilihNilaiPerkembanganAkhlaq),
           backgroundColor: Colors.orange,
         ),
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 
 class MonthlyReportCard extends StatelessWidget {
   final MonthlyReport report;
@@ -74,11 +75,11 @@ class MonthlyReportCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildNilaiColumn(
-                      'Perkembangan', report.nilaiPerkembangan),
+                      MonthlyReportStrings.perkembangan, report.nilaiPerkembangan),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildNilaiColumn('Akhlaq', report.nilaiAkhlaq),
+                  child: _buildNilaiColumn(MonthlyReportStrings.akhlaq, report.nilaiAkhlaq),
                 ),
               ],
             ),
@@ -131,7 +132,8 @@ class MonthlyReportCard extends StatelessWidget {
 
   Widget _buildStatusChip(int nilai) {
     if (nilai < 1 || nilai > 5) {
-      return const Text('—', style: TextStyle(fontSize: 13, color: _muted));
+      return const Text(MonthlyReportStrings.nilaiKosong,
+          style: TextStyle(fontSize: 13, color: _muted));
     }
     final style = _statusStyle(nilai);
     return Container(
@@ -169,7 +171,7 @@ class MonthlyReportCard extends StatelessWidget {
             const SizedBox(width: 8),
             const Expanded(
               child: Text(
-                'Ada catatan dari ustadz',
+                MonthlyReportStrings.adaCatatan,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -263,7 +265,7 @@ class _NotesBottomSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Catatan Ustadz',
+                        MonthlyReportStrings.catatanUstadz,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -301,7 +303,7 @@ class _NotesBottomSheet extends StatelessWidget {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'Dinilai oleh ${report.asatidzDisplayName}',
+                    MonthlyReportStrings.dinilaiOleh(report.asatidzDisplayName),
                     style: const TextStyle(
                         fontSize: 12, color: Color(0xFF6B7280)),
                     overflow: TextOverflow.ellipsis,

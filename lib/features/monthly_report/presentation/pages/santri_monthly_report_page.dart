@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
@@ -30,7 +31,7 @@ class _SantriMonthlyReportView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AiwaAppBar(title: 'Penilaian Bulanan'),
+      appBar: AiwaAppBar(title: MonthlyReportStrings.penilaianBulanan),
       body: BlocBuilder<SantriMonthlyReportCubit, SantriMonthlyReportState>(
         builder: (context, state) {
           if (state is SantriMonthlyReportLoading) {
@@ -51,7 +52,7 @@ class _SantriMonthlyReportView extends StatelessWidget {
                       final santriId = context.read<SantriHomeCubit>().currentSantriId ?? '';
                       context.read<SantriMonthlyReportCubit>().loadReports(santriId);
                     },
-                    child: const Text('Coba Lagi'),
+                    child: const Text(MonthlyReportStrings.cobaLagi),
                   ),
                 ],
               ),
@@ -111,7 +112,7 @@ class _SantriMonthlyReportView extends StatelessWidget {
           Icon(Icons.assessment_outlined, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
-            'Belum ada penilaian',
+            MonthlyReportStrings.belumAdaPenilaian,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -120,7 +121,7 @@ class _SantriMonthlyReportView extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Penilaian bulanan dari pengajar akan muncul di sini',
+            MonthlyReportStrings.santriEmptySubtitle,
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey.shade400,

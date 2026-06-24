@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart'
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_cubit.dart';
@@ -69,11 +70,11 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AiwaAppBar(title: 'Riwayat Penilaian'),
+      appBar: AiwaAppBar(title: MonthlyReportStrings.riwayatPenilaian),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _onAddPressed,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Tambah Penilaian'),
+        label: const Text(MonthlyReportStrings.tambahPenilaian),
       ),
       body: SafeArea(
         child: Column(
@@ -160,7 +161,7 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           ElevatedButton(
             onPressed: () =>
                 context.read<SantriReportDetailCubit>().load(widget.santri.id),
-            child: const Text('Coba Lagi'),
+            child: const Text(MonthlyReportStrings.cobaLagi),
           ),
         ],
       ),
@@ -175,7 +176,7 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           Icon(Icons.assessment_outlined, size: 64, color: Colors.grey.shade300),
           const SizedBox(height: 16),
           Text(
-            'Belum ada penilaian',
+            MonthlyReportStrings.belumAdaPenilaian,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -184,7 +185,7 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Tekan "Tambah Penilaian" untuk menilai santri',
+            MonthlyReportStrings.detailEmptySubtitle,
             style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
@@ -235,11 +236,11 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
         icon: Icon(Icons.schedule_rounded,
             color: Colors.orange.shade600, size: 36),
         title: const Text(
-          'Belum Waktunya Menilai',
+          MonthlyReportStrings.windowClosedTitle,
           textAlign: TextAlign.center,
         ),
         content: const Text(
-          'Penilaian hanya dapat diinput dalam rentang 1 minggu sebelum akhir bulan.',
+          MonthlyReportStrings.windowClosedMessage,
           textAlign: TextAlign.center,
         ),
         actions: [
@@ -247,7 +248,7 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Mengerti'),
+              child: const Text(MonthlyReportStrings.mengerti),
             ),
           ),
         ],
