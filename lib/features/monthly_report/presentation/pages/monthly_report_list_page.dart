@@ -8,10 +8,7 @@ import 'package:khoirunnasyien/features/management_santri/presentation/widgets/s
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_state.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_input_page.dart';
-import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class MonthlyReportListPage extends StatelessWidget {
@@ -92,9 +89,6 @@ class _MonthlyReportListView extends StatelessWidget {
                               return _SantriReportCard(
                                 santri: santri,
                                 isGraded: isGraded,
-                                isInWindow: loadedState?.isInWindow ?? false,
-                                targetBulan: loadedState?.targetBulan ?? DateTime.now().month,
-                                targetTahun: loadedState?.targetTahun ?? DateTime.now().year,
                               );
                             },
                           ),
@@ -184,16 +178,10 @@ class _MonthlyReportListView extends StatelessWidget {
 class _SantriReportCard extends StatelessWidget {
   final SantriEntity santri;
   final bool isGraded;
-  final bool isInWindow;
-  final int targetBulan;
-  final int targetTahun;
 
   const _SantriReportCard({
     required this.santri,
     required this.isGraded,
-    required this.isInWindow,
-    required this.targetBulan,
-    required this.targetTahun,
   });
 
   @override
@@ -210,45 +198,22 @@ class _SantriReportCard extends StatelessWidget {
         onTap: () => _onTap(context),
         trailing: isGraded
             ? Icon(Icons.check_circle, color: Colors.green.shade400, size: 24)
-            : (isInWindow
-                ? Icon(Icons.edit_rounded, color: Colors.blue.shade300, size: 20)
-                : null),
+            : Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 24),
       ),
     );
   }
 
   void _onTap(BuildContext context) {
-    if (!isInWindow) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Penilaian hanya dapat diinput 1 minggu sebelum akhir bulan'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    final authState = context.read<AuthCubit>().state;
-    if (authState is! AuthAuthenticated) return;
+    final cubit = context.read<MonthlyReportCubit>();
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (_) => MonthlyReportInputCubit(repository: getIt())
-            ..loadExisting(santri.id, targetBulan, targetTahun),
-          child: MonthlyReportInputPage(
-            santri: santri,
-            asatidzId: authState.user.uid,
-            asatidzName: authState.user.name,
-            bulan: targetBulan,
-            tahun: targetTahun,
-          ),
-        ),
+        builder: (_) => SantriReportDetailPage(santri: santri),
       ),
     ).then((_) {
       final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-      context.read<MonthlyReportCubit>().loadData(userId);
+      cubit.loadData(userId);
     });
   }
 }

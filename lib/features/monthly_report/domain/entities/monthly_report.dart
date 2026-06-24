@@ -34,6 +34,22 @@ class MonthlyReport {
     required this.updatedAt,
   });
 
+  /// Data dummy untuk keperluan skeleton loading.
+  factory MonthlyReport.dummy() => MonthlyReport(
+        id: 'dummy',
+        asatidzId: '',
+        asatidzName: 'Ustadz Fulan',
+        santriId: '',
+        santriName: 'Santri',
+        bulan: 1,
+        tahun: 2024,
+        hafalanTerakhir: 'Al-Baqarah ayat 1-20',
+        nilaiPerkembangan: 4,
+        nilaiAkhlaq: 4,
+        createdAt: DateTime(2024),
+        updatedAt: DateTime(2024),
+      );
+
   /// Gelar pengajar berdasarkan gender: 'Ustadz' / 'Ustadzah' / '' (tak diketahui).
   String get asatidzTitle => switch (asatidzGender) {
         'L' => 'Ustadz',

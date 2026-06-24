@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_state.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 
 class MonthlyReportInputPage extends StatefulWidget {
   final SantriEntity santri;
@@ -95,6 +96,13 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                   _buildSantriHeader(),
                   const SizedBox(height: 8),
                   _buildPeriodInfo(),
+                  if (state is MonthlyReportInputReady &&
+                      state.latestReport != null) ...[
+                    const SizedBox(height: 20),
+                    _buildSectionLabel('Penilaian Terakhir', Icons.history_rounded),
+                    const SizedBox(height: 10),
+                    MonthlyReportCard(report: state.latestReport!),
+                  ],
                   const SizedBox(height: 24),
                   _buildHafalanField(),
                   const SizedBox(height: 24),

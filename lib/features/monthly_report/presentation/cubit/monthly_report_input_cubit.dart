@@ -13,14 +13,31 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
     emit(MonthlyReportInputLoading());
 
     try {
-      final result = await repository.getReport(santriId, bulan, tahun);
+      // Satu kali ambil semua laporan santri (terurut terbaru -> terlama),
+      // lalu turunkan laporan periode ini & penilaian terakhir sebelumnya.
+      final result = await repository.getReportsBySantri(santriId);
 
       result.fold(
         ifLeft: (failure) {
           emit(const MonthlyReportInputReady());
         },
-        ifRight: (report) {
-          emit(MonthlyReportInputReady(existingReport: report));
+        ifRight: (reports) {
+          MonthlyReport? existing;
+          MonthlyReport? latestPrevious;
+
+          for (final r in reports) {
+            if (r.bulan == bulan && r.tahun == tahun) {
+              existing = r;
+            } else if (latestPrevious == null &&
+                (r.tahun < tahun || (r.tahun == tahun && r.bulan < bulan))) {
+              latestPrevious = r;
+            }
+          }
+
+          emit(MonthlyReportInputReady(
+            existingReport: existing,
+            latestReport: latestPrevious,
+          ));
         },
       );
     } catch (e) {

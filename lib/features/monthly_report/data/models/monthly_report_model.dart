@@ -31,8 +31,8 @@ class MonthlyReportModel extends MonthlyReport {
       bulan: data['bulan'] ?? 1,
       tahun: data['tahun'] ?? 2026,
       hafalanTerakhir: data['hafalan_terakhir'] ?? '',
-      nilaiPerkembangan: data['nilai_perkembangan'] ?? 0,
-      nilaiAkhlaq: data['nilai_akhlaq'] ?? 0,
+      nilaiPerkembangan: _parseNilai(data['nilai_perkembangan']),
+      nilaiAkhlaq: _parseNilai(data['nilai_akhlaq']),
       notes: data['notes'] ?? '',
       createdAt: (data['created_at'] as Timestamp).toDate(),
       updatedAt: (data['updated_at'] as Timestamp).toDate(),
@@ -74,4 +74,23 @@ class MonthlyReportModel extends MonthlyReport {
       'updated_at': Timestamp.fromDate(updatedAt),
     };
   }
+}
+
+/// Mengonversi nilai dari Firestore (int / num / String) menjadi int.
+///
+/// Data hasil impor dari sistem lama (MySQL) bisa bernilai 0 atau null saat
+/// santri belum/ tidak dinilai. Sesuai kesepakatan, nilai 0 diperlakukan
+/// sebagai 'Sangat Kurang' (setara nilai 1) agar tidak tampil '—'.
+int _parseNilai(dynamic raw) {
+  int value;
+  if (raw is int) {
+    value = raw;
+  } else if (raw is num) {
+    value = raw.toInt();
+  } else if (raw is String) {
+    value = int.tryParse(raw) ?? 0;
+  } else {
+    value = 0;
+  }
+  return value <= 0 ? 1 : value;
 }
