@@ -3,9 +3,13 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/utils/role.dart';
+import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
@@ -42,7 +46,19 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   }
 
   void _selectSantri() async {
-    final result = await context.pushNamed(RouteNames.selectSantri);
+    // Asatidz (bukan admin) hanya boleh memilih santri di halaqah-nya sendiri,
+    // termasuk saat pencarian. Admin tetap melihat seluruh santri.
+    String? asatidzId;
+    final authState = context.read<AuthCubit>().state;
+    if (authState is AuthAuthenticated &&
+        authState.user.role == UserRole.asatidz) {
+      asatidzId = authState.user.uid;
+    }
+
+    final result = await context.pushNamed(
+      RouteNames.selectSantri,
+      extra: asatidzId != null ? {'asatidzId': asatidzId} : null,
+    );
 
     if (result != null) {
       final santri = result as SantriEntity;
@@ -318,8 +334,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
 
                         // Nama tampil di syahadah
                         AiwaTextField(
-                          label: 'Nama di Syahadah',
-                          hint: 'Nama yang ditampilkan di syahadah',
+                          label: 'Nama di Poster',
+                          hint: 'Nama yang ditampilkan di poster',
                           controller: _namaController,
                           icon: Icons.badge_outlined,
                           textCapitalization: TextCapitalization.words,

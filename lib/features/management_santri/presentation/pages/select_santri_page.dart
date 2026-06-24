@@ -17,12 +17,18 @@ class SelectSantriPage extends StatefulWidget {
   final List<String> disabledIds;
   final bool isMultiSelect;
 
+  /// Bila diisi, daftar santri dibatasi hanya pada halaqah milik asatidz ini
+  /// (termasuk saat pencarian). Dipakai mis. oleh fitur kelulusan untuk
+  /// asatidz. Bila null, menampilkan seluruh santri (perilaku admin).
+  final String? asatidzId;
+
   const SelectSantriPage({
     super.key,
     this.genderFiltered,
     this.initialSelection = const [],
     this.disabledIds = const [],
     this.isMultiSelect = false,
+    this.asatidzId,
   });
 
   @override
@@ -45,6 +51,7 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
     context.read<SantriCubit>().loadSantri(
       isActive: true,
       gender: widget.genderFiltered,
+      asatidzId: widget.asatidzId,
       keyword: '',
     );
   }
@@ -74,6 +81,7 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
     context.read<SantriCubit>().loadSantri(
       isActive: true,
       gender: widget.genderFiltered,
+      asatidzId: widget.asatidzId,
       keyword: _searchController.text,
     );
   }
