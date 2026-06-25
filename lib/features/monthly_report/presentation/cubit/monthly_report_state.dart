@@ -17,6 +17,10 @@ class MonthlyReportLoaded extends MonthlyReportState {
   final int targetTahun;
   final int daysRemaining;
 
+  /// Jumlah penilaian bulan lampau yang belum diisi, per santriId.
+  /// Hanya memuat santri yang punya tunggakan (count > 0).
+  final Map<String, int> tertunggakBySantri;
+
   const MonthlyReportLoaded({
     required this.santriList,
     required this.reportMap,
@@ -24,7 +28,12 @@ class MonthlyReportLoaded extends MonthlyReportState {
     required this.targetBulan,
     required this.targetTahun,
     this.daysRemaining = 0,
+    this.tertunggakBySantri = const {},
   });
+
+  /// Total seluruh penilaian yang tertunggak di semua santri.
+  int get tertunggakTotal =>
+      tertunggakBySantri.values.fold(0, (sum, n) => sum + n);
 }
 
 class MonthlyReportError extends MonthlyReportState {

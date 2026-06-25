@@ -20,6 +20,15 @@ class MonthlyReportStrings {
   static String penilaianTerbuka(int hariTersisa) =>
       'Penilaian terbuka • $hariTersisa hari tersisa';
 
+  // ── Penilaian tertunggak (susulan) ──────────────────────────────────
+  static const penilaianTertunggak = 'Penilaian tertunggak';
+  static const belumDinilai = 'Belum dinilai';
+  static const isiSekarang = 'Isi sekarang';
+
+  static String tertunggakBanner(int jumlah) =>
+      '$jumlah penilaian bulan lalu belum diisi';
+  static String tertunggakBadge(int jumlah) => '$jumlah bln tertunggak';
+
   // ── Halaman riwayat / detail penilaian santri ───────────────────────
   static const riwayatPenilaian = 'Riwayat Penilaian';
   static const tambahPenilaian = 'Tambah Penilaian';

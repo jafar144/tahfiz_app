@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_state.dart';
 
 class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
@@ -11,10 +12,13 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
   /// Seluruh penilaian santri (sudah terurut terbaru ke terlama oleh datasource).
   List<MonthlyReport> _all = [];
 
+  /// Periode susulan yang belum diisi, dipertahankan antar-paginasi.
+  List<({int bulan, int tahun})> _missingPeriods = [];
+
   SantriReportDetailCubit({required this.repository})
       : super(SantriReportDetailLoading());
 
-  Future<void> load(String santriId) async {
+  Future<void> load(String santriId, {DateTime? joinedAt}) async {
     emit(SantriReportDetailLoading());
 
     try {
@@ -24,10 +28,20 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
         ifLeft: (failure) => emit(SantriReportDetailError(failure.message)),
         ifRight: (reports) {
           _all = reports;
+
+          final existing = {
+            for (final r in _all) (bulan: r.bulan, tahun: r.tahun),
+          };
+          _missingPeriods = MonthlyReportCubit.backfillPeriods(
+            DateTime.now(),
+            joinedAt: joinedAt,
+          ).where((p) => !existing.contains(p)).toList();
+
           final firstPage = _all.take(_pageSize).toList();
           emit(SantriReportDetailLoaded(
             reports: firstPage,
             hasMore: _all.length > firstPage.length,
+            missingPeriods: _missingPeriods,
           ));
         },
       );
@@ -54,6 +68,7 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
       reports: nextPage,
       hasMore: _all.length > nextPage.length,
       isLoadingMore: false,
+      missingPeriods: _missingPeriods,
     ));
   }
 }

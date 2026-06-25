@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthl
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_input_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/missing_report_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -24,8 +25,8 @@ class SantriReportDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) =>
-          SantriReportDetailCubit(repository: getIt())..load(santri.id),
+      create: (_) => SantriReportDetailCubit(repository: getIt())
+        ..load(santri.id, joinedAt: santri.tanggalMasuk),
       child: _SantriReportDetailView(santri: santri),
     );
   }
@@ -97,7 +98,8 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
                   }
 
                   if (state is SantriReportDetailLoaded) {
-                    if (state.reports.isEmpty) {
+                    if (state.reports.isEmpty &&
+                        state.missingPeriods.isEmpty) {
                       return _buildEmptyState();
                     }
                     return _buildList(state);
@@ -114,8 +116,12 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
   }
 
   Widget _buildList(SantriReportDetailLoaded state) {
+    final missing = state.missingPeriods;
+    // Seksi tertunggak (header + kartu merah) ditaruh di paling atas.
+    final missingItemCount = missing.isEmpty ? 0 : missing.length + 1;
     final showFooter = state.isLoadingMore;
-    final itemCount = state.reports.length + (showFooter ? 1 : 0);
+    final itemCount =
+        missingItemCount + state.reports.length + (showFooter ? 1 : 0);
 
     return ListView.separated(
       controller: _scrollController,
@@ -124,14 +130,30 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
       itemCount: itemCount,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        if (index >= state.reports.length) {
-          // Footer skeleton saat memuat halaman berikutnya.
+        // 1) Seksi tertunggak: header lalu daftar kartu merah.
+        if (missingItemCount > 0 && index < missingItemCount) {
+          if (index == 0) {
+            return const _SectionHeader(
+              MonthlyReportStrings.penilaianTertunggak,
+            );
+          }
+          final period = missing[index - 1];
+          return MissingReportCard(
+            bulan: period.bulan,
+            tahun: period.tahun,
+            onTap: () => _openInput(period.bulan, period.tahun),
+          );
+        }
+
+        // 2) Daftar riwayat (paginasi) + footer skeleton saat memuat lagi.
+        final reportIndex = index - missingItemCount;
+        if (reportIndex >= state.reports.length) {
           return Skeletonizer(
             enabled: true,
             child: MonthlyReportCard(report: MonthlyReport.dummy()),
           );
         }
-        return MonthlyReportCard(report: state.reports[index]);
+        return MonthlyReportCard(report: state.reports[reportIndex]);
       },
     );
   }
@@ -159,8 +181,10 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           Text(message),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () =>
-                context.read<SantriReportDetailCubit>().load(widget.santri.id),
+            onPressed: () => context.read<SantriReportDetailCubit>().load(
+                  widget.santri.id,
+                  joinedAt: widget.santri.tanggalMasuk,
+                ),
             child: const Text(MonthlyReportStrings.cobaLagi),
           ),
         ],
@@ -193,6 +217,7 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
     );
   }
 
+  /// FAB "Tambah Penilaian": bulan berjalan, tunduk pada window penilaian.
   void _onAddPressed() {
     final now = DateTime.now();
 
@@ -201,11 +226,18 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
       return;
     }
 
+    _openInput(
+      MonthlyReportCubit.getTargetBulan(now),
+      MonthlyReportCubit.getTargetTahun(now),
+    );
+  }
+
+  /// Buka halaman input untuk periode tertentu. Dipakai oleh FAB (bulan
+  /// berjalan) maupun kartu tertunggak (bulan lampau, tanpa cek window).
+  void _openInput(int bulan, int tahun) {
     final authState = context.read<AuthCubit>().state;
     if (authState is! AuthAuthenticated) return;
 
-    final bulan = MonthlyReportCubit.getTargetBulan(now);
-    final tahun = MonthlyReportCubit.getTargetTahun(now);
     final detailCubit = context.read<SantriReportDetailCubit>();
 
     Navigator.push(
@@ -223,7 +255,12 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           ),
         ),
       ),
-    ).then((_) => detailCubit.load(widget.santri.id));
+    ).then(
+      (_) => detailCubit.load(
+        widget.santri.id,
+        joinedAt: widget.santri.tanggalMasuk,
+      ),
+    );
   }
 
   void _showWindowClosedDialog() {
@@ -252,6 +289,28 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Judul kecil pemisah antar-seksi di dalam daftar.
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader(this.title);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          color: Colors.red.shade700,
+        ),
       ),
     );
   }

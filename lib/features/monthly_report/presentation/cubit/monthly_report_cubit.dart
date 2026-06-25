@@ -28,6 +28,34 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
     return lastDay.difference(now).inDays;
   }
 
+  /// Bulan pertama fitur penilaian aktif. Tidak ada susulan sebelum periode ini.
+  static const int epochBulan = 6;
+  static const int epochTahun = 2026;
+
+  /// Maksimal jumlah bulan lampau yang boleh diisi susulan (rolling).
+  static const int maxBackfillMonths = 2;
+
+  /// Periode (bulan, tahun) lampau yang masih boleh diisi susulan, dibatasi
+  /// rolling [maxBackfillMonths] bulan, epoch fitur, dan (opsional) bulan masuk
+  /// santri. Terurut terbaru -> terlama. Tidak termasuk bulan berjalan.
+  static List<({int bulan, int tahun})> backfillPeriods(
+    DateTime now, {
+    DateTime? joinedAt,
+  }) {
+    final epoch = DateTime(epochTahun, epochBulan);
+    final periods = <({int bulan, int tahun})>[];
+    for (var i = 1; i <= maxBackfillMonths; i++) {
+      final d = DateTime(now.year, now.month - i);
+      if (d.isBefore(epoch)) break;
+      if (joinedAt != null &&
+          d.isBefore(DateTime(joinedAt.year, joinedAt.month))) {
+        continue;
+      }
+      periods.add((bulan: d.month, tahun: d.year));
+    }
+    return periods;
+  }
+
   Future<void> loadData(String asatidzId) async {
     emit(MonthlyReportLoading());
 
@@ -98,6 +126,33 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
         },
       );
 
+      // Hitung penilaian tertunggak (bulan lampau yang belum diisi) per santri.
+      // Cukup 1 query per periode susulan, lalu diiriskan dengan santri ini.
+      final periods = backfillPeriods(now);
+      final reportedByPeriod = <({int bulan, int tahun}), Set<String>>{};
+      for (final p in periods) {
+        final res = await reportRepository.getReportedSantriIds(p.bulan, p.tahun);
+        res.fold(
+          ifLeft: (_) {},
+          ifRight: (ids) => reportedByPeriod[p] = ids,
+        );
+      }
+
+      final tertunggakBySantri = <String, int>{};
+      for (final s in uniqueSantris) {
+        var count = 0;
+        for (final p in periods) {
+          final pd = DateTime(p.tahun, p.bulan);
+          final joined = s.tanggalMasuk;
+          if (joined != null && pd.isBefore(DateTime(joined.year, joined.month))) {
+            continue;
+          }
+          final reported = reportedByPeriod[p] ?? const <String>{};
+          if (!reported.contains(s.id)) count++;
+        }
+        if (count > 0) tertunggakBySantri[s.id] = count;
+      }
+
       if (isClosed) return;
 
       emit(MonthlyReportLoaded(
@@ -107,6 +162,7 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
         targetBulan: targetBulan,
         targetTahun: targetTahun,
         daysRemaining: daysRemaining,
+        tertunggakBySantri: tertunggakBySantri,
       ));
     } catch (e) {
       if (isClosed) return;
