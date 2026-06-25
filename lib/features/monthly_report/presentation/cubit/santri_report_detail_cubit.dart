@@ -15,6 +15,9 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
   /// Periode susulan yang belum diisi, dipertahankan antar-paginasi.
   List<({int bulan, int tahun})> _missingPeriods = [];
 
+  /// Apakah penilaian bulan berjalan sudah ada, dipertahankan antar-paginasi.
+  bool _currentMonthFilled = false;
+
   SantriReportDetailCubit({required this.repository})
       : super(SantriReportDetailLoading());
 
@@ -29,19 +32,23 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
         ifRight: (reports) {
           _all = reports;
 
+          final now = DateTime.now();
           final existing = {
             for (final r in _all) (bulan: r.bulan, tahun: r.tahun),
           };
           _missingPeriods = MonthlyReportCubit.backfillPeriods(
-            DateTime.now(),
+            now,
             joinedAt: joinedAt,
           ).where((p) => !existing.contains(p)).toList();
+          _currentMonthFilled =
+              existing.contains((bulan: now.month, tahun: now.year));
 
           final firstPage = _all.take(_pageSize).toList();
           emit(SantriReportDetailLoaded(
             reports: firstPage,
             hasMore: _all.length > firstPage.length,
             missingPeriods: _missingPeriods,
+            currentMonthFilled: _currentMonthFilled,
           ));
         },
       );
@@ -69,6 +76,7 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
       hasMore: _all.length > nextPage.length,
       isLoadingMore: false,
       missingPeriods: _missingPeriods,
+      currentMonthFilled: _currentMonthFilled,
     ));
   }
 }

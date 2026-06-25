@@ -32,6 +32,7 @@ class MonthlyReportStrings {
   // ── Halaman riwayat / detail penilaian santri ───────────────────────
   static const riwayatPenilaian = 'Riwayat Penilaian';
   static const tambahPenilaian = 'Tambah Penilaian';
+  static const editPenilaian = 'Edit Penilaian';
   static const detailEmptySubtitle = 'Tekan "Tambah Penilaian" untuk menilai santri';
   static const windowClosedTitle = 'Belum Waktunya Menilai';
   static const windowClosedMessage =

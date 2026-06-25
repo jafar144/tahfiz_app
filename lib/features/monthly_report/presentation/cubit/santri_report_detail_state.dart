@@ -19,11 +19,16 @@ class SantriReportDetailLoaded extends SantriReportDetailState {
   /// Periode bulan lampau yang belum diisi & masih boleh disusul (terbaru dulu).
   final List<({int bulan, int tahun})> missingPeriods;
 
+  /// Apakah penilaian bulan berjalan sudah ada (untuk menentukan label FAB:
+  /// "Edit" vs "Tambah").
+  final bool currentMonthFilled;
+
   const SantriReportDetailLoaded({
     required this.reports,
     required this.hasMore,
     this.isLoadingMore = false,
     this.missingPeriods = const [],
+    this.currentMonthFilled = false,
   });
 
   SantriReportDetailLoaded copyWith({
@@ -31,12 +36,14 @@ class SantriReportDetailLoaded extends SantriReportDetailState {
     bool? hasMore,
     bool? isLoadingMore,
     List<({int bulan, int tahun})>? missingPeriods,
+    bool? currentMonthFilled,
   }) {
     return SantriReportDetailLoaded(
       reports: reports ?? this.reports,
       hasMore: hasMore ?? this.hasMore,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       missingPeriods: missingPeriods ?? this.missingPeriods,
+      currentMonthFilled: currentMonthFilled ?? this.currentMonthFilled,
     );
   }
 }

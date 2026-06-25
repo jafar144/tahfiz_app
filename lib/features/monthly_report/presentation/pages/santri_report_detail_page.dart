@@ -72,10 +72,21 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AiwaAppBar(title: MonthlyReportStrings.riwayatPenilaian),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _onAddPressed,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text(MonthlyReportStrings.tambahPenilaian),
+      floatingActionButton:
+          BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
+        builder: (context, state) {
+          final isEdit =
+              state is SantriReportDetailLoaded && state.currentMonthFilled;
+          return FloatingActionButton.extended(
+            onPressed: _onAddPressed,
+            icon: Icon(isEdit ? Icons.edit_rounded : Icons.add_rounded),
+            label: Text(
+              isEdit
+                  ? MonthlyReportStrings.editPenilaian
+                  : MonthlyReportStrings.tambahPenilaian,
+            ),
+          );
+        },
       ),
       body: SafeArea(
         child: Column(
