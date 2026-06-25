@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
@@ -15,19 +16,28 @@ import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarContrastEnforced: false,
+    ),
+  );
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Handler pesan FCM saat app di background/terminated (harus top-level).
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await initializeDateFormatting('id_ID', null);
 
   initDI();
 
-  // Inisialisasi notifikasi (izin, channel, listener). Tidak diblok agar
-  // tidak menunda tampilnya UI.
   unawaited(getIt<NotificationService>().init());
 
   runApp(
