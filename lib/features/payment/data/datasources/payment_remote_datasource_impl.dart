@@ -126,6 +126,30 @@ class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   }
 
   @override
+  Future<void> addPayments(List<PaymentEntity> payments) async {
+    if (payments.isEmpty) return;
+
+    final batch = firestore.batch();
+    final collection = firestore.collection('payments');
+
+    for (final payment in payments) {
+      final model = PaymentModel(
+        id: '', // Not used for add
+        santriId: payment.santriId,
+        bulan: payment.bulan,
+        tahun: payment.tahun,
+        total: payment.total,
+        method: payment.method,
+        createdAt: payment.createdAt,
+        createdBy: payment.createdBy,
+      );
+      batch.set(collection.doc(), model.toMap());
+    }
+
+    await batch.commit();
+  }
+
+  @override
   Future<void> deletePayment(String paymentId) async {
     await firestore.collection('payments').doc(paymentId).delete();
   }

@@ -7,10 +7,23 @@ class PaymentYearView extends StatefulWidget {
   final Map<int, Set<int>> paidData;
   final DateTime? startDate;
 
+  /// Saat true, bulan yang belum dibayar (belum/menunggak) bisa diketuk untuk
+  /// dipilih. Bulan lunas atau sebelum tanggal mulai tidak bisa dipilih.
+  final bool selectable;
+
+  /// Bulan yang sedang dipilih, dikelompokkan per tahun (`{tahun: {bulan}}`).
+  final Map<int, Set<int>> selectedData;
+
+  /// Dipanggil saat sebuah sel bulan diketuk pada mode [selectable].
+  final void Function(int year, int month)? onToggleMonth;
+
   const PaymentYearView({
     super.key,
     required this.paidData,
     this.startDate,
+    this.selectable = false,
+    this.selectedData = const {},
+    this.onToggleMonth,
   });
 
   @override
@@ -131,7 +144,13 @@ class _PaymentYearViewState extends State<PaymentYearView> {
         final isCurrentMonth =
             monthNumber == now.month && _selectedYear == now.year;
 
-        return Column(
+        final isSelected =
+            widget.selectedData[_selectedYear]?.contains(monthNumber) ?? false;
+        final canSelect = widget.selectable &&
+            (status == PaymentStatus.overdue ||
+                status == PaymentStatus.upcoming);
+
+        final cell = Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
@@ -139,20 +158,37 @@ class _PaymentYearViewState extends State<PaymentYearView> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: isCurrentMonth
+                color: isSelected
                     ? AppColors.primary
-                    : AppColors.textSecondary,
+                    : isCurrentMonth
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),
-            _buildCircle(status),
+            _buildCircle(status, isSelected: isSelected),
           ],
+        );
+
+        if (!canSelect) return cell;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => widget.onToggleMonth?.call(_selectedYear, monthNumber),
+          child: cell,
         );
       },
     );
   }
 
-  Widget _buildCircle(PaymentStatus status) {
+  Widget _buildCircle(PaymentStatus status, {bool isSelected = false}) {
+    if (isSelected) {
+      return _circle(
+        border: AppColors.primary,
+        fill: AppColors.primary,
+        child: const Icon(Icons.check_rounded, color: Colors.white, size: 22),
+      );
+    }
     switch (status) {
       case PaymentStatus.paid:
         return _circle(
@@ -220,19 +256,19 @@ class _PaymentYearViewState extends State<PaymentYearView> {
 
   Widget _buildLegend() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _legendItem(AppColors.success, 'Lunas'),
-        const SizedBox(width: 16),
         _legendItem(AppColors.textSecondary, 'Belum'),
-        const SizedBox(width: 16),
         _legendItem(AppColors.error, 'Menunggak'),
+        if (widget.selectable) _legendItem(AppColors.primary, 'Dipilih'),
       ],
     );
   }
 
   Widget _legendItem(Color color, String label) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 10,

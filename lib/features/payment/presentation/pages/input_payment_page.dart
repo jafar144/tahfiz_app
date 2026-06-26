@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
@@ -17,7 +17,6 @@ import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_yea
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_exists_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
-import 'package:khoirunnasyien/core/widgets/aiwa_wheel_picker.dart';
 
 class InputPaymentPage extends StatelessWidget {
   const InputPaymentPage({super.key});
@@ -52,8 +51,9 @@ class _InputPaymentViewState extends State<InputPaymentView> {
 
   SantriEntity? _selectedSantri;
   DateTime _selectedDate = DateTime.now();
-  int _selectedMonth = DateTime.now().month;
-  int _selectedYear = DateTime.now().year;
+
+  /// Bulan yang dipilih untuk dibayar, dikelompokkan per tahun (`{tahun: {bulan}}`).
+  final Map<int, Set<int>> _selectedPeriods = {};
 
   @override
   void initState() {
@@ -68,6 +68,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       setState(() {
         _selectedSantri = result;
         _amountController.text = _defaultAmountFor(result);
+        _selectedPeriods.clear();
       });
       if (context.mounted) {
         context.read<SantriPaymentHistoryCubit>().loadHistory(result.id);
@@ -82,12 +83,14 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     final isPutriPagi = santri.jenisKelamin.toUpperCase() == 'P' &&
         (santri.tipeKelas?.toLowerCase() == 'pagi');
     final amount = isPutriPagi ? 100000 : 200000;
-    return NumberFormat.currency(
-      locale: 'id_ID',
-      symbol: 'Rp ',
-      decimalDigits: 0,
-    ).format(amount);
+    return _formatCurrency(amount);
   }
+
+  String _formatCurrency(int value) => NumberFormat.currency(
+        locale: 'id_ID',
+        symbol: 'Rp ',
+        decimalDigits: 0,
+      ).format(value);
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -104,164 +107,100 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     }
   }
 
-  void _showMonthYearPicker() {
-    final now = DateTime.now();
-    final years = List.generate(3, (index) => now.year - 1 + index);
-    final months = List.generate(12, (index) => index + 1);
+  /// Tambah/hapus satu bulan dari daftar pilihan.
+  void _toggleMonth(int year, int month) {
+    setState(() {
+      final months = _selectedPeriods.putIfAbsent(year, () => <int>{});
+      if (!months.remove(month)) {
+        months.add(month);
+      }
+      if (months.isEmpty) {
+        _selectedPeriods.remove(year);
+      }
+    });
+  }
 
-    int selectedYearIndex = years.indexOf(_selectedYear);
-    if (selectedYearIndex == -1) selectedYearIndex = 1;
-    
-    int selectedMonthIndex = _selectedMonth - 1;
+  /// Daftar bulan terpilih dalam bentuk `DateTime(tahun, bulan)`, terurut.
+  List<DateTime> get _flatPeriods {
+    final list = <DateTime>[];
+    _selectedPeriods.forEach((year, months) {
+      for (final m in months) {
+        list.add(DateTime(year, m));
+      }
+    });
+    list.sort();
+    return list;
+  }
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return SizedBox(
-          height: 300,
-          child: Column(
-            children: [
-              // Toolbar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () => ctx.pop(),
-                      child: const Text('Batal',
-                          style: TextStyle(color: Colors.red)),
-                    ),
-                    const Text('Pilih Bulan & Tahun',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedYear = years[selectedYearIndex];
-                          _selectedMonth = months[selectedMonthIndex];
-                        });
-                        ctx.pop();
-                      },
-                      child: const Text('Pilih',
-                          style: TextStyle(color: Colors.blue)),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              // Pickers
-              Expanded(
-                child: Row(
-                  children: [
-                    // Month Picker
-                    Expanded(
-                      flex: 3,
-                      child: AiwaWheelPicker<int>(
-                        initialItem: selectedMonthIndex,
-                        items: months,
-                        itemExtent: 40,
-                        onSelectedItemChanged: (index) => selectedMonthIndex = index,
-                        itemBuilder: (m) => Text(
-                          DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Year Picker
-                    Expanded(
-                      flex: 2,
-                      child: AiwaWheelPicker<int>(
-                        initialItem: selectedYearIndex,
-                        items: years,
-                        itemExtent: 40,
-                        onSelectedItemChanged: (index) => selectedYearIndex = index,
-                        itemBuilder: (y) => Text(
-                          y.toString(),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  /// Nominal yang diketik (per bulan) sebagai int.
+  int get _amountValue =>
+      int.tryParse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+  /// Label ringkas bulan terpilih, mis. "Mar, Apr 2026 · Jan 2027".
+  String _periodLabel(List<DateTime> periods) {
+    final byYear = <int, List<int>>{};
+    for (final p in periods) {
+      byYear.putIfAbsent(p.year, () => <int>[]).add(p.month);
+    }
+    final years = byYear.keys.toList()..sort();
+    return years.map((y) {
+      final names = (byYear[y]!..sort())
+          .map((m) => DateFormat('MMM', 'id_ID').format(DateTime(2024, m)))
+          .join(', ');
+      return '$names $y';
+    }).join(' · ');
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
   void _submit() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedSantri == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Silakan pilih data santri terlebih dahulu')),
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedSantri == null) {
+      _showSnack('Silakan pilih data santri terlebih dahulu');
+      return;
+    }
+
+    final periods = _flatPeriods;
+    if (periods.isEmpty) {
+      _showSnack('Pilih minimal satu bulan yang ingin dibayar');
+      return;
+    }
+
+    final santri = _selectedSantri!;
+
+    // Validasi user gratis: blokir bulan yang masih dalam masa gratis.
+    // (Bulan sebelum tanggal masuk sudah otomatis tidak bisa dipilih di grid.)
+    if (santri.isFree && santri.freeUntil != null) {
+      final freeUntil = santri.freeUntil!;
+      final freeUntilMonth = DateTime(freeUntil.year, freeUntil.month);
+      final hasBlocked = periods.any((p) => !p.isAfter(freeUntilMonth));
+      if (hasBlocked) {
+        _showSnack(
+          'Santri ini gratis pembayaran hingga ${DateFormat('MMMM yyyy', 'id_ID').format(freeUntil)}',
         );
         return;
       }
-
-      // 1. Validation: Payment for duplicate month/year is handled in Cubit (InputPaymentAlreadyExists)
-      // but we can also double check here if we had the history locally, but Cubit is safer.
-
-      // 2. Validation: Payment Date cannot be before entry date
-       if (_selectedSantri!.tanggalMasuk != null) {
-          final tanggalMasuk = _selectedSantri!.tanggalMasuk!;
-          final paymentMonthDate = DateTime(_selectedYear, _selectedMonth);
-          final entryMonthDate = DateTime(tanggalMasuk.year, tanggalMasuk.month);
-
-          if (paymentMonthDate.isBefore(entryMonthDate)) {
-             ScaffoldMessenger.of(context).showSnackBar(
-               SnackBar(content: Text('Pembayaran tidak bisa sebelum tanggal masuk santri (${DateFormat('dd MMMM yyyy', 'id_ID').format(tanggalMasuk)})')),
-             );
-             return;
-          }
-       }
-
-      // 3. Validation: Free User
-      if (_selectedSantri!.isFree && _selectedSantri!.freeUntil != null) {
-         final freeUntil = _selectedSantri!.freeUntil!;
-         final paymentMonthDate = DateTime(_selectedYear, _selectedMonth);
-         // If payment month is BEFORE or EQUAL to freeUntil, block it? 
-         // "jika bulan yang dipilih itu kurang dari free_until"
-         // If freeUntil is March 2024. Payment for Feb 2024 should be blocked? Yes.
-         // If payment for April 2024? Allowed.
-         
-         // We need to compare Month and Year.
-         final freeUntilMonthYear = DateTime(freeUntil.year, freeUntil.month);
-         
-         if (paymentMonthDate.isBefore(freeUntilMonthYear) || paymentMonthDate.isAtSameMomentAs(freeUntilMonthYear)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Santri ini gratis pembayaran hingga ${DateFormat('MMMM yyyy', 'id_ID').format(freeUntil)}')),
-            );
-            return;
-         }
-      }
-
-      // Remove Rp, dot, space to get int
-      final rawAmount = _amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      final amount = int.tryParse(rawAmount) ?? 0;
-      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
-
-      context.read<InputPaymentCubit>().validateAndSubmitPayment(
-        santriId: _selectedSantri!.id,
-        month: _selectedMonth.toString(),
-        year: _selectedYear.toString(),
-        total: amount,
-        createdBy: userId,
-        date: _selectedDate,
-      );
     }
+
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
+
+    context.read<InputPaymentCubit>().submitMultiplePayments(
+          santriId: santri.id,
+          periods: periods,
+          totalPerMonth: _amountValue,
+          createdBy: userId,
+          date: _selectedDate,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    final displayMonthYear = DateFormat('MMMM yyyy', 'id_ID').format(DateTime(_selectedYear, _selectedMonth));
+    final periods = _flatPeriods;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -269,10 +208,13 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       body: BlocListener<InputPaymentCubit, InputPaymentState>(
         listener: (context, state) {
           if (state is InputPaymentSuccess) {
+            final message = state.count > 1
+                ? '${state.count} pembayaran berhasil disimpan'
+                : 'Pembayaran berhasil disimpan';
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Pembayaran berhasil disimpan')),
+              SnackBar(content: Text(message)),
             );
-            context.pop(); 
+            context.pop();
           } else if (state is InputPaymentFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error: ${state.message}')),
@@ -304,16 +246,37 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 const SizedBox(height: 8),
                 AiwaClickableInput(
                   label: 'Pilih Santri',
-                  value: _selectedSantri == null 
-                      ? 'Cari Santri' 
+                  value: _selectedSantri == null
+                      ? 'Cari Santri'
                       : '${_selectedSantri!.name} (${_selectedSantri!.nis})',
                   icon: Icons.person_search,
                   onTap: _pickSantri,
                 ),
-                
+
                 const SizedBox(height: 24),
-                
-                if (_selectedSantri != null)
+
+                if (_selectedSantri != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildSectionTitle('Periode Pembayaran'),
+                      if (periods.isNotEmpty)
+                        Text(
+                          '${periods.length} bulan dipilih',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ketuk bulan untuk memilih. Boleh pilih lebih dari satu.',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 8),
                   BlocBuilder<SantriPaymentHistoryCubit, SantriPaymentHistoryState>(
                     builder: (context, state) {
                       if (state is SantriPaymentHistoryLoading) {
@@ -352,6 +315,9 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                           child: PaymentYearView(
                             paidData: paidData,
                             startDate: _resolveStartDate(),
+                            selectable: true,
+                            selectedData: _selectedPeriods,
+                            onToggleMonth: _toggleMonth,
                           ),
                         );
                       }
@@ -359,36 +325,16 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                       return const SizedBox.shrink();
                     },
                   ),
-                
-                const SizedBox(height: 24),
+                  if (periods.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _buildSelectionInfo(periods),
+                  ],
+                  const SizedBox(height: 24),
+                ],
+
                 const Center(child: Text('DETAIL PEMBAYARAN', style: TextStyle(color: Colors.grey, fontSize: 11, letterSpacing: 1.2, fontWeight: FontWeight.w600))),
                 const SizedBox(height: 16),
 
-                _buildSectionTitle('Periode Pembayaran'),
-                const SizedBox(height: 8),
-                InkWell(
-                  onTap: _showMonthYearPicker,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          displayMonthYear,
-                          style: const TextStyle(fontSize: 14, color: Colors.black87),
-                        ),
-                        const Icon(Icons.calendar_today, color: Colors.blue, size: 20),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
                 _buildSectionTitle('Tanggal Bayar'),
                 const SizedBox(height: 8),
                 InkWell(
@@ -412,11 +358,17 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 ),
 
                 const SizedBox(height: 16),
-                _buildSectionTitle('Nominal (Rp)'),
+                _buildSectionTitle('Nominal per Bulan'),
+                const SizedBox(height: 4),
+                const Text(
+                  'Berlaku untuk setiap bulan yang dipilih.',
+                  style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _amountController,
                   keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     CurrencyInputFormatter(),
@@ -442,7 +394,11 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                   },
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                if (periods.isNotEmpty) ...[
+                  _buildTotalCard(periods),
+                  const SizedBox(height: 16),
+                ],
                 BlocBuilder<InputPaymentCubit, InputPaymentState>(
                   builder: (context, state) {
                     final isLoading = state is InputPaymentLoading;
@@ -458,6 +414,91 @@ class _InputPaymentViewState extends State<InputPaymentView> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Ringkasan bulan yang sedang dipilih (di bawah grid).
+  Widget _buildSelectionInfo(List<DateTime> periods) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event_available, color: AppColors.primary, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _periodLabel(periods),
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Kartu total pembayaran (jumlah bulan × nominal).
+  Widget _buildTotalCard(List<DateTime> periods) {
+    final count = periods.length;
+    final total = _amountValue * count;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Pembayaran',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$count bulan',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _formatCurrency(total),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$count bulan × ${_formatCurrency(_amountValue)}',
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -496,8 +537,6 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       ),
     );
   }
-
-
 }
 
 class CurrencyInputFormatter extends TextInputFormatter {

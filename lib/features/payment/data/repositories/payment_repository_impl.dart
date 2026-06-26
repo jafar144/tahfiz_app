@@ -103,6 +103,11 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
+  Future<void> addPayments(List<PaymentEntity> payments) async {
+    await remoteDataSource.addPayments(payments);
+  }
+
+  @override
   Future<void> deletePayment(String paymentId) async {
     await remoteDataSource.deletePayment(paymentId);
   }

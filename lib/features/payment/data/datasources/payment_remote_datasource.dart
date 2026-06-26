@@ -7,5 +7,6 @@ abstract class PaymentRemoteDataSource {
   Future<List<PaymentEntity>> getPaymentHistoryBySantri(String santriId, int? limit);
   Future<List<PaymentEntity>> getPaymentHistory({int limit = 10, String? lastDocumentId});
   Future<void> addPayment(PaymentEntity payment);
+  Future<void> addPayments(List<PaymentEntity> payments);
   Future<void> deletePayment(String paymentId);
 }
