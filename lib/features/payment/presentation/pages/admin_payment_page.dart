@@ -340,8 +340,15 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                           ),
                           if (!isLoading)
                           TextButton(
-                            onPressed: () {
-                              context.pushNamed(RouteNames.paymentHistory);
+                            onPressed: () async {
+                              await context.pushNamed(RouteNames.paymentHistory);
+                              if (context.mounted) {
+                                final cubit = context.read<PaymentCubit>();
+                                final currentDate = cubit.state is PaymentLoaded
+                                    ? (cubit.state as PaymentLoaded).selectedDate
+                                    : DateTime.now();
+                                cubit.loadDashboard(currentDate);
+                              }
                             },
                             child: const Text('Lihat Semua', style: AppTextStyles.infoGrey),
                           ),
