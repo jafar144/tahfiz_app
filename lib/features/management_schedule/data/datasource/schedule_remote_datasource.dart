@@ -18,6 +18,8 @@ abstract class ScheduleRemoteDataSource {
   Future<void> deleteHalaqah(String halaqahId);
   Future<HalaqahModel?> getHalaqahBySantriId(String santriId);
   Future<void> removeSantriFromHalaqah(String santriId);
+  Future<void> moveSantriToHalaqah(String santriId, String newHalaqahId,
+      {String? newSession});
   Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId);
   Future<void> migrateHalaqahIds();
 }
@@ -218,6 +220,38 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
     batch.update(firestore.collection('halaqahs').doc(halaqahId), {
       'santri_count': FieldValue.increment(-1),
     });
+    await batch.commit();
+  }
+
+  @override
+  Future<void> moveSantriToHalaqah(String santriId, String newHalaqahId,
+      {String? newSession}) async {
+    final santriRef = firestore.collection('santri_profiles').doc(santriId);
+    final santriDoc = await santriRef.get();
+    if (!santriDoc.exists) throw Exception('Santri tidak ditemukan');
+
+    final oldHalaqahId = santriDoc.data()?['halaqah_id'] as String?;
+    if (oldHalaqahId == newHalaqahId) return; // tidak ada perpindahan
+
+    final batch = firestore.batch();
+
+    // Pindahkan santri ke halaqah baru. Sekalian samakan tipe_kelas (sesi)
+    // dengan sesi halaqah barunya agar data tidak basi.
+    final santriUpdate = <String, dynamic>{'halaqah_id': newHalaqahId};
+    if (newSession != null && newSession.isNotEmpty) {
+      santriUpdate['tipe_kelas'] = newSession;
+    }
+    batch.update(santriRef, santriUpdate);
+
+    if (oldHalaqahId != null && oldHalaqahId.isNotEmpty) {
+      batch.update(firestore.collection('halaqahs').doc(oldHalaqahId), {
+        'santri_count': FieldValue.increment(-1),
+      });
+    }
+    batch.update(firestore.collection('halaqahs').doc(newHalaqahId), {
+      'santri_count': FieldValue.increment(1),
+    });
+
     await batch.commit();
   }
 

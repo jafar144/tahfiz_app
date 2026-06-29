@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/widgets/switch_pembimbing_sheet.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposit_history_page.dart';
@@ -174,11 +175,6 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      value: detail.tipeKelas ?? '-',
                    ),
                    AiwaDetailInfoRow(
-                     icon: Icons.supervisor_account,
-                     label: 'Pembimbing',
-                     value: detail.pembimbing ?? '-',
-                   ),
-                   AiwaDetailInfoRow(
                      icon: Icons.payments,
                      label: 'Status Biaya',
                      value: detail.isFree 
@@ -193,6 +189,10 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                          : '-',
                    ),
                 ]),
+                const SizedBox(height: 20),
+                const AiwaFormSectionTitle(title: 'Pembimbing'),
+                const SizedBox(height: 10),
+                _buildPembimbingSection(detail),
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
                 const SizedBox(height: 10),
@@ -241,6 +241,85 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         ],
       ),
     );
+  }
+
+  /// Section pembimbing dengan tombol untuk memindahkan santri ke pembimbing
+  /// lain (lewat halaqah). Tombol disembunyikan pada mode readOnly.
+  Widget _buildPembimbingSection(SantriDetail detail) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.supervisor_account,
+                color: Colors.blue.shade700, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pembimbing',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail.pembimbing ?? 'Belum ada',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!widget.readOnly)
+            IconButton(
+              onPressed: () => _openSwitchPembimbing(detail),
+              icon: Icon(Icons.swap_horiz_rounded, color: Colors.blue.shade700),
+              tooltip: 'Ganti Pembimbing',
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.blue.shade50,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openSwitchPembimbing(SantriDetail detail) async {
+    final moved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SwitchPembimbingSheet(
+        santriId: detail.id,
+        santriName: detail.name,
+        santriGender: detail.jenisKelamin,
+      ),
+    );
+    if (moved == true && mounted) {
+      _cubit.loadDetail(widget.santriId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pembimbing berhasil diganti')),
+      );
+    }
   }
 
   Widget _buildFreePaymentCard() {

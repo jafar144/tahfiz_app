@@ -21,6 +21,15 @@ abstract class ScheduleRepository {
 
   /// Mengeluarkan santri dari halaqah yang sedang ditempatinya (bila ada).
   Future<Either<Failure, void>> removeSantriFromHalaqah(String santriId);
+
+  /// Memindahkan santri ke halaqah lain (ganti pembimbing lewat halaqah).
+  /// Bila [newSession] diisi, `tipe_kelas` santri ikut disamakan dengan sesi
+  /// halaqah barunya.
+  Future<Either<Failure, void>> moveSantriToHalaqah(
+    String santriId,
+    String newHalaqahId, {
+    String? newSession,
+  });
   Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(String halaqahId);
   Future<Either<Failure, void>> migrateHalaqahIds();
 }

@@ -171,6 +171,24 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
+  Future<Either<Failure, void>> moveSantriToHalaqah(
+    String santriId,
+    String newHalaqahId, {
+    String? newSession,
+  }) async {
+    try {
+      await remoteDataSource.moveSantriToHalaqah(
+        santriId,
+        newHalaqahId,
+        newSession: newSession,
+      );
+      return const Either.right(null);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(String halaqahId) async {
     try {
       final result = await remoteDataSource.getSantrisByHalaqahId(halaqahId);
