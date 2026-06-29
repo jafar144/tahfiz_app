@@ -11,6 +11,10 @@ class SantriCard extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
+  /// Tampilkan nama pembimbing di footer. Dimatikan mis. pada daftar santri
+  /// di dalam halaqah, di mana pembimbingnya sudah jelas (redundan).
+  final bool showPembimbing;
+
   const SantriCard(
     this.santri, {
     super.key,
@@ -18,6 +22,7 @@ class SantriCard extends StatelessWidget {
     this.extra,
     this.trailing,
     this.onTap,
+    this.showPembimbing = true,
   });
 
   @override
@@ -203,34 +208,33 @@ class SantriCard extends StatelessWidget {
                             ),
                           ),
                           
-                          const SizedBox(width: 8),
-
-
-                          
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.person,
-                                  size: 14,
-                                  color: Colors.grey.shade400,
-                                ),
-                                const SizedBox(width: 3),
-                                Expanded(
-                                  child: Text(
-                                    santri.pembimbing ?? '-',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade500,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                          if (showPembimbing) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person,
+                                    size: 14,
+                                    color: Colors.grey.shade400,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 3),
+                                  Expanded(
+                                    child: Text(
+                                      santri.pembimbing ?? '-',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ],

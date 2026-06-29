@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
+import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_state.dart';
 
@@ -40,27 +40,26 @@ class ScheduleViewPage extends StatelessWidget {
           final isLoading = state is ScheduleLoading;
           String selectedGender = 'L';
           List<Halaqah> halaqahs = [];
-          List<ProgramSchedule> schedules = [];
           List<ScheduleProgram> programs = [];
 
           if (state is ScheduleLoaded) {
             selectedGender = state.selectedGender;
             halaqahs = state.halaqahs;
-            schedules = state.schedules;
             programs = state.programs;
           } else if (isLoading) {
             selectedGender = 'L'; // Default for skeleton
             halaqahs = List.generate(
               5,
-              (index) => const Halaqah(
-                id: 'dummy',
+              (index) => Halaqah(
+                id: 'dummy_$index',
                 programId: 'dummy',
-                scheduleIds: [],
+                scheduleIds: const [],
                 name: 'Halaqah Dummy',
-                room: 'Ruang A',
-                teacherId: 'teacher',
+                room: 'A',
+                teacherId: 'teacher_$index',
                 teacherName: 'Ustadz Fulan',
                 status: 'Active',
+                santriCount: 12,
               ),
             );
           }
@@ -72,7 +71,8 @@ class ScheduleViewPage extends StatelessWidget {
                 children: [
                 _buildGenderSelector(context, selectedGender),
                 Expanded(
-                  child: _buildHalaqahList(schedules, halaqahs, programs),
+                  child: _buildAsatidzList(
+                      context, selectedGender, halaqahs, programs),
                 ),
               ],
             ),
@@ -155,10 +155,13 @@ class ScheduleViewPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHalaqahList(
-      List<ProgramSchedule> schedules,
-      List<Halaqah> halaqahs,
-      List<ScheduleProgram> programs) {
+
+  Widget _buildAsatidzList(
+    BuildContext context,
+    String gender,
+    List<Halaqah> halaqahs,
+    List<ScheduleProgram> programs,
+  ) {
     if (halaqahs.isEmpty) {
       return Center(
         child: Column(
@@ -171,7 +174,7 @@ class ScheduleViewPage extends StatelessWidget {
               style: TextStyle(color: Colors.grey[600], fontSize: 16),
             ),
             const SizedBox(height: 8),
-             const Text(
+            const Text(
               'Tambahkan halaqah baru dengan\nmenekan tombol + di bawah',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 12),
@@ -181,313 +184,168 @@ class ScheduleViewPage extends StatelessWidget {
       );
     }
 
+    // Kelompokkan halaqah per pengajar (urut sesuai kemunculan).
+    final order = <String>[];
+    final byTeacher = <String, List<Halaqah>>{};
+    for (final h in halaqahs) {
+      if (!byTeacher.containsKey(h.teacherId)) {
+        byTeacher[h.teacherId] = [];
+        order.add(h.teacherId);
+      }
+      byTeacher[h.teacherId]!.add(h);
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: halaqahs.length,
+      itemCount: order.length,
       itemBuilder: (context, index) {
-        final halaqah = halaqahs[index];
-        return _buildHalaqahCard(context, halaqah, schedules, programs);
+        final teacherId = order[index];
+        final group = byTeacher[teacherId]!;
+        return _buildAsatidzCard(context, gender, teacherId, group, programs);
       },
     );
   }
 
-  String _dayName(int day) {
-    if (day == 0) return 'Invalid';
-    const days = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu'
-    ];
-    if (day >= 1 && day <= 7) return days[day - 1];
-    return '';
-  }
+  Widget _buildAsatidzCard(
+    BuildContext context,
+    String gender,
+    String teacherId,
+    List<Halaqah> halaqahs,
+    List<ScheduleProgram> programs,
+  ) {
+    final accent = gender == 'L' ? Colors.blue : Colors.pink;
+    final teacherName = halaqahs.isNotEmpty ? halaqahs.first.teacherName : '-';
+    final totalSantri = halaqahs.fold<int>(0, (sum, h) => sum + h.santriCount);
 
-  Widget _buildHalaqahCard(
-      BuildContext context,
-      Halaqah halaqah,
-      List<ProgramSchedule> allSchedules,
-      List<ScheduleProgram> programs) {
-    final halaqahSchedules =
-        allSchedules.where((s) => halaqah.scheduleIds.contains(s.id)).toList()
-          ..sort((a, b) {
-            final byDay = a.day.compareTo(b.day);
-            if (byDay != 0) return byDay;
-            return a.startTime.compareTo(b.startTime);
-          });
+    // Sesi unik (terurut pagi→sore→malam) untuk badge overview.
+    String sessionOf(Halaqah h) {
+      final program = programs.cast<ScheduleProgram?>().firstWhere(
+            (p) => p?.id == h.programId,
+            orElse: () => null,
+          );
+      final name =
+          (program?.name.isNotEmpty ?? false) ? program!.name : 'Regular';
+      return _capitalize(name);
+    }
 
-    final cubit = context.read<ScheduleCubit>();
-    final currentState = cubit.state;
-    final gender =
-        currentState is ScheduleLoaded ? currentState.selectedGender : 'L';
-    final borderColor = gender == 'L' ? Colors.blue : Colors.pink;
-    final initial = halaqah.name.isNotEmpty
-        ? (halaqah.name.length >= 2
-            ? halaqah.name.substring(0, 2).toUpperCase()
-            : halaqah.name[0].toUpperCase())
-        : '?';
+    final sessions = <String>[];
+    for (final h in halaqahs) {
+      final s = sessionOf(h);
+      if (!sessions.contains(s)) sessions.add(s);
+    }
+    const sOrder = {'Pagi': 0, 'Sore': 1, 'Malam': 2};
+    sessions.sort((a, b) => (sOrder[a] ?? 99).compareTo(sOrder[b] ?? 99));
 
-    // Determine session from program/session ID
-    final program = programs.cast<ScheduleProgram>().firstWhere(
-      (p) => p.id == halaqah.programId,
-      orElse: () => const ScheduleProgram(id: '', name: 'Regular', gender: ''),
-    );
-    final session = _capitalize(
-      program.name.isNotEmpty ? program.name : 'Regular',
-    );
-
-    return InkWell(
-      onTap: () async {
-        await context.pushNamed(
-          RouteNames.detailHalaqah,
-          extra: {
-            'halaqah': halaqah,
-            'sessionName': session,
-            'gender': gender,
-          },
-        );
-        if (context.mounted) {
-          final currentGender =
-              context.read<ScheduleCubit>().state is ScheduleLoaded
-                  ? (context.read<ScheduleCubit>().state as ScheduleLoaded)
-                      .selectedGender
-                  : 'L';
-          context.read<ScheduleCubit>().loadSchedule(currentGender);
-        }
-      },
-      child: Card(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.white,
         elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.05),
-        shape: RoundedRectangleBorder(
+        shadowColor: Colors.black.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
           borderRadius: BorderRadius.circular(16),
-        ),
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Initial Avatar
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: borderColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      initial,
-                      style: TextStyle(
-                        color: borderColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
+          onTap: () async {
+            await context.pushNamed(
+              RouteNames.detailAsatidzHalaqah,
+              extra: {
+                'teacherId': teacherId,
+                'teacherName': teacherName,
+                'gender': gender,
+              },
+            );
+            if (context.mounted) {
+              final cubit = context.read<ScheduleCubit>();
+              final st = cubit.state;
+              if (st is ScheduleLoaded) cubit.loadSchedule(st.selectedGender);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 12),
-                  // Header Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                halaqah.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.black87,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            // Session Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getSessionColor(session).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    _getSessionIcon(session),
-                                    size: 14,
-                                    color: _getSessionColor(session),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    session,
-                                    style: TextStyle(
-                                      color: _getSessionColor(session),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Ruang ${halaqah.room}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+                  alignment: Alignment.center,
+                  child: Text(
+                    UiUtils.getInitials(teacherName),
+                    style: TextStyle(
+                      color: accent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Teacher, Santri Count, and Gender Badge
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.person,
-                          size: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          halaqah.teacherName,
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.people,
-                          size: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${halaqah.santriCount} Santri',
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: borderColor.withOpacity(0.3)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      gender == 'L' ? 'Putra' : 'Putri',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: borderColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (halaqahSchedules.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 12),
-                Text(
-                  'JADWAL SESI',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[400],
-                    letterSpacing: 1.0,
                   ),
                 ),
-                const SizedBox(height: 8),
-                ...halaqahSchedules.map((schedule) {
-                  final dayName = _dayName(schedule.day);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          dayName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
-                            fontSize: 13,
-                          ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        teacherName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
                         ),
-                        Text(
-                          '${schedule.startTime}  -  ${schedule.endTime}',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Colors.grey[700],
-                            fontSize: 13,
-                          ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${halaqahs.length} halaqah · $totalSantri santri',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
                         ),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: sessions.map(_sessionBadge).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
               ],
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _sessionBadge(String session) {
+    final color = _getSessionColor(session);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getSessionIcon(session), size: 13, color: color),
+          const SizedBox(width: 4),
+          Text(
+            session,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }

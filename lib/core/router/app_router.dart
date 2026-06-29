@@ -27,6 +27,7 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/pages/s
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/add_halaqah_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/halaqah_detail_page.dart';
+import 'package:khoirunnasyien/features/management_schedule/presentation/pages/asatidz_halaqah_detail_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/edit_halaqah_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
@@ -225,6 +226,18 @@ class AppRouter {
                gender: gender,
              ),
            );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.detailAsatidzHalaqah,
+        name: RouteNames.detailAsatidzHalaqah,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return AsatidzHalaqahDetailPage(
+            teacherId: extras['teacherId'] as String,
+            teacherName: extras['teacherName'] as String? ?? '-',
+            gender: extras['gender'] as String? ?? 'L',
+          );
         },
       ),
       GoRoute(

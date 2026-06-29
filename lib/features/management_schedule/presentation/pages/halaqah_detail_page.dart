@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/hala
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 
 class HalaqahDetailPage extends StatelessWidget {
   final String sessionName;
@@ -472,6 +473,7 @@ class HalaqahDetailPage extends StatelessWidget {
 
   Widget _buildSantriSection(Halaqah halaqah, List<SantriEntity> santriList) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -502,87 +504,28 @@ class HalaqahDetailPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: santriList.length,
-            separatorBuilder: (_, __) => const Padding(
-              padding: EdgeInsets.only(left: 60),
-              child: Divider(height: 1),
+        if (santriList.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
             ),
-            itemBuilder: (context, index) {
-              final santri = santriList[index];
-              final initial = santri.name.isNotEmpty
-                  ? (santri.name.length >= 2 
-                      ? santri.name.substring(0, 2).toUpperCase() 
-                      : santri.name[0].toUpperCase())
-                  : '?';
-              
-              // Random-ish color based on index
-              final colors = [
-                Colors.blue, Colors.purple, Colors.teal, Colors.orange, Colors.pink
-              ];
-              final color = colors[index % colors.length];
-
-              return ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    initial,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  santri.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                subtitle: Text(
-                  santri.nis.isNotEmpty ? santri.nis : "-",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Colors.grey.shade400,
-                ),
-                onTap: () {
-                   // Navigate to santri detail if needed, or ignored for now
-                },
-              );
-            },
+            child: Text(
+              'Belum ada santri di halaqah ini',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+            ),
+          )
+        else
+          ...santriList.map(
+            (santri) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SantriCard(santri),
+            ),
           ),
-        ),
       ],
     );
   }
