@@ -163,6 +163,15 @@ class RevenueBreakdownCard extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
+                      if (data.groups[i].label == 'Lainnya')
+                        Text(
+                          'Santri tidak aktif',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.grey.shade400,
+                          ),
+                        ),
                       Text(
                         '${data.groups[i].paymentCount} pembayaran',
                         style: TextStyle(
