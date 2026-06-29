@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/home/kaizer/flutter/bin/dart analyze *)"
+    ]
+  }
+}
