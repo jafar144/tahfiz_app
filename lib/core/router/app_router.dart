@@ -167,12 +167,14 @@ class AppRouter {
           final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
           final isMultiSelect = extras['isMultiSelect'] as bool? ?? false;
           final asatidzId = extras['asatidzId'] as String?;
+          final isFree = extras['isFree'] as bool?;
 
           return BlocProvider(
             create: (_) => getIt<SantriCubit>()..loadSantri(
               isActive: true,
               gender: gender,
               asatidzId: asatidzId,
+              isFree: isFree,
             ),
             child: SelectSantriPage(
               genderFiltered: gender,
@@ -180,6 +182,7 @@ class AppRouter {
               disabledIds: disabledIds,
               isMultiSelect: isMultiSelect,
               asatidzId: asatidzId,
+              isFree: isFree,
             ),
           );
         },

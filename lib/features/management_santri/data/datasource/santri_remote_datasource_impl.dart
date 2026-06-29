@@ -13,6 +13,16 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
   SantriRemoteDataSourceImpl(this.firestore, this.auth);
 
+  /// Status gratis santri. Sumber utama adalah `free_until` (tanggal berakhir
+  /// masa gratis). Untuk data lama yang belum dimigrasi (free_until belum
+  /// di-set), fallback ke field legacy `is_free` (boolean). Tanpa fallback ini
+  /// santri gratis lama akan dianggap reguler.
+  static bool _isFreeFromData(Map<String, dynamic> data) {
+    final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+    if (freeUntil != null) return freeUntil.isAfter(DateTime.now());
+    return data['is_free'] == true;
+  }
+
   @override
   Future<List<SantriEntity>> getSantriList({
     String? keyword,
@@ -52,7 +62,6 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
 
         final snapshot = await query.get();
-        final now = DateTime.now();
         final items = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
@@ -63,7 +72,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             kelas: data['kelas'],
             jenisKelamin: data['jenis_kelamin'],
             isActive: data['is_active'] ?? true,
-            isFree: freeUntil != null && freeUntil.isAfter(now),
+            isFree: _isFreeFromData(data),
             freeUntil: freeUntil,
             nomorWali: data['nomor_wali'],
             tipeKelas: data['tipe_kelas'],
@@ -77,12 +86,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       List<SantriEntity> result = allSantris;
       if (isFree != null) {
-        final now = DateTime.now();
-        if (isFree) {
-          result = result.where((s) => s.freeUntil != null && s.freeUntil!.isAfter(now)).toList();
-        } else {
-          result = result.where((s) => s.freeUntil == null || s.freeUntil!.isBefore(now)).toList();
-        }
+        result = result.where((s) => s.isFree == isFree).toList();
       }
 
       if (keyword != null && keyword.isNotEmpty) {
@@ -116,7 +120,6 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     // Jika ada keyword, kita ambil semua data untuk difilter secara substring di client (karena Firestore tidak support substring search)
     if (keyword != null && keyword.isNotEmpty) {
       final snapshot = await query.get();
-      final now = DateTime.now();
 
       final allItems = snapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -128,7 +131,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           kelas: data['kelas'],
           jenisKelamin: data['jenis_kelamin'],
           isActive: data['is_active'] ?? true,
-          isFree: freeUntil != null && freeUntil.isAfter(now),
+          isFree: _isFreeFromData(data),
           freeUntil: freeUntil,
           nomorWali: data['nomor_wali'],
           tipeKelas: data['tipe_kelas'],
@@ -140,11 +143,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       List<SantriEntity> result = allItems;
       if (isFree != null) {
-        if (isFree) {
-          result = result.where((s) => s.isFree).toList();
-        } else {
-          result = result.where((s) => !s.isFree).toList();
-        }
+        result = result.where((s) => s.isFree == isFree).toList();
       }
 
       final k = keyword.toLowerCase();
@@ -177,7 +176,6 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     query = query.limit(limit);
 
     final snapshot = await query.get();
-    final now = DateTime.now();
 
     return snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
@@ -189,7 +187,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         kelas: data['kelas'],
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
-        isFree: freeUntil != null && freeUntil.isAfter(now),
+        isFree: _isFreeFromData(data),
         freeUntil: freeUntil,
         nomorWali: data['nomor_wali'],
         tipeKelas: data['tipe_kelas'],
@@ -209,7 +207,6 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     required int limit,
     String? lastDocumentId,
   }) async {
-    final now = DateTime.now();
     final List<SantriEntity> result = [];
     DocumentSnapshot? lastDoc;
     const int batchSize = 50;
@@ -229,7 +226,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       for (final doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-        final isCurrentlyFree = freeUntil != null && freeUntil.isAfter(now);
+        final isCurrentlyFree = _isFreeFromData(data);
 
         if (isCurrentlyFree == isFree) {
           result.add(SantriEntity(
@@ -272,7 +269,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     final userData = userDoc.exists ? userDoc.data() as Map<String, dynamic> : <String, dynamic>{};
 
     final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-    final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+    final isFree = _isFreeFromData(data);
 
     return SantriDetail(
       id: doc.id,
@@ -431,7 +428,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       final items = snapshot.docs.map((doc) {
         final data = doc.data();
         final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-        final isFree = freeUntil != null && freeUntil.isAfter(DateTime.now());
+        final isFree = _isFreeFromData(data);
 
         return SantriEntity(
           id: doc.id,

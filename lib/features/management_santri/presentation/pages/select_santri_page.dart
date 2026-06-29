@@ -22,6 +22,11 @@ class SelectSantriPage extends StatefulWidget {
   /// asatidz. Bila null, menampilkan seluruh santri (perilaku admin).
   final String? asatidzId;
 
+  /// Filter berdasarkan status pembayaran: true=Gratis, false=Reguler.
+  /// Bila null, menampilkan keduanya. Dipakai mis. oleh fitur pembayaran
+  /// untuk hanya menampilkan santri reguler.
+  final bool? isFree;
+
   const SelectSantriPage({
     super.key,
     this.genderFiltered,
@@ -29,6 +34,7 @@ class SelectSantriPage extends StatefulWidget {
     this.disabledIds = const [],
     this.isMultiSelect = false,
     this.asatidzId,
+    this.isFree,
   });
 
   @override
@@ -52,6 +58,7 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
       isActive: true,
       gender: widget.genderFiltered,
       asatidzId: widget.asatidzId,
+      isFree: widget.isFree,
       keyword: '',
     );
   }
@@ -82,6 +89,7 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
       isActive: true,
       gender: widget.genderFiltered,
       asatidzId: widget.asatidzId,
+      isFree: widget.isFree,
       keyword: _searchController.text,
     );
   }

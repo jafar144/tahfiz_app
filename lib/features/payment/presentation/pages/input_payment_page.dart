@@ -63,7 +63,10 @@ class _InputPaymentViewState extends State<InputPaymentView> {
   }
 
   Future<void> _pickSantri() async {
-    final result = await context.pushNamed(RouteNames.selectSantri);
+    final result = await context.pushNamed(
+      RouteNames.selectSantri,
+      extra: const {'isFree': false},
+    );
     if (result != null && result is SantriEntity) {
       setState(() {
         _selectedSantri = result;
