@@ -362,13 +362,36 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                             child: Text('Belum ada transaksi baru.'),
                           ),
                         )
-                      else 
-                        ListView.separated(
+                      else
+                        Builder(
+                          builder: (context) {
+                            final displayCount = recentTransactions.length > _displayedCount
+                                ? _displayedCount
+                                : recentTransactions.length;
+                            return ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: recentTransactions.length > _displayedCount ? _displayedCount : recentTransactions.length,
+                          itemCount: displayCount + (_isPaginating ? 1 : 0),
                           separatorBuilder: (_, _) => const SizedBox(height: 16),
                           itemBuilder: (context, index) {
+                            // Item loader pagination tampil sebagai baris terakhir
+                            // agar jaraknya konsisten dengan separator antar item.
+                            if (index >= displayCount) {
+                              return Skeletonizer(
+                                enabled: true,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: PaymentListItem(
+                                    payment: PaymentEntity(
+                                      id: '1', santriId: '1', bulan: '1', tahun: '2024', total: 100000, method: 'cash', createdAt: DateTime.now(), createdBy: 'admin', santriName: 'Loading Santri',
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
                             final item = recentTransactions[index];
                             final isOldTransaction = DateTime.now().difference(item.createdAt).inDays > 30;
 
@@ -435,25 +458,8 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                               ),
                             );
                           },
-                        ),
-                      if (_isPaginating)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          child: Skeletonizer(
-                            enabled: true,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200)
-                              ),
-                              child: PaymentListItem(
-                                payment: PaymentEntity(
-                                  id: '1', santriId: '1', bulan: '1', tahun: '2024', total: 100000, method: 'cash', createdAt: DateTime.now(), createdBy: 'admin', santriName: 'Loading Santri'
-                                )
-                              ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       const SizedBox(height: 80), // Space for FAB
                     ],

@@ -53,7 +53,9 @@ class PaymentCubit extends Cubit<PaymentState> {
           createdBy: p.createdBy,
           santriName: santriMap[p.santriId],
         );
-      }).toList();
+      }).toList()
+        // Urutkan terbaru di atas (descending sesuai tanggal dibuat).
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       emit(PaymentLoaded(
         paidCount: paidStudents.length,
