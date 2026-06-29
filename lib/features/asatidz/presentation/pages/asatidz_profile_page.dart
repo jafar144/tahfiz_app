@@ -290,29 +290,29 @@ class AsatidzProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildMenuItem(
-            icon: Icons.edit,
-            title: 'Edit Profile',
-            subtitle: 'Ubah informasi akun',
-            color: Colors.blue,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
-          ),
-          const Divider(height: 1),
-          _buildMenuItem(
-            icon: Icons.lock,
-            title: 'Ganti Password',
-            subtitle: 'Ubah kata sandi',
-            color: Colors.orange,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
-          ),
+          // _buildMenuItem(
+          //   icon: Icons.edit,
+          //   title: 'Edit Profile',
+          //   subtitle: 'Ubah informasi akun',
+          //   color: Colors.blue,
+          //   onTap: () {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       const SnackBar(content: Text('Fitur coming soon...')),
+          //     );
+          //   },
+          // ),
+          // const Divider(height: 1),
+          // _buildMenuItem(
+          //   icon: Icons.lock,
+          //   title: 'Ganti Password',
+          //   subtitle: 'Ubah kata sandi',
+          //   color: Colors.orange,
+          //   onTap: () {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       const SnackBar(content: Text('Fitur coming soon...')),
+          //     );
+          //   },
+          // ),
           const Divider(height: 1),
           _buildMenuItem(
             icon: Icons.info,
