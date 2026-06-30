@@ -5,10 +5,14 @@ import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repo
 part 'input_payment_state.dart';
 
 /// Satu santri yang ikut ditagih pada pembayaran keluarga, beserta nominal
-/// per bulannya. Bulan yang dibayar dipakai bersama (sama untuk semua anak).
+/// per bulannya dan bulan-bulan yang dipilih khusus untuk santri ini
+/// (tiap saudara bisa memilih bulan yang berbeda).
 class FamilyPaymentChild {
   final String santriId;
   final int totalPerMonth;
+
+  /// Bulan yang dipilih untuk santri ini, dalam bentuk `DateTime(tahun, bulan)`.
+  final List<DateTime> periods;
 
   /// Bulan pertama santri wajib bayar (mis. setelah masa gratis / tanggal masuk).
   /// Bulan sebelum ini akan dilewati agar tidak menagih sebelum santri masuk.
@@ -17,6 +21,7 @@ class FamilyPaymentChild {
   const FamilyPaymentChild({
     required this.santriId,
     required this.totalPerMonth,
+    required this.periods,
     this.startDate,
   });
 }
@@ -122,23 +127,19 @@ class InputPaymentCubit extends Cubit<InputPaymentState> {
     }
   }
 
-  /// Menyimpan pembayaran beberapa santri (kakak-beradik) sekaligus untuk
-  /// periode bulan yang sama. Nominal bisa berbeda tiap anak.
+  /// Menyimpan pembayaran beberapa santri (kakak-beradik) sekaligus. Tiap anak
+  /// membawa bulan yang dipilihnya sendiri ([FamilyPaymentChild.periods]) dan
+  /// nominalnya sendiri, sehingga saudara bisa membayar bulan yang berbeda.
   ///
   /// Untuk tiap anak, bulan yang sudah dibayar atau yang jatuh sebelum
   /// [FamilyPaymentChild.startDate] otomatis dilewati.
   Future<void> submitFamilyPayments({
     required List<FamilyPaymentChild> children,
-    required List<DateTime> periods,
     required String createdBy,
     required DateTime date,
   }) async {
     if (children.isEmpty) {
       emit(InputPaymentFailure('Pilih minimal satu santri'));
-      return;
-    }
-    if (periods.isEmpty) {
-      emit(InputPaymentFailure('Pilih minimal satu bulan untuk dibayar'));
       return;
     }
 
@@ -157,7 +158,7 @@ class InputPaymentCubit extends Cubit<InputPaymentState> {
             .toSet();
 
         final start = child.startDate;
-        for (final period in periods) {
+        for (final period in child.periods) {
           // Lewati bulan sebelum santri ini wajib bayar.
           if (start != null &&
               period.isBefore(DateTime(start.year, start.month))) {

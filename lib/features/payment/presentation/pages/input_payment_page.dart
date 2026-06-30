@@ -52,12 +52,16 @@ class _InputPaymentViewState extends State<InputPaymentView> {
   SantriEntity? _selectedSantri;
   DateTime _selectedDate = DateTime.now();
 
-  /// Bulan yang dipilih untuk dibayar, dikelompokkan per tahun (`{tahun: {bulan}}`).
-  /// Dipakai bersama untuk semua anggota keluarga.
+  /// Bulan yang dipilih untuk santri tunggal (tanpa saudara),
+  /// dikelompokkan per tahun (`{tahun: {bulan}}`).
   final Map<int, Set<int>> _selectedPeriods = {};
 
-  /// Id santri (kakak-beradik) yang dicentang untuk ikut dibayar.
-  final Set<String> _selectedChildIds = {};
+  /// Bulan yang dipilih per santri pada mode keluarga
+  /// (`{santriId: {tahun: {bulan}}}`). Tiap saudara punya pilihan sendiri.
+  final Map<String, Map<int, Set<int>>> _selectedByChild = {};
+
+  /// Santri yang gridnya sedang ditampilkan pada switcher mode keluarga.
+  String? _activeChildId;
 
   /// Controller nominal per anak (keyed by santriId) pada mode keluarga.
   final Map<String, TextEditingController> _childAmountControllers = {};
@@ -93,24 +97,42 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     return int.tryParse(text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
   }
 
-  void _toggleChild(String santriId) {
-    setState(() {
-      if (!_selectedChildIds.remove(santriId)) {
-        _selectedChildIds.add(santriId);
+  /// Bulan terpilih untuk [santriId] dalam bentuk `DateTime(tahun, bulan)`, terurut.
+  List<DateTime> _periodsForChild(String santriId) {
+    final byYear = _selectedByChild[santriId];
+    if (byYear == null) return const [];
+    final list = <DateTime>[];
+    byYear.forEach((year, months) {
+      for (final m in months) {
+        list.add(DateTime(year, m));
       }
     });
+    list.sort();
+    return list;
   }
 
-  /// Bulan terpilih yang benar-benar akan ditagih untuk [member]: di luar bulan
-  /// yang sudah lunas dan tidak sebelum tanggal mulai wajib bayarnya.
-  List<DateTime> _newPeriodsFor(FamilyMemberPayment member, List<DateTime> periods) {
-    final start = _resolveStartDateFor(member.santri);
-    return periods.where((p) {
-      if (start != null && p.isBefore(DateTime(start.year, start.month))) {
-        return false;
+  /// Jumlah bulan yang sedang dipilih untuk [santriId].
+  int _childPeriodsCount(String santriId) {
+    final byYear = _selectedByChild[santriId];
+    if (byYear == null) return 0;
+    var n = 0;
+    for (final months in byYear.values) {
+      n += months.length;
+    }
+    return n;
+  }
+
+  /// Tambah/hapus satu bulan dari pilihan milik [santriId] (mode keluarga).
+  void _toggleMonthForChild(String santriId, int year, int month) {
+    setState(() {
+      final byYear = _selectedByChild.putIfAbsent(santriId, () => {});
+      final months = byYear.putIfAbsent(year, () => <int>{});
+      if (!months.remove(month)) {
+        months.add(month);
       }
-      return !member.isPaidPeriod(p);
-    }).toList();
+      if (months.isEmpty) byYear.remove(year);
+      if (byYear.isEmpty) _selectedByChild.remove(santriId);
+    });
   }
 
   Future<void> _pickSantri() async {
@@ -128,7 +150,8 @@ class _InputPaymentViewState extends State<InputPaymentView> {
         _selectedSantri = result;
         _amountController.text = _defaultAmountFor(result);
         _selectedPeriods.clear();
-        _selectedChildIds.clear();
+        _selectedByChild.clear();
+        _activeChildId = null;
       });
       if (mounted) {
         context.read<FamilyPaymentCubit>().resolve(result);
@@ -225,26 +248,20 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       return;
     }
 
-    final periods = _flatPeriods;
-    if (periods.isEmpty) {
-      _showSnack('Pilih minimal satu bulan yang ingin dibayar');
-      return;
-    }
-
     final userId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
     final famState = context.read<FamilyPaymentCubit>().state;
 
-    // Mode keluarga: bayar beberapa anak sekaligus dengan nominal masing-masing.
+    // Mode keluarga: tiap santri membayar bulan & nominalnya sendiri.
     if (famState is FamilyPaymentLoaded && famState.isFamily) {
-      final selected = famState.members
-          .where((m) => _selectedChildIds.contains(m.santri.id))
+      final billed = famState.members
+          .where((m) => _periodsForChild(m.santri.id).isNotEmpty)
           .toList();
 
-      if (selected.isEmpty) {
-        _showSnack('Pilih minimal satu santri yang ingin dibayar');
+      if (billed.isEmpty) {
+        _showSnack('Pilih minimal satu bulan untuk salah satu santri');
         return;
       }
-      for (final m in selected) {
+      for (final m in billed) {
         if (_childAmountValue(m.santri.id) <= 0) {
           _showSnack('Nominal untuk ${m.santri.name} belum diisi');
           return;
@@ -252,14 +269,14 @@ class _InputPaymentViewState extends State<InputPaymentView> {
       }
 
       context.read<InputPaymentCubit>().submitFamilyPayments(
-            children: selected
+            children: billed
                 .map((m) => FamilyPaymentChild(
                       santriId: m.santri.id,
                       totalPerMonth: _childAmountValue(m.santri.id),
+                      periods: _periodsForChild(m.santri.id),
                       startDate: _resolveStartDateFor(m.santri),
                     ))
                 .toList(),
-            periods: periods,
             createdBy: userId,
             date: _selectedDate,
           );
@@ -267,6 +284,12 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     }
 
     // Mode tunggal (santri tanpa saudara).
+    final periods = _flatPeriods;
+    if (periods.isEmpty) {
+      _showSnack('Pilih minimal satu bulan yang ingin dibayar');
+      return;
+    }
+
     final santri = _selectedSantri!;
 
     // Validasi user gratis: blokir bulan yang masih dalam masa gratis.
@@ -335,11 +358,10 @@ class _InputPaymentViewState extends State<InputPaymentView> {
             listener: (context, state) {
               if (state is FamilyPaymentLoaded) {
                 setState(() {
-                  // Default: hanya santri yang dipilih admin yang tercentang;
-                  // saudara bersifat opt-in (centang untuk ikut dibayar).
-                  _selectedChildIds
-                    ..clear()
-                    ..add(state.primary.santri.id);
+                  // Mulai dari grid santri yang dicari admin; saudara dipilih
+                  // lewat switcher di atas grid, masing-masing bulannya sendiri.
+                  _activeChildId = state.primary.santri.id;
+                  _selectedByChild.clear();
                   for (final m in state.members) {
                     _childAmountControllers.putIfAbsent(
                       m.santri.id,
@@ -363,6 +385,9 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 final members = famState is FamilyPaymentLoaded
                     ? famState.members
                     : const <FamilyMemberPayment>[];
+                final hasPeriods = isFamily
+                    ? members.any((m) => _childPeriodsCount(m.santri.id) > 0)
+                    : periods.isNotEmpty;
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -451,7 +476,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                 ],
 
                 const SizedBox(height: 24),
-                if (periods.isNotEmpty) ...[
+                if (hasPeriods) ...[
                   _buildTotalCard(periods, isFamily: isFamily, members: members),
                   const SizedBox(height: 16),
                 ],
@@ -503,7 +528,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     );
   }
 
-  /// Bagian konteks santri: kartu saudara (jika ada) + grid periode.
+  /// Bagian konteks santri: switcher per-santri (keluarga) atau grid tunggal.
   Widget _buildSantriContext(FamilyPaymentState famState, List<DateTime> periods) {
     if (famState is FamilyPaymentLoading || famState is FamilyPaymentInitial) {
       return const Padding(
@@ -523,13 +548,15 @@ class _InputPaymentViewState extends State<InputPaymentView> {
 
     final loaded = famState as FamilyPaymentLoaded;
 
+    // Mode keluarga: tiap santri punya grid & pilihan bulannya sendiri.
+    if (loaded.isFamily) {
+      return _buildPerChildPayment(loaded.members);
+    }
+
+    // Mode tunggal: satu grid untuk santri yang dipilih.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (loaded.isFamily) ...[
-          _buildFamilySection(loaded.members, periods),
-          const SizedBox(height: 24),
-        ],
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -546,11 +573,9 @@ class _InputPaymentViewState extends State<InputPaymentView> {
           ],
         ),
         const SizedBox(height: 4),
-        Text(
-          loaded.isFamily
-              ? 'Bulan ini berlaku untuk semua santri yang dicentang.'
-              : 'Ketuk bulan untuk memilih. Boleh pilih lebih dari satu.',
-          style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+        const Text(
+          'Ketuk bulan untuk memilih. Boleh pilih lebih dari satu.',
+          style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
         ),
         const SizedBox(height: 8),
         Container(
@@ -576,250 +601,401 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     );
   }
 
-  /// Kartu "Bayar Sekaligus": daftar saudara satu keluarga + nominal per anak.
-  Widget _buildFamilySection(
-    List<FamilyMemberPayment> members,
-    List<DateTime> periods,
-  ) {
-    final selectedCount =
-        members.where((m) => _selectedChildIds.contains(m.santri.id)).length;
+  /// Mode keluarga: switcher chip per-santri + grid yang beranimasi saat ditukar.
+  /// Tiap santri memilih bulan & nominalnya sendiri.
+  Widget _buildPerChildPayment(List<FamilyMemberPayment> members) {
+    final activeId = _activeChildId ?? members.first.santri.id;
+    final active = members.firstWhere(
+      (m) => m.santri.id == activeId,
+      orElse: () => members.first,
+    );
+    final totalMonths = members.fold<int>(
+      0,
+      (sum, m) => sum + _childPeriodsCount(m.santri.id),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionTitle('Pembayaran per Santri'),
+            if (totalMonths > 0)
+              Text(
+                '$totalMonths bulan total',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Pilih bulan untuk tiap santri. Ketuk nama untuk berpindah kartu.',
+          style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: members
+                .map((m) => _buildChildChip(m, m.santri.id == activeId))
+                .toList(),
+          ),
+        ),
+        const SizedBox(height: 14),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 280),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final slide = Tween<Offset>(
+              begin: const Offset(0.06, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+          child: _buildActiveChildCard(active),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  /// Chip switcher satu santri: avatar + nama depan + badge jumlah bulan.
+  Widget _buildChildChip(FamilyMemberPayment member, bool active) {
+    final s = member.santri;
+    final count = _childPeriodsCount(s.id);
+
+    final Color badgeBg;
+    final Color badgeFg;
+    if (active) {
+      badgeBg = Colors.white;
+      badgeFg = AppColors.primary;
+    } else if (count > 0) {
+      badgeBg = AppColors.primary;
+      badgeFg = Colors.white;
+    } else {
+      badgeBg = AppColors.divider.withValues(alpha: 0.5);
+      badgeFg = AppColors.textSecondary;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: () => setState(() => _activeChildId = s.id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(
+              color: active ? AppColors.primary : AppColors.divider,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: active
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  UiUtils.getInitials(s.name),
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: active ? Colors.white : AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                s.name.split(' ').first,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: active ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                constraints: const BoxConstraints(minWidth: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$count',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: badgeFg,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Kartu santri aktif: identitas + nominal/bln + grid pilihannya + subtotal.
+  Widget _buildActiveChildCard(FamilyMemberPayment member) {
+    final s = member.santri;
+    final periods = _periodsForChild(s.id);
+    final amount = _childAmountValue(s.id);
+    final subtotal = periods.length * amount;
+    final firstName = s.name.split(' ').first;
 
     return Container(
+      key: ValueKey(s.id),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  UiUtils.getInitials(s.name),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
-                child: const Icon(Icons.family_restroom,
-                    color: AppColors.primary, size: 20),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Bayar Sekaligus (Saudara)',
-                      style: TextStyle(
+                    Text(
+                      s.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 14,
                         color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Satu keluarga • $selectedCount dari ${members.length} dipilih',
+                      '${s.kelas} • NIS ${s.nis}',
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: 11.5,
                         color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...members.map((m) => _buildChildTile(m, periods)),
-        ],
-      ),
-    );
-  }
-
-  /// Baris satu anak: centang ikut bayar + nominal per bulan + subtotal.
-  Widget _buildChildTile(FamilyMemberPayment member, List<DateTime> periods) {
-    final s = member.santri;
-    final selected = _selectedChildIds.contains(s.id);
-    final newPeriods = _newPeriodsFor(member, periods);
-    final subtotal = newPeriods.length * _childAmountValue(s.id);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppColors.primary.withValues(alpha: 0.04)
-            : Colors.grey.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.4)
-              : AppColors.divider,
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => _toggleChild(s.id),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: Checkbox(
-                    value: selected,
-                    onChanged: (_) => _toggleChild(s.id),
-                    activeColor: AppColors.primary,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: periods.isEmpty
+                      ? AppColors.divider.withValues(alpha: 0.4)
+                      : AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                const SizedBox(width: 10),
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                  child: Text(
-                    UiUtils.getInitials(s.name),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${s.kelas} • NIS ${s.nis}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (selected) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                const SizedBox(width: 34),
-                const Text(
-                  'Nominal/bln',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _childController(s),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      CurrencyInputFormatter(),
-                    ],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.teal,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.blue.withValues(alpha: 0.05),
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide:
-                            BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
-                      ),
-                      hintText: 'Rp 0',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(left: 34),
-              child: Align(
-                alignment: Alignment.centerLeft,
                 child: Text(
-                  periods.isEmpty
-                      ? 'Pilih bulan terlebih dahulu'
-                      : newPeriods.isEmpty
-                          ? 'Semua bulan terpilih sudah lunas'
-                          : '${newPeriods.length} bulan × ${_formatCurrency(_childAmountValue(s.id))} = ${_formatCurrency(subtotal)}',
+                  periods.isEmpty ? 'Belum dipilih' : '${periods.length} bulan',
                   style: TextStyle(
                     fontSize: 11,
-                    color: (newPeriods.isEmpty && periods.isNotEmpty)
-                        ? AppColors.error
-                        : AppColors.primary,
                     fontWeight: FontWeight.w600,
+                    color: periods.isEmpty
+                        ? AppColors.textSecondary
+                        : AppColors.primary,
                   ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Text(
+                'Nominal/bln',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _childController(s),
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(),
+                  ],
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.teal,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: Colors.blue.withValues(alpha: 0.05),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          BorderSide(color: Colors.blue.withValues(alpha: 0.3)),
+                    ),
+                    hintText: 'Rp 0',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          PaymentYearView(
+            key: ValueKey('grid_${s.id}'),
+            paidData: member.paid,
+            startDate: _resolveStartDateFor(s),
+            selectable: true,
+            selectedData: _selectedByChild[s.id] ?? const <int, Set<int>>{},
+            onToggleMonth: (y, m) => _toggleMonthForChild(s.id, y, m),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
+            child: Row(
+              children: [
+                Icon(
+                  periods.isEmpty
+                      ? Icons.touch_app_outlined
+                      : Icons.event_available,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    periods.isEmpty
+                        ? 'Ketuk bulan untuk menagih $firstName'
+                        : '${periods.length} bulan × ${_formatCurrency(amount)} = ${_formatCurrency(subtotal)}',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   /// Kartu total pembayaran. Mode tunggal: jumlah bulan × nominal. Mode
-  /// keluarga: jumlah semua tagihan tiap anak yang dicentang.
+  /// keluarga: rincian tagihan tiap santri yang punya bulan terpilih.
   Widget _buildTotalCard(
     List<DateTime> periods, {
     required bool isFamily,
     required List<FamilyMemberPayment> members,
   }) {
-    int total;
-    String pillText;
-    String breakdown;
+    final int total;
+    final String pillText;
+    final Widget breakdown;
 
     if (isFamily) {
       int payCount = 0;
       int sum = 0;
-      int selectedCount = 0;
+      final lines = <Widget>[];
       for (final m in members) {
-        if (!_selectedChildIds.contains(m.santri.id)) continue;
-        selectedCount++;
-        final n = _newPeriodsFor(m, periods).length;
-        payCount += n;
-        sum += n * _childAmountValue(m.santri.id);
+        final p = _periodsForChild(m.santri.id);
+        if (p.isEmpty) continue;
+        final amt = _childAmountValue(m.santri.id);
+        payCount += p.length;
+        sum += p.length * amt;
+        lines.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    m.santri.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${p.length} × ${_formatCurrency(amt)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
       total = sum;
       pillText = '$payCount pembayaran';
-      breakdown = '$selectedCount santri dipilih • $payCount bulan ditagih';
+      breakdown = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: lines,
+      );
     } else {
       final count = periods.length;
       total = _amountValue * count;
       pillText = '$count bulan';
-      breakdown = '$count bulan × ${_formatCurrency(_amountValue)}';
+      breakdown = Text(
+        '$count bulan × ${_formatCurrency(_amountValue)}',
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      );
     }
 
     return Container(
@@ -866,10 +1042,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            breakdown,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
+          breakdown,
         ],
       ),
     );
