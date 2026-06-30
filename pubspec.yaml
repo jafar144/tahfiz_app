@@ -50,12 +50,26 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.4
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/images/logo.png"
   remove_alpha_ios: true
+
+# Splash screen native. Setelah ubah config jalankan:
+#   dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/logo.png
+  android_12:
+    # Logo ber-padding agar muat penuh dalam lingkaran ikon Android 12.
+    image: assets/images/splash_android12.png
+    color: "#FFFFFF"
+  android: true
+  ios: true
+  web: false
 
 
 flutter:
