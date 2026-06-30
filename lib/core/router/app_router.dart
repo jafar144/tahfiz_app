@@ -46,6 +46,8 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_assessment_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
+import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
+import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
 
 class AppRouter {
 
@@ -307,6 +309,14 @@ class AppRouter {
             child: FamilyFormPage(existing: existing),
           );
         },
+      ),
+      GoRoute(
+        path: RoutePaths.recitationCheck,
+        name: RouteNames.recitationCheck,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<RecitationCheckCubit>()..init(),
+          child: const RecitationCheckPage(),
+        ),
       ),
     ],
   );

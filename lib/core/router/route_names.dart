@@ -34,4 +34,6 @@ abstract class RouteNames {
   static const monthlyReport = 'monthly_report';
 
   static const journey = 'journey';
+
+  static const recitationCheck = 'recitation_check';
 }

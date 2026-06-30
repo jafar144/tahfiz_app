@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -68,6 +69,11 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_
 import 'package:khoirunnasyien/features/family/data/family_repository.dart';
 import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
+import 'package:khoirunnasyien/features/recitation_check/data/quran_local_datasource.dart';
+import 'package:khoirunnasyien/features/recitation_check/data/transcription_remote_datasource.dart';
+import 'package:khoirunnasyien/features/recitation_check/data/recitation_repository_impl.dart';
+import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
+import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -303,4 +309,17 @@ Future<void> initDI() async {
       santriRepository: getIt(),
     ),
   );
+
+  // Uji Bacaan Qur'an (recitation check)
+  getIt.registerLazySingleton<FirebaseFunctions>(
+    () => FirebaseFunctions.instanceFor(region: 'asia-southeast2'),
+  );
+  getIt.registerLazySingleton(() => QuranLocalDataSource());
+  getIt.registerLazySingleton(
+    () => TranscriptionRemoteDataSource(getIt<FirebaseFunctions>()),
+  );
+  getIt.registerLazySingleton<RecitationRepository>(
+    () => RecitationRepositoryImpl(local: getIt(), remote: getIt()),
+  );
+  getIt.registerFactory(() => RecitationCheckCubit(getIt()));
 }

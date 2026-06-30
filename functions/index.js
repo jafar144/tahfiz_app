@@ -18,6 +18,7 @@ const {
   cleanupExpiredSyahadah,
 } = require("./handlers/cleanupExpiredSyahadah");
 const { guestLookup } = require("./handlers/guestLookup");
+const { transcribeRecitation } = require("./handlers/transcribeRecitation");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -44,3 +45,7 @@ exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
 // Dilindungi header x-api-key (secret GUEST_API_KEY). Dipakai web cPanel
 // sementara sampai web pensiun (September 2026).
 exports.guestLookup = guestLookup;
+
+// Pendeteksi bacaan Quran (Fase 0): proxy transkripsi Groq Whisper.
+// onCall, butuh login. Secret GROQ_API_KEY.
+exports.transcribeRecitation = transcribeRecitation;

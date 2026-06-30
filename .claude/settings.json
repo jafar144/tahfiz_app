@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(/home/kaizer/flutter/bin/dart analyze *)"
+      "Bash(/home/kaizer/flutter/bin/dart analyze *)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
