@@ -353,8 +353,16 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
   @override
   Future<void> updateSantri(String id, SantriParams params) async {
+    final docRef = firestore.collection('santri_profiles').doc(id);
+
+    // Catat kapan santri keluar untuk laporan mutasi. tanggal_keluar hanya
+    // di-set saat transisi aktif → nonaktif (bukan tiap edit), dan dihapus
+    // kembali bila santri diaktifkan ulang.
+    final snap = await docRef.get();
+    final wasActive = (snap.data()?['is_active'] as bool?) ?? true;
+
     // Update Santri Profile
-    await firestore.collection('santri_profiles').doc(id).update({
+    await docRef.update({
       'name': params.name,
       'nis': params.nis,
       'kelas': params.kelas,
@@ -372,6 +380,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'tanggal_lahir': Timestamp.fromDate(params.birthDate),
       'tempat_lahir': params.birthPlace,
       'tipe_kelas': params.tipeKelas,
+      if (!params.isActive && wasActive)
+        'tanggal_keluar': FieldValue.serverTimestamp()
+      else if (params.isActive && !wasActive)
+        'tanggal_keluar': FieldValue.delete(),
       if (params.photoUrl != null)
         'photo_url': params.photoUrl
       else if (params.removePhoto)

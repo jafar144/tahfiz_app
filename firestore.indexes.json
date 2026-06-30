@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tanggal_masuk", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tanggal_keluar", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

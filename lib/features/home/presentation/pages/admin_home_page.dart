@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +9,8 @@ import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_cubit
 import 'package:khoirunnasyien/features/home/presentation/cubit/admin_home_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
-
-import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/services/app_update_service.dart';
 import 'package:khoirunnasyien/features/home/domain/entities/admin_home_data.dart';
-import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class AdminHomePage extends StatefulWidget {
@@ -22,11 +21,24 @@ class AdminHomePage extends StatefulWidget {
 }
 
 class _AdminHomePageState extends State<AdminHomePage> {
+  Timer? _rotateTimer;
+  bool _showMutasi = false;
+
   @override
   void initState() {
     super.initState();
     context.read<AdminHomeCubit>().loadHome();
     AppUpdateService.checkForFlexibleUpdate(context);
+    // Kartu santri bergantian menampilkan total ↔ mutasi tiap 6 detik.
+    _rotateTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted) setState(() => _showMutasi = !_showMutasi);
+    });
+  }
+
+  @override
+  void dispose() {
+    _rotateTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -64,6 +76,10 @@ class _AdminHomePageState extends State<AdminHomePage> {
                       totalSantriPutri: 123,
                       totalAsatidzPutra: 10,
                       totalAsatidzPutri: 10,
+                      masukPutra: 3,
+                      masukPutri: 2,
+                      keluarPutra: 1,
+                      keluarPutri: 0,
                     );
                   }
 
@@ -95,12 +111,18 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                 title: 'Santri Putra',
                                 value: _formatValue(displayData.totalSantriPutra),
                                 color: Colors.blue,
+                                masuk: displayData.masukPutra,
+                                keluar: displayData.keluarPutra,
+                                showMutasi: _showMutasi,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(
                                 title: 'Santri Putri',
                                 value: _formatValue(displayData.totalSantriPutri),
                                 color: Colors.pink,
+                                masuk: displayData.masukPutri,
+                                keluar: displayData.keluarPutri,
+                                showMutasi: _showMutasi,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(

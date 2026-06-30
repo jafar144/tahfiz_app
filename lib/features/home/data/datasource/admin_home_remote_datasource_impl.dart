@@ -55,4 +55,32 @@ class AdminHomeRemoteDatasourceImpl implements AdminHomeRemoteDatasource {
 
     return snapshot.count ?? 0;
   }
+
+  /// Awal jendela 30 hari terakhir.
+  Timestamp get _since30d =>
+      Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 30)));
+
+  @override
+  Future<int> getSantriMasuk30d(String gender) async {
+    final snapshot = await firestore
+        .collection('santri_profiles')
+        .where('jenis_kelamin', isEqualTo: gender)
+        .where('tanggal_masuk', isGreaterThanOrEqualTo: _since30d)
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
+  }
+
+  @override
+  Future<int> getSantriKeluar30d(String gender) async {
+    final snapshot = await firestore
+        .collection('santri_profiles')
+        .where('jenis_kelamin', isEqualTo: gender)
+        .where('tanggal_keluar', isGreaterThanOrEqualTo: _since30d)
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
+  }
 }
