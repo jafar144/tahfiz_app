@@ -2,13 +2,20 @@
 class Ayah {
   final int surahId;
   final int number; // nomor ayat (1-based)
-  final String text; // teks Arab rasm Utsmani (dengan harakat)
+  final String text; // teks Arab rasm Utsmani (dengan harakat + glyph nomor ayat)
+  final int page; // halaman mushaf Madinah (1..604)
+  final String surahName; // nama surah (Arab), untuk header halaman
 
   const Ayah({
     required this.surahId,
     required this.number,
     required this.text,
+    this.page = 0,
+    this.surahName = '',
   });
+
+  /// Ayat pertama sebuah surah (butuh header + basmalah saat ditampilkan).
+  bool get isSurahStart => number == 1;
 }
 
 /// Ringkasan satu surah untuk pemilihan target.

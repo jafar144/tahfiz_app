@@ -14,6 +14,14 @@ abstract class RecitationRepository {
     required int to,
   });
 
+  /// Semua ayat pada halaman mushaf yang memuat rentang target — termasuk
+  /// surah tetangga di halaman itu, untuk ditampilkan sebagai halaman penuh.
+  Future<Either<Failure, List<Ayah>>> getPageAyat({
+    required int surahId,
+    required int from,
+    required int to,
+  });
+
   /// Transkripsi audio lalu cocokkan dengan teks [targetAyat].
   /// [audioFilePath] = file rekaman lokal, [mimeType] mis. "audio/mp4".
   Future<Either<Failure, RecitationResult>> checkRecitation({

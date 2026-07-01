@@ -1,0 +1,14 @@
+KFGQPC Uthmanic Script HAFS (UthmanicHafs v18)
+
+Copyright © King Fahd Glorious Quran Printing Complex (KFGQPC),
+Madinah, Kingdom of Saudi Arabia. All rights reserved.
+
+This font and its accompanying Qur'anic text data are provided by KFGQPC
+free of charge for the purpose of displaying the Glorious Qur'an. The font
+and text must not be modified, and the Qur'anic text must be presented
+without alteration.
+
+Font & data source: https://github.com/thetruetruth/quran-data-kfgqpc
+(mirrors the official KFGQPC "Uthmanic Hafs" release, v18).
+
+Used here solely to display Qur'anic verses for the recitation-check feature.

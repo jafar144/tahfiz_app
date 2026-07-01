@@ -42,6 +42,23 @@ class RecitationRepositoryImpl implements RecitationRepository {
   }
 
   @override
+  Future<Either<Failure, List<Ayah>>> getPageAyat({
+    required int surahId,
+    required int from,
+    required int to,
+  }) async {
+    try {
+      return Right(await local.getPageAyat(
+        surahId: surahId,
+        from: from,
+        to: to,
+      ));
+    } catch (e) {
+      return Left(UnknownFailure('Gagal memuat halaman mushaf: $e'));
+    }
+  }
+
+  @override
   Future<Either<Failure, RecitationResult>> checkRecitation({
     required List<Ayah> targetAyat,
     required String audioFilePath,

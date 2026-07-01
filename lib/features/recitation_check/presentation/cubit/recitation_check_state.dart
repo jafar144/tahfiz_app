@@ -20,8 +20,13 @@ class RecitationCheckState extends Equatable {
   final int toAyah;
   final RecitationResult? result;
 
-  /// Ayat target yang diperiksa pada hasil terakhir (untuk ditampilkan).
-  final List<Ayah> checkedAyat;
+  /// Ayat target yang sedang dipilih — dipakai sebagai referensi pemeriksaan
+  /// bacaan, dan diberi warna per kata setelah [result] tersedia.
+  final List<Ayah> targetAyat;
+
+  /// Semua ayat pada halaman mushaf yang memuat target (termasuk surah
+  /// tetangga) — ditampilkan sebagai halaman penuh.
+  final List<Ayah> pageAyat;
   final String? errorMessage;
 
   const RecitationCheckState({
@@ -31,7 +36,8 @@ class RecitationCheckState extends Equatable {
     this.fromAyah = 1,
     this.toAyah = 1,
     this.result,
-    this.checkedAyat = const [],
+    this.targetAyat = const [],
+    this.pageAyat = const [],
     this.errorMessage,
   });
 
@@ -46,7 +52,8 @@ class RecitationCheckState extends Equatable {
     int? fromAyah,
     int? toAyah,
     RecitationResult? result,
-    List<Ayah>? checkedAyat,
+    List<Ayah>? targetAyat,
+    List<Ayah>? pageAyat,
     String? errorMessage,
     bool clearResult = false,
     bool clearError = false,
@@ -58,7 +65,8 @@ class RecitationCheckState extends Equatable {
       fromAyah: fromAyah ?? this.fromAyah,
       toAyah: toAyah ?? this.toAyah,
       result: clearResult ? null : (result ?? this.result),
-      checkedAyat: checkedAyat ?? this.checkedAyat,
+      targetAyat: targetAyat ?? this.targetAyat,
+      pageAyat: pageAyat ?? this.pageAyat,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
@@ -71,7 +79,8 @@ class RecitationCheckState extends Equatable {
         fromAyah,
         toAyah,
         result,
-        checkedAyat,
+        targetAyat,
+        pageAyat,
         errorMessage,
       ];
 }

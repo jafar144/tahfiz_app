@@ -20,12 +20,17 @@ class WordDiff {
   /// Kata referensi (mushaf) yang sudah dinormalisasi. null untuk [WordStatus.extra].
   final String? referenceWord;
 
+  /// Kata referensi (mushaf) dalam bentuk asli lengkap dengan harakat, untuk
+  /// ditampilkan ke pengguna. null untuk [WordStatus.extra].
+  final String? referenceWordDisplay;
+
   /// Kata yang terdengar (hasil ASR) yang sudah dinormalisasi. null untuk [WordStatus.missing].
   final String? spokenWord;
 
   const WordDiff({
     required this.status,
     this.referenceWord,
+    this.referenceWordDisplay,
     this.spokenWord,
   });
 }

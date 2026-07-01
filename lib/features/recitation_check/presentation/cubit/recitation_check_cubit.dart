@@ -18,39 +18,66 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
     if (state.surahs.isNotEmpty) return;
     emit(state.copyWith(status: RecitationStatus.loadingSurah, clearError: true));
     final res = await repository.getSurahList();
-    res.fold(
-      ifLeft: (f) => emit(state.copyWith(
+    await res.fold(
+      ifLeft: (f) async => emit(state.copyWith(
         status: RecitationStatus.error,
         errorMessage: f.message,
       )),
-      ifRight: (surahs) => emit(state.copyWith(
-        status: RecitationStatus.ready,
-        surahs: surahs,
-        selectedSurah: surahs.isNotEmpty ? surahs.first : null,
-        fromAyah: 1,
-        toAyah: 1,
-        clearResult: true,
-      )),
+      ifRight: (surahs) async {
+        emit(state.copyWith(
+          status: RecitationStatus.ready,
+          surahs: surahs,
+          selectedSurah: surahs.isNotEmpty ? surahs.first : null,
+          fromAyah: 1,
+          toAyah: 1,
+          clearResult: true,
+        ));
+        await _refreshTargetAyat();
+      },
     );
   }
 
-  void selectSurah(SurahInfo surah) {
+  Future<void> selectSurah(SurahInfo surah) async {
     emit(state.copyWith(
       selectedSurah: surah,
       fromAyah: 1,
       toAyah: 1,
       clearResult: true,
     ));
+    await _refreshTargetAyat();
   }
 
-  void setFrom(int from) {
+  Future<void> setFrom(int from) async {
     final to = state.toAyah < from ? from : state.toAyah;
     emit(state.copyWith(fromAyah: from, toAyah: to, clearResult: true));
+    await _refreshTargetAyat();
   }
 
-  void setTo(int to) {
+  Future<void> setTo(int to) async {
     final from = state.fromAyah > to ? to : state.fromAyah;
     emit(state.copyWith(toAyah: to, fromAyah: from, clearResult: true));
+    await _refreshTargetAyat();
+  }
+
+  /// Muat teks ayat target + halaman mushaf agar bisa langsung ditampilkan
+  /// sebelum rekam.
+  Future<void> _refreshTargetAyat() async {
+    final surah = state.selectedSurah;
+    if (surah == null) return;
+    final targetRes = await repository.getAyatRange(
+      surahId: surah.id,
+      from: state.fromAyah,
+      to: state.toAyah,
+    );
+    final pageRes = await repository.getPageAyat(
+      surahId: surah.id,
+      from: state.fromAyah,
+      to: state.toAyah,
+    );
+    emit(state.copyWith(
+      targetAyat: targetRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
+      pageAyat: pageRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
+    ));
   }
 
   Future<void> startRecording() async {
@@ -104,15 +131,18 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
 
       emit(state.copyWith(status: RecitationStatus.processing, clearError: true));
 
-      final ayatRes = await repository.getAyatRange(
-        surahId: surah.id,
-        from: state.fromAyah,
-        to: state.toAyah,
-      );
-      final ayat = ayatRes.fold<List<Ayah>>(
-        ifLeft: (_) => const [],
-        ifRight: (a) => a,
-      );
+      var ayat = state.targetAyat;
+      if (ayat.isEmpty) {
+        final ayatRes = await repository.getAyatRange(
+          surahId: surah.id,
+          from: state.fromAyah,
+          to: state.toAyah,
+        );
+        ayat = ayatRes.fold<List<Ayah>>(
+          ifLeft: (_) => const [],
+          ifRight: (a) => a,
+        );
+      }
       if (ayat.isEmpty) {
         emit(state.copyWith(
           status: RecitationStatus.error,
@@ -134,7 +164,7 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
         ifRight: (result) => emit(state.copyWith(
           status: RecitationStatus.done,
           result: result,
-          checkedAyat: ayat,
+          targetAyat: ayat,
         )),
       );
     } catch (e) {

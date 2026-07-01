@@ -49,4 +49,21 @@ class ArabicNormalizer {
         .where((w) => w.isNotEmpty)
         .toList();
   }
+
+  /// Seperti [tokenize] tapi menyimpan bentuk asli (berharakat) tiap kata
+  /// sejajar dengan bentuk ternormalisasinya. Token yang ternormalisasi kosong
+  /// (mis. hanya tanda baca) dibuang agar tetap sinkron dengan [tokenize].
+  static List<({String original, String normalized})> tokenizeWithOriginal(
+    String text,
+  ) {
+    if (text.isEmpty) return const [];
+    final result = <({String original, String normalized})>[];
+    for (final raw in text.split(_whitespace)) {
+      if (raw.isEmpty) continue;
+      final norm = normalizeWord(raw);
+      if (norm.isEmpty) continue;
+      result.add((original: raw, normalized: norm));
+    }
+    return result;
+  }
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/recitation/arabic_normalizer.dart';
+import 'package:khoirunnasyien/features/recitation_check/domain/recitation/muqattaat.dart';
 
 /// Mesin pencocokan bacaan: membandingkan teks mushaf (referensi) dengan hasil
 /// transkripsi (ASR) memakai global alignment Needleman-Wunsch pada level kata.
@@ -31,8 +32,14 @@ class RecitationMatcher {
     required String spokenText,
     String transcription = '',
   }) {
-    final ref = ArabicNormalizer.tokenize(referenceText);
-    final hyp = ArabicNormalizer.tokenize(spokenText);
+    final refPairs = ArabicNormalizer.tokenizeWithOriginal(referenceText);
+    final ref = refPairs.map((p) => p.normalized).toList(growable: false);
+    // Kuncupkan ejaan huruf muqatta'at (mis. "ألف لام ميم" -> "الم") agar cocok
+    // dengan penulisan mushaf sebelum di-align.
+    final hyp = Muqattaat.collapseSpoken(
+      ref,
+      ArabicNormalizer.tokenize(spokenText),
+    );
     final m = ref.length;
     final n = hyp.length;
 
@@ -71,6 +78,7 @@ class RecitationMatcher {
           out.add(WordDiff(
             status: isCorrect ? WordStatus.correct : WordStatus.wrong,
             referenceWord: ref[i - 1],
+            referenceWordDisplay: refPairs[i - 1].original,
             spokenWord: hyp[j - 1],
           ));
           i--;
@@ -79,7 +87,11 @@ class RecitationMatcher {
         }
       }
       if (i > 0 && _closeEnough(score[i][j], score[i - 1][j] + _gap)) {
-        out.add(WordDiff(status: WordStatus.missing, referenceWord: ref[i - 1]));
+        out.add(WordDiff(
+          status: WordStatus.missing,
+          referenceWord: ref[i - 1],
+          referenceWordDisplay: refPairs[i - 1].original,
+        ));
         i--;
         continue;
       }

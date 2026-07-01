@@ -105,3 +105,9 @@ flutter:
     - family: Railey
       fonts:
         - asset: assets/fonts/Railey.ttf
+    # Font Al-Qur'an mushaf Madinah (KFGQPC Uthmanic Hafs v18) untuk uji bacaan.
+    # © King Fahd Glorious Quran Printing Complex — bebas untuk menampilkan
+    # Al-Qur'an (lihat assets/fonts/UthmanicHafs-LICENSE.txt).
+    - family: QuranHafs
+      fonts:
+        - asset: assets/fonts/UthmanicHafs.ttf
