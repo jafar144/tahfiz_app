@@ -82,6 +82,19 @@ class QuranLocalDataSource {
         .toList();
   }
 
+  /// Semua ayat dari surah [fromSurah]..[toSurah] (inklusif) urut sesuai mushaf.
+  /// Dipakai mis. untuk menyusun pool soal kuis satu juz.
+  Future<List<Ayah>> getAyatForSurahRange({
+    required int fromSurah,
+    required int toSurah,
+  }) async {
+    final rows = await _load();
+    return rows
+        .where((r) => r.surah >= fromSurah && r.surah <= toSurah)
+        .map(_toAyah)
+        .toList();
+  }
+
   /// Semua ayat pada halaman mushaf yang memuat rentang target
   /// [surahId]:[from]..[to] — termasuk surah tetangga di halaman yang sama,
   /// urut sesuai mushaf. Dipakai untuk menampilkan halaman penuh.

@@ -48,6 +48,8 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthl
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/recitation_quiz_page.dart';
 
 class AppRouter {
 
@@ -316,6 +318,14 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (_) => getIt<RecitationCheckCubit>()..init(),
           child: const RecitationCheckPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.recitationQuiz,
+        name: RouteNames.recitationQuiz,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<RecitationQuizCubit>(),
+          child: const RecitationQuizPage(),
         ),
       ),
     ],

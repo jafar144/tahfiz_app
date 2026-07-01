@@ -178,6 +178,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.recitationCheck),
                 ),
+                MenuCard(
+                  icon: Icons.emoji_events_rounded,
+                  title: 'Kuis Hafalan',
+                  color: Colors.blue,
+                  onTap: () => context.pushNamed(RouteNames.recitationQuiz),
+                ),
               ]),
 
               const SizedBox(height: 20),

@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(/home/kaizer/flutter/bin/dart analyze *)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "PowerShell(flutter:*)",
+      "PowerShell(dart:*)",
+      "PowerShell(pub:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git add:*)"
     ]
   }
 }

@@ -36,4 +36,5 @@ abstract class RouteNames {
   static const journey = 'journey';
 
   static const recitationCheck = 'recitation_check';
+  static const recitationQuiz = 'recitation_quiz';
 }

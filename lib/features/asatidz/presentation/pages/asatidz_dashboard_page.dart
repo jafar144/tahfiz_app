@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -131,6 +133,12 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                               ),
                             );
                           },
+                        ),
+                        MenuCard(
+                          icon: Icons.emoji_events_rounded,
+                          title: 'Kuis Hafalan',
+                          onTap: () =>
+                              context.pushNamed(RouteNames.recitationQuiz),
                         ),
                       ],
                     ),

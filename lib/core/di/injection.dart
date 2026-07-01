@@ -74,6 +74,9 @@ import 'package:khoirunnasyien/features/recitation_check/data/transcription_remo
 import 'package:khoirunnasyien/features/recitation_check/data/recitation_repository_impl.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_repository_impl.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -322,4 +325,15 @@ Future<void> initDI() async {
     () => RecitationRepositoryImpl(local: getIt(), remote: getIt()),
   );
   getIt.registerFactory(() => RecitationCheckCubit(getIt()));
+
+  // Kuis Hafalan (recitation quiz)
+  getIt.registerLazySingleton<QuizRepository>(
+    () => QuizRepositoryImpl(
+      local: getIt(),
+      recitation: getIt(),
+      firestore: getIt(),
+      auth: getIt(),
+    ),
+  );
+  getIt.registerFactory(() => RecitationQuizCubit(getIt()));
 }
