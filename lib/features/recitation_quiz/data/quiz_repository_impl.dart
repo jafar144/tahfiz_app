@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.da
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
@@ -210,14 +211,49 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
-  Future<Either<Failure, QuizEnergy>> consumeEnergy() async {
+  Future<Either<Failure, QuizEnergy>> startSession() async {
     try {
-      return Right(await energyRemote.consumeEnergy());
+      return Right(await energyRemote.startSession());
     } on FirebaseFunctionsException catch (e) {
-      // Energi habis dikirim server sebagai `failed-precondition`.
-      return Left(ServerFailure(e.message ?? 'Energi habis.'));
+      return Left(QuizBlockedFailure(
+        _reasonOf(e),
+        e.message ?? 'Kuis sedang tidak bisa dimulai.',
+      ));
     } catch (e) {
-      return Left(ServerFailure('Gagal memakai energi: $e'));
+      return Left(QuizBlockedFailure(
+        QuizBlockReason.unknown,
+        'Gagal memulai sesi: $e',
+      ));
     }
+  }
+
+  @override
+  Future<void> heartbeat() => energyRemote.heartbeat();
+
+  @override
+  Future<void> endSession() => energyRemote.endSession();
+
+  /// Petakan error callable → alasan blokir yang dipahami UI.
+  QuizBlockReason _reasonOf(FirebaseFunctionsException e) {
+    final details = e.details;
+    final reason = details is Map ? details['reason'] : null;
+    switch (reason) {
+      case 'busy':
+        return QuizBlockReason.busy;
+      case 'whisper':
+        return QuizBlockReason.whisperLimit;
+      case 'no_energy':
+        return QuizBlockReason.noEnergy;
+    }
+    // Fallback berdasarkan kode HttpsError bila details tak ada.
+    switch (e.code) {
+      case 'resource-exhausted':
+        return QuizBlockReason.whisperLimit;
+      case 'aborted':
+        return QuizBlockReason.busy;
+      case 'failed-precondition':
+        return QuizBlockReason.noEnergy;
+    }
+    return QuizBlockReason.unknown;
   }
 }

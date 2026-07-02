@@ -16,7 +16,13 @@ class RecitationQuizPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cubit = context.read<RecitationQuizCubit>();
 
-    return BlocBuilder<RecitationQuizCubit, RecitationQuizState>(
+    return BlocConsumer<RecitationQuizCubit, RecitationQuizState>(
+      listenWhen: (p, c) =>
+          c.startBlock != null && p.startBlock != c.startBlock,
+      listener: (context, state) async {
+        await showQuizBlockSheet(context, state.startBlock!);
+        if (context.mounted) context.read<RecitationQuizCubit>().clearStartBlock();
+      },
       builder: (context, state) {
         final playing = state.status == QuizStatus.playing;
 
@@ -32,7 +38,12 @@ class RecitationQuizPage extends StatelessWidget {
               title: const Text('Kuis Hafalan'),
               centerTitle: true,
               actions: [
-                if (state.energy != null)
+                if (state.energyLoading && state.energy == null)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Center(child: EnergyBadgeSkeleton()),
+                  )
+                else if (state.energy != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: Center(
@@ -48,6 +59,7 @@ class RecitationQuizPage extends StatelessWidget {
               QuizStatus.intro => QuizIntroView(
                   onStart: cubit.start,
                   energy: state.energy,
+                  energyLoading: state.energyLoading,
                 ),
               QuizStatus.loading => const _Loading(),
               QuizStatus.error => _ErrorView(

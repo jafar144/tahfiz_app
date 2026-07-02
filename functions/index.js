@@ -21,7 +21,9 @@ const { guestLookup } = require("./handlers/guestLookup");
 const { transcribeRecitation } = require("./handlers/transcribeRecitation");
 const {
   getQuizEnergy,
-  consumeQuizEnergy,
+  startQuizSession,
+  heartbeatQuizSession,
+  endQuizSession,
 } = require("./handlers/quizEnergy");
 
 exports.compareSantri = compareSantri;
@@ -57,4 +59,7 @@ exports.transcribeRecitation = transcribeRecitation;
 // Energi Kuis Hafalan (server-side, anti ubah-jam). onCall, butuh login.
 // Tiap pengguna punya energi sendiri (quiz_energy/{uid}).
 exports.getQuizEnergy = getQuizEnergy;
-exports.consumeQuizEnergy = consumeQuizEnergy;
+// Sesi kuis 1-user-pada-satu-waktu (lock + lease/heartbeat) + potong energi.
+exports.startQuizSession = startQuizSession;
+exports.heartbeatQuizSession = heartbeatQuizSession;
+exports.endQuizSession = endQuizSession;

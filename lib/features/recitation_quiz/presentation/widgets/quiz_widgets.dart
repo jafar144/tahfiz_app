@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 
 /// Palet warna khusus kuis (gamifikasi, tetap selaras tema app).
@@ -289,6 +290,136 @@ String formatRefill(Duration d) {
   if (h > 0) return '${h}j ${m}m';
   if (m > 0) return '${m}m';
   return '${d.inSeconds}d';
+}
+
+/// Tampilkan bottom sheet informasi kenapa kuis tidak bisa dimulai.
+Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
+  final ({IconData icon, Color color, String title, String message}) info =
+      switch (reason) {
+    QuizBlockReason.busy => (
+        icon: Icons.groups_rounded,
+        color: QuizColors.gold,
+        title: 'Kuis sedang dipakai',
+        message:
+            'Sedang ada yang bermain kuis. Kuis hanya bisa dimainkan satu '
+                'orang dalam satu waktu — silakan tunggu sebentar lalu coba lagi.',
+      ),
+    QuizBlockReason.whisperLimit => (
+        icon: Icons.hourglass_top_rounded,
+        color: QuizColors.wrong,
+        title: 'Kuis sedang istirahat',
+        message:
+            'Kuota pemeriksaan bacaan sedang penuh. Silakan coba lagi beberapa '
+                'saat lagi, ya.',
+      ),
+    QuizBlockReason.noEnergy => (
+        icon: kEnergyIcon,
+        color: QuizColors.missing,
+        title: 'Energi habis',
+        message: 'Tunggu energi terisi kembali untuk bermain lagi.',
+      ),
+    QuizBlockReason.unknown => (
+        icon: Icons.error_outline_rounded,
+        color: QuizColors.missing,
+        title: 'Belum bisa dimulai',
+        message: 'Terjadi kendala saat memulai kuis. Silakan coba lagi.',
+      ),
+  };
+
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: info.color.withValues(alpha: 0.14),
+              ),
+              child: Icon(info.icon, color: info.color, size: 34),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              info.title,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              info.message,
+              style: const TextStyle(fontSize: 13.5, color: Colors.black54),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('Mengerti',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Placeholder abu-abu berdenyut untuk lencana energi selama dimuat.
+class EnergyBadgeSkeleton extends StatefulWidget {
+  const EnergyBadgeSkeleton({super.key});
+
+  @override
+  State<EnergyBadgeSkeleton> createState() => _EnergyBadgeSkeletonState();
+}
+
+class _EnergyBadgeSkeletonState extends State<EnergyBadgeSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween(begin: 0.35, end: 0.85).animate(_c),
+      child: Container(
+        width: 58,
+        height: 26,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
 }
 
 /// Lencana energi ringkas untuk AppBar: hilal + "n/maks".

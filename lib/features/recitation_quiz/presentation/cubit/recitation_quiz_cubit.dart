@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
@@ -14,6 +18,12 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordPath;
 
+  /// Timer perpanjang lock sesi selama bermain; null bila tak bermain.
+  Timer? _heartbeat;
+
+  /// True bila sesi ini sedang memegang lock (perlu dilepas saat keluar).
+  bool _holdsLock = false;
+
   /// Jumlah soal per sesi.
   static const int kQuestionCount = 10;
 
@@ -21,33 +31,50 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   static const int kPassThreshold = 80;
   static const int kPerfectThreshold = 90;
 
+  /// Interval perpanjang lock (lebih pendek dari lease server 2 menit).
+  static const Duration _heartbeatInterval = Duration(seconds: 40);
+
   /// Saklar sistem energi. Set `false` saat testing agar energi tidak pernah
-  /// dipotong (kuis bisa dimainkan tanpa batas). Kembalikan ke `true` untuk
-  /// produksi.
+  /// dipotong & lock sesi dilewati (kuis bisa dimainkan tanpa batas).
+  /// Kembalikan ke `true` untuk produksi.
   static const bool kEnforceEnergy = true;
 
   RecitationQuizCubit(this.repository) : super(const RecitationQuizState());
 
   /// Muat energi terkini untuk ditampilkan di layar intro.
   Future<void> loadEnergy() async {
-    // Testing: tampilkan energi penuh & jangan baca Firestore.
+    // Testing: tampilkan energi penuh & jangan panggil server.
     if (!kEnforceEnergy) {
-      emit(state.copyWith(energy: const QuizEnergy(current: 6, max: 6)));
+      emit(state.copyWith(
+        energy: const QuizEnergy(current: 6, max: 6),
+        energyLoading: false,
+      ));
       return;
     }
+    emit(state.copyWith(energyLoading: true));
     final res = await repository.getEnergy();
     res.fold(
-      ifLeft: (_) {},
-      ifRight: (e) => emit(state.copyWith(energy: e)),
+      ifLeft: (_) => emit(state.copyWith(energyLoading: false)),
+      ifRight: (e) => emit(state.copyWith(energy: e, energyLoading: false)),
     );
   }
 
   /// Mulai / mulai ulang sesi dengan [settings] terpilih: susun 10 soal baru.
-  /// Memakai 1 energi — hanya dipotong bila sesi benar-benar berhasil dimulai.
+  /// Mengambil lock 1-user + memotong 1 energi (server-side); hanya berlaku
+  /// bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
-    emit(state.copyWith(status: QuizStatus.loading, settings: settings));
+    // Layar untuk kembali bila gagal mulai (intro, atau result saat "Main Lagi").
+    final backStatus = state.status == QuizStatus.finished
+        ? QuizStatus.finished
+        : QuizStatus.intro;
 
-    // Susun soal dulu (lokal, tanpa biaya) sebelum memotong energi.
+    emit(state.copyWith(
+      status: QuizStatus.loading,
+      settings: settings,
+      clearStartBlock: true,
+    ));
+
+    // Susun soal dulu (lokal, tanpa biaya) sebelum menyentuh lock/energi.
     final res = await repository.generateQuestions(
       count: kQuestionCount,
       settings: settings,
@@ -59,41 +86,74 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         errorMessage: f.message,
       )),
       ifRight: (qs) async {
-        // Testing: lewati pemotongan/gate energi sepenuhnya.
+        // Testing: lewati lock & energi sepenuhnya.
         if (!kEnforceEnergy) {
-          emit(RecitationQuizState(
-            status: QuizStatus.playing,
-            settings: settings,
-            energy: state.energy,
-            questions: qs,
-            phase: AnswerPhase.idle,
-          ));
+          _enterPlaying(settings, qs, state.energy);
           return;
         }
 
-        final consumed = await repository.consumeEnergy();
-        await consumed.fold(
-          // Energi habis / gagal → kembali ke intro dengan energi terbaru.
-          ifLeft: (_) async {
-            final refreshed = await repository.getEnergy();
-            emit(state.copyWith(
-              status: QuizStatus.intro,
-              energy: refreshed.fold(
-                ifLeft: (_) => state.energy,
-                ifRight: (e) => e,
-              ),
-            ));
+        final started = await repository.startSession();
+        await started.fold(
+          ifLeft: (f) async {
+            final reason =
+                f is QuizBlockedFailure ? f.reason : QuizBlockReason.unknown;
+            if (reason == QuizBlockReason.noEnergy) {
+              // Energi habis → segarkan; tombol menonaktif sendiri.
+              final refreshed = await repository.getEnergy();
+              emit(state.copyWith(
+                status: backStatus,
+                energy: refreshed.fold(
+                  ifLeft: (_) => state.energy,
+                  ifRight: (e) => e,
+                ),
+              ));
+            } else {
+              // Sibuk / kuota Whisper / lain → bottom sheet via startBlock.
+              emit(state.copyWith(status: backStatus, startBlock: reason));
+            }
           },
-          ifRight: (energy) async => emit(RecitationQuizState(
-            status: QuizStatus.playing,
-            settings: settings,
-            energy: energy,
-            questions: qs,
-            phase: AnswerPhase.idle,
-          )),
+          ifRight: (energy) async => _enterPlaying(settings, qs, energy),
         );
       },
     );
+  }
+
+  /// Masuk fase bermain + mulai heartbeat lock.
+  void _enterPlaying(
+    QuizSettings settings,
+    List<QuizQuestion> questions,
+    QuizEnergy? energy,
+  ) {
+    emit(RecitationQuizState(
+      status: QuizStatus.playing,
+      settings: settings,
+      energy: energy,
+      questions: questions,
+      phase: AnswerPhase.idle,
+    ));
+    _startHeartbeat();
+  }
+
+  void _startHeartbeat() {
+    if (!kEnforceEnergy) return;
+    _holdsLock = true;
+    _heartbeat?.cancel();
+    _heartbeat = Timer.periodic(_heartbeatInterval, (_) => repository.heartbeat());
+  }
+
+  /// Lepas lock + hentikan heartbeat (dipanggil saat selesai / keluar).
+  Future<void> _releaseSession() async {
+    _heartbeat?.cancel();
+    _heartbeat = null;
+    if (_holdsLock) {
+      _holdsLock = false;
+      await repository.endSession();
+    }
+  }
+
+  /// Bersihkan penanda blokir setelah bottom sheet ditampilkan.
+  void clearStartBlock() {
+    if (state.startBlock != null) emit(state.copyWith(clearStartBlock: true));
   }
 
   Future<void> startRecording() async {
@@ -242,6 +302,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
         ifRight: (_) => emit(state.copyWith(saving: false)),
       );
+      // Sesi selesai — layar hasil tak butuh Whisper, lepas lock untuk user lain.
+      await _releaseSession();
       return;
     }
 
@@ -264,6 +326,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   @override
   Future<void> close() async {
+    // Keluar (mis. tekan back di tengah kuis) → lepas lock sesi.
+    await _releaseSession();
     await _recorder.dispose();
     return super.close();
   }

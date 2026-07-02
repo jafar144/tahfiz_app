@@ -12,11 +12,20 @@ class QuizEnergyRemoteDataSource {
 
   QuizEnergyRemoteDataSource(this.functions);
 
-  Future<QuizEnergy> getEnergy() => _call('getQuizEnergy');
+  /// Ambil energi terkini (untuk tampilan). Melempar [FirebaseFunctionsException].
+  Future<QuizEnergy> getEnergy() => _callEnergy('getQuizEnergy');
 
-  Future<QuizEnergy> consumeEnergy() => _call('consumeQuizEnergy');
+  /// Mulai sesi (lock + potong energi). Melempar [FirebaseFunctionsException]
+  /// dengan `details['reason']` bila terblokir.
+  Future<QuizEnergy> startSession() => _callEnergy('startQuizSession');
 
-  Future<QuizEnergy> _call(String name) async {
+  /// Perpanjang lock; abaikan kegagalan (best-effort).
+  Future<void> heartbeat() => _callVoid('heartbeatQuizSession');
+
+  /// Lepas lock; abaikan kegagalan (best-effort).
+  Future<void> endSession() => _callVoid('endQuizSession');
+
+  Future<QuizEnergy> _callEnergy(String name) async {
     final callable = functions.httpsCallable(
       name,
       options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),
@@ -35,5 +44,17 @@ class QuizEnergyRemoteDataSource {
       nextRefillAt:
           secs == null ? null : DateTime.now().add(Duration(seconds: secs)),
     );
+  }
+
+  Future<void> _callVoid(String name) async {
+    try {
+      final callable = functions.httpsCallable(
+        name,
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 15)),
+      );
+      await callable.call();
+    } catch (_) {
+      // best-effort: heartbeat/endSession tak boleh mengganggu alur main.
+    }
   }
 }

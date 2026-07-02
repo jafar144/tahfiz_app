@@ -32,6 +32,13 @@ abstract class QuizRepository {
   /// Energi kuis terkini (sudah memperhitungkan pengisian otomatis).
   Future<Either<Failure, QuizEnergy>> getEnergy();
 
-  /// Pakai 1 energi untuk memulai sesi. Left bila energi habis.
-  Future<Either<Failure, QuizEnergy>> consumeEnergy();
+  /// Mulai sesi: ambil lock 1-user + potong 1 energi (server-side).
+  /// Left berisi [QuizBlockedFailure] bila terblokir (sibuk / kuota / energi).
+  Future<Either<Failure, QuizEnergy>> startSession();
+
+  /// Perpanjang lock selama bermain (best-effort, diabaikan bila gagal).
+  Future<void> heartbeat();
+
+  /// Lepas lock saat sesi selesai / keluar (best-effort).
+  Future<void> endSession();
 }

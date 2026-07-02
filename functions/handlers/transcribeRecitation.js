@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
+const { markWhisperCooldown } = require("../lib/quizLock");
 
 // API key Groq (gratis: https://console.groq.com/keys). Disimpan di Secret
 // Manager: `firebase functions:secrets:set GROQ_API_KEY`.
@@ -79,6 +80,8 @@ exports.transcribeRecitation = onCall(OPTIONS, async (request) => {
     const detail = await resp.text().catch(() => "");
     console.error("Groq error", resp.status, detail);
     if (resp.status === 429) {
+      // Tandai jeda agar sesi kuis berikutnya ditolak lebih ramah di awal.
+      await markWhisperCooldown();
       throw new HttpsError("resource-exhausted", "Kuota transkripsi habis, coba lagi nanti.");
     }
     throw new HttpsError("internal", `Transkripsi gagal (${resp.status}).`);

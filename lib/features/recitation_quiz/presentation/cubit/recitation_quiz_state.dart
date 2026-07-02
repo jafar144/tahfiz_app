@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
@@ -32,6 +33,13 @@ class RecitationQuizState extends Equatable {
 
   /// Energi kuis terkini; null bila belum dimuat.
   final QuizEnergy? energy;
+
+  /// True selama energi sedang dimuat dari server (tampilkan skeleton).
+  final bool energyLoading;
+
+  /// Alasan sesi gagal dimulai (sekali-tampil untuk bottom sheet); null bila
+  /// tidak ada. Dibersihkan oleh UI setelah ditampilkan.
+  final QuizBlockReason? startBlock;
 
   final List<QuizQuestion> questions;
   final int currentIndex;
@@ -71,6 +79,8 @@ class RecitationQuizState extends Equatable {
     this.errorMessage,
     this.settings = const QuizSettings(),
     this.energy,
+    this.energyLoading = false,
+    this.startBlock,
     this.questions = const [],
     this.currentIndex = 0,
     this.phase = AnswerPhase.idle,
@@ -114,6 +124,8 @@ class RecitationQuizState extends Equatable {
     String? errorMessage,
     QuizSettings? settings,
     QuizEnergy? energy,
+    bool? energyLoading,
+    QuizBlockReason? startBlock,
     List<QuizQuestion>? questions,
     int? currentIndex,
     AnswerPhase? phase,
@@ -129,6 +141,7 @@ class RecitationQuizState extends Equatable {
     bool? saving,
     String? saveError,
     bool clearError = false,
+    bool clearStartBlock = false,
     bool clearCurrentResult = false,
     bool clearBestResult = false,
     bool clearPendingAnswer = false,
@@ -139,6 +152,8 @@ class RecitationQuizState extends Equatable {
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       settings: settings ?? this.settings,
       energy: energy ?? this.energy,
+      energyLoading: energyLoading ?? this.energyLoading,
+      startBlock: clearStartBlock ? null : (startBlock ?? this.startBlock),
       questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,
       phase: phase ?? this.phase,
@@ -164,6 +179,8 @@ class RecitationQuizState extends Equatable {
         errorMessage,
         settings,
         energy,
+        energyLoading,
+        startBlock,
         questions,
         currentIndex,
         phase,

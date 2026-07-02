@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
+const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 
 // Sistem energi Kuis Hafalan — dihitung SISI SERVER (waktu server) agar tidak
 // bisa diakali dengan mengubah jam HP. Tiap pengguna (admin/asatidz/santri)
@@ -80,38 +81,134 @@ exports.getQuizEnergy = onCall(OPTIONS, async (request) => {
   return toResponse(current, anchorMs, nowMs);
 });
 
-// Pakai 1 energi untuk memulai sesi (transaksi). Gagal bila energi habis.
-exports.consumeQuizEnergy = onCall(OPTIONS, async (request) => {
+// Mulai sesi kuis: cek kuota Whisper → ambil lock 1-user → potong 1 energi.
+// Semua dalam satu transaksi (dok lock + dok energi) agar konsisten.
+exports.startQuizSession = onCall(OPTIONS, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
 
-  const ref = db.collection(COLLECTION).doc(request.auth.uid);
+  const uid = request.auth.uid;
+  const token = request.auth.token || {};
+  const name = token.name || token.email || "";
 
-  const result = await db.runTransaction(async (tx) => {
+  const energyRef = db.collection(COLLECTION).doc(uid);
+  const lock = lockRef();
+
+  const outcome = await db.runTransaction(async (tx) => {
     const nowMs = Date.now();
-    const snap = await tx.get(ref);
-    const { stored, updatedAtMs } = readDoc(snap, nowMs);
+    const lockSnap = await tx.get(lock);
+    const energySnap = await tx.get(energyRef);
+    const lockData = lockSnap.exists ? lockSnap.data() || {} : {};
+
+    // 1) Kuota Whisper sedang penuh?
+    if (tsMillis(lockData.whisper_cooldown_until) > nowMs) {
+      return { block: "whisper" };
+    }
+
+    // 2) Sedang dipakai user lain (lock masih berlaku)?
+    const holder = lockData.holder_uid || null;
+    const leaseActive = tsMillis(lockData.lease_expires_at) > nowMs;
+    if (holder && holder !== uid && leaseActive) {
+      return { block: "busy", holderName: lockData.holder_name || "" };
+    }
+
+    // 3) Energi cukup?
+    const { stored, updatedAtMs } = readDoc(energySnap, nowMs);
     const { current, anchorMs } = regen(stored, updatedAtMs, nowMs);
+    if (current <= 0) {
+      return { block: "no_energy" };
+    }
 
-    if (current <= 0) return { empty: true };
-
-    // Jika sebelumnya penuh, timer pengisian mulai dihitung dari sekarang.
+    // Ambil lock + potong 1 energi.
     const wasFull = current >= MAX_ENERGY;
     const newCurrent = current - 1;
     const newAnchorMs = wasFull ? nowMs : anchorMs;
 
     tx.set(
-      ref,
+      lock,
+      {
+        holder_uid: uid,
+        holder_name: name,
+        session_started_at: admin.firestore.Timestamp.fromMillis(nowMs),
+        lease_expires_at: admin.firestore.Timestamp.fromMillis(nowMs + LEASE_MS),
+      },
+      { merge: true }
+    );
+    tx.set(
+      energyRef,
       {
         energy: newCurrent,
         updated_at: admin.firestore.Timestamp.fromMillis(newAnchorMs),
       },
       { merge: true }
     );
-    return { empty: false, current: newCurrent, anchorMs: newAnchorMs, nowMs };
+    return { ok: true, energy: toResponse(newCurrent, newAnchorMs, nowMs) };
   });
 
-  if (result.empty) {
-    throw new HttpsError("failed-precondition", "Energi habis.");
+  if (outcome.block === "whisper") {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Kuis sedang tidak bisa dimainkan (kuota transkripsi penuh). Silakan coba lagi nanti.",
+      { reason: "whisper" }
+    );
   }
-  return toResponse(result.current, result.anchorMs, result.nowMs);
+  if (outcome.block === "busy") {
+    throw new HttpsError(
+      "aborted",
+      "Sedang ada yang bermain. Silakan tunggu sebentar lalu coba lagi.",
+      { reason: "busy", holderName: outcome.holderName }
+    );
+  }
+  if (outcome.block === "no_energy") {
+    throw new HttpsError("failed-precondition", "Energi habis.", {
+      reason: "no_energy",
+    });
+  }
+  return outcome.energy;
+});
+
+// Perpanjang lock selama masih bermain (dipanggil berkala oleh app).
+exports.heartbeatQuizSession = onCall(OPTIONS, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
+  const uid = request.auth.uid;
+  const lock = lockRef();
+
+  const held = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(lock);
+    const data = snap.exists ? snap.data() || {} : {};
+    if (data.holder_uid !== uid) return false; // lock sudah diambil alih
+    tx.set(
+      lock,
+      {
+        lease_expires_at: admin.firestore.Timestamp.fromMillis(
+          Date.now() + LEASE_MS
+        ),
+      },
+      { merge: true }
+    );
+    return true;
+  });
+  return { held };
+});
+
+// Lepas lock (dipanggil saat sesi selesai / user keluar).
+exports.endQuizSession = onCall(OPTIONS, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
+  const uid = request.auth.uid;
+  const lock = lockRef();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(lock);
+    const data = snap.exists ? snap.data() || {} : {};
+    if (data.holder_uid !== uid) return; // bukan pemegang → jangan sentuh
+    tx.set(
+      lock,
+      {
+        holder_uid: null,
+        holder_name: "",
+        lease_expires_at: admin.firestore.Timestamp.fromMillis(Date.now()),
+      },
+      { merge: true }
+    );
+  });
+  return { ok: true };
 });
