@@ -34,17 +34,36 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Interval perpanjang lock (lebih pendek dari lease server 2 menit).
   static const Duration _heartbeatInterval = Duration(seconds: 40);
 
-  /// Saklar sistem energi. Set `false` saat testing agar energi tidak pernah
-  /// dipotong & lock sesi dilewati (kuis bisa dimainkan tanpa batas).
-  /// Kembalikan ke `true` untuk produksi.
+  /// Saklar sistem energi (master switch). Set `false` saat testing agar energi
+  /// tidak pernah dipotong & lock sesi dilewati (kuis bisa dimainkan tanpa
+  /// batas). Kembalikan ke `true` untuk produksi.
   static const bool kEnforceEnergy = true;
+
+  /// True bila user saat ini admin → selalu melewati energi/lock (seolah
+  /// [kEnforceEnergy] false), tanpa mengubah perilaku asatidz & santri.
+  bool _isAdmin = false;
+
+  /// Sudah pernah menanyakan role admin ke repo (agar tak berulang).
+  bool _roleResolved = false;
+
+  /// Energi benar-benar diberlakukan hanya bila master switch aktif DAN user
+  /// bukan admin.
+  bool get _enforceEnergy => kEnforceEnergy && !_isAdmin;
 
   RecitationQuizCubit(this.repository) : super(const RecitationQuizState());
 
+  /// Resolusi status admin sekali di awal (dipanggil sebelum cek energi).
+  Future<void> _ensureRoleResolved() async {
+    if (_roleResolved) return;
+    _isAdmin = await repository.isCurrentUserAdmin();
+    _roleResolved = true;
+  }
+
   /// Muat energi terkini untuk ditampilkan di layar intro.
   Future<void> loadEnergy() async {
-    // Testing: tampilkan energi penuh & jangan panggil server.
-    if (!kEnforceEnergy) {
+    await _ensureRoleResolved();
+    // Testing / admin: tampilkan energi penuh & jangan panggil server.
+    if (!_enforceEnergy) {
       emit(state.copyWith(
         energy: const QuizEnergy(current: 6, max: 6),
         energyLoading: false,
@@ -63,6 +82,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Mengambil lock 1-user + memotong 1 energi (server-side); hanya berlaku
   /// bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
+    await _ensureRoleResolved();
     // Layar untuk kembali bila gagal mulai (intro, atau result saat "Main Lagi").
     final backStatus = state.status == QuizStatus.finished
         ? QuizStatus.finished
@@ -86,8 +106,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         errorMessage: f.message,
       )),
       ifRight: (qs) async {
-        // Testing: lewati lock & energi sepenuhnya.
-        if (!kEnforceEnergy) {
+        // Testing / admin: lewati lock & energi sepenuhnya.
+        if (!_enforceEnergy) {
           _enterPlaying(settings, qs, state.energy);
           return;
         }
@@ -135,7 +155,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   }
 
   void _startHeartbeat() {
-    if (!kEnforceEnergy) return;
+    if (!_enforceEnergy) return;
     _holdsLock = true;
     _heartbeat?.cancel();
     _heartbeat = Timer.periodic(_heartbeatInterval, (_) => repository.heartbeat());

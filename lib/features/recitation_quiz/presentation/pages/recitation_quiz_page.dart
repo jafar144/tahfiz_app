@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
@@ -38,6 +39,12 @@ class RecitationQuizPage extends StatelessWidget {
               title: const Text('Kuis Hafalan'),
               centerTitle: true,
               actions: [
+                IconButton(
+                  tooltip: 'Papan Juara',
+                  icon: const Icon(Icons.leaderboard_rounded),
+                  onPressed: () =>
+                      context.pushNamed(RouteNames.quizLeaderboard),
+                ),
                 if (state.energyLoading && state.energy == null)
                   const Padding(
                     padding: EdgeInsets.only(right: 12),

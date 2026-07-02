@@ -37,4 +37,5 @@ abstract class RoutePaths {
 
   static const recitationCheck = '/recitation_check';
   static const recitationQuiz = '/recitation_quiz';
+  static const quizLeaderboard = '/quiz_leaderboard';
 }

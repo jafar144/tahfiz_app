@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/repositories/rec
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
@@ -39,6 +40,24 @@ class QuizRepositoryImpl implements QuizRepository {
   };
 
   static const String _collection = 'recitation_quiz_attempts';
+
+  /// Koleksi papan juara bulanan:
+  /// `quiz_leaderboards/{yyyy-MM}/entries/{uid}` — satu dokumen per user per
+  /// bulan yang hanya menyimpan skor TERBAIK, sehingga leaderboard cukup
+  /// 1 query ringan tanpa membaca seluruh attempt.
+  static const String _leaderboardCollection = 'quiz_leaderboards';
+
+  /// Jumlah peringkat yang ditampilkan.
+  static const int _leaderboardLimit = 10;
+
+  static String _monthKey(DateTime now) =>
+      '${now.year}-${now.month.toString().padLeft(2, '0')}';
+
+  CollectionReference<Map<String, dynamic>> _entriesRef(String monthKey) =>
+      firestore
+          .collection(_leaderboardCollection)
+          .doc(monthKey)
+          .collection('entries');
 
   /// Panjang jawaban maksimum (ayat) per soal.
   static const int _maxAnswerLen = 3;
@@ -190,10 +209,145 @@ class QuizRepositoryImpl implements QuizRepository {
         'date_key': dateKey,
         'created_at': FieldValue.serverTimestamp(),
       });
+
+      // Perbarui papan juara bulanan (best-effort — attempt di atas adalah
+      // sumber kebenaran; kegagalan di sini tidak menggagalkan penyimpanan).
+      try {
+        await _upsertLeaderboardEntry(
+          uid: user.uid,
+          name: name,
+          role: role,
+          monthKey: _monthKey(now),
+          totalScore: totalScore,
+        );
+      } catch (_) {
+        // Diabaikan; skor tetap tersimpan di attempts.
+      }
+
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Gagal menyimpan hasil kuis: $e'));
     }
+  }
+
+  /// Simpan skor ke `quiz_leaderboards/{bulan}/entries/{uid}` hanya bila
+  /// [totalScore] melebihi skor terbaik yang sudah tercatat bulan ini.
+  Future<void> _upsertLeaderboardEntry({
+    required String uid,
+    required String name,
+    required String role,
+    required String monthKey,
+    required int totalScore,
+  }) {
+    final ref = _entriesRef(monthKey).doc(uid);
+    return firestore.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final prevBest = (snap.data()?['best_score'] as num?)?.toInt() ?? -1;
+
+      final data = <String, dynamic>{
+        'user_id': uid,
+        'user_name': name,
+        'role': role,
+        'month_key': monthKey,
+        'last_score': totalScore,
+        'play_count': FieldValue.increment(1),
+        'updated_at': FieldValue.serverTimestamp(),
+      };
+      if (totalScore > prevBest) {
+        data['best_score'] = totalScore;
+        // Tie-break: skor sama → yang lebih dulu mencapainya menang.
+        data['best_at'] = FieldValue.serverTimestamp();
+      }
+      tx.set(ref, data, SetOptions(merge: true));
+    });
+  }
+
+  @override
+  Future<bool> isCurrentUserAdmin() async {
+    try {
+      final user = auth.currentUser;
+      if (user == null) return false;
+      final doc = await firestore.collection('users').doc(user.uid).get();
+      return (doc.data()?['role'] as String?) == 'admin';
+    } catch (_) {
+      // Gagal baca profil → anggap non-admin agar energi tetap membatasi.
+      return false;
+    }
+  }
+
+  @override
+  Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard() async {
+    try {
+      final monthKey = _monthKey(DateTime.now());
+      final entriesRef = _entriesRef(monthKey);
+
+      final snap = await entriesRef
+          .orderBy('best_score', descending: true)
+          .limit(_leaderboardLimit)
+          .get();
+
+      final entries = snap.docs.map((d) => _entryFromDoc(d.data())).toList()
+        // Tie-break di sisi klien: skor sama → best_at lebih awal di atas.
+        ..sort((a, b) {
+          final byScore = b.bestScore.compareTo(a.bestScore);
+          if (byScore != 0) return byScore;
+          final aAt = a.bestAt, bAt = b.bestAt;
+          if (aAt == null) return 1;
+          if (bAt == null) return -1;
+          return aAt.compareTo(bAt);
+        });
+
+      // Posisi user saat ini (bila sudah pernah main bulan ini).
+      LeaderboardEntry? myEntry;
+      int? myRank;
+      final uid = auth.currentUser?.uid;
+      if (uid != null) {
+        final idx = entries.indexWhere((e) => e.userId == uid);
+        if (idx >= 0) {
+          myEntry = entries[idx];
+          myRank = idx + 1;
+        } else {
+          final mySnap = await entriesRef.doc(uid).get();
+          final myData = mySnap.data();
+          if (myData != null) {
+            myEntry = _entryFromDoc(myData);
+            // Peringkat = 1 + jumlah user dengan skor lebih tinggi
+            // (aggregate count — tidak membaca isi dokumen).
+            try {
+              final agg = await entriesRef
+                  .where('best_score', isGreaterThan: myEntry.bestScore)
+                  .count()
+                  .get();
+              myRank = (agg.count ?? 0) + 1;
+            } catch (_) {
+              myRank = null; // Peringkat opsional; kartu tetap tampil.
+            }
+          }
+        }
+      }
+
+      return Right(MonthlyLeaderboard(
+        monthKey: monthKey,
+        entries: entries,
+        myEntry: myEntry,
+        myRank: myRank,
+      ));
+    } catch (e) {
+      return Left(ServerFailure('Gagal memuat papan juara: $e'));
+    }
+  }
+
+  LeaderboardEntry _entryFromDoc(Map<String, dynamic> data) {
+    return LeaderboardEntry(
+      userId: (data['user_id'] as String?) ?? '',
+      name: ((data['user_name'] as String?)?.trim().isNotEmpty ?? false)
+          ? (data['user_name'] as String).trim()
+          : 'Tanpa Nama',
+      role: (data['role'] as String?) ?? '',
+      bestScore: (data['best_score'] as num?)?.toInt() ?? 0,
+      bestAt: (data['best_at'] as Timestamp?)?.toDate(),
+      playCount: (data['play_count'] as num?)?.toInt() ?? 0,
+    );
   }
 
   // Energi dihitung SISI SERVER (Cloud Function) memakai waktu server, sehingga

@@ -77,6 +77,7 @@ import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/reci
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_repository_impl.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 
 
@@ -341,4 +342,5 @@ Future<void> initDI() async {
     ),
   );
   getIt.registerFactory(() => RecitationQuizCubit(getIt()));
+  getIt.registerFactory(() => QuizLeaderboardCubit(getIt(), getIt()));
 }
