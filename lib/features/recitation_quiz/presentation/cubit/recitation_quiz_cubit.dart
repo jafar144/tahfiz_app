@@ -4,6 +4,7 @@ import 'package:record/record.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 
@@ -21,10 +22,13 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   RecitationQuizCubit(this.repository) : super(const RecitationQuizState());
 
-  /// Mulai / mulai ulang sesi: susun 10 soal baru.
-  Future<void> start() async {
-    emit(const RecitationQuizState(status: QuizStatus.loading));
-    final res = await repository.generateQuestions(count: kQuestionCount);
+  /// Mulai / mulai ulang sesi dengan [settings] terpilih: susun 10 soal baru.
+  Future<void> start(QuizSettings settings) async {
+    emit(RecitationQuizState(status: QuizStatus.loading, settings: settings));
+    final res = await repository.generateQuestions(
+      count: kQuestionCount,
+      settings: settings,
+    );
     res.fold(
       ifLeft: (f) => emit(state.copyWith(
         status: QuizStatus.error,
@@ -32,6 +36,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       )),
       ifRight: (qs) => emit(RecitationQuizState(
         status: QuizStatus.playing,
+        settings: settings,
         questions: qs,
         phase: AnswerPhase.idle,
       )),
@@ -177,6 +182,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       final save = await repository.saveAttempt(
         totalScore: result.totalScore,
         questionScores: result.scores,
+        juz: state.settings.sortedJuz,
+        crossSurah: state.settings.crossSurah,
       );
       save.fold(
         ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
@@ -199,8 +206,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     ));
   }
 
-  /// Main lagi dari awal (soal baru).
-  Future<void> playAgain() => start();
+  /// Main lagi dari awal dengan setelan yang sama (soal baru).
+  Future<void> playAgain() => start(state.settings);
 
   @override
   Future<void> close() async {

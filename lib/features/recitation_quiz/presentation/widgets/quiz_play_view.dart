@@ -88,7 +88,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   child: Column(
                     children: [
-                      const _PromptHint(),
+                      _PromptHint(ayahCount: q.answerAyahCount),
                       const SizedBox(height: 12),
                       PromptAyahCard(text: q.prompt.text),
                       const SizedBox(height: 24),
@@ -154,19 +154,33 @@ class _QuizPlayViewState extends State<QuizPlayView> {
 }
 
 class _PromptHint extends StatelessWidget {
-  const _PromptHint();
+  /// Jumlah ayat yang harus dilanjutkan santri.
+  final int ayahCount;
+
+  const _PromptHint({required this.ayahCount});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const base = TextStyle(fontWeight: FontWeight.w600, color: Colors.black54);
+    final strong = TextStyle(
+      fontWeight: FontWeight.w800,
+      color: scheme.primary,
+    );
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.arrow_downward_rounded,
-            size: 16, color: Theme.of(context).colorScheme.primary),
+        Icon(Icons.arrow_downward_rounded, size: 16, color: scheme.primary),
         const SizedBox(width: 6),
-        const Text(
-          'Lanjutkan ayat berikutnya',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54),
+        Text.rich(
+          ayahCount > 1
+              ? TextSpan(style: base, children: [
+                  const TextSpan(text: 'Lanjutkan '),
+                  TextSpan(text: '$ayahCount ayat', style: strong),
+                  const TextSpan(text: ' berikutnya'),
+                ])
+              : const TextSpan(
+                  text: 'Lanjutkan ayat berikutnya', style: base),
         ),
       ],
     );

@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.da
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 
 class QuizRepositoryImpl implements QuizRepository {
@@ -25,27 +26,40 @@ class QuizRepositoryImpl implements QuizRepository {
     required this.auth,
   });
 
-  /// Batas surah Juz 30 (An-Naba' 78 .. An-Nas 114).
-  static const int _juz30From = 78;
-  static const int _juz30To = 114;
+  /// Rentang surah [dari, sampai] tiap juz yang didukung.
+  static const Map<int, List<int>> _juzSurahRange = {
+    29: [67, 77], // Al-Mulk .. Al-Mursalat
+    30: [78, 114], // An-Naba' .. An-Nas
+  };
 
   static const String _collection = 'recitation_quiz_attempts';
+
+  /// Panjang jawaban maksimum (ayat) per soal.
+  static const int _maxAnswerLen = 3;
 
   @override
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
     int count = 10,
+    required QuizSettings settings,
   }) async {
     try {
-      final pool = await local.getAyatForSurahRange(
-        fromSurah: _juz30From,
-        toSurah: _juz30To,
-      );
-      // Kandidat prompt = semua ayat yang punya ayat sesudahnya di pool.
-      // Ayat terakhir (An-Nas ayat terakhir) otomatis tak terpilih karena
-      // tidak punya lanjutan.
-      final maxPrompt = pool.length - 1; // indeks eksklusif untuk prompt
-      if (maxPrompt < 1) {
-        return const Left(UnknownFailure('Data Juz 30 tidak lengkap.'));
+      final juzList =
+          settings.sortedJuz.where(_juzSurahRange.containsKey).toList();
+      if (juzList.isEmpty) {
+        return const Left(UnknownFailure('Pilih minimal satu juz.'));
+      }
+
+      // Susun pool ayat sesuai juz terpilih, urut mushaf.
+      final pool = <Ayah>[];
+      for (final j in juzList) {
+        final range = _juzSurahRange[j]!;
+        pool.addAll(await local.getAyatForSurahRange(
+          fromSurah: range[0],
+          toSurah: range[1],
+        ));
+      }
+      if (pool.length < 2) {
+        return const Left(UnknownFailure('Data juz terpilih tidak lengkap.'));
       }
 
       // Basmalah (dari Al-Fatihah 1:1) untuk transisi antar surah.
@@ -53,28 +67,44 @@ class QuizRepositoryImpl implements QuizRepository {
       final basmalahText =
           basmalahList.isNotEmpty ? basmalahList.first.text : '';
 
-      final rng = Random();
-      final take = min(count, maxPrompt);
-      final chosen = <int>{};
-      while (chosen.length < take) {
-        chosen.add(rng.nextInt(maxPrompt)); // 0..maxPrompt-1
+      // Kandidat prompt = indeks ayat yang punya minimal 1 ayat lanjutan valid.
+      // Bila sambungan antar surah dimatikan, lanjutan wajib di surah yang sama
+      // (ayat terakhir tiap surah tak jadi kandidat).
+      final candidates = <int>[];
+      for (var i = 0; i < pool.length - 1; i++) {
+        final next = pool[i + 1];
+        if (!settings.crossSurah && next.surahId != pool[i].surahId) continue;
+        candidates.add(i);
       }
+      if (candidates.isEmpty) {
+        return const Left(
+            UnknownFailure('Data tidak cukup untuk menyusun soal.'));
+      }
+
+      final rng = Random();
+      candidates.shuffle(rng);
+      final chosen = candidates.take(min(count, candidates.length));
 
       final questions = <QuizQuestion>[];
       for (final i in chosen) {
         final prompt = pool[i];
-        final next = pool[i + 1];
+        final maxLen = _availableAnswerLen(pool, i, settings.crossSurah);
+        final len = 1 + rng.nextInt(maxLen); // 1.._maxAnswerLen (dibatasi)
+
         final answer = <Ayah>[];
-        if (next.number == 1 && basmalahText.isNotEmpty) {
-          answer.add(Ayah(
-            surahId: next.surahId,
-            number: 0, // penanda basmalah (bukan ayat bernomor)
-            text: basmalahText,
-            page: next.page,
-            surahName: next.surahName,
-          ));
+        for (var k = 1; k <= len; k++) {
+          final a = pool[i + k];
+          if (a.number == 1 && basmalahText.isNotEmpty) {
+            answer.add(Ayah(
+              surahId: a.surahId,
+              number: 0, // penanda basmalah (bukan ayat bernomor)
+              text: basmalahText,
+              page: a.page,
+              surahName: a.surahName,
+            ));
+          }
+          answer.add(a);
         }
-        answer.add(next);
         questions.add(QuizQuestion(prompt: prompt, answer: answer));
       }
 
@@ -83,6 +113,18 @@ class QuizRepositoryImpl implements QuizRepository {
     } catch (e) {
       return Left(UnknownFailure('Gagal menyusun soal kuis: $e'));
     }
+  }
+
+  /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1.._maxAnswerLen).
+  /// Bila [crossSurah] false, berhenti di batas surah prompt.
+  int _availableAnswerLen(List<Ayah> pool, int i, bool crossSurah) {
+    final promptSurah = pool[i].surahId;
+    var len = 0;
+    for (var k = 1; k <= _maxAnswerLen && i + k < pool.length; k++) {
+      if (!crossSurah && pool[i + k].surahId != promptSurah) break;
+      len++;
+    }
+    return len; // >= 1 karena i selalu diambil dari kandidat valid
   }
 
   @override
@@ -102,6 +144,8 @@ class QuizRepositoryImpl implements QuizRepository {
   Future<Either<Failure, void>> saveAttempt({
     required int totalScore,
     required List<int> questionScores,
+    required List<int> juz,
+    required bool crossSurah,
   }) async {
     try {
       final user = auth.currentUser;
@@ -133,7 +177,8 @@ class QuizRepositoryImpl implements QuizRepository {
         'user_id': user.uid,
         'user_name': name,
         'role': role,
-        'juz': 30,
+        'juz': juz,
+        'cross_surah': crossSurah,
         'total_score': totalScore,
         'question_scores': questionScores,
         'date_key': dateKey,

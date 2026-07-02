@@ -172,12 +172,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   color: Colors.blue,
                   onTap: () => context.pushNamed(RouteNames.adminSyahadah),
                 ),
-                MenuCard(
-                  icon: Icons.record_voice_over_rounded,
-                  title: 'Uji Bacaan',
-                  color: Colors.blue,
-                  onTap: () => context.pushNamed(RouteNames.recitationCheck),
-                ),
+                // MenuCard(
+                //   icon: Icons.record_voice_over_rounded,
+                //   title: 'Uji Bacaan',
+                //   color: Colors.blue,
+                //   onTap: () => context.pushNamed(RouteNames.recitationCheck),
+                // ),
                 MenuCard(
                   icon: Icons.emoji_events_rounded,
                   title: 'Kuis Hafalan',

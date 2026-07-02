@@ -36,7 +36,7 @@ class RecitationQuizPage extends StatelessWidget {
               QuizStatus.loading => const _Loading(),
               QuizStatus.error => _ErrorView(
                   message: state.errorMessage ?? 'Terjadi kesalahan.',
-                  onRetry: cubit.start,
+                  onRetry: () => cubit.start(state.settings),
                 ),
               QuizStatus.playing => const QuizPlayView(),
               QuizStatus.finished => QuizResultView(
