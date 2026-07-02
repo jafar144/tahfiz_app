@@ -19,6 +19,10 @@ const {
 } = require("./handlers/cleanupExpiredSyahadah");
 const { guestLookup } = require("./handlers/guestLookup");
 const { transcribeRecitation } = require("./handlers/transcribeRecitation");
+const {
+  getQuizEnergy,
+  consumeQuizEnergy,
+} = require("./handlers/quizEnergy");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -49,3 +53,8 @@ exports.guestLookup = guestLookup;
 // Pendeteksi bacaan Quran (Fase 0): proxy transkripsi Groq Whisper.
 // onCall, butuh login. Secret GROQ_API_KEY.
 exports.transcribeRecitation = transcribeRecitation;
+
+// Energi Kuis Hafalan (server-side, anti ubah-jam). onCall, butuh login.
+// Tiap pengguna punya energi sendiri (quiz_energy/{uid}).
+exports.getQuizEnergy = getQuizEnergy;
+exports.consumeQuizEnergy = consumeQuizEnergy;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -8,7 +9,15 @@ class QuizIntroView extends StatefulWidget {
   /// Dipanggil saat santri menekan "Mulai Kuis" dengan setelan terpilih.
   final ValueChanged<QuizSettings> onStart;
 
-  const QuizIntroView({super.key, required this.onStart});
+  /// Energi terkini; null bila belum dimuat. Dipakai untuk mengunci tombol
+  /// mulai saat energi habis.
+  final QuizEnergy? energy;
+
+  const QuizIntroView({
+    super.key,
+    required this.onStart,
+    this.energy,
+  });
 
   @override
   State<QuizIntroView> createState() => _QuizIntroViewState();
@@ -47,6 +56,32 @@ class _QuizIntroViewState extends State<QuizIntroView> {
     if (sorted.length == 2) return 'Juz 29 & 30';
     final j = sorted.first;
     return 'Juz $j • ${_juzInfo[j]!.range}';
+  }
+
+  Widget _buildStartButton() {
+    // Bila energi sudah dimuat & habis, tombol dinonaktifkan.
+    final canPlay = widget.energy?.canPlay ?? true;
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: canPlay
+            ? () => widget.onStart(
+                  QuizSettings(juz: {..._juz}, crossSurah: _crossSurah),
+                )
+            : null,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        icon: Icon(canPlay ? Icons.play_arrow_rounded : Icons.hourglass_bottom_rounded),
+        label: Text(
+          canPlay ? 'Mulai Kuis' : 'Energi habis',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
   }
 
   @override
@@ -170,25 +205,7 @@ class _QuizIntroViewState extends State<QuizIntroView> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => widget.onStart(
-                  QuizSettings(juz: {..._juz}, crossSurah: _crossSurah),
-                ),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text(
-                  'Mulai Kuis',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
+            child: _buildStartButton(),
           ),
         ],
       ),

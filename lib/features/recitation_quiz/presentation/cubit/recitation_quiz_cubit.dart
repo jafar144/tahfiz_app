@@ -3,6 +3,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
@@ -20,26 +21,78 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   static const int kPassThreshold = 80;
   static const int kPerfectThreshold = 90;
 
+  /// Saklar sistem energi. Set `false` saat testing agar energi tidak pernah
+  /// dipotong (kuis bisa dimainkan tanpa batas). Kembalikan ke `true` untuk
+  /// produksi.
+  static const bool kEnforceEnergy = true;
+
   RecitationQuizCubit(this.repository) : super(const RecitationQuizState());
 
+  /// Muat energi terkini untuk ditampilkan di layar intro.
+  Future<void> loadEnergy() async {
+    // Testing: tampilkan energi penuh & jangan baca Firestore.
+    if (!kEnforceEnergy) {
+      emit(state.copyWith(energy: const QuizEnergy(current: 6, max: 6)));
+      return;
+    }
+    final res = await repository.getEnergy();
+    res.fold(
+      ifLeft: (_) {},
+      ifRight: (e) => emit(state.copyWith(energy: e)),
+    );
+  }
+
   /// Mulai / mulai ulang sesi dengan [settings] terpilih: susun 10 soal baru.
+  /// Memakai 1 energi — hanya dipotong bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
-    emit(RecitationQuizState(status: QuizStatus.loading, settings: settings));
+    emit(state.copyWith(status: QuizStatus.loading, settings: settings));
+
+    // Susun soal dulu (lokal, tanpa biaya) sebelum memotong energi.
     final res = await repository.generateQuestions(
       count: kQuestionCount,
       settings: settings,
     );
-    res.fold(
-      ifLeft: (f) => emit(state.copyWith(
+
+    await res.fold(
+      ifLeft: (f) async => emit(state.copyWith(
         status: QuizStatus.error,
         errorMessage: f.message,
       )),
-      ifRight: (qs) => emit(RecitationQuizState(
-        status: QuizStatus.playing,
-        settings: settings,
-        questions: qs,
-        phase: AnswerPhase.idle,
-      )),
+      ifRight: (qs) async {
+        // Testing: lewati pemotongan/gate energi sepenuhnya.
+        if (!kEnforceEnergy) {
+          emit(RecitationQuizState(
+            status: QuizStatus.playing,
+            settings: settings,
+            energy: state.energy,
+            questions: qs,
+            phase: AnswerPhase.idle,
+          ));
+          return;
+        }
+
+        final consumed = await repository.consumeEnergy();
+        await consumed.fold(
+          // Energi habis / gagal → kembali ke intro dengan energi terbaru.
+          ifLeft: (_) async {
+            final refreshed = await repository.getEnergy();
+            emit(state.copyWith(
+              status: QuizStatus.intro,
+              energy: refreshed.fold(
+                ifLeft: (_) => state.energy,
+                ifRight: (e) => e,
+              ),
+            ));
+          },
+          ifRight: (energy) async => emit(RecitationQuizState(
+            status: QuizStatus.playing,
+            settings: settings,
+            energy: energy,
+            questions: qs,
+            phase: AnswerPhase.idle,
+          )),
+        );
+      },
     );
   }
 

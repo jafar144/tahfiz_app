@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 
 /// Palet warna khusus kuis (gamifikasi, tetap selaras tema app).
 class QuizColors {
@@ -274,3 +277,227 @@ class _LegendDot extends StatelessWidget {
     );
   }
 }
+
+/// Ikon satu unit energi: bulan sabit (hilal) — nuansa game tapi islami.
+const IconData kEnergyIcon = Icons.nightlight_round;
+
+/// Format sisa waktu pengisian energi jadi ringkas: "2j 15m", "40m", "segera".
+String formatRefill(Duration d) {
+  if (d.inSeconds <= 0) return 'segera';
+  final h = d.inHours;
+  final m = d.inMinutes % 60;
+  if (h > 0) return '${h}j ${m}m';
+  if (m > 0) return '${m}m';
+  return '${d.inSeconds}d';
+}
+
+/// Lencana energi ringkas untuk AppBar: hilal + "n/maks".
+///
+/// Diketuk → memunculkan info pengisian ("+1 energi dalam 3j 54m"). Berdenyut
+/// di latar untuk memuat ulang energi ([onRefillReady]) saat waktunya tiba.
+class EnergyBadge extends StatefulWidget {
+  final QuizEnergy energy;
+  final VoidCallback? onRefillReady;
+
+  const EnergyBadge({super.key, required this.energy, this.onRefillReady});
+
+  @override
+  State<EnergyBadge> createState() => _EnergyBadgeState();
+}
+
+class _EnergyBadgeState extends State<EnergyBadge> {
+  Timer? _timer;
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureTimer();
+  }
+
+  @override
+  void didUpdateWidget(EnergyBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.energy != widget.energy) {
+      _notified = false;
+      _ensureTimer();
+    }
+  }
+
+  void _ensureTimer() {
+    _timer?.cancel();
+    if (widget.energy.isFull) return;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final t = widget.energy.nextRefillAt;
+      if (!_notified && t != null && DateTime.now().isAfter(t)) {
+        _notified = true;
+        widget.onRefillReady?.call();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _showInfo() {
+    final e = widget.energy;
+    final box = context.findRenderObject() as RenderBox?;
+    final overlayBox =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (box == null || overlayBox == null) return;
+
+    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlayBox);
+    final bottomRight = box.localToGlobal(
+      box.size.bottomRight(Offset.zero),
+      ancestor: overlayBox,
+    );
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(topLeft, bottomRight),
+      Offset.zero & overlayBox.size,
+    );
+
+    final String info;
+    if (e.isFull) {
+      info = 'Energi penuh';
+    } else {
+      final remaining =
+          e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
+      final label = e.canPlay ? '+1 energi dalam' : 'Bisa main lagi dalam';
+      info = '$label ${formatRefill(remaining)}';
+    }
+
+    showMenu<void>(
+      context: context,
+      position: position,
+      items: [
+        PopupMenuItem<void>(
+          enabled: false,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(kEnergyIcon, size: 16, color: QuizColors.goldDark),
+              const SizedBox(width: 8),
+              Text(
+                '${e.current}/${e.max}  •  $info',
+                style: const TextStyle(fontSize: 13, color: Colors.black87),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.energy;
+    final empty = !e.canPlay;
+    final color = empty ? QuizColors.missing : QuizColors.goldDark;
+    return InkWell(
+      onTap: _showInfo,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(kEnergyIcon, size: 15, color: color),
+            const SizedBox(width: 5),
+            Text(
+              '${e.current}/${e.max}',
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(width: 3),
+            Icon(Icons.keyboard_arrow_down_rounded, size: 15, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Hint energi satu-baris yang berdenyut (untuk layar tanpa scroll, mis. hasil).
+/// Menampilkan hitung mundur pengisian; memanggil [onRefillReady] saat terlewati.
+class EnergyHint extends StatefulWidget {
+  final QuizEnergy energy;
+  final VoidCallback? onRefillReady;
+
+  const EnergyHint({super.key, required this.energy, this.onRefillReady});
+
+  @override
+  State<EnergyHint> createState() => _EnergyHintState();
+}
+
+class _EnergyHintState extends State<EnergyHint> {
+  Timer? _timer;
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureTimer();
+  }
+
+  @override
+  void didUpdateWidget(EnergyHint oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.energy != widget.energy) {
+      _notified = false;
+      _ensureTimer();
+    }
+  }
+
+  void _ensureTimer() {
+    _timer?.cancel();
+    if (widget.energy.isFull) return;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      setState(() {
+        final t = widget.energy.nextRefillAt;
+        if (!_notified && t != null && DateTime.now().isAfter(t)) {
+          _notified = true;
+          widget.onRefillReady?.call();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.energy;
+    if (e.isFull) return const SizedBox.shrink();
+    final empty = !e.canPlay;
+    final remaining =
+        e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
+    final label = empty ? 'Bisa main lagi dalam' : '+1 energi dalam';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(kEnergyIcon,
+            size: 15,
+            color: empty ? QuizColors.missing : QuizColors.goldDark),
+        const SizedBox(width: 6),
+        Text(
+          '$label ${formatRefill(remaining)}',
+          style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+        ),
+      ],
+    );
+  }
+}
+

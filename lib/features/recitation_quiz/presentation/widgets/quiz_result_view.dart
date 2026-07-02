@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -8,7 +9,9 @@ class QuizResultView extends StatelessWidget {
   final QuizResult result;
   final bool saving;
   final String? saveError;
+  final QuizEnergy? energy;
   final VoidCallback onPlayAgain;
+  final VoidCallback? onRefillReady;
   final VoidCallback onFinish;
 
   const QuizResultView({
@@ -16,7 +19,9 @@ class QuizResultView extends StatelessWidget {
     required this.result,
     required this.saving,
     required this.saveError,
+    this.energy,
     required this.onPlayAgain,
+    this.onRefillReady,
     required this.onFinish,
   });
 
@@ -56,19 +61,26 @@ class QuizResultView extends StatelessWidget {
             const SizedBox(height: 12),
             _saveStatus(context),
             const Spacer(),
+            if (energy != null && !energy!.isFull) ...[
+              EnergyHint(energy: energy!, onRefillReady: onRefillReady),
+              const SizedBox(height: 12),
+            ],
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: onPlayAgain,
+                onPressed: (energy?.canPlay ?? true) ? onPlayAgain : null,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16)),
                 ),
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Main Lagi',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                icon: Icon((energy?.canPlay ?? true)
+                    ? Icons.refresh_rounded
+                    : Icons.hourglass_bottom_rounded),
+                label: Text(
+                    (energy?.canPlay ?? true) ? 'Main Lagi' : 'Energi habis',
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 10),

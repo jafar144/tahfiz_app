@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dart_either/dart_either.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -9,6 +10,8 @@ import 'package:khoirunnasyien/features/recitation_check/data/quran_local_dataso
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
@@ -18,12 +21,14 @@ class QuizRepositoryImpl implements QuizRepository {
   final RecitationRepository recitation;
   final FirebaseFirestore firestore;
   final FirebaseAuth auth;
+  final QuizEnergyRemoteDataSource energyRemote;
 
   QuizRepositoryImpl({
     required this.local,
     required this.recitation,
     required this.firestore,
     required this.auth,
+    required this.energyRemote,
   });
 
   /// Rentang surah [dari, sampai] tiap juz yang didukung.
@@ -187,6 +192,32 @@ class QuizRepositoryImpl implements QuizRepository {
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Gagal menyimpan hasil kuis: $e'));
+    }
+  }
+
+  // Energi dihitung SISI SERVER (Cloud Function) memakai waktu server, sehingga
+  // tidak bisa diakali dengan mengubah jam perangkat. Repo hanya mendelegasikan.
+
+  @override
+  Future<Either<Failure, QuizEnergy>> getEnergy() async {
+    try {
+      return Right(await energyRemote.getEnergy());
+    } on FirebaseFunctionsException catch (e) {
+      return Left(ServerFailure(e.message ?? 'Gagal memuat energi.'));
+    } catch (e) {
+      return Left(ServerFailure('Gagal memuat energi: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, QuizEnergy>> consumeEnergy() async {
+    try {
+      return Right(await energyRemote.consumeEnergy());
+    } on FirebaseFunctionsException catch (e) {
+      // Energi habis dikirim server sebagai `failed-precondition`.
+      return Left(ServerFailure(e.message ?? 'Energi habis.'));
+    } catch (e) {
+      return Left(ServerFailure('Gagal memakai energi: $e'));
     }
   }
 }

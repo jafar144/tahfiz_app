@@ -2,6 +2,7 @@ import 'package:dart_either/dart_either.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 
@@ -27,4 +28,10 @@ abstract class QuizRepository {
     required List<int> juz,
     required bool crossSurah,
   });
+
+  /// Energi kuis terkini (sudah memperhitungkan pengisian otomatis).
+  Future<Either<Failure, QuizEnergy>> getEnergy();
+
+  /// Pakai 1 energi untuk memulai sesi. Left bila energi habis.
+  Future<Either<Failure, QuizEnergy>> consumeEnergy();
 }

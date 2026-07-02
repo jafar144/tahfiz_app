@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
@@ -28,6 +29,9 @@ class RecitationQuizState extends Equatable {
 
   /// Setelan sesi aktif (juz terpilih + sambungan antar surah).
   final QuizSettings settings;
+
+  /// Energi kuis terkini; null bila belum dimuat.
+  final QuizEnergy? energy;
 
   final List<QuizQuestion> questions;
   final int currentIndex;
@@ -66,6 +70,7 @@ class RecitationQuizState extends Equatable {
     this.status = QuizStatus.intro,
     this.errorMessage,
     this.settings = const QuizSettings(),
+    this.energy,
     this.questions = const [],
     this.currentIndex = 0,
     this.phase = AnswerPhase.idle,
@@ -108,6 +113,7 @@ class RecitationQuizState extends Equatable {
     QuizStatus? status,
     String? errorMessage,
     QuizSettings? settings,
+    QuizEnergy? energy,
     List<QuizQuestion>? questions,
     int? currentIndex,
     AnswerPhase? phase,
@@ -132,6 +138,7 @@ class RecitationQuizState extends Equatable {
       status: status ?? this.status,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       settings: settings ?? this.settings,
+      energy: energy ?? this.energy,
       questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,
       phase: phase ?? this.phase,
@@ -156,6 +163,7 @@ class RecitationQuizState extends Equatable {
         status,
         errorMessage,
         settings,
+        energy,
         questions,
         currentIndex,
         phase,

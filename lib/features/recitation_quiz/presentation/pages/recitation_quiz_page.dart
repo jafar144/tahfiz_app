@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recit
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 class RecitationQuizPage extends StatelessWidget {
   const RecitationQuizPage({super.key});
@@ -30,9 +31,24 @@ class RecitationQuizPage extends StatelessWidget {
             appBar: AppBar(
               title: const Text('Kuis Hafalan'),
               centerTitle: true,
+              actions: [
+                if (state.energy != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Center(
+                      child: EnergyBadge(
+                        energy: state.energy!,
+                        onRefillReady: cubit.loadEnergy,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             body: switch (state.status) {
-              QuizStatus.intro => QuizIntroView(onStart: cubit.start),
+              QuizStatus.intro => QuizIntroView(
+                  onStart: cubit.start,
+                  energy: state.energy,
+                ),
               QuizStatus.loading => const _Loading(),
               QuizStatus.error => _ErrorView(
                   message: state.errorMessage ?? 'Terjadi kesalahan.',
@@ -43,7 +59,9 @@ class RecitationQuizPage extends StatelessWidget {
                   result: state.result!,
                   saving: state.saving,
                   saveError: state.saveError,
+                  energy: state.energy,
                   onPlayAgain: cubit.playAgain,
+                  onRefillReady: cubit.loadEnergy,
                   onFinish: () => context.pop(),
                 ),
             },

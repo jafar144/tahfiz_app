@@ -324,7 +324,7 @@ class AppRouter {
         path: RoutePaths.recitationQuiz,
         name: RouteNames.recitationQuiz,
         builder: (context, state) => BlocProvider(
-          create: (_) => getIt<RecitationQuizCubit>(),
+          create: (_) => getIt<RecitationQuizCubit>()..loadEnergy(),
           child: const RecitationQuizPage(),
         ),
       ),
