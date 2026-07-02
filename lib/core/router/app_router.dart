@@ -48,6 +48,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthl
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_leaderboard_page.dart';
@@ -333,10 +334,15 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.quizLeaderboard,
         name: RouteNames.quizLeaderboard,
-        builder: (context, state) => BlocProvider(
-          create: (_) => getIt<QuizLeaderboardCubit>()..load(),
-          child: const QuizLeaderboardPage(),
-        ),
+        builder: (context, state) {
+          final mode = state.extra is QuizMode
+              ? state.extra as QuizMode
+              : QuizMode.voice;
+          return BlocProvider(
+            create: (_) => getIt<QuizLeaderboardCubit>()..load(mode),
+            child: const QuizLeaderboardPage(),
+          );
+        },
       ),
     ],
   );

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_state.dart';
 
@@ -74,22 +75,116 @@ class QuizLeaderboardPage extends StatelessWidget {
             SafeArea(
               child: BlocBuilder<QuizLeaderboardCubit, QuizLeaderboardState>(
                 builder: (context, state) {
-                  return switch (state.status) {
-                    LeaderboardStatus.loading => const _Skeleton(),
-                    LeaderboardStatus.error => _ErrorView(
-                        message: state.errorMessage ?? 'Terjadi kesalahan.',
-                        onRetry: () =>
-                            context.read<QuizLeaderboardCubit>().load(),
+                  return Column(
+                    children: [
+                      // Toggle mode: Suara | Pilihan (papan terpisah).
+                      _ModeTabs(
+                        mode: state.mode,
+                        onChanged: (m) =>
+                            context.read<QuizLeaderboardCubit>().switchMode(m),
                       ),
-                    LeaderboardStatus.loaded => _LoadedView(
-                        leaderboard: state.leaderboard!,
-                        currentUserId: state.currentUserId,
+                      Expanded(
+                        child: switch (state.status) {
+                          LeaderboardStatus.loading => const _Skeleton(),
+                          LeaderboardStatus.error => _ErrorView(
+                              message:
+                                  state.errorMessage ?? 'Terjadi kesalahan.',
+                              onRetry: () =>
+                                  context.read<QuizLeaderboardCubit>().load(),
+                            ),
+                          LeaderboardStatus.loaded => _LoadedView(
+                              leaderboard: state.leaderboard!,
+                              currentUserId: state.currentUserId,
+                            ),
+                        },
                       ),
-                  };
+                    ],
+                  );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────── Mode toggle ──
+
+/// Segmented toggle Suara | Pilihan (papan juara terpisah per mode).
+class _ModeTabs extends StatelessWidget {
+  final QuizMode mode;
+  final ValueChanged<QuizMode> onChanged;
+
+  const _ModeTabs({required this.mode, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            _tab(
+              label: 'Suara',
+              icon: Icons.mic_rounded,
+              selected: mode.isVoice,
+              onTap: () => onChanged(QuizMode.voice),
+            ),
+            _tab(
+              label: 'Pilihan',
+              icon: Icons.grid_view_rounded,
+              selected: mode.isChoice,
+              onTap: () => onChanged(QuizMode.choice),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tab({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? _LbColors.bgMid : Colors.white70,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? _LbColors.bgMid : Colors.white70,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

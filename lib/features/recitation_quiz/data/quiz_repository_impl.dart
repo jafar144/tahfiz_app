@@ -14,6 +14,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
@@ -39,12 +40,13 @@ class QuizRepositoryImpl implements QuizRepository {
     30: [78, 114], // An-Naba' .. An-Nas
   };
 
+  /// Koleksi HISTORI seluruh sesi (arsip; bisa dipakai analитик kapan saja).
   static const String _collection = 'recitation_quiz_attempts';
 
-  /// Koleksi papan juara bulanan:
-  /// `quiz_leaderboards/{yyyy-MM}/entries/{uid}` — satu dokumen per user per
-  /// bulan yang hanya menyimpan skor TERBAIK, sehingga leaderboard cukup
-  /// 1 query ringan tanpa membaca seluruh attempt.
+  /// Koleksi papan juara bulanan (best-score, ringan untuk dibaca):
+  /// `quiz_leaderboards/{yyyy-MM}/{mode}/{uid}` — satu dokumen per user per
+  /// bulan per mode, hanya menyimpan skor TERBAIK. Dipisah per mode karena
+  /// skala skor suara & pilihan berbeda dan tak bisa dibandingkan.
   static const String _leaderboardCollection = 'quiz_leaderboards';
 
   /// Jumlah peringkat yang ditampilkan.
@@ -53,14 +55,21 @@ class QuizRepositoryImpl implements QuizRepository {
   static String _monthKey(DateTime now) =>
       '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
-  CollectionReference<Map<String, dynamic>> _entriesRef(String monthKey) =>
+  /// Sub-koleksi entri leaderboard untuk [monthKey] + [mode].
+  CollectionReference<Map<String, dynamic>> _entriesRef(
+    String monthKey,
+    QuizMode mode,
+  ) =>
       firestore
           .collection(_leaderboardCollection)
           .doc(monthKey)
-          .collection('entries');
+          .collection(mode.key);
 
   /// Panjang jawaban maksimum (ayat) per soal.
   static const int _maxAnswerLen = 3;
+
+  /// Jumlah opsi pada mode pilihan ganda.
+  static const int _choiceOptionCount = 6;
 
   @override
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
@@ -110,27 +119,40 @@ class QuizRepositoryImpl implements QuizRepository {
       candidates.shuffle(rng);
       final chosen = candidates.take(min(count, candidates.length));
 
+      final isChoice = settings.mode.isChoice;
       final questions = <QuizQuestion>[];
       for (final i in chosen) {
         final prompt = pool[i];
         final maxLen = _availableAnswerLen(pool, i, settings.crossSurah);
         final len = 1 + rng.nextInt(maxLen); // 1.._maxAnswerLen (dibatasi)
 
-        final answer = <Ayah>[];
-        for (var k = 1; k <= len; k++) {
-          final a = pool[i + k];
-          if (a.number == 1 && basmalahText.isNotEmpty) {
-            answer.add(Ayah(
-              surahId: a.surahId,
-              number: 0, // penanda basmalah (bukan ayat bernomor)
-              text: basmalahText,
-              page: a.page,
-              surahName: a.surahName,
-            ));
+        // Ayat lanjutan mentah (tanpa basmalah).
+        final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
+
+        if (isChoice) {
+          // Mode pilihan: jawaban = ayat asli tanpa basmalah + rakit opsi.
+          questions.add(QuizQuestion(
+            prompt: prompt,
+            answer: rawAnswer,
+            options: _buildOptions(pool, prompt, rawAnswer, rng),
+          ));
+        } else {
+          // Mode suara: sisipkan basmalah di depan ayat awal surah baru.
+          final answer = <Ayah>[];
+          for (final a in rawAnswer) {
+            if (a.number == 1 && basmalahText.isNotEmpty) {
+              answer.add(Ayah(
+                surahId: a.surahId,
+                number: 0, // penanda basmalah (bukan ayat bernomor)
+                text: basmalahText,
+                page: a.page,
+                surahName: a.surahName,
+              ));
+            }
+            answer.add(a);
           }
-          answer.add(a);
+          questions.add(QuizQuestion(prompt: prompt, answer: answer));
         }
-        questions.add(QuizQuestion(prompt: prompt, answer: answer));
       }
 
       questions.shuffle(rng);
@@ -138,6 +160,35 @@ class QuizRepositoryImpl implements QuizRepository {
     } catch (e) {
       return Left(UnknownFailure('Gagal menyusun soal kuis: $e'));
     }
+  }
+
+  /// Rakit [_choiceOptionCount] opsi ayat: jawaban benar + distraktor teracak.
+  /// Distraktor diambil dari [pool] (selain prompt & ayat jawaban), unik per
+  /// (surah, nomor). Semua diacak agar posisi jawaban tak tertebak.
+  List<Ayah> _buildOptions(
+    List<Ayah> pool,
+    Ayah prompt,
+    List<Ayah> answer,
+    Random rng,
+  ) {
+    bool sameAyah(Ayah a, Ayah b) =>
+        a.surahId == b.surahId && a.number == b.number;
+
+    final used = [prompt, ...answer];
+    final distractorPool = pool
+        .where((a) => a.number != 0 && !used.any((u) => sameAyah(u, a)))
+        .toList()
+      ..shuffle(rng);
+
+    final options = <Ayah>[...answer];
+    for (final a in distractorPool) {
+      if (options.length >= _choiceOptionCount) break;
+      if (options.any((o) => sameAyah(o, a))) continue;
+      options.add(a);
+    }
+
+    options.shuffle(rng);
+    return options;
   }
 
   /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1.._maxAnswerLen).
@@ -167,7 +218,8 @@ class QuizRepositoryImpl implements QuizRepository {
 
   @override
   Future<Either<Failure, void>> saveAttempt({
-    required int totalScore,
+    required QuizMode mode,
+    required int score,
     required List<int> questionScores,
     required List<int> juz,
     required bool crossSurah,
@@ -198,30 +250,34 @@ class QuizRepositoryImpl implements QuizRepository {
       String two(int n) => n.toString().padLeft(2, '0');
       final dateKey = '${now.year}-${two(now.month)}-${two(now.day)}';
 
+      // 1) HISTORI — selalu ditulis (arsip lengkap tiap sesi).
       await firestore.collection(_collection).add({
         'user_id': user.uid,
         'user_name': name,
         'role': role,
+        'mode': mode.key,
         'juz': juz,
         'cross_surah': crossSurah,
-        'total_score': totalScore,
+        'score': score,
         'question_scores': questionScores,
+        'question_count': questionScores.length,
         'date_key': dateKey,
         'created_at': FieldValue.serverTimestamp(),
       });
 
-      // Perbarui papan juara bulanan (best-effort — attempt di atas adalah
-      // sumber kebenaran; kegagalan di sini tidak menggagalkan penyimpanan).
+      // 2) LEADERBOARD — hanya diperbarui bila skor melampaui best (best-effort;
+      // histori di atas adalah sumber kebenaran, kegagalan di sini diabaikan).
       try {
         await _upsertLeaderboardEntry(
           uid: user.uid,
           name: name,
           role: role,
+          mode: mode,
           monthKey: _monthKey(now),
-          totalScore: totalScore,
+          score: score,
         );
       } catch (_) {
-        // Diabaikan; skor tetap tersimpan di attempts.
+        // Diabaikan; skor tetap tersimpan di histori.
       }
 
       return const Right(null);
@@ -230,16 +286,17 @@ class QuizRepositoryImpl implements QuizRepository {
     }
   }
 
-  /// Simpan skor ke `quiz_leaderboards/{bulan}/entries/{uid}` hanya bila
-  /// [totalScore] melebihi skor terbaik yang sudah tercatat bulan ini.
+  /// Tulis best-score ke `quiz_leaderboards/{bulan}/{mode}/{uid}` hanya bila
+  /// [score] melebihi best-score yang sudah tercatat (bulan + mode ini).
   Future<void> _upsertLeaderboardEntry({
     required String uid,
     required String name,
     required String role,
+    required QuizMode mode,
     required String monthKey,
-    required int totalScore,
+    required int score,
   }) {
-    final ref = _entriesRef(monthKey).doc(uid);
+    final ref = _entriesRef(monthKey, mode).doc(uid);
     return firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);
       final prevBest = (snap.data()?['best_score'] as num?)?.toInt() ?? -1;
@@ -249,12 +306,13 @@ class QuizRepositoryImpl implements QuizRepository {
         'user_name': name,
         'role': role,
         'month_key': monthKey,
-        'last_score': totalScore,
+        'mode': mode.key,
+        'last_score': score,
         'play_count': FieldValue.increment(1),
         'updated_at': FieldValue.serverTimestamp(),
       };
-      if (totalScore > prevBest) {
-        data['best_score'] = totalScore;
+      if (score > prevBest) {
+        data['best_score'] = score;
         // Tie-break: skor sama → yang lebih dulu mencapainya menang.
         data['best_at'] = FieldValue.serverTimestamp();
       }
@@ -276,10 +334,12 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
-  Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard() async {
+  Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
+    QuizMode mode,
+  ) async {
     try {
       final monthKey = _monthKey(DateTime.now());
-      final entriesRef = _entriesRef(monthKey);
+      final entriesRef = _entriesRef(monthKey, mode);
 
       final snap = await entriesRef
           .orderBy('best_score', descending: true)
@@ -327,6 +387,7 @@ class QuizRepositoryImpl implements QuizRepository {
       }
 
       return Right(MonthlyLeaderboard(
+        mode: mode,
         monthKey: monthKey,
         entries: entries,
         myEntry: myEntry,

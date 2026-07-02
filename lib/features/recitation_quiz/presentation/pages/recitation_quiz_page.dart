@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_choice_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
@@ -26,6 +28,9 @@ class RecitationQuizPage extends StatelessWidget {
       },
       builder: (context, state) {
         final playing = state.status == QuizStatus.playing;
+        final isChoice = state.settings.mode.isChoice;
+        // Energi tak relevan pada mode pilihan → sembunyikan badge-nya.
+        final showEnergy = !isChoice;
 
         return PopScope(
           canPop: !playing,
@@ -42,15 +47,17 @@ class RecitationQuizPage extends StatelessWidget {
                 IconButton(
                   tooltip: 'Papan Juara',
                   icon: const Icon(Icons.leaderboard_rounded),
-                  onPressed: () =>
-                      context.pushNamed(RouteNames.quizLeaderboard),
+                  onPressed: () => context.pushNamed(
+                    RouteNames.quizLeaderboard,
+                    extra: state.settings.mode,
+                  ),
                 ),
-                if (state.energyLoading && state.energy == null)
+                if (showEnergy && state.energyLoading && state.energy == null)
                   const Padding(
                     padding: EdgeInsets.only(right: 12),
                     child: Center(child: EnergyBadgeSkeleton()),
                   )
-                else if (state.energy != null)
+                else if (showEnergy && state.energy != null)
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: Center(
@@ -73,7 +80,8 @@ class RecitationQuizPage extends StatelessWidget {
                   message: state.errorMessage ?? 'Terjadi kesalahan.',
                   onRetry: () => cubit.start(state.settings),
                 ),
-              QuizStatus.playing => const QuizPlayView(),
+              QuizStatus.playing =>
+                isChoice ? const QuizChoicePlayView() : const QuizPlayView(),
               QuizStatus.finished => QuizResultView(
                   result: state.result!,
                   saving: state.saving,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -28,6 +29,7 @@ class QuizIntroView extends StatefulWidget {
 }
 
 class _QuizIntroViewState extends State<QuizIntroView> {
+  QuizMode _mode = QuizMode.voice;
   final Set<int> _juz = {29, 30};
   bool _crossSurah = true;
 
@@ -62,7 +64,7 @@ class _QuizIntroViewState extends State<QuizIntroView> {
   }
 
   String get _settingsSummary =>
-      '$_juzText · ${_crossSurah ? 'sambungan antar surah aktif' : 'tanpa sambungan antar surah'}';
+      'Mode ${_mode.label} · $_juzText';
 
   Future<void> _openSettings() async {
     await showModalBottomSheet<void>(
@@ -75,9 +77,11 @@ class _QuizIntroViewState extends State<QuizIntroView> {
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => _SettingsSheet(
+          mode: _mode,
           juz: _juz,
           crossSurah: _crossSurah,
           juzInfo: _juzInfo,
+          onMode: (m) => setSheet(() => _mode = m),
           onToggleJuz: (j) => _toggleJuz(j, () => setSheet(() {})),
           onCrossSurah: (v) => setSheet(() => _crossSurah = v),
         ),
@@ -87,8 +91,10 @@ class _QuizIntroViewState extends State<QuizIntroView> {
   }
 
   Widget _buildStartButton() {
-    final loading = widget.energyLoading && widget.energy == null;
-    final canPlay = !loading && (widget.energy?.canPlay ?? true);
+    final isChoice = _mode.isChoice;
+    final loading = !isChoice && widget.energyLoading && widget.energy == null;
+    // Mode pilihan tak memakai energi → selalu bisa mulai.
+    final canPlay = isChoice || (!loading && (widget.energy?.canPlay ?? true));
 
     final String label;
     final IconData icon;
@@ -108,7 +114,11 @@ class _QuizIntroViewState extends State<QuizIntroView> {
       child: FilledButton.icon(
         onPressed: canPlay
             ? () => widget.onStart(
-                  QuizSettings(juz: {..._juz}, crossSurah: _crossSurah),
+                  QuizSettings(
+                    mode: _mode,
+                    juz: {..._juz},
+                    crossSurah: _crossSurah,
+                  ),
                 )
             : null,
         style: FilledButton.styleFrom(
@@ -124,6 +134,46 @@ class _QuizIntroViewState extends State<QuizIntroView> {
         ),
       ),
     );
+  }
+
+  /// Tiga aturan ringkas yang menyesuaikan mode.
+  List<Widget> _rulesFor(QuizMode mode) {
+    if (mode.isChoice) {
+      return const [
+        _RuleTile(
+          icon: Icons.grid_view_rounded,
+          title: 'Pilihan ganda 6 opsi',
+          subtitle: 'Pilih lanjutan ayat yang benar — 1 sampai 3 ayat berurutan.',
+        ),
+        _RuleTile(
+          icon: Icons.timer_rounded,
+          title: 'Adu cepat 60 detik',
+          subtitle: 'Jawab sebanyak-banyaknya sebelum waktu habis.',
+        ),
+        _RuleTile(
+          icon: Icons.bolt_rounded,
+          title: 'Benar = poin, tanpa energi',
+          subtitle: '10 poin (1 ayat), 12 (2 ayat), 15 (3 ayat). Energi tidak terpakai.',
+        ),
+      ];
+    }
+    return const [
+      _RuleTile(
+        icon: Icons.menu_book_rounded,
+        title: '10 soal acak',
+        subtitle: 'Sebuah ayat ditampilkan, lanjutkan 1-3 ayat.',
+      ),
+      _RuleTile(
+        icon: Icons.mic_rounded,
+        title: 'Rekam suaramu',
+        subtitle: 'Bukan pilihan ganda — bacakan lanjutannya.',
+      ),
+      _RuleTile(
+        icon: Icons.verified_rounded,
+        title: 'Nilai otomatis',
+        subtitle: '≥80% lanjut. <80% boleh mengulang sekali.',
+      ),
+    ];
   }
 
   @override
@@ -168,9 +218,11 @@ class _QuizIntroViewState extends State<QuizIntroView> {
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Uji hafalanmu dengan suara',
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  Text(
+                    _mode.isChoice
+                        ? 'Uji hafalanmu dengan pilihan ganda'
+                        : 'Uji hafalanmu dengan suara',
+                    style: const TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                   const SizedBox(height: 24),
 
@@ -181,22 +233,8 @@ class _QuizIntroViewState extends State<QuizIntroView> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Ringkasan aturan.
-                  const _RuleTile(
-                    icon: Icons.menu_book_rounded,
-                    title: '10 soal acak',
-                    subtitle: 'Sebuah ayat ditampilkan, lanjutkan 1-3 ayat.',
-                  ),
-                  const _RuleTile(
-                    icon: Icons.mic_rounded,
-                    title: 'Rekam suaramu',
-                    subtitle: 'Bukan pilihan ganda — bacakan lanjutannya.',
-                  ),
-                  const _RuleTile(
-                    icon: Icons.verified_rounded,
-                    title: 'Nilai otomatis',
-                    subtitle: '≥80% lanjut. <80% boleh mengulang sekali.',
-                  ),
+                  // Ringkasan aturan (menyesuaikan mode).
+                  ..._rulesFor(_mode),
                 ],
               ),
             ),
@@ -270,18 +308,22 @@ class _SettingsOverview extends StatelessWidget {
   }
 }
 
-/// Isi bottom sheet pengaturan: pilih juz + setelan soal.
+/// Isi bottom sheet pengaturan: pilih mode + juz + setelan soal.
 class _SettingsSheet extends StatelessWidget {
+  final QuizMode mode;
   final Set<int> juz;
   final bool crossSurah;
   final Map<int, ({String range})> juzInfo;
+  final ValueChanged<QuizMode> onMode;
   final ValueChanged<int> onToggleJuz;
   final ValueChanged<bool> onCrossSurah;
 
   const _SettingsSheet({
+    required this.mode,
     required this.juz,
     required this.crossSurah,
     required this.juzInfo,
+    required this.onMode,
     required this.onToggleJuz,
     required this.onCrossSurah,
   });
@@ -299,6 +341,52 @@ class _SettingsSheet extends StatelessWidget {
             const Text('Pengaturan Kuis',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 18),
+            _SectionLabel(icon: Icons.sports_esports_rounded, text: 'Mode Main'),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _ModeOption(
+                    icon: Icons.mic_rounded,
+                    title: 'Suara',
+                    subtitle: 'Bacakan lanjutannya',
+                    selected: mode.isVoice,
+                    onTap: () => onMode(QuizMode.voice),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _ModeOption(
+                    icon: Icons.grid_view_rounded,
+                    title: 'Pilihan',
+                    subtitle: '6 opsi · 60 detik',
+                    selected: mode.isChoice,
+                    onTap: () => onMode(QuizMode.choice),
+                  ),
+                ),
+              ],
+            ),
+            if (mode.isChoice) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded,
+                      size: 14, color: Colors.black45),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Mode pilihan tidak memakai energi.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 20),
             _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
             const SizedBox(height: 10),
             Row(
@@ -370,6 +458,80 @@ class _SectionLabel extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Kartu pemilihan mode main (Suara / Pilihan).
+class _ModeOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primary.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? scheme.primary : Colors.black12,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon,
+                    size: 20,
+                    color: selected ? scheme.primary : Colors.black45),
+                const Spacer(),
+                Icon(
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.circle_outlined,
+                  size: 20,
+                  color: selected ? scheme.primary : Colors.black26,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: selected ? scheme.primary : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 11.5, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
     );
   }

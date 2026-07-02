@@ -1,3 +1,5 @@
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+
 /// Satu baris peringkat pada papan juara bulanan.
 class LeaderboardEntry {
   final String userId;
@@ -24,8 +26,12 @@ class LeaderboardEntry {
   });
 }
 
-/// Snapshot papan juara satu bulan.
+/// Snapshot papan juara satu bulan untuk satu mode.
 class MonthlyLeaderboard {
+  /// Mode papan ini (suara / pilihan) — leaderboard dipisah per mode karena
+  /// skalanya berbeda dan tidak bisa dibandingkan.
+  final QuizMode mode;
+
   /// Kunci bulan, format `yyyy-MM` (mis. `2026-07`).
   final String monthKey;
 
@@ -39,6 +45,7 @@ class MonthlyLeaderboard {
   final int? myRank;
 
   const MonthlyLeaderboard({
+    required this.mode,
     required this.monthKey,
     required this.entries,
     this.myEntry,

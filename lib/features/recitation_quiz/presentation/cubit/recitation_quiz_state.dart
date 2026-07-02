@@ -74,6 +74,17 @@ class RecitationQuizState extends Equatable {
   final bool saving;
   final String? saveError;
 
+  // ── Mode pilihan (choice) ──────────────────────────────────────────────
+  /// Sisa waktu mundur (detik) untuk seluruh sesi mode pilihan.
+  final int secondsLeft;
+
+  /// Indeks opsi yang dipilih santri, TERURUT (mode pilihan).
+  final List<int> picks;
+
+  /// Umpan balik sesaat soal barusan (mode pilihan): null = belum dijawab,
+  /// true = benar, false = salah. Saat non-null, opsi dikunci sejenak.
+  final bool? choiceCorrect;
+
   const RecitationQuizState({
     this.status = QuizStatus.intro,
     this.errorMessage,
@@ -95,6 +106,9 @@ class RecitationQuizState extends Equatable {
     this.result,
     this.saving = false,
     this.saveError,
+    this.secondsLeft = 0,
+    this.picks = const [],
+    this.choiceCorrect,
   });
 
   QuizQuestion? get currentQuestion =>
@@ -119,6 +133,20 @@ class RecitationQuizState extends Equatable {
   bool get isProcessing => phase == AnswerPhase.processing;
   bool get isRecording => phase == AnswerPhase.recording;
 
+  // ── Getter mode pilihan ────────────────────────────────────────────────
+  /// Total poin terkumpul sejauh ini (mode pilihan).
+  int get runningPoints => answers.fold<int>(0, (acc, a) => acc + a.score);
+
+  /// Jumlah soal yang sudah dijawab (mode pilihan tak berbatas soal).
+  int get answeredCount => answers.length;
+
+  /// Opsi terkunci selama umpan balik ditampilkan.
+  bool get choiceLocked => choiceCorrect != null;
+
+  /// True bila pilihan sudah lengkap sesuai jumlah ayat yang diminta.
+  bool get choiceComplete =>
+      currentQuestion != null && picks.length == currentQuestion!.answerAyahCount;
+
   RecitationQuizState copyWith({
     QuizStatus? status,
     String? errorMessage,
@@ -140,12 +168,16 @@ class RecitationQuizState extends Equatable {
     QuizResult? result,
     bool? saving,
     String? saveError,
+    int? secondsLeft,
+    List<int>? picks,
+    bool? choiceCorrect,
     bool clearError = false,
     bool clearStartBlock = false,
     bool clearCurrentResult = false,
     bool clearBestResult = false,
     bool clearPendingAnswer = false,
     bool clearSaveError = false,
+    bool clearChoiceFeedback = false,
   }) {
     return RecitationQuizState(
       status: status ?? this.status,
@@ -170,6 +202,10 @@ class RecitationQuizState extends Equatable {
       result: result ?? this.result,
       saving: saving ?? this.saving,
       saveError: clearSaveError ? null : (saveError ?? this.saveError),
+      secondsLeft: secondsLeft ?? this.secondsLeft,
+      picks: picks ?? this.picks,
+      choiceCorrect:
+          clearChoiceFeedback ? null : (choiceCorrect ?? this.choiceCorrect),
     );
   }
 
@@ -195,5 +231,8 @@ class RecitationQuizState extends Equatable {
         result,
         saving,
         saveError,
+        secondsLeft,
+        picks,
+        choiceCorrect,
       ];
 }

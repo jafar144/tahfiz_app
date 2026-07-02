@@ -4,12 +4,16 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.da
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 
 abstract class QuizRepository {
   /// Susun [count] soal acak sesuai [settings] (juz terpilih + sambungan antar
   /// surah). Tiap soal: 1 ayat petunjuk → lanjutkan 1-3 ayat berikutnya.
+  ///
+  /// Pada mode pilihan (`settings.mode == choice`), tiap soal juga memuat
+  /// `options` (6 ayat teracak berisi jawaban benar).
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
     int count,
     required QuizSettings settings,
@@ -22,17 +26,23 @@ abstract class QuizRepository {
     required String mimeType,
   });
 
-  /// Simpan hasil sesi kuis (fondasi leaderboard).
+  /// Simpan hasil sesi kuis. Selalu ditulis ke koleksi histori; leaderboard
+  /// [mode] hanya diperbarui bila [score] melebihi best-score user bulan ini.
+  ///
+  /// [score] = skor leaderboard (suara: rata-rata 0..100; pilihan: total poin).
   Future<Either<Failure, void>> saveAttempt({
-    required int totalScore,
+    required QuizMode mode,
+    required int score,
     required List<int> questionScores,
     required List<int> juz,
     required bool crossSurah,
   });
 
-  /// Papan juara bulan berjalan: top-10 skor tertinggi per user
-  /// + peringkat user saat ini.
-  Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard();
+  /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user
+  /// + peringkat user saat ini. Leaderboard dipisah per mode.
+  Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
+    QuizMode mode,
+  );
 
   /// True bila user saat ini ber-role `admin`. Dipakai untuk melewati sistem
   /// energi/lock (admin bisa menguji kuis tanpa batas). Best-effort: bila
