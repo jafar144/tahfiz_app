@@ -4,7 +4,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 /// Hasil satu soal setelah dikerjakan.
 ///
 /// Mode suara: bisa lewat 1-2 percobaan; [score] 0..100.
-/// Mode pilihan: satu kali jawab; [score] = poin (0 bila salah, 10/12/15 bila
+/// Mode pilihan: satu kali jawab; [score] = poin (0 bila salah, 10/15/20 bila
 /// benar sesuai jumlah ayat).
 class QuizAnswer {
   final int questionIndex;

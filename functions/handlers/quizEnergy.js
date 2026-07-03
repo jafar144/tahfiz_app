@@ -6,11 +6,11 @@ const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 // bisa diakali dengan mengubah jam HP. Tiap pengguna (admin/asatidz/santri)
 // punya energi sendiri: dokumen quiz_energy/{uid}.
 //
-// Aturan: maksimum 6 energi, terisi +1 tiap 4 jam, 1 sesi kuis = 1 energi.
+// Aturan: maksimum 5 energi, terisi +1 tiap 4 jam, 1 sesi kuis = 1 energi.
 
 const OPTIONS = { region: "asia-southeast2" };
 const COLLECTION = "quiz_energy";
-const MAX_ENERGY = 6;
+const MAX_ENERGY = 5;
 const REFILL_MS = 4 * 60 * 60 * 1000; // 4 jam
 
 /**

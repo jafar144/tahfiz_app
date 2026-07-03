@@ -76,6 +76,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/repositories/rec
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_repository_impl.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
@@ -332,6 +333,7 @@ Future<void> initDI() async {
   getIt.registerLazySingleton(
     () => QuizEnergyRemoteDataSource(getIt<FirebaseFunctions>()),
   );
+  getIt.registerLazySingleton(() => QuizSettingsStore());
   getIt.registerLazySingleton<QuizRepository>(
     () => QuizRepositoryImpl(
       local: getIt(),
@@ -341,6 +343,6 @@ Future<void> initDI() async {
       energyRemote: getIt(),
     ),
   );
-  getIt.registerFactory(() => RecitationQuizCubit(getIt()));
+  getIt.registerFactory(() => RecitationQuizCubit(getIt(), getIt()));
   getIt.registerFactory(() => QuizLeaderboardCubit(getIt(), getIt()));
 }

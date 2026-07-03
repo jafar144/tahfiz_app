@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
@@ -17,6 +18,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recit
 
 class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   final QuizRepository repository;
+  final QuizSettingsStore settingsStore;
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordPath;
 
@@ -69,7 +71,36 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   bool get _enforceEnergy =>
       kEnforceEnergy && !_isAdmin && state.settings.mode.isVoice;
 
-  RecitationQuizCubit(this.repository) : super(const RecitationQuizState());
+  RecitationQuizCubit(this.repository, this.settingsStore)
+      : super(const RecitationQuizState());
+
+  /// Inisialisasi layar: muat setelan tersimpan lalu energi terkini.
+  Future<void> init() async {
+    final saved = await settingsStore.load();
+    emit(state.copyWith(settings: saved, settingsLoaded: true));
+    await loadEnergy();
+  }
+
+  /// Perbarui setelan draft (dari layar intro) + simpan ke penyimpanan lokal.
+  void setSettings(QuizSettings settings) {
+    emit(state.copyWith(settings: settings));
+    unawaited(settingsStore.save(settings));
+  }
+
+  /// Kembali ke layar intro tanpa menutup halaman kuis (mis. tekan back saat
+  /// bermain). Hentikan timer, lepas lock, dan segarkan energi.
+  Future<void> backToIntro() async {
+    _choiceTimer?.cancel();
+    _feedbackTimer?.cancel();
+    _feedbackTimer = null;
+    await _releaseSession();
+    emit(RecitationQuizState(
+      settings: state.settings,
+      settingsLoaded: state.settingsLoaded,
+      energy: state.energy,
+    ));
+    await loadEnergy();
+  }
 
   /// Resolusi status admin sekali di awal (dipanggil sebelum cek energi).
   Future<void> _ensureRoleResolved() async {
@@ -84,7 +115,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     // Testing / admin: tampilkan energi penuh & jangan panggil server.
     if (!_enforceEnergy) {
       emit(state.copyWith(
-        energy: const QuizEnergy(current: 6, max: 6),
+        energy: const QuizEnergy(current: 5, max: 5),
         energyLoading: false,
       ));
       return;
@@ -102,6 +133,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
     await _ensureRoleResolved();
+    // Ingat setelan terakhir yang dipakai untuk sesi berikutnya.
+    unawaited(settingsStore.save(settings));
     // Layar untuk kembali bila gagal mulai (intro, atau result saat "Main Lagi").
     final backStatus = state.status == QuizStatus.finished
         ? QuizStatus.finished
@@ -198,10 +231,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   // ── Mode pilihan (choice) ──────────────────────────────────────────────
 
-  /// Poin per soal bila benar penuh: 1 ayat=10, 2=12, 3=15 (all-or-nothing).
+  /// Poin per soal bila benar penuh: 1 ayat=10, 2=15, 3=20 (all-or-nothing).
   static int _pointsFor(int ayahCount) => switch (ayahCount) {
-        3 => 15,
-        2 => 12,
+        3 => 20,
+        2 => 15,
         _ => 10,
       };
 
@@ -324,7 +357,6 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       score: result.leaderboardScore,
       questionScores: result.scores,
       juz: state.settings.sortedJuz,
-      crossSurah: state.settings.crossSurah,
     );
     save.fold(
       ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
@@ -479,7 +511,6 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         score: result.leaderboardScore,
         questionScores: result.scores,
         juz: state.settings.sortedJuz,
-        crossSurah: state.settings.crossSurah,
       );
       save.fold(
         ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),

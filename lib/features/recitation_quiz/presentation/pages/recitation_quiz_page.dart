@@ -28,49 +28,62 @@ class RecitationQuizPage extends StatelessWidget {
       },
       builder: (context, state) {
         final playing = state.status == QuizStatus.playing;
+        final atIntro = state.status == QuizStatus.intro;
         final isChoice = state.settings.mode.isChoice;
         // Energi tak relevan pada mode pilihan → sembunyikan badge-nya.
         final showEnergy = !isChoice;
 
         return PopScope(
-          canPop: !playing,
+          // Hanya di layar intro tombol back keluar ke halaman sebelumnya;
+          // di layar lain back kembali ke intro (bukan langsung ke home).
+          canPop: atIntro,
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
-            final leave = await _confirmLeave(context);
-            if (leave == true && context.mounted) context.pop();
+            if (state.status == QuizStatus.playing) {
+              final leave = await _confirmLeave(context);
+              if (leave != true) return;
+            }
+            if (context.mounted) context.read<RecitationQuizCubit>().backToIntro();
           },
           child: Scaffold(
-            appBar: AppBar(
-              title: const Text('Kuis Hafalan'),
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  tooltip: 'Papan Juara',
-                  icon: const Icon(Icons.leaderboard_rounded),
-                  onPressed: () => context.pushNamed(
-                    RouteNames.quizLeaderboard,
-                    extra: state.settings.mode,
-                  ),
-                ),
-                if (showEnergy && state.energyLoading && state.energy == null)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Center(child: EnergyBadgeSkeleton()),
-                  )
-                else if (showEnergy && state.energy != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Center(
-                      child: EnergyBadge(
-                        energy: state.energy!,
-                        onRefillReady: cubit.loadEnergy,
+            // Sembunyikan AppBar saat bermain agar layar lebih lega.
+            appBar: playing
+                ? null
+                : AppBar(
+                    title: const Text('Kuis Hafalan'),
+                    centerTitle: true,
+                    actions: [
+                      IconButton(
+                        tooltip: 'Leaderboard',
+                        icon: const Icon(Icons.leaderboard_rounded),
+                        onPressed: () => context.pushNamed(
+                          RouteNames.quizLeaderboard,
+                          extra: state.settings.mode,
+                        ),
                       ),
-                    ),
+                      if (showEnergy &&
+                          state.energyLoading &&
+                          state.energy == null)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Center(child: EnergyBadgeSkeleton()),
+                        )
+                      else if (showEnergy && state.energy != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Center(
+                            child: EnergyBadge(
+                              energy: state.energy!,
+                              onRefillReady: cubit.loadEnergy,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
             body: switch (state.status) {
               QuizStatus.intro => QuizIntroView(
+                  settings: state.settings,
+                  onSettingsChanged: cubit.setSettings,
                   onStart: cubit.start,
                   energy: state.energy,
                   energyLoading: state.energyLoading,

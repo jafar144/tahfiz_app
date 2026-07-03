@@ -26,8 +26,9 @@ abstract class QuizRepository {
     required String mimeType,
   });
 
-  /// Simpan hasil sesi kuis. Selalu ditulis ke koleksi histori; leaderboard
-  /// [mode] hanya diperbarui bila [score] melebihi best-score user bulan ini.
+  /// Simpan hasil sesi kuis (khusus santri; admin & asatidz dilewati). Ditulis
+  /// ke koleksi histori; leaderboard [mode] hanya diperbarui bila [score]
+  /// melebihi best-score user bulan ini.
   ///
   /// [score] = skor leaderboard (suara: rata-rata 0..100; pilihan: total poin).
   Future<Either<Failure, void>> saveAttempt({
@@ -35,7 +36,6 @@ abstract class QuizRepository {
     required int score,
     required List<int> questionScores,
     required List<int> juz,
-    required bool crossSurah,
   });
 
   /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user

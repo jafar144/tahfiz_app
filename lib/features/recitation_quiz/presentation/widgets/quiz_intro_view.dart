@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
-/// Layar pembuka + setelan kuis: pilih juz, sambungan antar surah, lalu mulai.
-class QuizIntroView extends StatefulWidget {
-  /// Dipanggil saat santri menekan "Mulai Kuis" dengan setelan terpilih.
+/// Layar pembuka + setelan kuis: pilih mode, juz, rentang target hafalan, lalu
+/// mulai. Setelan dipegang oleh cubit (dan disimpan lokal) — layar ini hanya
+/// menampilkan [settings] terkini dan mengirim perubahan lewat [onSettingsChanged].
+class QuizIntroView extends StatelessWidget {
+  /// Setelan terkini (sumber kebenaran = cubit).
+  final QuizSettings settings;
+
+  /// Dipanggil tiap setelan berubah (mode/juz/rentang) untuk disimpan.
+  final ValueChanged<QuizSettings> onSettingsChanged;
+
+  /// Dipanggil saat santri menekan "Mulai Kuis".
   final ValueChanged<QuizSettings> onStart;
 
   /// Energi terkini; null bila belum dimuat. Dipakai untuk mengunci tombol
@@ -19,54 +28,27 @@ class QuizIntroView extends StatefulWidget {
 
   const QuizIntroView({
     super.key,
+    required this.settings,
+    required this.onSettingsChanged,
     required this.onStart,
     this.energy,
     this.energyLoading = false,
   });
 
-  @override
-  State<QuizIntroView> createState() => _QuizIntroViewState();
-}
-
-class _QuizIntroViewState extends State<QuizIntroView> {
-  QuizMode _mode = QuizMode.voice;
-  final Set<int> _juz = {29, 30};
-  bool _crossSurah = true;
-
-  static const _juzInfo = <int, ({String range})>{
-    29: (range: 'Al-Mulk — Al-Mursalat'),
-    30: (range: 'An-Naba\' — An-Nas'),
-  };
-
-  void _toggleJuz(int juz, VoidCallback rebuild) {
-    if (_juz.contains(juz)) {
-      if (_juz.length == 1) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-            content: Text('Minimal satu juz harus dipilih.'),
-            duration: Duration(seconds: 2),
-          ));
-        return;
-      }
-      _juz.remove(juz);
-    } else {
-      _juz.add(juz);
-    }
-    rebuild();
+  String get _juzSummary {
+    final sorted = settings.sortedJuz;
+    final parts = sorted.map((j) {
+      final start = settings.startSurahFor(j);
+      return start == QuizJuz.firstSurah(j)
+          ? 'Juz $j'
+          : 'Juz $j (${QuizJuz.rangeLabel(j, start)})';
+    });
+    return parts.join(' · ');
   }
 
-  String get _juzText {
-    final sorted = _juz.toList()..sort();
-    if (sorted.length == 2) return 'Juz 29 & 30';
-    final j = sorted.first;
-    return 'Juz $j (${_juzInfo[j]!.range})';
-  }
+  String get _settingsSummary => 'Mode ${settings.mode.label} · $_juzSummary';
 
-  String get _settingsSummary =>
-      'Mode ${_mode.label} · $_juzText';
-
-  Future<void> _openSettings() async {
+  Future<void> _openSettings(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -75,26 +57,18 @@ class _QuizIntroViewState extends State<QuizIntroView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => _SettingsSheet(
-          mode: _mode,
-          juz: _juz,
-          crossSurah: _crossSurah,
-          juzInfo: _juzInfo,
-          onMode: (m) => setSheet(() => _mode = m),
-          onToggleJuz: (j) => _toggleJuz(j, () => setSheet(() {})),
-          onCrossSurah: (v) => setSheet(() => _crossSurah = v),
-        ),
+      builder: (ctx) => _SettingsSheet(
+        initial: settings,
+        onChanged: onSettingsChanged,
       ),
     );
-    if (mounted) setState(() {}); // segarkan ringkasan pengaturan
   }
 
   Widget _buildStartButton() {
-    final isChoice = _mode.isChoice;
-    final loading = !isChoice && widget.energyLoading && widget.energy == null;
+    final isChoice = settings.mode.isChoice;
+    final loading = !isChoice && energyLoading && energy == null;
     // Mode pilihan tak memakai energi → selalu bisa mulai.
-    final canPlay = isChoice || (!loading && (widget.energy?.canPlay ?? true));
+    final canPlay = isChoice || (!loading && (energy?.canPlay ?? true));
 
     final String label;
     final IconData icon;
@@ -112,15 +86,7 @@ class _QuizIntroViewState extends State<QuizIntroView> {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: canPlay
-            ? () => widget.onStart(
-                  QuizSettings(
-                    mode: _mode,
-                    juz: {..._juz},
-                    crossSurah: _crossSurah,
-                  ),
-                )
-            : null,
+        onPressed: canPlay ? () => onStart(settings) : null,
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -153,7 +119,7 @@ class _QuizIntroViewState extends State<QuizIntroView> {
         _RuleTile(
           icon: Icons.bolt_rounded,
           title: 'Benar = poin, tanpa energi',
-          subtitle: '10 poin (1 ayat), 12 (2 ayat), 15 (3 ayat). Energi tidak terpakai.',
+          subtitle: '10 poin (1 ayat), 15 (2 ayat), 20 (3 ayat). Energi tidak terpakai.',
         ),
       ];
     }
@@ -219,7 +185,7 @@ class _QuizIntroViewState extends State<QuizIntroView> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    _mode.isChoice
+                    settings.mode.isChoice
                         ? 'Uji hafalanmu dengan pilihan ganda'
                         : 'Uji hafalanmu dengan suara',
                     style: const TextStyle(fontSize: 13, color: Colors.black54),
@@ -229,12 +195,12 @@ class _QuizIntroViewState extends State<QuizIntroView> {
                   // Ringkasan pengaturan (detail disimpan di bottom sheet).
                   _SettingsOverview(
                     summary: _settingsSummary,
-                    onTap: _openSettings,
+                    onTap: () => _openSettings(context),
                   ),
                   const SizedBox(height: 24),
 
                   // Ringkasan aturan (menyesuaikan mode).
-                  ..._rulesFor(_mode),
+                  ..._rulesFor(settings.mode),
                 ],
               ),
             ),
@@ -308,28 +274,48 @@ class _SettingsOverview extends StatelessWidget {
   }
 }
 
-/// Isi bottom sheet pengaturan: pilih mode + juz + setelan soal.
-class _SettingsSheet extends StatelessWidget {
-  final QuizMode mode;
-  final Set<int> juz;
-  final bool crossSurah;
-  final Map<int, ({String range})> juzInfo;
-  final ValueChanged<QuizMode> onMode;
-  final ValueChanged<int> onToggleJuz;
-  final ValueChanged<bool> onCrossSurah;
+/// Isi bottom sheet pengaturan: pilih mode + juz + rentang target hafalan.
+/// Menyimpan salinan kerja lokal & mengabarkan tiap perubahan lewat [onChanged].
+class _SettingsSheet extends StatefulWidget {
+  final QuizSettings initial;
+  final ValueChanged<QuizSettings> onChanged;
 
-  const _SettingsSheet({
-    required this.mode,
-    required this.juz,
-    required this.crossSurah,
-    required this.juzInfo,
-    required this.onMode,
-    required this.onToggleJuz,
-    required this.onCrossSurah,
-  });
+  const _SettingsSheet({required this.initial, required this.onChanged});
+
+  @override
+  State<_SettingsSheet> createState() => _SettingsSheetState();
+}
+
+class _SettingsSheetState extends State<_SettingsSheet> {
+  late QuizSettings _s = widget.initial;
+
+  void _update(QuizSettings next) {
+    setState(() => _s = next);
+    widget.onChanged(next);
+  }
+
+  void _toggleJuz(int j) {
+    final juz = {..._s.juz};
+    if (juz.contains(j)) {
+      if (juz.length == 1) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Minimal satu juz harus dipilih.'),
+            duration: Duration(seconds: 2),
+          ));
+        return;
+      }
+      juz.remove(j);
+    } else {
+      juz.add(j);
+    }
+    _update(_s.copyWith(juz: juz));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selectedJuz = _s.sortedJuz;
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -341,7 +327,8 @@ class _SettingsSheet extends StatelessWidget {
             const Text('Pengaturan Kuis',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 18),
-            _SectionLabel(icon: Icons.sports_esports_rounded, text: 'Mode Main'),
+            const _SectionLabel(
+                icon: Icons.sports_esports_rounded, text: 'Mode Main'),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -350,8 +337,8 @@ class _SettingsSheet extends StatelessWidget {
                     icon: Icons.mic_rounded,
                     title: 'Suara',
                     subtitle: 'Bacakan lanjutannya',
-                    selected: mode.isVoice,
-                    onTap: () => onMode(QuizMode.voice),
+                    selected: _s.mode.isVoice,
+                    onTap: () => _update(_s.copyWith(mode: QuizMode.voice)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -360,13 +347,13 @@ class _SettingsSheet extends StatelessWidget {
                     icon: Icons.grid_view_rounded,
                     title: 'Pilihan',
                     subtitle: '6 opsi · 60 detik',
-                    selected: mode.isChoice,
-                    onTap: () => onMode(QuizMode.choice),
+                    selected: _s.mode.isChoice,
+                    onTap: () => _update(_s.copyWith(mode: QuizMode.choice)),
                   ),
                 ),
               ],
             ),
-            if (mode.isChoice) ...[
+            if (_s.mode.isChoice) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -387,35 +374,43 @@ class _SettingsSheet extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 20),
-            _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
+            const _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
             const SizedBox(height: 10),
             Row(
               children: [
-                for (final j in const [29, 30]) ...[
-                  if (j != 29) const SizedBox(width: 12),
+                for (final j in QuizJuz.supported) ...[
+                  if (j != QuizJuz.supported.first) const SizedBox(width: 12),
                   Expanded(
                     child: _JuzOption(
                       juz: j,
-                      range: juzInfo[j]!.range,
-                      selected: juz.contains(j),
-                      onTap: () => onToggleJuz(j),
+                      range:
+                          '${QuizJuz.nameOf(QuizJuz.firstSurah(j))} — ${QuizJuz.nameOf(QuizJuz.lastSurah(j))}',
+                      selected: _s.juz.contains(j),
+                      onTap: () => _toggleJuz(j),
                     ),
                   ),
                 ],
               ],
             ),
             const SizedBox(height: 20),
-            _SectionLabel(icon: Icons.tune_rounded, text: 'Setelan Soal'),
-            const SizedBox(height: 10),
-            _SwitchCard(
-              icon: Icons.link_rounded,
-              title: 'Sambungan antar surah',
-              subtitle:
-                  'Sesekali lanjut ke awal surah berikutnya (dengan basmalah).',
-              value: crossSurah,
-              onChanged: onCrossSurah,
+            const _SectionLabel(
+                icon: Icons.flag_rounded, text: 'Rentang Target Hafalan'),
+            const SizedBox(height: 4),
+            const Text(
+              'Atur surah awal yang kamu hafal. Surah terakhir tiap juz dikunci '
+              'sebagai ujung target.',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 10),
+            for (final j in selectedJuz) ...[
+              _RangeTargetCard(
+                juz: j,
+                startSurah: _s.startSurahFor(j),
+                onStartChanged: (s) => _update(_s.withRangeStart(j, s)),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -606,63 +601,133 @@ class _JuzOption extends StatelessWidget {
   }
 }
 
-/// Kartu setelan dengan switch di kanan.
-class _SwitchCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+/// Kartu pengaturan rentang target hafalan satu juz: dropdown surah awal +
+/// surah terakhir juz yang dikunci.
+class _RangeTargetCard extends StatelessWidget {
+  final int juz;
+  final int startSurah;
+  final ValueChanged<int> onStartChanged;
 
-  const _SwitchCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
+  const _RangeTargetCard({
+    required this.juz,
+    required this.startSurah,
+    required this.onStartChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () => onChanged(!value),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: scheme.primary, size: 22),
+    final surahs = QuizJuz.surahsOf(juz);
+    final lastSurah = QuizJuz.lastSurah(juz);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Juz $juz',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: scheme.primary,
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: Colors.black54)),
-                ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Surah awal (bisa dipilih).
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Dari surah',
+                        style:
+                            TextStyle(fontSize: 11.5, color: Colors.black54)),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          isDense: true,
+                          value: startSurah,
+                          borderRadius: BorderRadius.circular(12),
+                          items: [
+                            for (final s in surahs)
+                              DropdownMenuItem<int>(
+                                value: s,
+                                child: Text(
+                                  QuizJuz.nameOf(s),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 13.5),
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) onStartChanged(v);
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Switch(value: value, onChanged: onChanged),
-          ],
-        ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Icon(Icons.arrow_forward_rounded,
+                    size: 18, color: Colors.black38),
+              ),
+              // Surah akhir (dikunci).
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Hingga surah',
+                        style:
+                            TextStyle(fontSize: 11.5, color: Colors.black54)),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.black12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              QuizJuz.nameOf(lastSurah),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.lock_rounded,
+                              size: 15, color: Colors.black38),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

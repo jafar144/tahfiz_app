@@ -28,8 +28,12 @@ class RecitationQuizState extends Equatable {
   final QuizStatus status;
   final String? errorMessage;
 
-  /// Setelan sesi aktif (juz terpilih + sambungan antar surah).
+  /// Setelan sesi aktif (mode + juz terpilih + rentang target per juz).
   final QuizSettings settings;
+
+  /// True setelah setelan tersimpan dimuat dari penyimpanan lokal (agar UI
+  /// menampilkan nilai yang benar, bukan default sesaat).
+  final bool settingsLoaded;
 
   /// Energi kuis terkini; null bila belum dimuat.
   final QuizEnergy? energy;
@@ -89,6 +93,7 @@ class RecitationQuizState extends Equatable {
     this.status = QuizStatus.intro,
     this.errorMessage,
     this.settings = const QuizSettings(),
+    this.settingsLoaded = false,
     this.energy,
     this.energyLoading = false,
     this.startBlock,
@@ -151,6 +156,7 @@ class RecitationQuizState extends Equatable {
     QuizStatus? status,
     String? errorMessage,
     QuizSettings? settings,
+    bool? settingsLoaded,
     QuizEnergy? energy,
     bool? energyLoading,
     QuizBlockReason? startBlock,
@@ -183,6 +189,7 @@ class RecitationQuizState extends Equatable {
       status: status ?? this.status,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       settings: settings ?? this.settings,
+      settingsLoaded: settingsLoaded ?? this.settingsLoaded,
       energy: energy ?? this.energy,
       energyLoading: energyLoading ?? this.energyLoading,
       startBlock: clearStartBlock ? null : (startBlock ?? this.startBlock),
@@ -214,6 +221,7 @@ class RecitationQuizState extends Equatable {
         status,
         errorMessage,
         settings,
+        settingsLoaded,
         energy,
         energyLoading,
         startBlock,

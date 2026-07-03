@@ -49,7 +49,7 @@ class QuizLeaderboardPage extends StatelessWidget {
       backgroundColor: _LbColors.bgTop,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Papan Juara'),
+        title: const Text('Leaderboard'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -216,8 +216,6 @@ class _LoadedView extends StatelessWidget {
               padding: EdgeInsets.zero,
               children: [
                 _MonthChip(monthKey: leaderboard.monthKey),
-                const SizedBox(height: 14),
-                const _FastabiqulKhairat(),
                 const SizedBox(height: 24),
                 _Podium(top3: top3, currentUserId: currentUserId),
                 const SizedBox(height: 20),
@@ -281,45 +279,6 @@ class _MonthChip extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Ayat motivasi kompetisi dalam kebaikan (QS. Al-Baqarah: 148).
-class _FastabiqulKhairat extends StatelessWidget {
-  const _FastabiqulKhairat();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          '﴿ فَاسْتَبِقُوا الْخَيْرَاتِ ﴾',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: _LbColors.gold,
-            fontSize: 22,
-            height: 1.6,
-            fontWeight: FontWeight.w600,
-            shadows: [
-              Shadow(
-                color: _LbColors.gold.withValues(alpha: 0.45),
-                blurRadius: 18,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '"Berlomba-lombalah dalam kebaikan" — QS. Al-Baqarah: 148',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.75),
-            fontSize: 11.5,
-            fontStyle: FontStyle.italic,
-          ),
-        ),
-      ],
     );
   }
 }

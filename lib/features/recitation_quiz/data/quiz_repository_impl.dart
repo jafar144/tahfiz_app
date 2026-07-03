@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/repositories/rec
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
@@ -34,13 +35,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required this.energyRemote,
   });
 
-  /// Rentang surah [dari, sampai] tiap juz yang didukung.
-  static const Map<int, List<int>> _juzSurahRange = {
-    29: [67, 77], // Al-Mulk .. Al-Mursalat
-    30: [78, 114], // An-Naba' .. An-Nas
-  };
-
-  /// Koleksi HISTORI seluruh sesi (arsip; bisa dipakai analитик kapan saja).
+  /// Koleksi HISTORI seluruh sesi (arsip; bisa dipakai analitik kapan saja).
   static const String _collection = 'recitation_quiz_attempts';
 
   /// Koleksi papan juara bulanan (best-score, ringan untuk dibaca):
@@ -78,22 +73,28 @@ class QuizRepositoryImpl implements QuizRepository {
   }) async {
     try {
       final juzList =
-          settings.sortedJuz.where(_juzSurahRange.containsKey).toList();
+          settings.sortedJuz.where(QuizJuz.isSupported).toList();
       if (juzList.isEmpty) {
         return const Left(UnknownFailure('Pilih minimal satu juz.'));
       }
 
-      // Susun pool ayat sesuai juz terpilih, urut mushaf.
+      // Susun pool ayat sesuai rentang target tiap juz (surah awal terpilih →
+      // surah terakhir juz yang dikunci), urut mushaf. Tiap juz jadi satu
+      // "segmen" kontigu; indeks akhir tiap segmen dicatat agar lanjutan tak
+      // pernah menyeberang celah antar-segmen (mis. juz 29 & 30 tak berurutan).
       final pool = <Ayah>[];
+      final segmentEnds = <int>{};
       for (final j in juzList) {
-        final range = _juzSurahRange[j]!;
-        pool.addAll(await local.getAyatForSurahRange(
-          fromSurah: range[0],
-          toSurah: range[1],
-        ));
+        final seg = await local.getAyatForSurahRange(
+          fromSurah: settings.startSurahFor(j),
+          toSurah: QuizJuz.lastSurah(j),
+        );
+        if (seg.isEmpty) continue;
+        pool.addAll(seg);
+        segmentEnds.add(pool.length - 1);
       }
       if (pool.length < 2) {
-        return const Left(UnknownFailure('Data juz terpilih tidak lengkap.'));
+        return const Left(UnknownFailure('Rentang target terpilih terlalu pendek.'));
       }
 
       // Basmalah (dari Al-Fatihah 1:1) untuk transisi antar surah.
@@ -101,13 +102,11 @@ class QuizRepositoryImpl implements QuizRepository {
       final basmalahText =
           basmalahList.isNotEmpty ? basmalahList.first.text : '';
 
-      // Kandidat prompt = indeks ayat yang punya minimal 1 ayat lanjutan valid.
-      // Bila sambungan antar surah dimatikan, lanjutan wajib di surah yang sama
-      // (ayat terakhir tiap surah tak jadi kandidat).
+      // Kandidat prompt = indeks ayat yang punya minimal 1 ayat lanjutan valid
+      // (bukan ayat penutup segmen — lanjutannya akan menyeberang celah).
       final candidates = <int>[];
       for (var i = 0; i < pool.length - 1; i++) {
-        final next = pool[i + 1];
-        if (!settings.crossSurah && next.surahId != pool[i].surahId) continue;
+        if (segmentEnds.contains(i)) continue;
         candidates.add(i);
       }
       if (candidates.isEmpty) {
@@ -123,7 +122,7 @@ class QuizRepositoryImpl implements QuizRepository {
       final questions = <QuizQuestion>[];
       for (final i in chosen) {
         final prompt = pool[i];
-        final maxLen = _availableAnswerLen(pool, i, settings.crossSurah);
+        final maxLen = _availableAnswerLen(pool, i, segmentEnds);
         final len = 1 + rng.nextInt(maxLen); // 1.._maxAnswerLen (dibatasi)
 
         // Ayat lanjutan mentah (tanpa basmalah).
@@ -192,12 +191,14 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1.._maxAnswerLen).
-  /// Bila [crossSurah] false, berhenti di batas surah prompt.
-  int _availableAnswerLen(List<Ayah> pool, int i, bool crossSurah) {
-    final promptSurah = pool[i].surahId;
+  /// Berhenti di batas segmen (indeks penutup di [segmentEnds]) agar lanjutan
+  /// tak menyeberang celah antar rentang juz.
+  int _availableAnswerLen(List<Ayah> pool, int i, Set<int> segmentEnds) {
     var len = 0;
-    for (var k = 1; k <= _maxAnswerLen && i + k < pool.length; k++) {
-      if (!crossSurah && pool[i + k].surahId != promptSurah) break;
+    for (var k = 1; k <= _maxAnswerLen; k++) {
+      final idx = i + k;
+      if (idx >= pool.length) break;
+      if (segmentEnds.contains(idx - 1)) break; // pool[idx] mulai segmen baru
       len++;
     }
     return len; // >= 1 karena i selalu diambil dari kandidat valid
@@ -222,7 +223,6 @@ class QuizRepositoryImpl implements QuizRepository {
     required int score,
     required List<int> questionScores,
     required List<int> juz,
-    required bool crossSurah,
   }) async {
     try {
       final user = auth.currentUser;
@@ -246,6 +246,12 @@ class QuizRepositoryImpl implements QuizRepository {
         // Nama/role opsional; simpan tetap lanjut walau gagal ambil profil.
       }
 
+      // Admin & asatidz hanya menguji kuis — hasil TIDAK disimpan (baik histori
+      // maupun leaderboard). Hanya santri yang tercatat.
+      if (role == 'admin' || role == 'asatidz') {
+        return const Right(null);
+      }
+
       final now = DateTime.now();
       String two(int n) => n.toString().padLeft(2, '0');
       final dateKey = '${now.year}-${two(now.month)}-${two(now.day)}';
@@ -257,7 +263,6 @@ class QuizRepositoryImpl implements QuizRepository {
         'role': role,
         'mode': mode.key,
         'juz': juz,
-        'cross_surah': crossSurah,
         'score': score,
         'question_scores': questionScores,
         'question_count': questionScores.length,
@@ -394,7 +399,7 @@ class QuizRepositoryImpl implements QuizRepository {
         myRank: myRank,
       ));
     } catch (e) {
-      return Left(ServerFailure('Gagal memuat papan juara: $e'));
+      return Left(ServerFailure('Gagal memuat leaderboard: $e'));
     }
   }
 
