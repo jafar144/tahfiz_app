@@ -66,6 +66,15 @@ class QuizResultView extends StatelessWidget {
                 color: Colors.black54,
               ),
             ),
+            // Rincian skor mode suara: nilai bacaan + bonus tebak surah.
+            if (!isChoice) ...[
+              const SizedBox(height: 14),
+              _VoiceScoreBreakdown(
+                reading: result.averageScore,
+                bonus: result.totalBonus,
+                total: result.leaderboardScore,
+              ),
+            ],
             const SizedBox(height: 24),
             _ScoreDots(scores: result.scores, choice: isChoice),
             const SizedBox(height: 12),
@@ -219,6 +228,64 @@ class _PointsBadge extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Rincian skor mode suara: nilai bacaan + poin bonus = skor total (leaderboard).
+class _VoiceScoreBreakdown extends StatelessWidget {
+  final int reading;
+  final int bonus;
+  final int total;
+
+  const _VoiceScoreBreakdown({
+    required this.reading,
+    required this.bonus,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _stat('Bacaan', reading, Colors.black54),
+        _op('+'),
+        _stat('Bonus', bonus, QuizColors.goldDark),
+        _op('='),
+        _stat('Total', total, primary, emphasize: true),
+      ],
+    );
+  }
+
+  Widget _op(String s) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Text(s,
+            style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.black38)),
+      );
+
+  Widget _stat(String label, int value, Color color, {bool emphasize = false}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$value',
+          style: TextStyle(
+            fontSize: emphasize ? 24 : 19,
+            fontWeight: FontWeight.w900,
+            color: color,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(label,
+            style: const TextStyle(fontSize: 11, color: Colors.black45)),
+      ],
     );
   }
 }

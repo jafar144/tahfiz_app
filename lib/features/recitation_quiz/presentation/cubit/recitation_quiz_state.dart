@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
@@ -8,6 +9,21 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_set
 
 /// Status keseluruhan sesi kuis.
 enum QuizStatus { intro, loading, error, playing, finished }
+
+/// Tahap soal bonus tebak surah (mode suara) setelah bacaan lolos.
+enum BonusStage {
+  /// Tak ada bonus (belum lolos / bonus tak tersedia).
+  none,
+
+  /// Bonus tersedia, menunggu santri menekan "Soal Bonus".
+  offered,
+
+  /// Hitung mundur berjalan, santri sedang memilih.
+  running,
+
+  /// Sudah dijawab / waktu habis — tampilkan hasil bonus.
+  done,
+}
 
 /// Fase pengerjaan satu soal.
 enum AnswerPhase {
@@ -89,6 +105,25 @@ class RecitationQuizState extends Equatable {
   /// true = benar, false = salah. Saat non-null, opsi dikunci sejenak.
   final bool? choiceCorrect;
 
+  // ── Bonus tebak surah (mode suara) ──────────────────────────────────────
+  /// Soal bonus aktif; null bila tak ada.
+  final QuizBonusQuestion? bonus;
+
+  /// Tahap soal bonus saat ini.
+  final BonusStage bonusStage;
+
+  /// Sisa waktu (detik) hitung mundur soal bonus.
+  final int bonusSecondsLeft;
+
+  /// Indeks opsi surah yang dipilih, TERURUT.
+  final List<int> bonusPicks;
+
+  /// Poin bonus yang barusan diperoleh (untuk ditampilkan pada tahap done).
+  final int bonusEarned;
+
+  /// Hasil soal bonus: null = belum, true = benar, false = salah/waktu habis.
+  final bool? bonusCorrect;
+
   const RecitationQuizState({
     this.status = QuizStatus.intro,
     this.errorMessage,
@@ -114,6 +149,12 @@ class RecitationQuizState extends Equatable {
     this.secondsLeft = 0,
     this.picks = const [],
     this.choiceCorrect,
+    this.bonus,
+    this.bonusStage = BonusStage.none,
+    this.bonusSecondsLeft = 0,
+    this.bonusPicks = const [],
+    this.bonusEarned = 0,
+    this.bonusCorrect,
   });
 
   QuizQuestion? get currentQuestion =>
@@ -152,6 +193,14 @@ class RecitationQuizState extends Equatable {
   bool get choiceComplete =>
       currentQuestion != null && picks.length == currentQuestion!.answerAyahCount;
 
+  // ── Getter bonus ───────────────────────────────────────────────────────
+  /// True bila pilihan bonus sudah lengkap sesuai jumlah surah jawaban.
+  bool get bonusComplete =>
+      bonus != null && bonusPicks.length == bonus!.requiredPicks;
+
+  /// True bila soal bonus sedang aktif (hitung mundur berjalan).
+  bool get bonusRunning => bonusStage == BonusStage.running;
+
   RecitationQuizState copyWith({
     QuizStatus? status,
     String? errorMessage,
@@ -177,6 +226,12 @@ class RecitationQuizState extends Equatable {
     int? secondsLeft,
     List<int>? picks,
     bool? choiceCorrect,
+    QuizBonusQuestion? bonus,
+    BonusStage? bonusStage,
+    int? bonusSecondsLeft,
+    List<int>? bonusPicks,
+    int? bonusEarned,
+    bool? bonusCorrect,
     bool clearError = false,
     bool clearStartBlock = false,
     bool clearCurrentResult = false,
@@ -184,6 +239,8 @@ class RecitationQuizState extends Equatable {
     bool clearPendingAnswer = false,
     bool clearSaveError = false,
     bool clearChoiceFeedback = false,
+    bool clearBonus = false,
+    bool clearBonusCorrect = false,
   }) {
     return RecitationQuizState(
       status: status ?? this.status,
@@ -213,6 +270,13 @@ class RecitationQuizState extends Equatable {
       picks: picks ?? this.picks,
       choiceCorrect:
           clearChoiceFeedback ? null : (choiceCorrect ?? this.choiceCorrect),
+      bonus: clearBonus ? null : (bonus ?? this.bonus),
+      bonusStage: bonusStage ?? this.bonusStage,
+      bonusSecondsLeft: bonusSecondsLeft ?? this.bonusSecondsLeft,
+      bonusPicks: bonusPicks ?? this.bonusPicks,
+      bonusEarned: bonusEarned ?? this.bonusEarned,
+      bonusCorrect:
+          clearBonusCorrect ? null : (bonusCorrect ?? this.bonusCorrect),
     );
   }
 
@@ -242,5 +306,11 @@ class RecitationQuizState extends Equatable {
         secondsLeft,
         picks,
         choiceCorrect,
+        bonus,
+        bonusStage,
+        bonusSecondsLeft,
+        bonusPicks,
+        bonusEarned,
+        bonusCorrect,
       ];
 }

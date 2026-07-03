@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
@@ -26,6 +28,9 @@ class QuizIntroView extends StatelessWidget {
   /// True selama energi masih dimuat — tombol mulai dinonaktifkan.
   final bool energyLoading;
 
+  /// Dipanggil saat waktu pengisian energi terlewati (agar dimuat ulang).
+  final VoidCallback? onRefillReady;
+
   const QuizIntroView({
     super.key,
     required this.settings,
@@ -33,6 +38,7 @@ class QuizIntroView extends StatelessWidget {
     required this.onStart,
     this.energy,
     this.energyLoading = false,
+    this.onRefillReady,
   });
 
   String get _juzSummary {
@@ -139,6 +145,12 @@ class QuizIntroView extends StatelessWidget {
         title: 'Nilai otomatis',
         subtitle: '≥80% lanjut. <80% boleh mengulang sekali.',
       ),
+      _RuleTile(
+        icon: Icons.bolt_rounded,
+        title: 'Bonus tebak surah',
+        subtitle:
+            'Tiap bacaan yang lolos, ada soal kilat 10 detik untuk poin tambahan.',
+      ),
     ];
   }
 
@@ -207,10 +219,149 @@ class QuizIntroView extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: _buildStartButton(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Energi tampil sebagai tooltip melayang di atas tombol mulai
+                // (hanya mode suara — mode pilihan tak memakai energi).
+                if (!settings.mode.isChoice && energy != null) ...[
+                  _EnergyTooltip(
+                    energy: energy!,
+                    onRefillReady: onRefillReady,
+                  ),
+                  const SizedBox(height: 2),
+                ],
+                _buildStartButton(),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Lencana energi bergaya "tooltip" melayang di atas tombol Mulai (mode suara).
+class _EnergyTooltip extends StatefulWidget {
+  final QuizEnergy energy;
+  final VoidCallback? onRefillReady;
+
+  const _EnergyTooltip({required this.energy, this.onRefillReady});
+
+  @override
+  State<_EnergyTooltip> createState() => _EnergyTooltipState();
+}
+
+class _EnergyTooltipState extends State<_EnergyTooltip> {
+  Timer? _timer;
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureTimer();
+  }
+
+  @override
+  void didUpdateWidget(_EnergyTooltip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.energy != widget.energy) {
+      _notified = false;
+      _ensureTimer();
+    }
+  }
+
+  void _ensureTimer() {
+    _timer?.cancel();
+    if (widget.energy.isFull) return;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      setState(() {
+        final t = widget.energy.nextRefillAt;
+        if (!_notified && t != null && DateTime.now().isAfter(t)) {
+          _notified = true;
+          widget.onRefillReady?.call();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.energy;
+    final empty = !e.canPlay;
+    final baseColor = empty ? QuizColors.missing : QuizColors.gold;
+    final deepColor = empty ? const Color(0xFF8E1B1B) : QuizColors.goldDark;
+    final remaining =
+        e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [baseColor, deepColor],
+            ),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: baseColor.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(kEnergyIcon, size: 15, color: Colors.white),
+              const SizedBox(width: 5),
+              Text(
+                '${e.current}/${e.max}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+              if (!e.isFull) ...[
+                const SizedBox(width: 7),
+                Container(
+                  width: 1,
+                  height: 12,
+                  color: Colors.white.withValues(alpha: 0.35),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  empty
+                      ? 'siap ${formatRefill(remaining)}'
+                      : '+1 ${formatRefill(remaining)}',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        // Ekor tooltip mengarah ke tombol.
+        Transform.translate(
+          offset: const Offset(0, -4),
+          child: Icon(Icons.arrow_drop_down, size: 22, color: deepColor),
+        ),
+      ],
     );
   }
 }

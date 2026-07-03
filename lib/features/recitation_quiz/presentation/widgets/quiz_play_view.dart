@@ -28,6 +28,10 @@ class _QuizPlayViewState extends State<QuizPlayView> {
     _player.play(AssetSource('sounds/correct.wav'), volume: 0.6);
   }
 
+  void _playWrong() {
+    _player.play(AssetSource('sounds/wrong.wav'), volume: 0.5);
+  }
+
   @override
   Widget build(BuildContext context) {
     final cubit = context.read<RecitationQuizCubit>();
@@ -37,6 +41,8 @@ class _QuizPlayViewState extends State<QuizPlayView> {
           (c.phase == AnswerPhase.revealed &&
               c.passed &&
               (p.phase != c.phase || p.currentIndex != c.currentIndex)) ||
+          (c.bonusStage == BonusStage.done &&
+              p.bonusStage != BonusStage.done) ||
           (c.errorMessage != null && p.errorMessage != c.errorMessage),
       listener: (context, state) {
         if (state.errorMessage != null) {
@@ -44,8 +50,16 @@ class _QuizPlayViewState extends State<QuizPlayView> {
             ..hideCurrentSnackBar()
             ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
-        if (state.phase == AnswerPhase.revealed && state.passed) {
+        // Denting saat bacaan lolos (sebelum tahap bonus).
+        if (state.phase == AnswerPhase.revealed &&
+            state.passed &&
+            (state.bonusStage == BonusStage.none ||
+                state.bonusStage == BonusStage.offered)) {
           _playChime();
+        }
+        // Umpan balik saat soal bonus selesai.
+        if (state.bonusStage == BonusStage.done) {
+          state.bonusCorrect == true ? _playChime() : _playWrong();
         }
       },
       builder: (context, state) {
@@ -88,8 +102,12 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                   child: Column(
                     children: [
-                      _PromptHint(ayahCount: q.answerAyahCount),
-                      const SizedBox(height: 12),
+                      // Petunjuk "lanjutkan" disembunyikan saat tahap bonus
+                      // (ayat tetap tampil sebagai acuan soal tebak surah).
+                      if (state.bonusStage == BonusStage.none) ...[
+                        _PromptHint(ayahCount: q.answerAyahCount),
+                        const SizedBox(height: 12),
+                      ],
                       PromptAyahCard(text: q.prompt.text),
                       const SizedBox(height: 24),
                       _bottomSection(context, cubit, state),
@@ -237,7 +255,7 @@ class _RecordButton extends StatelessWidget {
   }
 }
 
-/// Panel hasil sebuah percobaan: skor + aksi (ulang / lanjut / kunci jawaban).
+/// Panel hasil sebuah percobaan: skor + aksi (ulang / bonus / lanjut / kunci).
 class _ResultPanel extends StatelessWidget {
   final RecitationQuizCubit cubit;
   final RecitationQuizState state;
@@ -246,6 +264,11 @@ class _ResultPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tahap bonus berjalan → fokuskan layar pada soal tebak surah.
+    if (state.bonusStage == BonusStage.running && state.bonus != null) {
+      return _BonusRunningView(cubit: cubit, state: state);
+    }
+
     final pct = state.currentResult?.accuracyPercent ?? 0;
     final passed = state.passed;
 
@@ -257,6 +280,8 @@ class _ResultPanel extends StatelessWidget {
     } else {
       headline = 'Belum tepat — ini jawabannya';
     }
+
+    final hasBonus = passed && state.bonus != null;
 
     return Column(
       children: [
@@ -297,6 +322,12 @@ class _ResultPanel extends StatelessWidget {
           const SizedBox(height: 20),
         ],
 
+        // Hasil bonus (tahap done).
+        if (hasBonus && state.bonusStage == BonusStage.done) ...[
+          _BonusResultCard(state: state),
+          const SizedBox(height: 16),
+        ],
+
         // Aksi.
         if (state.canRetry)
           Row(
@@ -314,24 +345,355 @@ class _ResultPanel extends StatelessWidget {
               ),
             ],
           )
+        else if (hasBonus && state.bonusStage == BonusStage.offered)
+          _BonusOffer(onStart: cubit.startBonus)
         else
+          _nextButton(),
+      ],
+    );
+  }
+
+  Widget _nextButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        onPressed: cubit.next,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 15),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14)),
+        ),
+        child: Text(
+          state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tawaran soal bonus setelah bacaan lolos: kartu + tombol mulai (10 dtk).
+class _BonusOffer extends StatelessWidget {
+  final VoidCallback onStart;
+
+  const _BonusOffer({required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: QuizColors.gold.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: [
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bolt_rounded, color: QuizColors.goldDark, size: 20),
+              SizedBox(width: 6),
+              Text('Soal Bonus • Tebak Surah',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: QuizColors.goldDark)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Jawab dalam 10 detik — makin cepat, makin besar poin bonusnya!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12.5, color: Colors.black54),
+          ),
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              onPressed: cubit.next,
+            child: FilledButton.icon(
+              onPressed: onStart,
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 15),
+                backgroundColor: QuizColors.goldDark,
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
-              child: Text(
-                state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.bold),
-              ),
+              icon: const Icon(Icons.timer_rounded),
+              label: const Text('Mulai (10 dtk)',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Layar soal bonus berjalan: hitung mundur + pertanyaan + opsi surah.
+class _BonusRunningView extends StatelessWidget {
+  final RecitationQuizCubit cubit;
+  final RecitationQuizState state;
+
+  const _BonusRunningView({required this.cubit, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final b = state.bonus!;
+    return Column(
+      children: [
+        _BonusTimerBar(
+          secondsLeft: state.bonusSecondsLeft,
+          total: b.durationSeconds,
+        ),
+        const SizedBox(height: 18),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: QuizColors.gold.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: QuizColors.gold.withValues(alpha: 0.4)),
+          ),
+          child: Text(
+            b.questionText,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, height: 1.4),
+          ),
+        ),
+        if (b.isMulti) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Pilih ${b.requiredPicks} surah sesuai urutan',
+            style: TextStyle(
+                fontSize: 12.5,
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600),
+          ),
+        ],
+        const SizedBox(height: 14),
+        ...List.generate(b.options.length, (i) {
+          final order = state.bonusPicks.indexOf(i);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _SurahOptionTile(
+              name: b.optionName(i),
+              orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
+              selected: order >= 0,
+              onTap: () => cubit.pickBonus(i),
+            ),
+          );
+        }),
+        if (b.isMulti) ...[
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: state.bonusComplete ? cubit.submitBonus : null,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('Jawab',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+/// Hitung mundur soal bonus (angka + bar), memerah saat waktu menipis.
+class _BonusTimerBar extends StatelessWidget {
+  final int secondsLeft;
+  final int total;
+
+  const _BonusTimerBar({required this.secondsLeft, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final urgent = secondsLeft <= 3;
+    final color = urgent ? QuizColors.missing : scheme.primary;
+    final progress =
+        total <= 0 ? 0.0 : (secondsLeft / total).clamp(0.0, 1.0);
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timer_rounded, size: 20, color: color),
+            const SizedBox(width: 6),
+            Text(
+              '$secondsLeft',
+              style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w900, color: color),
+            ),
+            Text(' dtk',
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: color.withValues(alpha: 0.8))),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: progress, end: progress),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, value, _) => LinearProgressIndicator(
+              value: value,
+              minHeight: 7,
+              backgroundColor: color.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Kartu opsi nama surah pada soal bonus.
+class _SurahOptionTile extends StatelessWidget {
+  final String name;
+  final String? orderLabel;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _SurahOptionTile({
+    required this.name,
+    required this.orderLabel,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primary.withValues(alpha: 0.08)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? scheme.primary : Colors.black12,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? scheme.primary : Colors.black87,
+                ),
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? scheme.primary : Colors.transparent,
+                border: Border.all(
+                  color: selected ? scheme.primary : Colors.black26,
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: selected
+                    ? Text(
+                        orderLabel ?? '✓',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kartu hasil soal bonus (benar +poin / salah / waktu habis).
+class _BonusResultCard extends StatelessWidget {
+  final RecitationQuizState state;
+
+  const _BonusResultCard({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final b = state.bonus!;
+    final correct = state.bonusCorrect == true;
+    final color = correct ? QuizColors.correct : QuizColors.missing;
+    final String title;
+    if (correct) {
+      title = 'Benar! +${state.bonusEarned} poin bonus';
+    } else if (state.bonusSecondsLeft == 0) {
+      title = 'Waktu habis';
+    } else {
+      title = 'Kurang tepat';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                correct
+                    ? Icons.check_circle_rounded
+                    : Icons.cancel_rounded,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(title,
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14.5,
+                      color: color)),
+            ],
+          ),
+          if (!correct) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Jawaban: ${b.answerNames.join(', ')}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

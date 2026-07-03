@@ -30,12 +30,14 @@ abstract class QuizRepository {
   /// ke koleksi histori; leaderboard [mode] hanya diperbarui bila [score]
   /// melebihi best-score user bulan ini.
   ///
-  /// [score] = skor leaderboard (suara: rata-rata 0..100; pilihan: total poin).
+  /// [score] = skor leaderboard (suara: rata-rata 0..100 + bonus; pilihan:
+  /// total poin). [bonusTotal] = total poin bonus tebak surah (mode suara).
   Future<Either<Failure, void>> saveAttempt({
     required QuizMode mode,
     required int score,
     required List<int> questionScores,
     required List<int> juz,
+    int bonusTotal = 0,
   });
 
   /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user

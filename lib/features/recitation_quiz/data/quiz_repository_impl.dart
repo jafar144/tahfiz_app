@@ -223,6 +223,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required int score,
     required List<int> questionScores,
     required List<int> juz,
+    int bonusTotal = 0,
   }) async {
     try {
       final user = auth.currentUser;
@@ -264,6 +265,7 @@ class QuizRepositoryImpl implements QuizRepository {
         'mode': mode.key,
         'juz': juz,
         'score': score,
+        'bonus_score': bonusTotal,
         'question_scores': questionScores,
         'question_count': questionScores.length,
         'date_key': dateKey,

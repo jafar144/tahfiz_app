@@ -30,8 +30,6 @@ class RecitationQuizPage extends StatelessWidget {
         final playing = state.status == QuizStatus.playing;
         final atIntro = state.status == QuizStatus.intro;
         final isChoice = state.settings.mode.isChoice;
-        // Energi tak relevan pada mode pilihan → sembunyikan badge-nya.
-        final showEnergy = !isChoice;
 
         return PopScope(
           // Hanya di layar intro tombol back keluar ke halaman sebelumnya;
@@ -53,31 +51,13 @@ class RecitationQuizPage extends StatelessWidget {
                     title: const Text('Kuis Hafalan'),
                     centerTitle: true,
                     actions: [
-                      IconButton(
-                        tooltip: 'Leaderboard',
-                        icon: const Icon(Icons.leaderboard_rounded),
-                        onPressed: () => context.pushNamed(
+                      _LeaderboardButton(
+                        onTap: () => context.pushNamed(
                           RouteNames.quizLeaderboard,
                           extra: state.settings.mode,
                         ),
                       ),
-                      if (showEnergy &&
-                          state.energyLoading &&
-                          state.energy == null)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Center(child: EnergyBadgeSkeleton()),
-                        )
-                      else if (showEnergy && state.energy != null)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Center(
-                            child: EnergyBadge(
-                              energy: state.energy!,
-                              onRefillReady: cubit.loadEnergy,
-                            ),
-                          ),
-                        ),
+                      const SizedBox(width: 10),
                     ],
                   ),
             body: switch (state.status) {
@@ -87,6 +67,7 @@ class RecitationQuizPage extends StatelessWidget {
                   onStart: cubit.start,
                   energy: state.energy,
                   energyLoading: state.energyLoading,
+                  onRefillReady: cubit.loadEnergy,
                 ),
               QuizStatus.loading => const _Loading(),
               QuizStatus.error => _ErrorView(
@@ -102,7 +83,8 @@ class RecitationQuizPage extends StatelessWidget {
                   energy: state.energy,
                   onPlayAgain: cubit.playAgain,
                   onRefillReady: cubit.loadEnergy,
-                  onFinish: () => context.pop(),
+                  // "Selesai" kembali ke layar awal kuis (bukan keluar ke home).
+                  onFinish: cubit.backToIntro,
                 ),
             },
           ),
@@ -127,6 +109,50 @@ class RecitationQuizPage extends StatelessWidget {
             child: const Text('Keluar'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tombol leaderboard bergaya (piala emas) untuk AppBar kuis.
+class _LeaderboardButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _LeaderboardButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Leaderboard',
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Ink(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [QuizColors.gold, QuizColors.goldDark],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: QuizColors.gold.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.emoji_events_rounded,
+                  color: Colors.white, size: 21),
+            ),
+          ),
+        ),
       ),
     );
   }
