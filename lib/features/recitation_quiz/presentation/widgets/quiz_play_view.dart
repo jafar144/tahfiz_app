@@ -90,8 +90,13 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                           ),
                         ),
                         const Spacer(),
-                        if (state.attempt == 2 && !state.canAdvance)
+                        if (state.attempt == 2 && !state.canAdvance) ...[
                           _pill(context, 'Percobaan ke-2', QuizColors.gold),
+                          const SizedBox(width: 8),
+                        ],
+                        if (state.phase == AnswerPhase.idle ||
+                            state.phase == AnswerPhase.recording)
+                          _VoiceTimerChip(secondsLeft: state.voiceSecondsLeft),
                       ],
                     ),
                   ],
@@ -180,27 +185,58 @@ class _PromptHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    const base = TextStyle(fontWeight: FontWeight.w600, color: Colors.black54);
+    // "Lanjutkan" & "berikutnya": tetap biru, sedikit lebih tipis dari "N ayat".
+    final base = TextStyle(
+      fontWeight: FontWeight.w500,
+      color: scheme.primary.withValues(alpha: 0.85),
+    );
     final strong = TextStyle(
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w900,
       color: scheme.primary,
     );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.arrow_downward_rounded, size: 16, color: scheme.primary),
-        const SizedBox(width: 6),
-        Text.rich(
-          ayahCount > 1
-              ? TextSpan(style: base, children: [
-                  const TextSpan(text: 'Lanjutkan '),
-                  TextSpan(text: '$ayahCount ayat', style: strong),
-                  const TextSpan(text: ' berikutnya'),
-                ])
-              : const TextSpan(
-                  text: 'Lanjutkan ayat berikutnya', style: base),
-        ),
-      ],
+    // Kartu instruksi selebar penuh + label "SOAL" agar keseluruhan perintah
+    // (bukan cuma ayatnya) langsung terbaca jelas — tanpa memperbesar teksnya.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: scheme.primary,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'SOAL',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text.rich(
+              ayahCount > 1
+                  ? TextSpan(style: base, children: [
+                      const TextSpan(text: 'Lanjutkan '),
+                      TextSpan(text: '$ayahCount ayat', style: strong),
+                      const TextSpan(text: ' berikutnya'),
+                    ])
+                  : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
+            ),
+          ),
+          Icon(Icons.arrow_downward_rounded, size: 20, color: scheme.primary),
+        ],
+      ),
     );
   }
 }
@@ -346,7 +382,7 @@ class _ResultPanel extends StatelessWidget {
             ],
           )
         else if (hasBonus && state.bonusStage == BonusStage.offered)
-          _BonusOffer(onStart: cubit.startBonus)
+          _BonusPrep(secondsLeft: state.bonusPrepSecondsLeft)
         else
           _nextButton(),
       ],
@@ -372,11 +408,12 @@ class _ResultPanel extends StatelessWidget {
   }
 }
 
-/// Tawaran soal bonus setelah bacaan lolos: kartu + tombol mulai (10 dtk).
-class _BonusOffer extends StatelessWidget {
-  final VoidCallback onStart;
+/// Jeda berpikir setelah lolos: kartu + hitung mundur; Soal Bonus mulai
+/// otomatis di akhir hitungan (tanpa tombol).
+class _BonusPrep extends StatelessWidget {
+  final int secondsLeft;
 
-  const _BonusOffer({required this.onStart});
+  const _BonusPrep({required this.secondsLeft});
 
   @override
   Widget build(BuildContext context) {
@@ -402,27 +439,63 @@ class _BonusOffer extends StatelessWidget {
                       color: QuizColors.goldDark)),
             ],
           ),
+          const SizedBox(height: 12),
+          // Angka hitung mundur besar.
+          TweenAnimationBuilder<double>(
+            key: ValueKey(secondsLeft),
+            tween: Tween(begin: 0.7, end: 1),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutBack,
+            builder: (context, scale, child) =>
+                Transform.scale(scale: scale, child: child),
+            child: Text(
+              '$secondsLeft',
+              style: const TextStyle(
+                fontSize: 44,
+                fontWeight: FontWeight.w900,
+                color: QuizColors.goldDark,
+                height: 1.0,
+              ),
+            ),
+          ),
           const SizedBox(height: 6),
           const Text(
-            'Jawab dalam 10 detik — makin cepat, makin besar poin bonusnya!',
+            'Bersiap… Soal Bonus dimulai otomatis',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12.5, color: Colors.black54),
           ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onStart,
-              style: FilledButton.styleFrom(
-                backgroundColor: QuizColors.goldDark,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-              icon: const Icon(Icons.timer_rounded),
-              label: const Text('Mulai (10 dtk)',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip hitung mundur waktu berpikir per soal (mode suara); memerah saat menipis.
+class _VoiceTimerChip extends StatelessWidget {
+  final int secondsLeft;
+
+  const _VoiceTimerChip({required this.secondsLeft});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final urgent = secondsLeft <= 10;
+    final color = urgent ? QuizColors.missing : scheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.timer_rounded, size: 15, color: color),
+          const SizedBox(width: 4),
+          Text(
+            '$secondsLeft dtk',
+            style: TextStyle(
+                color: color, fontWeight: FontWeight.w800, fontSize: 13),
           ),
         ],
       ),
@@ -440,6 +513,7 @@ class _BonusRunningView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         _BonusTimerBar(
@@ -451,9 +525,9 @@ class _BonusRunningView extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: QuizColors.gold.withValues(alpha: 0.08),
+            color: scheme.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: QuizColors.gold.withValues(alpha: 0.4)),
+            border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
           ),
           child: Text(
             b.questionText,

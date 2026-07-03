@@ -4,9 +4,17 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+
+/// Pola nomor ayat di akhir teks Uthmani: spasi-tak-putus + angka Arab-Hindi.
+final _ayahNumberTail = RegExp(r'[٠-٩ \s]+$');
+
+/// Buang glyph nomor ayat di akhir agar pemain tak bisa menebak urutan lewat
+/// nomornya (mode pilihan).
+String _stripAyahNumber(String text) => text.replaceAll(_ayahNumberTail, '');
 
 /// Layar bermain mode PILIHAN: timer mundur 60 detik, kartu ayat petunjuk,
 /// lalu 6 opsi ayat. Santri memilih lanjutan yang benar (berurutan bila lebih
@@ -83,6 +91,8 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
                 secondsLeft: state.secondsLeft,
                 points: state.runningPoints,
                 answered: state.answeredCount,
+                showTimeBonus: state.choiceCorrect == true,
+                bonusTick: state.timeBonusTick,
               ),
               // Petunjuk soal (selalu terlihat).
               Padding(
@@ -148,10 +158,18 @@ class _Header extends StatelessWidget {
   final int points;
   final int answered;
 
+  /// Sedang menampilkan umpan balik benar → tampilkan chip "+2 dtk".
+  final bool showTimeBonus;
+
+  /// Naik tiap bonus waktu, agar chip beranimasi ulang tiap jawaban benar.
+  final int bonusTick;
+
   const _Header({
     required this.secondsLeft,
     required this.points,
     required this.answered,
+    this.showTimeBonus = false,
+    this.bonusTick = 0,
   });
 
   @override
@@ -185,6 +203,39 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: timerColor.withValues(alpha: 0.8),
                 ),
+              ),
+              const SizedBox(width: 8),
+              // Chip "+2 dtk" yang muncul-pop tiap jawaban benar.
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: ScaleTransition(
+                    scale: Tween<double>(begin: 0.6, end: 1).animate(
+                      CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                    ),
+                    child: child,
+                  ),
+                ),
+                child: showTimeBonus
+                    ? Container(
+                        key: ValueKey(bonusTick),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: QuizColors.correct.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '+${QuizConfig.choiceTimeBonusSeconds} dtk',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: QuizColors.correct,
+                          ),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
               ),
               const Spacer(),
               // Poin berjalan.
@@ -422,7 +473,7 @@ class _OptionCard extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                ayah.text,
+                _stripAyahNumber(ayah.text),
                 textAlign: TextAlign.right,
                 textDirection: TextDirection.rtl,
                 maxLines: 2,

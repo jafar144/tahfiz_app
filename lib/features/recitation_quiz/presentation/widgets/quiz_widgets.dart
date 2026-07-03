@@ -145,7 +145,7 @@ class PromptAyahCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
@@ -162,10 +162,12 @@ class PromptAyahCard extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         textDirection: TextDirection.rtl,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontFamily: 'QuranHafs',
-          fontSize: 30,
-          height: 1.9,
+          fontSize: 23,
+          height: 1.7,
           color: Color(0xFF212121),
         ),
       ),

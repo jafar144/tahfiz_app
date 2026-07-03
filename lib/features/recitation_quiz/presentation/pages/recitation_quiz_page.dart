@@ -60,33 +60,54 @@ class RecitationQuizPage extends StatelessWidget {
                       const SizedBox(width: 10),
                     ],
                   ),
-            body: switch (state.status) {
-              QuizStatus.intro => QuizIntroView(
-                  settings: state.settings,
-                  onSettingsChanged: cubit.setSettings,
-                  onStart: cubit.start,
-                  energy: state.energy,
-                  energyLoading: state.energyLoading,
-                  onRefillReady: cubit.loadEnergy,
-                ),
-              QuizStatus.loading => const _Loading(),
-              QuizStatus.error => _ErrorView(
-                  message: state.errorMessage ?? 'Terjadi kesalahan.',
-                  onRetry: () => cubit.start(state.settings),
-                ),
-              QuizStatus.playing =>
-                isChoice ? const QuizChoicePlayView() : const QuizPlayView(),
-              QuizStatus.finished => QuizResultView(
-                  result: state.result!,
-                  saving: state.saving,
-                  saveError: state.saveError,
-                  energy: state.energy,
-                  onPlayAgain: cubit.playAgain,
-                  onRefillReady: cubit.loadEnergy,
-                  // "Selesai" kembali ke layar awal kuis (bukan keluar ke home).
-                  onFinish: cubit.backToIntro,
-                ),
-            },
+            body: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              // Halaman baru meluncur masuk dari kanan sambil memudar; halaman
+              // lama memudar keluar ke kiri (nuansa maju ke depan).
+              transitionBuilder: (child, animation) {
+                final slide = Tween<Offset>(
+                  begin: const Offset(0.18, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(position: slide, child: child),
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey(state.status),
+                child: switch (state.status) {
+                  QuizStatus.intro => QuizIntroView(
+                      settings: state.settings,
+                      onSettingsChanged: cubit.setSettings,
+                      onStart: cubit.start,
+                      energy: state.energy,
+                      energyLoading: state.energyLoading,
+                      onRefillReady: cubit.loadEnergy,
+                    ),
+                  QuizStatus.loading => const _Loading(),
+                  QuizStatus.error => _ErrorView(
+                      message: state.errorMessage ?? 'Terjadi kesalahan.',
+                      onRetry: () => cubit.start(state.settings),
+                    ),
+                  QuizStatus.playing => isChoice
+                      ? const QuizChoicePlayView()
+                      : const QuizPlayView(),
+                  QuizStatus.finished => QuizResultView(
+                      result: state.result!,
+                      saving: state.saving,
+                      saveError: state.saveError,
+                      energy: state.energy,
+                      onPlayAgain: cubit.playAgain,
+                      onRefillReady: cubit.loadEnergy,
+                      // "Selesai" kembali ke layar awal (bukan keluar ke home).
+                      onFinish: cubit.backToIntro,
+                    ),
+                },
+              ),
+            ),
           ),
         );
       },

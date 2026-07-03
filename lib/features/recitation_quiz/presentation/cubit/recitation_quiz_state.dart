@@ -69,6 +69,14 @@ class RecitationQuizState extends Equatable {
   /// Percobaan ke- (1 atau 2) untuk soal saat ini.
   final int attempt;
 
+  /// Sisa waktu (detik) berpikir per soal mode suara; 0 = tak aktif. Bila habis
+  /// sebelum jawaban dikirim, soal di-skip otomatis.
+  final int voiceSecondsLeft;
+
+  /// Sisa waktu (detik) jeda berpikir sebelum Soal Bonus mulai otomatis
+  /// (mode suara). 0 = tak aktif.
+  final int bonusPrepSecondsLeft;
+
   /// Hasil percobaan terakhir (untuk menampilkan persentase segera).
   final RecitationResult? currentResult;
 
@@ -105,6 +113,10 @@ class RecitationQuizState extends Equatable {
   /// true = benar, false = salah. Saat non-null, opsi dikunci sejenak.
   final bool? choiceCorrect;
 
+  /// Penghitung yang naik tiap jawaban benar mendapat tambahan waktu (mode
+  /// pilihan) — pemicu animasi "+2 dtk" di header.
+  final int timeBonusTick;
+
   // ── Bonus tebak surah (mode suara) ──────────────────────────────────────
   /// Soal bonus aktif; null bila tak ada.
   final QuizBonusQuestion? bonus;
@@ -136,6 +148,8 @@ class RecitationQuizState extends Equatable {
     this.currentIndex = 0,
     this.phase = AnswerPhase.idle,
     this.attempt = 1,
+    this.voiceSecondsLeft = 0,
+    this.bonusPrepSecondsLeft = 0,
     this.currentResult,
     this.bestPercent = 0,
     this.bestResult,
@@ -149,6 +163,7 @@ class RecitationQuizState extends Equatable {
     this.secondsLeft = 0,
     this.picks = const [],
     this.choiceCorrect,
+    this.timeBonusTick = 0,
     this.bonus,
     this.bonusStage = BonusStage.none,
     this.bonusSecondsLeft = 0,
@@ -213,6 +228,8 @@ class RecitationQuizState extends Equatable {
     int? currentIndex,
     AnswerPhase? phase,
     int? attempt,
+    int? voiceSecondsLeft,
+    int? bonusPrepSecondsLeft,
     RecitationResult? currentResult,
     int? bestPercent,
     RecitationResult? bestResult,
@@ -226,6 +243,7 @@ class RecitationQuizState extends Equatable {
     int? secondsLeft,
     List<int>? picks,
     bool? choiceCorrect,
+    int? timeBonusTick,
     QuizBonusQuestion? bonus,
     BonusStage? bonusStage,
     int? bonusSecondsLeft,
@@ -254,6 +272,8 @@ class RecitationQuizState extends Equatable {
       currentIndex: currentIndex ?? this.currentIndex,
       phase: phase ?? this.phase,
       attempt: attempt ?? this.attempt,
+      voiceSecondsLeft: voiceSecondsLeft ?? this.voiceSecondsLeft,
+      bonusPrepSecondsLeft: bonusPrepSecondsLeft ?? this.bonusPrepSecondsLeft,
       currentResult:
           clearCurrentResult ? null : (currentResult ?? this.currentResult),
       bestPercent: bestPercent ?? this.bestPercent,
@@ -270,6 +290,7 @@ class RecitationQuizState extends Equatable {
       picks: picks ?? this.picks,
       choiceCorrect:
           clearChoiceFeedback ? null : (choiceCorrect ?? this.choiceCorrect),
+      timeBonusTick: timeBonusTick ?? this.timeBonusTick,
       bonus: clearBonus ? null : (bonus ?? this.bonus),
       bonusStage: bonusStage ?? this.bonusStage,
       bonusSecondsLeft: bonusSecondsLeft ?? this.bonusSecondsLeft,
@@ -293,6 +314,8 @@ class RecitationQuizState extends Equatable {
         currentIndex,
         phase,
         attempt,
+        voiceSecondsLeft,
+        bonusPrepSecondsLeft,
         currentResult,
         bestPercent,
         bestResult,
@@ -306,6 +329,7 @@ class RecitationQuizState extends Equatable {
         secondsLeft,
         picks,
         choiceCorrect,
+        timeBonusTick,
         bonus,
         bonusStage,
         bonusSecondsLeft,

@@ -18,6 +18,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_lea
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 
 class QuizRepositoryImpl implements QuizRepository {
@@ -44,9 +45,6 @@ class QuizRepositoryImpl implements QuizRepository {
   /// skala skor suara & pilihan berbeda dan tak bisa dibandingkan.
   static const String _leaderboardCollection = 'quiz_leaderboards';
 
-  /// Jumlah peringkat yang ditampilkan.
-  static const int _leaderboardLimit = 10;
-
   static String _monthKey(DateTime now) =>
       '${now.year}-${now.month.toString().padLeft(2, '0')}';
 
@@ -59,12 +57,6 @@ class QuizRepositoryImpl implements QuizRepository {
           .collection(_leaderboardCollection)
           .doc(monthKey)
           .collection(mode.key);
-
-  /// Panjang jawaban maksimum (ayat) per soal.
-  static const int _maxAnswerLen = 3;
-
-  /// Jumlah opsi pada mode pilihan ganda.
-  static const int _choiceOptionCount = 6;
 
   @override
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
@@ -123,7 +115,7 @@ class QuizRepositoryImpl implements QuizRepository {
       for (final i in chosen) {
         final prompt = pool[i];
         final maxLen = _availableAnswerLen(pool, i, segmentEnds);
-        final len = 1 + rng.nextInt(maxLen); // 1.._maxAnswerLen (dibatasi)
+        final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
 
         // Ayat lanjutan mentah (tanpa basmalah).
         final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
@@ -161,7 +153,7 @@ class QuizRepositoryImpl implements QuizRepository {
     }
   }
 
-  /// Rakit [_choiceOptionCount] opsi ayat: jawaban benar + distraktor teracak.
+  /// Rakit [QuizConfig.choiceOptionCount] opsi ayat: jawaban benar + distraktor.
   /// Distraktor diambil dari [pool] (selain prompt & ayat jawaban), unik per
   /// (surah, nomor). Semua diacak agar posisi jawaban tak tertebak.
   List<Ayah> _buildOptions(
@@ -181,7 +173,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
     final options = <Ayah>[...answer];
     for (final a in distractorPool) {
-      if (options.length >= _choiceOptionCount) break;
+      if (options.length >= QuizConfig.choiceOptionCount) break;
       if (options.any((o) => sameAyah(o, a))) continue;
       options.add(a);
     }
@@ -190,12 +182,12 @@ class QuizRepositoryImpl implements QuizRepository {
     return options;
   }
 
-  /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1.._maxAnswerLen).
+  /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1..maxAnswerAyah).
   /// Berhenti di batas segmen (indeks penutup di [segmentEnds]) agar lanjutan
   /// tak menyeberang celah antar rentang juz.
   int _availableAnswerLen(List<Ayah> pool, int i, Set<int> segmentEnds) {
     var len = 0;
-    for (var k = 1; k <= _maxAnswerLen; k++) {
+    for (var k = 1; k <= QuizConfig.maxAnswerAyah; k++) {
       final idx = i + k;
       if (idx >= pool.length) break;
       if (segmentEnds.contains(idx - 1)) break; // pool[idx] mulai segmen baru
@@ -350,7 +342,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
       final snap = await entriesRef
           .orderBy('best_score', descending: true)
-          .limit(_leaderboardLimit)
+          .limit(QuizConfig.leaderboardLimit)
           .get();
 
       final entries = snap.docs.map((d) => _entryFromDoc(d.data())).toList()

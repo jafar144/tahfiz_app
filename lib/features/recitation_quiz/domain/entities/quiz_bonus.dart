@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 
 /// Jenis soal bonus (mode suara) yang muncul setelah bacaan lolos.
 enum QuizBonusType {
@@ -73,14 +74,13 @@ class QuizBonusQuestion {
         : 'Ayat tadi dari surah apa?';
   }
 
-  /// Detik hitung mundur untuk soal ini: identify 15 dtk; neighbor diberi waktu
-  /// ekstra sesuai jarak → 15 + (n-1)·2 (n=1→15, n=2→17, n=3→19).
-  static const int baseSeconds = 15;
+  /// Detik hitung mundur untuk soal ini: identify pakai durasi dasar; neighbor
+  /// diberi waktu ekstra sesuai jarak surah. (Lihat [QuizConfig.bonusBaseSeconds]
+  /// & [QuizConfig.bonusPerOffsetExtraSeconds].)
   int get durationSeconds => type == QuizBonusType.neighbor
-      ? baseSeconds + (offset - 1) * 2
-      : baseSeconds;
-
-  static const int _optionCount = 6;
+      ? QuizConfig.bonusBaseSeconds +
+          (offset - 1) * QuizConfig.bonusPerOffsetExtraSeconds
+      : QuizConfig.bonusBaseSeconds;
 
   /// Susun soal bonus dari soal suara [q] yang lolos & himpunan surah dalam
   /// rentang target [allowed]. Kembalikan null bila tak bisa disusun.
@@ -89,20 +89,22 @@ class QuizBonusQuestion {
     required Set<int> allowed,
     required Random rng,
   }) {
-    // Surah yang tercakup passage (prompt + ayat jawaban), urut mushaf.
-    final passageSurahs =
-        <int>{q.prompt.surahId, ...q.answerAyat.map((a) => a.surahId)}.toList()
-          ..sort();
+    // Surah yang tercakup JAWABAN (yang santri baca), urut mushaf. Surah ayat
+    // soal (prompt) sengaja TIDAK diikutkan — fokus tebakan adalah surah yang
+    // dibaca, bukan surah petunjuk. Multi-pilih hanya bila jawaban sendiri
+    // benar-benar melintasi ≥2 surah.
+    final readSurahs = <int>{...q.answerAyat.map((a) => a.surahId)}.toList()
+      ..sort();
 
     // Semua surah bernama (juz 29 & 30) sebagai cadangan distraktor.
     final named = QuizJuz.surahLatin.keys.toSet();
 
-    // Passage melintasi ≥2 surah → identify multi (tanpa neighbor).
-    if (passageSurahs.length >= 2) {
-      return _identify(passageSurahs, allowed, named, rng);
+    // Jawaban melintasi ≥2 surah → identify multi (tanpa neighbor).
+    if (readSurahs.length >= 2) {
+      return _identify(readSurahs, allowed, named, rng);
     }
 
-    final base = passageSurahs.first;
+    final base = readSurahs.first;
 
     // Kandidat neighbor yang targetnya masih dalam rentang (tidak overflow).
     final candidates = <({int off, bool after})>[];
@@ -160,7 +162,7 @@ class QuizBonusQuestion {
     );
   }
 
-  /// Rakit [_optionCount] opsi: jawaban + distraktor unik (utamakan [preferred]
+  /// Rakit [QuizConfig.bonusOptionCount] opsi: jawaban + distraktor unik (utamakan [preferred]
   /// = surah dalam rentang, lalu [fallback]), teracak. Null bila distraktor tak
   /// cukup untuk satu opsi salah pun.
   static List<int>? _assembleOptions({
@@ -181,12 +183,12 @@ class QuizBonusQuestion {
       ..shuffle(rng);
 
     for (final s in pickable(preferred)) {
-      if (chosen.length >= _optionCount) break;
+      if (chosen.length >= QuizConfig.bonusOptionCount) break;
       chosen.add(s);
     }
-    if (chosen.length < _optionCount) {
+    if (chosen.length < QuizConfig.bonusOptionCount) {
       for (final s in pickable(fallback)) {
-        if (chosen.length >= _optionCount) break;
+        if (chosen.length >= QuizConfig.bonusOptionCount) break;
         chosen.add(s);
       }
     }

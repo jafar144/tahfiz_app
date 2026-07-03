@@ -8,6 +8,28 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
+/// True bila santri mencentang "jangan tampilkan lagi" pada info deteksi suara.
+/// Disimpan di memori proses saja (bukan persisten) → otomatis reset ketika app
+/// benar-benar ditutup, sesuai maksud "selama sesi ini".
+bool _voiceTipDismissed = false;
+
+/// Bottom sheet info: sistem deteksi suara belum sempurna + tips agar hasil
+/// maksimal. Mengembalikan `true` bila santri menekan "Mulai". Bila centang
+/// "jangan tampilkan lagi" aktif, [_voiceTipDismissed] di-set agar tak muncul
+/// lagi selama sesi app.
+Future<bool?> _showVoiceTipSheet(BuildContext context) {
+  return showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => const _VoiceTipSheet(),
+  );
+}
+
 /// Layar pembuka + setelan kuis: pilih mode, juz, rentang target hafalan, lalu
 /// mulai. Setelan dipegang oleh cubit (dan disimpan lokal) — layar ini hanya
 /// menampilkan [settings] terkini dan mengirim perubahan lewat [onSettingsChanged].
@@ -70,7 +92,19 @@ class QuizIntroView extends StatelessWidget {
     );
   }
 
-  Widget _buildStartButton() {
+  /// Mode pilihan → langsung mulai. Mode suara → tampilkan dulu info bahwa
+  /// deteksi suara tak sempurna beserta tips (sekali per sesi app; bisa
+  /// dinonaktifkan lewat centang di bottom sheet).
+  Future<void> _handleStart(BuildContext context) async {
+    if (settings.mode.isChoice || _voiceTipDismissed) {
+      onStart(settings);
+      return;
+    }
+    final proceed = await _showVoiceTipSheet(context);
+    if (proceed == true) onStart(settings);
+  }
+
+  Widget _buildStartButton(BuildContext context) {
     final isChoice = settings.mode.isChoice;
     final loading = !isChoice && energyLoading && energy == null;
     // Mode pilihan tak memakai energi → selalu bisa mulai.
@@ -92,7 +126,7 @@ class QuizIntroView extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: FilledButton.icon(
-        onPressed: canPlay ? () => onStart(settings) : null,
+        onPressed: canPlay ? () => _handleStart(context) : null,
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -231,7 +265,7 @@ class QuizIntroView extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                 ],
-                _buildStartButton(),
+                _buildStartButton(context),
               ],
             ),
           ),
@@ -880,6 +914,183 @@ class _RangeTargetCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Isi bottom sheet peringatan deteksi suara + tips + centang "jangan tampilkan
+/// lagi (sesi ini)".
+class _VoiceTipSheet extends StatefulWidget {
+  const _VoiceTipSheet();
+
+  @override
+  State<_VoiceTipSheet> createState() => _VoiceTipSheetState();
+}
+
+class _VoiceTipSheetState extends State<_VoiceTipSheet> {
+  bool _dontShow = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Ikon + judul.
+            Center(
+              child: Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.primary.withValues(alpha: 0.12),
+                ),
+                child: Icon(Icons.graphic_eq_rounded,
+                    color: scheme.primary, size: 34),
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Center(
+              child: Text(
+                'Sebelum merekam',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Sistem deteksi suara belum sempurna dan bisa saja keliru menilai '
+              'bacaanmu. Agar hasilnya maksimal, perhatikan hal berikut:',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.5, color: Colors.black54, height: 1.4),
+            ),
+            const SizedBox(height: 18),
+
+            // Tips.
+            const _VoiceTip(
+              icon: Icons.record_voice_over_rounded,
+              title: 'Baca dengan jelas & tartil',
+              subtitle: 'Lafalkan tiap huruf dengan jelas, jangan terburu-buru.',
+            ),
+            const SizedBox(height: 12),
+            const _VoiceTip(
+              icon: Icons.volume_up_rounded,
+              title: 'Perbesar & dekatkan suara',
+              subtitle: 'Dekatkan mulut ke mikrofon dan bacakan cukup lantang.',
+            ),
+            const SizedBox(height: 12),
+            const _VoiceTip(
+              icon: Icons.noise_control_off_rounded,
+              title: 'Kurangi kebisingan',
+              subtitle: 'Cari tempat tenang, jauhi suara latar/noise.',
+            ),
+            const SizedBox(height: 16),
+
+            // Centang "jangan tampilkan lagi".
+            InkWell(
+              onTap: () => setState(() => _dontShow = !_dontShow),
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: _dontShow,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (v) =>
+                            setState(() => _dontShow = v ?? false),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Jangan tampilkan lagi selama sesi ini',
+                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Tombol mulai.
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  _voiceTipDismissed = _dontShow;
+                  Navigator.of(context).pop(true);
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.mic_rounded),
+                label: const Text('Mulai Rekam',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Satu baris tip pada [_VoiceTipSheet]: ikon bulat + judul + keterangan.
+class _VoiceTip extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  const _VoiceTip({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Icon(icon, color: scheme.primary, size: 21),
+        ),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 2),
+              Text(subtitle,
+                  style: const TextStyle(fontSize: 12.5, color: Colors.black54)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

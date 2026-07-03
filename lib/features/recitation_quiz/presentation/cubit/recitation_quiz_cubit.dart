@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitat
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
@@ -37,39 +38,23 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Timer hitung mundur soal bonus tebak surah (mode suara).
   Timer? _bonusTimer;
 
+  /// Timer batas berpikir per soal (mode suara); habis → skip otomatis.
+  Timer? _voiceTimer;
+
+  /// Timer jeda 5 detik sebelum Soal Bonus mulai otomatis (mode suara).
+  Timer? _bonusPrepTimer;
+
   /// Sumber acak untuk menyusun soal bonus.
   final Random _rng = Random();
 
   /// True bila sesi ini sedang memegang lock (perlu dilepas saat keluar).
   bool _holdsLock = false;
 
-  /// Jumlah soal per sesi mode suara.
-  static const int kQuestionCount = 10;
-
-  /// Jumlah soal disiapkan untuk mode pilihan (time-attack; berlebih agar tak
-  /// habis sebelum waktu berakhir).
-  static const int kChoiceQuestionCount = 40;
-
-  /// Durasi total (detik) satu sesi mode pilihan.
-  static const int kChoiceDurationSeconds = 60;
-
-  /// Jeda umpan balik benar/salah sebelum auto-lanjut (mode pilihan).
-  static const Duration _feedbackDelay = Duration(milliseconds: 700);
-
-  /// Ambang lolos & nilai penuh.
-  static const int kPassThreshold = 80;
-  static const int kPerfectThreshold = 90;
-
-  /// Interval perpanjang lock (lebih pendek dari lease server 2 menit).
-  static const Duration _heartbeatInterval = Duration(seconds: 40);
-
-  /// Saklar sistem energi (master switch). Set `false` saat testing agar energi
-  /// tidak pernah dipotong & lock sesi dilewati (kuis bisa dimainkan tanpa
-  /// batas). Kembalikan ke `true` untuk produksi.
-  static const bool kEnforceEnergy = true;
+  // Semua konstanta gameplay (jumlah soal, timer, poin, ambang, saklar energi)
+  // ada di [QuizConfig] — satu tempat untuk disetel.
 
   /// True bila user saat ini admin → selalu melewati energi/lock (seolah
-  /// [kEnforceEnergy] false), tanpa mengubah perilaku asatidz & santri.
+  /// [QuizConfig.enforceEnergy] false), tanpa mengubah perilaku asatidz & santri.
   bool _isAdmin = false;
 
   /// Sudah pernah menanyakan role admin ke repo (agar tak berulang).
@@ -78,7 +63,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Energi & lock hanya berlaku pada mode SUARA, bila master switch aktif, dan
   /// user bukan admin. Mode pilihan tak pernah memakai energi.
   bool get _enforceEnergy =>
-      kEnforceEnergy && !_isAdmin && state.settings.mode.isVoice;
+      QuizConfig.enforceEnergy && !_isAdmin && state.settings.mode.isVoice;
 
   RecitationQuizCubit(this.repository, this.settingsStore)
       : super(const RecitationQuizState());
@@ -104,6 +89,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _feedbackTimer = null;
     _bonusTimer?.cancel();
     _bonusTimer = null;
+    _voiceTimer?.cancel();
+    _voiceTimer = null;
+    _bonusPrepTimer?.cancel();
+    _bonusPrepTimer = null;
     await _releaseSession();
     emit(RecitationQuizState(
       settings: state.settings,
@@ -159,7 +148,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
     // Susun soal dulu (lokal, tanpa biaya) sebelum menyentuh lock/energi.
     final res = await repository.generateQuestions(
-      count: settings.mode.isChoice ? kChoiceQuestionCount : kQuestionCount,
+      count: settings.mode.isChoice
+          ? QuizConfig.choicePoolCount
+          : QuizConfig.voiceQuestionCount,
       settings: settings,
     );
 
@@ -219,15 +210,55 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       energy: energy,
       questions: questions,
       phase: AnswerPhase.idle,
+      voiceSecondsLeft: QuizConfig.voiceQuestionSeconds,
     ));
     _startHeartbeat();
+    _startVoiceTimer();
+  }
+
+  /// Mulai/ulang hitung mundur berpikir untuk soal suara saat ini.
+  void _startVoiceTimer() {
+    _voiceTimer?.cancel();
+    emit(state.copyWith(voiceSecondsLeft: QuizConfig.voiceQuestionSeconds));
+    _voiceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final left = state.voiceSecondsLeft - 1;
+      if (left <= 0) {
+        _voiceTimer?.cancel();
+        emit(state.copyWith(voiceSecondsLeft: 0));
+        _skipOnTimeout();
+      } else {
+        emit(state.copyWith(voiceSecondsLeft: left));
+      }
+    });
+  }
+
+  /// Waktu berpikir habis → hentikan rekaman bila ada, catat soal 0 poin, lanjut.
+  Future<void> _skipOnTimeout() async {
+    // Hanya berlaku bila masih pada fase menjawab (belum dikirim/dinilai).
+    if (state.phase != AnswerPhase.idle &&
+        state.phase != AnswerPhase.recording) {
+      return;
+    }
+    if (state.phase == AnswerPhase.recording) {
+      try {
+        await _recorder.stop();
+      } catch (_) {}
+    }
+    final skipped = QuizAnswer(
+      questionIndex: state.currentIndex,
+      score: 0,
+      attempts: state.attempt,
+      passed: false,
+    );
+    await _commitVoiceAnswer(skipped);
   }
 
   void _startHeartbeat() {
     if (!_enforceEnergy) return;
     _holdsLock = true;
     _heartbeat?.cancel();
-    _heartbeat = Timer.periodic(_heartbeatInterval, (_) => repository.heartbeat());
+    _heartbeat = Timer.periodic(
+        QuizConfig.heartbeatInterval, (_) => repository.heartbeat());
   }
 
   /// Lepas lock + hentikan heartbeat (dipanggil saat selesai / keluar).
@@ -242,13 +273,6 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   // ── Mode pilihan (choice) ──────────────────────────────────────────────
 
-  /// Poin per soal bila benar penuh: 1 ayat=10, 2=15, 3=20 (all-or-nothing).
-  static int _pointsFor(int ayahCount) => switch (ayahCount) {
-        3 => 20,
-        2 => 15,
-        _ => 10,
-      };
-
   /// Masuk fase bermain mode pilihan + mulai timer mundur.
   void _enterChoicePlaying(
     QuizSettings settings,
@@ -258,7 +282,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       status: QuizStatus.playing,
       settings: settings,
       questions: questions,
-      secondsLeft: kChoiceDurationSeconds,
+      secondsLeft: QuizConfig.choiceDurationSeconds,
       picks: const [],
     ));
     _startChoiceTimer();
@@ -313,7 +337,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   void _evaluateChoice(List<int> picks) {
     final q = state.currentQuestion!;
     final correct = listEquals(picks, q.correctOptionOrder);
-    final points = correct ? _pointsFor(q.answerAyahCount) : 0;
+    final points = correct ? QuizConfig.choicePointsFor(q.answerAyahCount) : 0;
 
     final answer = QuizAnswer(
       questionIndex: state.currentIndex,
@@ -323,12 +347,18 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     );
 
     // Tampilkan umpan balik singkat, kunci opsi, lalu auto-lanjut.
+    // Benar → tambah waktu agar makin seru (time-attack).
     emit(state.copyWith(
       choiceCorrect: correct,
       answers: [...state.answers, answer],
+      secondsLeft:
+          correct
+              ? state.secondsLeft + QuizConfig.choiceTimeBonusSeconds
+              : state.secondsLeft,
+      timeBonusTick: correct ? state.timeBonusTick + 1 : state.timeBonusTick,
     ));
     _feedbackTimer?.cancel();
-    _feedbackTimer = Timer(_feedbackDelay, _advanceChoice);
+    _feedbackTimer = Timer(QuizConfig.choiceFeedbackDelay, _advanceChoice);
   }
 
   void _advanceChoice() {
@@ -411,6 +441,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   Future<void> stopAndCheck() async {
     final q = state.currentQuestion;
     if (q == null) return;
+    // Jawaban dikirim → hentikan hitung mundur berpikir.
+    _voiceTimer?.cancel();
     try {
       final stopped = await _recorder.stop();
       final path = stopped ?? _recordPath;
@@ -449,7 +481,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     final bestResult = pct >= state.bestPercent ? result : state.bestResult;
 
     // Gagal (<80%) di percobaan 1 → beri kesempatan ulang, belum difinalisasi.
-    if (pct < kPassThreshold && state.attempt == 1) {
+    if (pct < QuizConfig.passThreshold && state.attempt == 1) {
       emit(state.copyWith(
         phase: AnswerPhase.revealed,
         currentResult: result,
@@ -462,10 +494,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     }
 
     // Finalisasi: lolos, atau gagal 2x.
-    final bool passed = pct >= kPassThreshold;
+    final bool passed = pct >= QuizConfig.passThreshold;
     final bool reveal = !passed; // gagal 2x → buka kunci
     final int score = passed
-        ? (pct > kPerfectThreshold ? 100 : pct)
+        ? (pct > QuizConfig.perfectThreshold ? 100 : pct)
         : best; // gagal 2x → persentase terbaik dari 2 percobaan
 
     final pending = QuizAnswer(
@@ -496,11 +528,30 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       bonus: bonus,
       bonusStage: bonus != null ? BonusStage.offered : BonusStage.none,
       bonusSecondsLeft: 0,
+      bonusPrepSecondsLeft: bonus != null ? QuizConfig.bonusPrepSeconds : 0,
       bonusPicks: const [],
       bonusEarned: 0,
       clearBonus: bonus == null,
       clearBonusCorrect: true,
     ));
+
+    // Lolos + ada bonus → beri jeda berpikir, lalu Soal Bonus mulai otomatis.
+    if (bonus != null) _startBonusPrep();
+  }
+
+  /// Hitung mundur 5 detik jeda berpikir; di akhir, Soal Bonus mulai otomatis.
+  void _startBonusPrep() {
+    _bonusPrepTimer?.cancel();
+    _bonusPrepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final left = state.bonusPrepSecondsLeft - 1;
+      if (left <= 0) {
+        _bonusPrepTimer?.cancel();
+        emit(state.copyWith(bonusPrepSecondsLeft: 0));
+        startBonus();
+      } else {
+        emit(state.copyWith(bonusPrepSecondsLeft: left));
+      }
+    });
   }
 
   /// Ulangi soal (percobaan ke-2).
@@ -512,13 +563,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       revealAnswer: false,
       clearCurrentResult: true,
     ));
+    // Percobaan baru → hitung mundur berpikir dimulai lagi.
+    _startVoiceTimer();
   }
 
   // ── Bonus tebak surah (mode suara) ─────────────────────────────────────
-
-  /// Poin maksimum satu soal bonus (durasi hitung mundur per-soal dihitung dari
-  /// [QuizBonusQuestion.durationSeconds]).
-  static const int kBonusMaxPoints = 10;
 
   /// Himpunan surah yang tercakup rentang target (agar soal bonus tak overflow
   /// keluar dari juz/rentang yang dipilih).
@@ -537,9 +586,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   void startBonus() {
     final b = state.bonus;
     if (b == null || state.bonusStage != BonusStage.offered) return;
+    _bonusPrepTimer?.cancel();
     emit(state.copyWith(
       bonusStage: BonusStage.running,
       bonusSecondsLeft: b.durationSeconds,
+      bonusPrepSecondsLeft: 0,
       bonusPicks: const [],
       clearBonusCorrect: true,
     ));
@@ -580,8 +631,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _finishBonus();
   }
 
-  /// Nilai soal bonus: benar → poin sesuai sisa waktu (maks [kBonusMaxPoints]);
-  /// salah / waktu habis → 0. Poin disisipkan ke [pendingAnswer].
+  /// Nilai soal bonus: benar → poin sesuai sisa waktu (maks
+  /// [QuizConfig.bonusMaxPoints]); salah / waktu habis → 0. Poin disisipkan ke
+  /// [pendingAnswer].
   void _finishBonus({bool timedOut = false}) {
     _bonusTimer?.cancel();
     final b = state.bonus;
@@ -589,12 +641,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     final correct =
         !timedOut && listEquals(state.bonusPicks, b.correctOptionOrder);
     // Poin skala terhadap sisa waktu: jawab lebih cepat → poin lebih besar
-    // (maks [kBonusMaxPoints]). Benar tapi mepet tetap dapat minimal 1.
+    // (maks [QuizConfig.bonusMaxPoints]). Benar tapi mepet tetap dapat min. 1.
     var points = 0;
     if (correct) {
-      points = (kBonusMaxPoints * state.bonusSecondsLeft / b.durationSeconds)
+      points = (QuizConfig.bonusMaxPoints *
+              state.bonusSecondsLeft /
+              b.durationSeconds)
           .round()
-          .clamp(1, kBonusMaxPoints);
+          .clamp(1, QuizConfig.bonusMaxPoints);
     }
     emit(state.copyWith(
       bonusStage: BonusStage.done,
@@ -608,7 +662,17 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   Future<void> next() async {
     final pending = state.pendingAnswer;
     if (pending == null) return;
-    final answers = [...state.answers, pending];
+    await _commitVoiceAnswer(pending);
+  }
+
+  /// Catat [answer] soal suara saat ini lalu lanjut ke soal berikutnya (atau
+  /// selesaikan sesi bila soal terakhir). Dipakai tombol "Lanjut" maupun skip
+  /// otomatis saat waktu berpikir habis.
+  Future<void> _commitVoiceAnswer(QuizAnswer answer) async {
+    _voiceTimer?.cancel();
+    _bonusPrepTimer?.cancel();
+    _bonusTimer?.cancel();
+    final answers = [...state.answers, answer];
 
     if (state.isLastQuestion) {
       final result = QuizResult(
@@ -647,6 +711,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       bestPercent: 0,
       passed: false,
       revealAnswer: false,
+      bonusPrepSecondsLeft: 0,
       clearCurrentResult: true,
       clearBestResult: true,
       clearPendingAnswer: true,
@@ -658,6 +723,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       clearBonus: true,
       clearBonusCorrect: true,
     ));
+    // Soal baru → mulai lagi hitung mundur berpikir.
+    _startVoiceTimer();
   }
 
   /// Main lagi dari awal dengan setelan yang sama (soal baru).
@@ -669,6 +736,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _choiceTimer?.cancel();
     _feedbackTimer?.cancel();
     _bonusTimer?.cancel();
+    _voiceTimer?.cancel();
+    _bonusPrepTimer?.cancel();
     await _releaseSession();
     await _recorder.dispose();
     return super.close();
