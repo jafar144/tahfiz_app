@@ -97,6 +97,7 @@ class RecitationQuizPage extends StatelessWidget {
                       : const QuizPlayView(),
                   QuizStatus.finished => QuizResultView(
                       result: state.result!,
+                      review: state.review,
                       saving: state.saving,
                       saveError: state.saveError,
                       energy: state.energy,

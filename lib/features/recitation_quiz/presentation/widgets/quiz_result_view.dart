@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_review_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Layar rekap akhir sesi kuis (mode suara & pilihan).
 class QuizResultView extends StatelessWidget {
   final QuizResult result;
+  final List<QuizReviewItem> review;
   final bool saving;
   final String? saveError;
   final QuizEnergy? energy;
@@ -18,6 +21,7 @@ class QuizResultView extends StatelessWidget {
   const QuizResultView({
     super.key,
     required this.result,
+    this.review = const [],
     required this.saving,
     required this.saveError,
     this.energy,
@@ -75,9 +79,7 @@ class QuizResultView extends StatelessWidget {
                 total: result.leaderboardScore,
               ),
             ],
-            const SizedBox(height: 24),
-            _ScoreDots(scores: result.scores, choice: isChoice),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
             _saveStatus(context),
             const Spacer(),
 
@@ -86,6 +88,7 @@ class QuizResultView extends StatelessWidget {
               EnergyHint(energy: energy!, onRefillReady: onRefillReady),
               const SizedBox(height: 12),
             ],
+            // Aksi utama.
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -105,12 +108,47 @@ class QuizResultView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton(
-                onPressed: onFinish,
-                child: const Text('Selesai'),
-              ),
+            // Aksi sekunder berdampingan: Review (bila ada) + Selesai.
+            Row(
+              children: [
+                if (review.isNotEmpty) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => QuizReviewPage(
+                              items: review, mode: result.mode),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: const Icon(Icons.fact_check_rounded, size: 20),
+                      label: const Text('Review',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onFinish,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      foregroundColor: Colors.black54,
+                      side: BorderSide(
+                          color: Colors.black.withValues(alpha: 0.18)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    icon: const Icon(Icons.check_rounded, size: 20),
+                    label: const Text('Selesai',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -285,57 +323,6 @@ class _VoiceScoreBreakdown extends StatelessWidget {
         const SizedBox(height: 2),
         Text(label,
             style: const TextStyle(fontSize: 11, color: Colors.black45)),
-      ],
-    );
-  }
-}
-
-/// Deret titik skor per soal.
-class _ScoreDots extends StatelessWidget {
-  final List<int> scores;
-  final bool choice;
-
-  const _ScoreDots({required this.scores, this.choice = false});
-
-  Color _color(int score) {
-    // Mode pilihan: benar (poin>0) hijau, salah merah.
-    if (choice) return score > 0 ? QuizColors.correct : QuizColors.missing;
-    return QuizColors.forScore(score);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (scores.isEmpty) {
-      return const Text(
-        'Tidak ada soal terjawab',
-        style: TextStyle(fontSize: 12.5, color: Colors.black45),
-      );
-    }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: [
-        for (var i = 0; i < scores.length; i++)
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _color(scores[i]).withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-              border: Border.all(
-                  color: _color(scores[i]).withValues(alpha: 0.5)),
-            ),
-            child: Text(
-              '${scores[i]}',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: _color(scores[i]),
-              ),
-            ),
-          ),
       ],
     );
   }

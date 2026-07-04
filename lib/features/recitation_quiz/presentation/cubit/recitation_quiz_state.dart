@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bon
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 
 /// Status keseluruhan sesi kuis.
@@ -90,6 +91,10 @@ class RecitationQuizState extends Equatable {
   /// sebelum jawaban dikirim, soal di-skip otomatis.
   final int voiceSecondsLeft;
 
+  /// Sisa waktu (detik) jeda "pikir dulu" sebelum bacaan diulang otomatis
+  /// (percobaan 2); 0 = tak aktif.
+  final int retrySecondsLeft;
+
   /// Sisa waktu (detik) jeda berpikir sebelum Soal Bonus mulai otomatis
   /// (mode suara). 0 = tak aktif.
   final int bonusPrepSecondsLeft;
@@ -114,6 +119,10 @@ class RecitationQuizState extends Equatable {
   final QuizAnswer? pendingAnswer;
 
   final List<QuizAnswer> answers;
+
+  /// Rincian tiap soal untuk layar Review pasca-sesi (memori saja, tak disimpan).
+  final List<QuizReviewItem> review;
+
   final QuizResult? result;
 
   final bool saving;
@@ -189,6 +198,7 @@ class RecitationQuizState extends Equatable {
     this.phase = AnswerPhase.idle,
     this.attempt = 1,
     this.voiceSecondsLeft = 0,
+    this.retrySecondsLeft = 0,
     this.bonusPrepSecondsLeft = 0,
     this.currentResult,
     this.bestPercent = 0,
@@ -197,6 +207,7 @@ class RecitationQuizState extends Equatable {
     this.revealAnswer = false,
     this.pendingAnswer,
     this.answers = const [],
+    this.review = const [],
     this.result,
     this.saving = false,
     this.saveError,
@@ -303,6 +314,7 @@ class RecitationQuizState extends Equatable {
     AnswerPhase? phase,
     int? attempt,
     int? voiceSecondsLeft,
+    int? retrySecondsLeft,
     int? bonusPrepSecondsLeft,
     RecitationResult? currentResult,
     int? bestPercent,
@@ -311,6 +323,7 @@ class RecitationQuizState extends Equatable {
     bool? revealAnswer,
     QuizAnswer? pendingAnswer,
     List<QuizAnswer>? answers,
+    List<QuizReviewItem>? review,
     QuizResult? result,
     bool? saving,
     String? saveError,
@@ -355,6 +368,7 @@ class RecitationQuizState extends Equatable {
       phase: phase ?? this.phase,
       attempt: attempt ?? this.attempt,
       voiceSecondsLeft: voiceSecondsLeft ?? this.voiceSecondsLeft,
+      retrySecondsLeft: retrySecondsLeft ?? this.retrySecondsLeft,
       bonusPrepSecondsLeft: bonusPrepSecondsLeft ?? this.bonusPrepSecondsLeft,
       currentResult:
           clearCurrentResult ? null : (currentResult ?? this.currentResult),
@@ -365,6 +379,7 @@ class RecitationQuizState extends Equatable {
       pendingAnswer:
           clearPendingAnswer ? null : (pendingAnswer ?? this.pendingAnswer),
       answers: answers ?? this.answers,
+      review: review ?? this.review,
       result: result ?? this.result,
       saving: saving ?? this.saving,
       saveError: clearSaveError ? null : (saveError ?? this.saveError),
@@ -407,6 +422,7 @@ class RecitationQuizState extends Equatable {
         phase,
         attempt,
         voiceSecondsLeft,
+        retrySecondsLeft,
         bonusPrepSecondsLeft,
         currentResult,
         bestPercent,
@@ -415,6 +431,7 @@ class RecitationQuizState extends Equatable {
         revealAnswer,
         pendingAnswer,
         answers,
+        review,
         result,
         saving,
         saveError,

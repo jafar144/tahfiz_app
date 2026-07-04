@@ -24,6 +24,9 @@ enum QuizBonusType {
   ayahCount,
 }
 
+/// Tingkat kesulitan soal bonus (mode suara) — menentukan poin penuh & durasi.
+enum QuizBonusDifficulty { easy, medium, hard }
+
 /// Soal bonus / trivia surah: pilihan ganda seputar surah, ada hitung mundur
 /// pada mode suara.
 ///
@@ -124,14 +127,19 @@ class QuizBonusQuestion {
       pick < numberOptions.length &&
       numberOptions[pick] == answerNumber;
 
-  /// Poin soal ini di mode PILIHAN (trivia). Untuk [nameMeaning], benar satu
-  /// bagian saja → setengah dari nilai ini.
-  int get choicePoints => switch (type) {
-        QuizBonusType.nameMeaning => QuizConfig.triviaPointsNameMeaning,
-        QuizBonusType.orderNumber => QuizConfig.triviaPointsOrderNumber,
-        QuizBonusType.ayahCount => QuizConfig.triviaPointsAyahCount,
-        _ => QuizConfig.bonusMaxPoints,
+  /// Tingkat kesulitan soal bonus (mode suara) → menentukan poin penuh &
+  /// durasi hitung mundur.
+  QuizBonusDifficulty get difficulty => switch (type) {
+        QuizBonusType.identify => QuizBonusDifficulty.easy,
+        QuizBonusType.ayahCount => QuizBonusDifficulty.medium,
+        QuizBonusType.nameMeaning => QuizBonusDifficulty.medium,
+        QuizBonusType.neighbor => QuizBonusDifficulty.hard,
+        QuizBonusType.orderNumber => QuizBonusDifficulty.hard,
       };
+
+  /// Poin PENUH bila benar (mode suara), nilai tetap. Untuk [nameMeaning],
+  /// benar satu bagian saja → setengah dari nilai ini.
+  int get fullPoints => QuizConfig.bonusPointsVoice;
 
   /// Teks jawaban benar siap tampil (saat salah/waktu habis).
   String get answerLabel => switch (type) {
@@ -176,14 +184,12 @@ class QuizBonusQuestion {
   static String _cap(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
-  /// Detik hitung mundur untuk soal ini (bonus mode suara): identify pakai
-  /// durasi dasar; neighbor diberi waktu ekstra sesuai jarak surah; tipe trivia
-  /// baru memakai poinnya sebagai waktu (poin X → X+3 detik).
-  int get durationSeconds => switch (type) {
-        QuizBonusType.identify => QuizConfig.bonusBaseSeconds,
-        QuizBonusType.neighbor => QuizConfig.bonusBaseSeconds +
-            (offset - 1) * QuizConfig.bonusPerOffsetExtraSeconds,
-        _ => choicePoints + QuizConfig.triviaBonusExtraSeconds,
+  /// Detik hitung mundur untuk soal ini (bonus mode suara) menurut [difficulty]
+  /// — makin sulit, makin lama waktunya.
+  int get durationSeconds => switch (difficulty) {
+        QuizBonusDifficulty.easy => QuizConfig.bonusSecondsEasy,
+        QuizBonusDifficulty.medium => QuizConfig.bonusSecondsMedium,
+        QuizBonusDifficulty.hard => QuizConfig.bonusSecondsHard,
       };
 
   /// Susun soal bonus (mode suara) dari surah-surah yang BARUSAN DIBACA santri

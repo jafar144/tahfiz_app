@@ -16,6 +16,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
@@ -47,6 +48,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Timer batas berpikir per soal (mode suara); habis → skip otomatis.
   Timer? _voiceTimer;
 
+  /// Timer jeda "pikir dulu" sebelum bacaan diulang otomatis (percobaan 2).
+  Timer? _retryTimer;
+
   /// Timer jeda 5 detik sebelum Soal Bonus mulai otomatis (mode suara).
   Timer? _bonusPrepTimer;
 
@@ -55,6 +59,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   /// True bila sesi ini sedang memegang lock (perlu dilepas saat keluar).
   bool _holdsLock = false;
+
+  /// Jumlah Soal Bonus yang sudah ditawarkan pada sesi berjalan (untuk batas
+  /// TOTAL [QuizConfig.voiceBonusMaxPerSession]).
+  int _bonusesOffered = 0;
+
+  /// Indeks soal terakhir yang menampilkan Soal Bonus (untuk menjaga jarak
+  /// antar-bonus agar tersebar). -1 = belum ada.
+  int _lastBonusIndex = -1;
 
   // Semua konstanta gameplay (jumlah soal, timer, poin, ambang, saklar energi)
   // ada di [QuizConfig] — satu tempat untuk disetel.
@@ -101,6 +113,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _bonusTimer = null;
     _voiceTimer?.cancel();
     _voiceTimer = null;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     _bonusPrepTimer?.cancel();
     _bonusPrepTimer = null;
     await _releaseSession();
@@ -214,6 +228,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     List<QuizQuestion> questions,
     QuizEnergy? energy,
   ) {
+    _bonusesOffered = 0;
+    _lastBonusIndex = -1;
     emit(RecitationQuizState(
       status: QuizStatus.playing,
       settings: settings,
@@ -420,9 +436,12 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     // bonus salah/habis) → umpan balik singkat biasa.
     final bonusReward = trivia != null && points > 0;
 
+    final reviewItem =
+        _choiceReview(q, picks, state.meaningPick, correct, points);
     emit(state.copyWith(
       choiceCorrect: correct,
       answers: [...state.answers, answer],
+      review: [...state.review, reviewItem],
       secondsLeft: state.secondsLeft + timeBonus,
       lastTimeBonus: timeBonus,
       timeBonusTick:
@@ -616,7 +635,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         bestResult: bestResult,
         passed: false,
         revealAnswer: false,
+        retrySecondsLeft: QuizConfig.retryPrepSeconds,
       ));
+      // Beri jeda "pikir dulu"; di akhir hitungan, bacaan diulang otomatis.
+      _startRetryTimer();
       return;
     }
 
@@ -635,9 +657,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       bestResult: passed ? result : bestResult,
     );
 
-    // Lolos → siapkan soal bonus (tebak surah / trivia) bila bisa disusun.
-    // Fokus tebakan = surah yang BARUSAN DIBACA santri (bukan surah petunjuk).
-    final bonus = passed
+    // Lolos → siapkan soal bonus (tebak surah / trivia) bila bisa disusun, TAPI
+    // hanya tiap kelipatan soal & dibatasi beberapa kali per sesi supaya santri
+    // fokus merekam bacaan. Fokus tebakan = surah yang BARUSAN DIBACA.
+    final bonusSlot = passed &&
+        _bonusesOffered < QuizConfig.voiceBonusMaxPerSession &&
+        (state.currentIndex - _lastBonusIndex) >=
+            QuizConfig.voiceBonusEveryNQuestions;
+    final bonus = bonusSlot
         ? QuizBonusQuestion.generate(
             readSurahs: state.currentQuestion!.answerAyat
                 .map((a) => a.surahId)
@@ -646,6 +673,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
             rng: _rng,
           )
         : null;
+    if (bonus != null) {
+      _bonusesOffered++;
+      _lastBonusIndex = state.currentIndex;
+    }
 
     emit(state.copyWith(
       phase: AnswerPhase.revealed,
@@ -686,13 +717,31 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     });
   }
 
-  /// Ulangi soal (percobaan ke-2).
+  /// Hitung mundur jeda "pikir dulu"; di akhir, bacaan diulang otomatis.
+  void _startRetryTimer() {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final left = state.retrySecondsLeft - 1;
+      if (left <= 0) {
+        _retryTimer?.cancel();
+        emit(state.copyWith(retrySecondsLeft: 0));
+        if (state.canRetry) retry();
+      } else {
+        emit(state.copyWith(retrySecondsLeft: left));
+      }
+    });
+  }
+
+  /// Ulangi soal (percobaan ke-2) — otomatis saat jeda habis, atau ditekan
+  /// santri lebih awal.
   void retry() {
+    _retryTimer?.cancel();
     emit(state.copyWith(
       phase: AnswerPhase.idle,
       attempt: 2,
       passed: false,
       revealAnswer: false,
+      retrySecondsLeft: 0,
       clearCurrentResult: true,
     ));
     // Percobaan baru → hitung mundur berpikir dimulai lagi.
@@ -781,9 +830,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _finishBonus();
   }
 
-  /// Nilai soal bonus: benar → poin sesuai sisa waktu (maks
-  /// [QuizConfig.bonusMaxPoints]); nama+arti benar satu bagian → setengahnya;
-  /// salah / waktu habis → 0. Poin disisipkan ke [pendingAnswer].
+  /// Nilai soal bonus: benar → poin PENUH menurut kesulitan ([b.fullPoints]);
+  /// nama+arti benar satu bagian → setengahnya; salah / waktu habis → 0. Poin
+  /// disisipkan ke [pendingAnswer].
   void _finishBonus({bool timedOut = false}) {
     _bonusTimer?.cancel();
     final b = state.bonus;
@@ -808,18 +857,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       }
     }
 
-    // Poin skala terhadap sisa waktu: jawab lebih cepat → poin lebih besar
-    // (maks [QuizConfig.bonusMaxPoints]); benar tapi mepet tetap dapat min. 1;
-    // fraksi setengah → poin ikut setengah.
-    var points = 0;
-    if (fraction > 0) {
-      final full = (QuizConfig.bonusMaxPoints *
-              state.bonusSecondsLeft /
-              b.durationSeconds)
-          .round()
-          .clamp(1, QuizConfig.bonusMaxPoints);
-      points = (full * fraction).round().clamp(1, QuizConfig.bonusMaxPoints);
-    }
+    // Poin PENUH menurut kesulitan bila benar (tidak menyusut mengikuti sisa
+    // waktu — santri bebas berpikir tenang). Nama+arti benar sebagian → separuh.
+    final points = fraction > 0 ? (b.fullPoints * fraction).round() : 0;
     emit(state.copyWith(
       bonusStage: BonusStage.done,
       bonusCorrect: fraction > 0,
@@ -841,9 +881,13 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// otomatis saat waktu berpikir habis.
   Future<void> _commitVoiceAnswer(QuizAnswer answer) async {
     _voiceTimer?.cancel();
+    _retryTimer?.cancel();
     _bonusPrepTimer?.cancel();
     _bonusTimer?.cancel();
     final answers = [...state.answers, answer];
+    final q = state.currentQuestion;
+    final review =
+        q == null ? state.review : [...state.review, _voiceReview(q, answer)];
 
     if (state.isLastQuestion) {
       final result = QuizResult(
@@ -854,6 +898,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       emit(state.copyWith(
         status: QuizStatus.finished,
         answers: answers,
+        review: review,
         result: result,
         saving: true,
         clearSaveError: true,
@@ -876,6 +921,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
     emit(state.copyWith(
       answers: answers,
+      review: review,
       currentIndex: state.currentIndex + 1,
       phase: AnswerPhase.idle,
       attempt: 1,
@@ -903,6 +949,88 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Main lagi dari awal dengan setelan yang sama (soal baru).
   Future<void> playAgain() => start(state.settings);
 
+  /// Ringkasan review satu soal mode PILIHAN (pertanyaan + jawaban + kunci).
+  QuizReviewItem _choiceReview(
+    QuizQuestion q,
+    List<int> picks,
+    int? meaningPick,
+    bool correct,
+    int score,
+  ) {
+    final t = q.trivia;
+    if (t == null) {
+      final your = picks
+          .where((i) => i >= 0 && i < q.options.length)
+          .map((i) => q.options[i].text)
+          .join('   ');
+      final n = q.answerAyahCount;
+      return QuizReviewItem(
+        correct: correct,
+        score: score,
+        question: n > 1
+            ? 'Pilih $n ayat lanjutan yang benar'
+            : 'Pilih lanjutan ayat yang benar',
+        promptArabic: q.prompt.text,
+        yourAnswer: your.isEmpty ? '—' : your,
+        yourAnswerArabic: true,
+        correctAnswer: q.answerAyat.map((a) => a.text).join('   '),
+        correctAnswerArabic: true,
+      );
+    }
+    if (t.isNameMeaning) {
+      final nameIdx = picks.isNotEmpty ? picks.first : -1;
+      final yourName = (nameIdx >= 0 && nameIdx < t.options.length)
+          ? t.optionName(nameIdx)
+          : '—';
+      final yourMeaning = (meaningPick != null &&
+              meaningPick >= 0 &&
+              meaningPick < t.meaningOptions.length)
+          ? t.meaningOptions[meaningPick]
+          : '—';
+      return QuizReviewItem(
+        correct: correct,
+        score: score,
+        question: t.questionTextWith('ayat di atas'),
+        promptArabic: q.prompt.text,
+        yourAnswer: '$yourName — $yourMeaning',
+        correctAnswer: t.answerLabel,
+      );
+    }
+    final idx = picks.isNotEmpty ? picks.first : -1;
+    return QuizReviewItem(
+      correct: correct,
+      score: score,
+      question: t.questionTextWith('ayat di atas'),
+      promptArabic: q.prompt.text,
+      yourAnswer: (idx >= 0 && idx < t.numberOptions.length)
+          ? '${t.numberOptions[idx]}'
+          : '—',
+      correctAnswer: t.answerLabel,
+    );
+  }
+
+  /// Ringkasan review satu soal mode SUARA (instruksi + akurasi + ayat benar).
+  QuizReviewItem _voiceReview(QuizQuestion q, QuizAnswer a) {
+    final question = switch (q.task) {
+      QuizVoiceTask.lastAyah => 'Baca ayat TERAKHIR surah dari ayat ini',
+      QuizVoiceTask.specificAyah =>
+        'Baca ayat ke-${q.targetAyahNumber} dari surah ini',
+      QuizVoiceTask.continueAyah => q.answerAyahCount > 1
+          ? 'Lanjutkan ${q.answerAyahCount} ayat berikutnya'
+          : 'Lanjutkan ayat berikutnya',
+    };
+    return QuizReviewItem(
+      correct: a.passed,
+      score: a.score,
+      question: question,
+      promptArabic: q.prompt.text,
+      yourAnswer:
+          a.passed ? 'Bacaan lolos (${a.score}%)' : 'Akurasi ${a.score}%',
+      correctAnswer: q.answer.map((e) => e.text).join(' '),
+      correctAnswerArabic: true,
+    );
+  }
+
   @override
   Future<void> close() async {
     // Keluar (mis. tekan back di tengah kuis) → hentikan timer & lepas lock.
@@ -912,6 +1040,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _feedbackTimer?.cancel();
     _bonusTimer?.cancel();
     _voiceTimer?.cancel();
+    _retryTimer?.cancel();
     _bonusPrepTimer?.cancel();
     await _releaseSession();
     await _recorder.dispose();

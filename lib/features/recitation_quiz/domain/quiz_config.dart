@@ -11,6 +11,15 @@ class QuizConfig {
   /// Mode SUARA: jumlah soal per sesi.
   static const int voiceQuestionCount = 10;
 
+  /// Mode SUARA: Soal Bonus hanya ditawarkan tiap KELIPATAN soal ini (dan hanya
+  /// bila bacaan lolos), lalu DIBATASI [voiceBonusMaxPerSession] kali per sesi —
+  /// mengurangi "pindah mode" berpikir agar santri fokus merekam bacaan.
+  /// Mis. 3 = bonus di soal ke-3, 6, 9.
+  static const int voiceBonusEveryNQuestions = 3;
+
+  /// Mode SUARA: maksimum Soal Bonus per sesi (cukup beberapa kali saja).
+  static const int voiceBonusMaxPerSession = 3;
+
   /// Mode PILIHAN: jumlah soal yang disiapkan. Sengaja berlebih karena sesi
   /// dibatasi WAKTU (bukan jumlah soal) — pool besar agar tak habis lebih dulu.
   static const int choicePoolCount = 40;
@@ -51,17 +60,16 @@ class QuizConfig {
   /// secara otomatis.
   static const int bonusPrepSeconds = 5;
 
-  /// Soal BONUS: hitung mundur dasar (detik) untuk tipe "identify" (tebak surah
-  /// ayat tadi).
-  static const int bonusBaseSeconds = 15;
+  /// Mode SUARA: jeda "pikir dulu" (detik) setelah gagal di percobaan 1 —
+  /// hitung mundur sebelum bacaan diulang otomatis (santri bisa siapkan napas).
+  static const int retryPrepSeconds = 5;
 
-  /// Soal BONUS tipe "neighbor" (surah ke-N sebelum/sesudah): tambahan detik per
-  /// jarak surah. Durasi = [bonusBaseSeconds] + (jarak − 1) × nilai ini.
-  static const int bonusPerOffsetExtraSeconds = 2;
-
-  /// Soal BONUS tipe trivia baru (nama+arti / urutan / jumlah ayat): durasi
-  /// hitung mundur = poin tipe soal + nilai ini (poin X → waktu X+3 detik).
-  static const int triviaBonusExtraSeconds = 3;
+  /// Soal BONUS (mode SUARA): durasi hitung mundur menurut TINGKAT KESULITAN
+  /// soal. Makin sulit → makin lama, agar santri tak terburu-buru berpindah
+  /// dari "mode membaca" ke "mode berpikir".
+  static const int bonusSecondsEasy = 15;
+  static const int bonusSecondsMedium = 20;
+  static const int bonusSecondsHard = 30;
 
   /// Mode PILIHAN: total durasi satu sesi (detik) — hitung mundur time-attack.
   static const int choiceDurationSeconds = 60;
@@ -100,19 +108,9 @@ class QuizConfig {
   /// detik (n = jumlah ayat). 1 ayat→+2 dtk, 2→+3, 3→+4.
   static int choiceTimeBonusFor(int ayahCount) => ayahCount + 1;
 
-  /// Soal BONUS (mode suara): poin maksimum satu soal bonus. Poin menyusut
-  /// sesuai sisa waktu (jawab lebih cepat → lebih besar); benar tapi mepet tetap
-  /// dapat minimal 1.
-  static const int bonusMaxPoints = 10;
-
-  /// Poin soal TRIVIA surah (dipakai penuh di mode PILIHAN; di mode suara,
-  /// nilai ini "ditukar" jadi durasi soal bonus = poin + 3 detik).
-  /// - nameMeaning : nama + arti surah (benar satu bagian → setengah poin).
-  /// - orderNumber : tebak nomor urut surah dari surah acuan (sulit).
-  /// - ayahCount   : jumlah ayat surah.
-  static const int triviaPointsNameMeaning = 14;
-  static const int triviaPointsOrderNumber = 17;
-  static const int triviaPointsAyahCount = 12;
+  /// Soal BONUS (mode SUARA): poin PENUH bila benar — nilai TETAP (tak menyusut
+  /// mengikuti sisa waktu). Nama+arti yang benar satu bagian → setengahnya.
+  static const int bonusPointsVoice = 35;
 
   /// Soal trivia "urutan surah": jarak maksimum surah acuan dari surah target
   /// (acuan diundi ±1..nilai ini, tidak boleh jauh-jauh).
