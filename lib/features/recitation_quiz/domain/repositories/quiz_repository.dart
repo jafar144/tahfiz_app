@@ -10,10 +10,14 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_set
 
 abstract class QuizRepository {
   /// Susun [count] soal acak sesuai [settings] (juz terpilih + sambungan antar
-  /// surah). Tiap soal: 1 ayat petunjuk → lanjutkan 1-3 ayat berikutnya.
+  /// surah). Tiap soal: 1 ayat petunjuk + tugas yang bervariasi.
   ///
-  /// Pada mode pilihan (`settings.mode == choice`), tiap soal juga memuat
-  /// `options` (6 ayat teracak berisi jawaban benar).
+  /// Mode suara: tugas diundi — lanjutkan 1-3 ayat, baca ayat TERAKHIR surah,
+  /// atau baca ayat ke-N surah (lihat [QuizVoiceTask]).
+  ///
+  /// Mode pilihan (`settings.mode == choice`): tiap soal memuat `options`
+  /// (6 ayat teracak berisi jawaban benar), diselingi soal TRIVIA surah
+  /// (nama+arti / nomor urut / jumlah ayat) sesuai rasio di `QuizConfig`.
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
     int count,
     required QuizSettings settings,

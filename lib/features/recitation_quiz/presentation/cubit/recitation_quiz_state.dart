@@ -25,6 +25,23 @@ enum BonusStage {
   done,
 }
 
+/// Tahap Soal BONUS (trivia surah) pada mode PILIHAN. Selama tahap ini timer
+/// sesi utama dijeda dan soal punya hitung mundur sendiri.
+enum ChoiceBonusStage {
+  /// Bukan soal bonus (soal lanjutan ayat biasa).
+  none,
+
+  /// Splash "Soal Bonus" sesaat sebelum soal muncul.
+  intro,
+
+  /// Soal bonus tampil, hitung mundur berjalan.
+  running,
+
+  /// Dijawab BENAR — memperlihatkan hadiah (poin & waktu gratis beranimasi ke
+  /// HUD) sejenak sebelum lanjut ke soal berikutnya.
+  reward,
+}
+
 /// Fase pengerjaan satu soal.
 enum AnswerPhase {
   /// Menunggu santri mulai merekam.
@@ -106,16 +123,32 @@ class RecitationQuizState extends Equatable {
   /// Sisa waktu mundur (detik) untuk seluruh sesi mode pilihan.
   final int secondsLeft;
 
-  /// Indeks opsi yang dipilih santri, TERURUT (mode pilihan).
+  /// Indeks opsi yang dipilih santri, TERURUT (mode pilihan). Pada soal trivia
+  /// berisi satu indeks (opsi nama surah / opsi angka).
   final List<int> picks;
+
+  /// Indeks opsi ARTI surah terpilih (soal trivia nama+arti, mode pilihan);
+  /// null bila belum memilih.
+  final int? meaningPick;
 
   /// Umpan balik sesaat soal barusan (mode pilihan): null = belum dijawab,
   /// true = benar, false = salah. Saat non-null, opsi dikunci sejenak.
   final bool? choiceCorrect;
 
   /// Penghitung yang naik tiap jawaban benar mendapat tambahan waktu (mode
-  /// pilihan) — pemicu animasi "+2 dtk" di header.
+  /// pilihan) — pemicu animasi "+N dtk" di header.
   final int timeBonusTick;
+
+  /// Besar tambahan waktu (detik) dari jawaban benar TERAKHIR (mode pilihan),
+  /// untuk ditampilkan pada chip "+N dtk".
+  final int lastTimeBonus;
+
+  // ── Mode pilihan: Soal BONUS (trivia surah) ────────────────────────────
+  /// Tahap soal bonus mode pilihan saat ini (none = soal biasa).
+  final ChoiceBonusStage choiceBonusStage;
+
+  /// Sisa detik hitung mundur soal bonus mode pilihan (timer sendiri).
+  final int choiceBonusSecondsLeft;
 
   // ── Bonus tebak surah (mode suara) ──────────────────────────────────────
   /// Soal bonus aktif; null bila tak ada.
@@ -127,8 +160,15 @@ class RecitationQuizState extends Equatable {
   /// Sisa waktu (detik) hitung mundur soal bonus.
   final int bonusSecondsLeft;
 
-  /// Indeks opsi surah yang dipilih, TERURUT.
+  /// Indeks opsi surah/angka yang dipilih, TERURUT.
   final List<int> bonusPicks;
+
+  /// Indeks opsi ARTI surah terpilih (bonus nama+arti); null bila belum.
+  final int? bonusMeaningPick;
+
+  /// Fraksi kebenaran bonus terakhir: 1 = benar penuh, 0.5 = nama+arti benar
+  /// sebagian, 0 = salah/waktu habis. (Untuk teks hasil & poin setengah.)
+  final double bonusFraction;
 
   /// Poin bonus yang barusan diperoleh (untuk ditampilkan pada tahap done).
   final int bonusEarned;
@@ -162,12 +202,18 @@ class RecitationQuizState extends Equatable {
     this.saveError,
     this.secondsLeft = 0,
     this.picks = const [],
+    this.meaningPick,
     this.choiceCorrect,
     this.timeBonusTick = 0,
+    this.lastTimeBonus = 0,
+    this.choiceBonusStage = ChoiceBonusStage.none,
+    this.choiceBonusSecondsLeft = 0,
     this.bonus,
     this.bonusStage = BonusStage.none,
     this.bonusSecondsLeft = 0,
     this.bonusPicks = const [],
+    this.bonusMeaningPick,
+    this.bonusFraction = 0,
     this.bonusEarned = 0,
     this.bonusCorrect,
   });
@@ -204,14 +250,42 @@ class RecitationQuizState extends Equatable {
   /// Opsi terkunci selama umpan balik ditampilkan.
   bool get choiceLocked => choiceCorrect != null;
 
-  /// True bila pilihan sudah lengkap sesuai jumlah ayat yang diminta.
-  bool get choiceComplete =>
-      currentQuestion != null && picks.length == currentQuestion!.answerAyahCount;
+  /// True bila soal saat ini adalah Soal Bonus mode pilihan (splash / berjalan).
+  bool get isChoiceBonus => choiceBonusStage != ChoiceBonusStage.none;
+
+  /// True bila splash "Soal Bonus" sedang tampil (mode pilihan).
+  bool get choiceBonusIntro => choiceBonusStage == ChoiceBonusStage.intro;
+
+  /// True bila soal bonus sedang berjalan (hitung mundur, mode pilihan).
+  bool get choiceBonusRunning => choiceBonusStage == ChoiceBonusStage.running;
+
+  /// True bila sedang memperlihatkan hadiah Soal Bonus (mode pilihan).
+  bool get choiceBonusRewardStage =>
+      choiceBonusStage == ChoiceBonusStage.reward;
+
+  /// True bila pilihan sudah lengkap: soal ayat → sesuai jumlah ayat; trivia
+  /// nama+arti → kedua bagian terisi; trivia angka → satu pilihan.
+  bool get choiceComplete {
+    final q = currentQuestion;
+    if (q == null) return false;
+    final t = q.trivia;
+    if (t != null) {
+      if (t.isNameMeaning) return picks.isNotEmpty && meaningPick != null;
+      return picks.isNotEmpty;
+    }
+    return picks.length == q.answerAyahCount;
+  }
 
   // ── Getter bonus ───────────────────────────────────────────────────────
-  /// True bila pilihan bonus sudah lengkap sesuai jumlah surah jawaban.
-  bool get bonusComplete =>
-      bonus != null && bonusPicks.length == bonus!.requiredPicks;
+  /// True bila pilihan bonus sudah lengkap sesuai jenis soalnya.
+  bool get bonusComplete {
+    final b = bonus;
+    if (b == null) return false;
+    if (b.isNameMeaning) {
+      return bonusPicks.isNotEmpty && bonusMeaningPick != null;
+    }
+    return bonusPicks.length == b.requiredPicks;
+  }
 
   /// True bila soal bonus sedang aktif (hitung mundur berjalan).
   bool get bonusRunning => bonusStage == BonusStage.running;
@@ -242,12 +316,18 @@ class RecitationQuizState extends Equatable {
     String? saveError,
     int? secondsLeft,
     List<int>? picks,
+    int? meaningPick,
     bool? choiceCorrect,
     int? timeBonusTick,
+    int? lastTimeBonus,
+    ChoiceBonusStage? choiceBonusStage,
+    int? choiceBonusSecondsLeft,
     QuizBonusQuestion? bonus,
     BonusStage? bonusStage,
     int? bonusSecondsLeft,
     List<int>? bonusPicks,
+    int? bonusMeaningPick,
+    double? bonusFraction,
     int? bonusEarned,
     bool? bonusCorrect,
     bool clearError = false,
@@ -257,8 +337,10 @@ class RecitationQuizState extends Equatable {
     bool clearPendingAnswer = false,
     bool clearSaveError = false,
     bool clearChoiceFeedback = false,
+    bool clearMeaningPick = false,
     bool clearBonus = false,
     bool clearBonusCorrect = false,
+    bool clearBonusMeaningPick = false,
   }) {
     return RecitationQuizState(
       status: status ?? this.status,
@@ -288,13 +370,23 @@ class RecitationQuizState extends Equatable {
       saveError: clearSaveError ? null : (saveError ?? this.saveError),
       secondsLeft: secondsLeft ?? this.secondsLeft,
       picks: picks ?? this.picks,
+      meaningPick:
+          clearMeaningPick ? null : (meaningPick ?? this.meaningPick),
       choiceCorrect:
           clearChoiceFeedback ? null : (choiceCorrect ?? this.choiceCorrect),
       timeBonusTick: timeBonusTick ?? this.timeBonusTick,
+      lastTimeBonus: lastTimeBonus ?? this.lastTimeBonus,
+      choiceBonusStage: choiceBonusStage ?? this.choiceBonusStage,
+      choiceBonusSecondsLeft:
+          choiceBonusSecondsLeft ?? this.choiceBonusSecondsLeft,
       bonus: clearBonus ? null : (bonus ?? this.bonus),
       bonusStage: bonusStage ?? this.bonusStage,
       bonusSecondsLeft: bonusSecondsLeft ?? this.bonusSecondsLeft,
       bonusPicks: bonusPicks ?? this.bonusPicks,
+      bonusMeaningPick: clearBonusMeaningPick
+          ? null
+          : (bonusMeaningPick ?? this.bonusMeaningPick),
+      bonusFraction: bonusFraction ?? this.bonusFraction,
       bonusEarned: bonusEarned ?? this.bonusEarned,
       bonusCorrect:
           clearBonusCorrect ? null : (bonusCorrect ?? this.bonusCorrect),
@@ -328,12 +420,18 @@ class RecitationQuizState extends Equatable {
         saveError,
         secondsLeft,
         picks,
+        meaningPick,
         choiceCorrect,
         timeBonusTick,
+        lastTimeBonus,
+        choiceBonusStage,
+        choiceBonusSecondsLeft,
         bonus,
         bonusStage,
         bonusSecondsLeft,
         bonusPicks,
+        bonusMeaningPick,
+        bonusFraction,
         bonusEarned,
         bonusCorrect,
       ];

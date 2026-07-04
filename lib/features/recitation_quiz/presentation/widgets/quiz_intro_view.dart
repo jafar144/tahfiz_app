@@ -154,25 +154,36 @@ class QuizIntroView extends StatelessWidget {
         _RuleTile(
           icon: Icons.timer_rounded,
           title: 'Adu cepat 60 detik',
-          subtitle: 'Jawab sebanyak-banyaknya sebelum waktu habis.',
+          subtitle: 'Benar → +waktu (makin banyak ayat, makin banyak). '
+              'Jawab sebanyak mungkin sebelum waktu habis.',
+        ),
+        _RuleTile(
+          icon: Icons.auto_awesome_rounded,
+          title: 'Tiap soal ke-5: Soal Bonus',
+          subtitle:
+              'Soal seputar surah (nama & arti / nomor urut / jumlah ayat). '
+              'Waktu permainan dijeda, ada hitung mundur sendiri — benar +20 '
+              'poin & +10 detik.',
         ),
         _RuleTile(
           icon: Icons.bolt_rounded,
           title: 'Benar = poin, tanpa energi',
-          subtitle: '10 poin (1 ayat), 15 (2 ayat), 20 (3 ayat). Energi tidak terpakai.',
+          subtitle: 'Soal biasa: 10 poin (1 ayat), 14 (2 ayat), 18 (3 ayat). '
+              'Energi tidak terpakai.',
         ),
       ];
     }
     return const [
       _RuleTile(
         icon: Icons.menu_book_rounded,
-        title: '10 soal acak',
-        subtitle: 'Sebuah ayat ditampilkan, lanjutkan 1-3 ayat.',
+        title: '10 soal acak & bervariasi',
+        subtitle: 'Lanjutkan 1-3 ayat, baca ayat terakhir surah, atau baca '
+            'ayat ke-N dari surahnya.',
       ),
       _RuleTile(
         icon: Icons.mic_rounded,
         title: 'Rekam suaramu',
-        subtitle: 'Bukan pilihan ganda — bacakan lanjutannya.',
+        subtitle: 'Bukan pilihan ganda — bacakan jawabannya.',
       ),
       _RuleTile(
         icon: Icons.verified_rounded,
@@ -181,9 +192,10 @@ class QuizIntroView extends StatelessWidget {
       ),
       _RuleTile(
         icon: Icons.bolt_rounded,
-        title: 'Bonus tebak surah',
+        title: 'Bonus seputar surah',
         subtitle:
-            'Tiap bacaan yang lolos, ada soal kilat 10 detik untuk poin tambahan.',
+            'Tiap bacaan yang lolos, ada soal kilat berhitung mundur untuk '
+            'poin tambahan: tebak surah, nama & arti, urutan, jumlah ayat.',
       ),
     ];
   }

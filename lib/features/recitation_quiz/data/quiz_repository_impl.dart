@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitat
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
@@ -94,6 +95,25 @@ class QuizRepositoryImpl implements QuizRepository {
       final basmalahText =
           basmalahList.isNotEmpty ? basmalahList.first.text : '';
 
+      // Peta bantu per surah — dipakai soal "ayat terakhir" & "ayat ke-N".
+      // Rentang selalu memuat surah UTUH, jadi peta ini lengkap per surah.
+      final ayatBySurah = <int, Map<int, Ayah>>{};
+      final lastAyahOf = <int, Ayah>{};
+      for (final a in pool) {
+        (ayatBySurah[a.surahId] ??= <int, Ayah>{})[a.number] = a;
+        final last = lastAyahOf[a.surahId];
+        if (last == null || a.number > last.number) lastAyahOf[a.surahId] = a;
+      }
+
+      // Himpunan surah dalam rentang target (distraktor soal trivia).
+      final allowedSurahs = <int>{
+        for (final j in juzList)
+          for (var s = settings.startSurahFor(j);
+              s <= QuizJuz.lastSurah(j);
+              s++)
+            s,
+      };
+
       // Kandidat prompt = indeks ayat yang punya minimal 1 ayat lanjutan valid
       // (bukan ayat penutup segmen — lanjutannya akan menyeberang celah).
       final candidates = <int>[];
@@ -108,42 +128,87 @@ class QuizRepositoryImpl implements QuizRepository {
 
       final rng = Random();
       candidates.shuffle(rng);
-      final chosen = candidates.take(min(count, candidates.length));
 
-      final isChoice = settings.mode.isChoice;
-      final questions = <QuizQuestion>[];
-      for (final i in chosen) {
-        final prompt = pool[i];
-        final maxLen = _availableAnswerLen(pool, i, segmentEnds);
-        final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
-
-        // Ayat lanjutan mentah (tanpa basmalah).
-        final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
-
-        if (isChoice) {
-          // Mode pilihan: jawaban = ayat asli tanpa basmalah + rakit opsi.
-          questions.add(QuizQuestion(
-            prompt: prompt,
-            answer: rawAnswer,
-            options: _buildOptions(pool, prompt, rawAnswer, rng),
-          ));
-        } else {
-          // Mode suara: sisipkan basmalah di depan ayat awal surah baru.
-          final answer = <Ayah>[];
-          for (final a in rawAnswer) {
-            if (a.number == 1 && basmalahText.isNotEmpty) {
-              answer.add(Ayah(
-                surahId: a.surahId,
-                number: 0, // penanda basmalah (bukan ayat bernomor)
-                text: basmalahText,
-                page: a.page,
-                surahName: a.surahName,
-              ));
-            }
-            answer.add(a);
-          }
-          questions.add(QuizQuestion(prompt: prompt, answer: answer));
+      // Mode PILIHAN: urutan soal TETAP — tiap kelipatan interval diisi soal
+      // trivia/bonus, selebihnya soal lanjutan ayat. Tak diacak ulang agar
+      // posisi kelipatan konsisten.
+      if (settings.mode.isChoice) {
+        final choiceQuestions = _buildChoiceQuestions(
+          pool: pool,
+          candidates: candidates,
+          segmentEnds: segmentEnds,
+          allowed: allowedSurahs,
+          count: count,
+          rng: rng,
+        );
+        if (choiceQuestions.isEmpty) {
+          return const Left(
+              UnknownFailure('Data tidak cukup untuk menyusun soal.'));
         }
+        return Right(choiceQuestions);
+      }
+
+      // Mode SUARA: undi tugas per soal; urutan diacak di akhir.
+      final questions = <QuizQuestion>[];
+
+      // Penjaga keragaman: prompt tak boleh kembar (soal "ayat ke-N" memindah
+      // prompt ke ayat penutup surah — bisa bentrok), dan tiap variasi tugas
+      // per surah hanya muncul sekali per sesi.
+      final usedPrompts = <String>{};
+      final usedVariants = <String>{};
+      String keyOf(Ayah a) => '${a.surahId}:${a.number}';
+
+      for (final i in candidates) {
+        if (questions.length >= count) break;
+        final prompt = pool[i];
+
+        // Undi tugas soal (lanjutkan / ayat terakhir / ayat ke-N).
+        final task = _rollVoiceTask(prompt, lastAyahOf, usedVariants, rng);
+        switch (task) {
+          case QuizVoiceTask.continueAyah:
+            if (!usedPrompts.add(keyOf(prompt))) continue;
+            final maxLen = _availableAnswerLen(pool, i, segmentEnds);
+            final len = 1 + rng.nextInt(maxLen);
+            final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
+            questions.add(QuizQuestion(
+              prompt: prompt,
+              answer: _withBasmalah(rawAnswer, basmalahText),
+            ));
+
+          case QuizVoiceTask.lastAyah:
+            // Ayat tampil dijamin bukan penutup surah (dicek saat undi tugas).
+            if (!usedPrompts.add(keyOf(prompt))) continue;
+            usedVariants.add('last:${prompt.surahId}');
+            questions.add(QuizQuestion(
+              task: QuizVoiceTask.lastAyah,
+              prompt: prompt,
+              answer: [lastAyahOf[prompt.surahId]!],
+            ));
+
+          case QuizVoiceTask.specificAyah:
+            // Prompt DIGANTI jadi ayat penutup surah; minta baca ayat ke-N
+            // (N = 1..min(5, jumlah ayat), tak pernah ayat penutup itu sendiri).
+            final s = prompt.surahId;
+            final closing = lastAyahOf[s]!;
+            var maxN = min(QuizConfig.specificAyahMaxNumber, closing.number);
+            if (maxN >= closing.number) maxN = closing.number - 1;
+            if (maxN < 1) continue;
+            final n = 1 + rng.nextInt(maxN);
+            final target = ayatBySurah[s]?[n];
+            if (target == null) continue;
+            if (!usedPrompts.add(keyOf(closing))) continue;
+            usedVariants.add('specific:$s');
+            questions.add(QuizQuestion(
+              task: QuizVoiceTask.specificAyah,
+              prompt: closing,
+              answer: _withBasmalah([target], basmalahText),
+            ));
+        }
+      }
+
+      if (questions.isEmpty) {
+        return const Left(
+            UnknownFailure('Data tidak cukup untuk menyusun soal.'));
       }
 
       questions.shuffle(rng);
@@ -151,6 +216,145 @@ class QuizRepositoryImpl implements QuizRepository {
     } catch (e) {
       return Left(UnknownFailure('Gagal menyusun soal kuis: $e'));
     }
+  }
+
+  /// Susun soal mode PILIHAN dengan urutan TETAP: posisi kelipatan
+  /// [QuizConfig.choiceTriviaInterval] (5, 10, …) diisi soal TRIVIA surah
+  /// dengan tipe yang dirotasi merata (nama+arti / jumlah ayat / urutan);
+  /// selebihnya soal lanjutan ayat pilihan ganda.
+  List<QuizQuestion> _buildChoiceQuestions({
+    required List<Ayah> pool,
+    required List<int> candidates,
+    required Set<int> segmentEnds,
+    required Set<int> allowed,
+    required int count,
+    required Random rng,
+  }) {
+    final questions = <QuizQuestion>[];
+    final usedPrompts = <String>{};
+    String keyOf(Ayah a) => '${a.surahId}:${a.number}';
+
+    // Rotasi tipe trivia agar 3 variasi muncul merata sepanjang sesi.
+    final triviaTypes = <QuizBonusType>[
+      QuizBonusType.nameMeaning,
+      QuizBonusType.ayahCount,
+      QuizBonusType.orderNumber,
+    ]..shuffle(rng);
+    var triviaCount = 0;
+
+    var cursor = 0; // penunjuk kandidat berikutnya untuk soal biasa
+
+    // Kandidat (indeks pool) belum-terpakai berikutnya untuk soal lanjutan ayat.
+    int? nextNormal() {
+      while (cursor < candidates.length &&
+          usedPrompts.contains(keyOf(pool[candidates[cursor]]))) {
+        cursor++;
+      }
+      if (cursor >= candidates.length) return null;
+      return candidates[cursor++];
+    }
+
+    while (questions.length < count) {
+      final pos = questions.length + 1; // posisi 1-based soal berikutnya
+      final wantTrivia = pos % QuizConfig.choiceTriviaInterval == 0;
+
+      if (wantTrivia) {
+        final type = triviaTypes[triviaCount % triviaTypes.length];
+        QuizQuestion? built;
+        // Cari surah (dari kandidat mana pun yang belum terpakai) yang bisa
+        // menyusun tipe trivia terjadwal.
+        for (var s = cursor; s < candidates.length; s++) {
+          final a = pool[candidates[s]];
+          if (usedPrompts.contains(keyOf(a))) continue;
+          final trivia = QuizBonusQuestion.generateTrivia(
+            surah: a.surahId,
+            allowed: allowed,
+            rng: rng,
+            type: type,
+          );
+          if (trivia != null) {
+            usedPrompts.add(keyOf(a));
+            built = QuizQuestion(prompt: a, answer: const [], trivia: trivia);
+            break;
+          }
+        }
+        if (built != null) {
+          questions.add(built);
+          triviaCount++;
+          continue;
+        }
+        // Tak ada surah cocok untuk tipe ini → isi posisi dgn soal biasa.
+      }
+
+      // Soal biasa (lanjutan ayat).
+      final i = nextNormal();
+      if (i == null) break; // kandidat habis
+      final prompt = pool[i];
+      usedPrompts.add(keyOf(prompt));
+      final maxLen = _availableAnswerLen(pool, i, segmentEnds);
+      final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
+      final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
+      questions.add(QuizQuestion(
+        prompt: prompt,
+        answer: rawAnswer,
+        options: _buildOptions(pool, prompt, rawAnswer, rng),
+      ));
+    }
+    return questions;
+  }
+
+  /// Undi tugas soal suara untuk [prompt] sesuai bobot [QuizConfig]; hanya
+  /// tugas yang valid untuk ayat/surah ini yang ikut diundi.
+  QuizVoiceTask _rollVoiceTask(
+    Ayah prompt,
+    Map<int, Ayah> lastAyahOf,
+    Set<String> usedVariants,
+    Random rng,
+  ) {
+    final s = prompt.surahId;
+    final last = lastAyahOf[s];
+    final entries = <(QuizVoiceTask, int)>[
+      (QuizVoiceTask.continueAyah, QuizConfig.voiceTaskWeightContinue),
+    ];
+    // "Ayat terakhir surah": ayat tampil tak boleh penutup surah itu sendiri.
+    if (last != null &&
+        prompt.number != last.number &&
+        !usedVariants.contains('last:$s')) {
+      entries.add((QuizVoiceTask.lastAyah, QuizConfig.voiceTaskWeightLastAyah));
+    }
+    // "Baca ayat ke-N": butuh minimal 2 ayat agar N ≠ ayat penutup.
+    if (last != null &&
+        last.number >= 2 &&
+        !usedVariants.contains('specific:$s')) {
+      entries.add(
+          (QuizVoiceTask.specificAyah, QuizConfig.voiceTaskWeightSpecificAyah));
+    }
+    var roll = rng.nextInt(entries.fold(0, (t, e) => t + e.$2));
+    for (final e in entries) {
+      roll -= e.$2;
+      if (roll < 0) return e.$1;
+    }
+    return QuizVoiceTask.continueAyah;
+  }
+
+  /// Sisipkan penanda basmalah (ayat bernomor 0) di depan tiap ayat pertama
+  /// surah — bacaan yang dimulai dari awal surah memang diawali basmalah.
+  List<Ayah> _withBasmalah(List<Ayah> rawAnswer, String basmalahText) {
+    if (basmalahText.isEmpty) return rawAnswer;
+    final answer = <Ayah>[];
+    for (final a in rawAnswer) {
+      if (a.number == 1) {
+        answer.add(Ayah(
+          surahId: a.surahId,
+          number: 0, // penanda basmalah (bukan ayat bernomor)
+          text: basmalahText,
+          page: a.page,
+          surahName: a.surahName,
+        ));
+      }
+      answer.add(a);
+    }
+    return answer;
   }
 
   /// Rakit [QuizConfig.choiceOptionCount] opsi ayat: jawaban benar + distraktor.

@@ -2,8 +2,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Layar mengerjakan soal: kartu ayat prompt + tombol rekam + hasil per soal.
@@ -110,7 +112,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                       // Petunjuk "lanjutkan" disembunyikan saat tahap bonus
                       // (ayat tetap tampil sebagai acuan soal tebak surah).
                       if (state.bonusStage == BonusStage.none) ...[
-                        _PromptHint(ayahCount: q.answerAyahCount),
+                        _PromptHint(question: q),
                         const SizedBox(height: 12),
                       ],
                       PromptAyahCard(text: q.prompt.text),
@@ -177,15 +179,16 @@ class _QuizPlayViewState extends State<QuizPlayView> {
 }
 
 class _PromptHint extends StatelessWidget {
-  /// Jumlah ayat yang harus dilanjutkan santri.
-  final int ayahCount;
+  /// Soal aktif — teks instruksi menyesuaikan tugasnya (lanjutkan ayat /
+  /// ayat terakhir / ayat ke-N).
+  final QuizQuestion question;
 
-  const _PromptHint({required this.ayahCount});
+  const _PromptHint({required this.question});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    // "Lanjutkan" & "berikutnya": tetap biru, sedikit lebih tipis dari "N ayat".
+    // Kata kerja tetap biru, sedikit lebih tipis dari bagian inti perintah.
     final base = TextStyle(
       fontWeight: FontWeight.w500,
       color: scheme.primary.withValues(alpha: 0.85),
@@ -194,6 +197,28 @@ class _PromptHint extends StatelessWidget {
       fontWeight: FontWeight.w900,
       color: scheme.primary,
     );
+
+    final ayahCount = question.answerAyahCount;
+    final TextSpan instruction = switch (question.task) {
+      QuizVoiceTask.lastAyah => TextSpan(style: base, children: [
+          const TextSpan(text: 'Baca '),
+          TextSpan(text: 'ayat TERAKHIR', style: strong),
+          const TextSpan(text: ' dari surah ayat ini'),
+        ]),
+      QuizVoiceTask.specificAyah => TextSpan(style: base, children: [
+          const TextSpan(text: 'Ini ayat penutup surah — baca '),
+          TextSpan(
+              text: 'ayat ke-${question.targetAyahNumber}', style: strong),
+          const TextSpan(text: ' surah ini'),
+        ]),
+      QuizVoiceTask.continueAyah => ayahCount > 1
+          ? TextSpan(style: base, children: [
+              const TextSpan(text: 'Lanjutkan '),
+              TextSpan(text: '$ayahCount ayat', style: strong),
+              const TextSpan(text: ' berikutnya'),
+            ])
+          : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
+    };
     // Kartu instruksi selebar penuh + label "SOAL" agar keseluruhan perintah
     // (bukan cuma ayatnya) langsung terbaca jelas — tanpa memperbesar teksnya.
     return Container(
@@ -223,17 +248,7 @@ class _PromptHint extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Expanded(
-            child: Text.rich(
-              ayahCount > 1
-                  ? TextSpan(style: base, children: [
-                      const TextSpan(text: 'Lanjutkan '),
-                      TextSpan(text: '$ayahCount ayat', style: strong),
-                      const TextSpan(text: ' berikutnya'),
-                    ])
-                  : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
-            ),
-          ),
+          Expanded(child: Text.rich(instruction)),
           Icon(Icons.arrow_downward_rounded, size: 20, color: scheme.primary),
         ],
       ),
@@ -432,7 +447,7 @@ class _BonusPrep extends StatelessWidget {
             children: [
               Icon(Icons.bolt_rounded, color: QuizColors.goldDark, size: 20),
               SizedBox(width: 6),
-              Text('Soal Bonus • Tebak Surah',
+              Text('Soal Bonus • Seputar Surah',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -513,7 +528,8 @@ class _BonusRunningView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
-    final scheme = Theme.of(context).colorScheme;
+    final namePick =
+        state.bonusPicks.isNotEmpty ? state.bonusPicks.first : null;
     return Column(
       children: [
         _BonusTimerBar(
@@ -521,21 +537,7 @@ class _BonusRunningView extends StatelessWidget {
           total: b.durationSeconds,
         ),
         const SizedBox(height: 18),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
-          ),
-          child: Text(
-            b.questionText,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, height: 1.4),
-          ),
-        ),
+        TriviaQuestionCard(text: b.questionText, hint: b.hintText),
         if (b.isMulti) ...[
           const SizedBox(height: 8),
           Text(
@@ -547,20 +549,53 @@ class _BonusRunningView extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 14),
-        ...List.generate(b.options.length, (i) {
-          final order = state.bonusPicks.indexOf(i);
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SurahOptionTile(
-              name: b.optionName(i),
-              orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
-              selected: order >= 0,
-              onTap: () => cubit.pickBonus(i),
-            ),
-          );
-        }),
-        if (b.isMulti) ...[
-          const SizedBox(height: 4),
+
+        // Opsi jawaban sesuai jenis soal.
+        if (b.isNameMeaning) ...[
+          // Dua bagian: nama surah + arti surah.
+          TriviaSection(
+            label: 'Nama Surah',
+            icon: Icons.menu_book_rounded,
+            options: [
+              for (var i = 0; i < b.options.length; i++) b.optionName(i),
+            ],
+            picked: namePick,
+            onPick: cubit.pickBonus,
+          ),
+          const SizedBox(height: 12),
+          TriviaSection(
+            label: 'Arti Surah',
+            icon: Icons.translate_rounded,
+            options: b.meaningOptions,
+            picked: state.bonusMeaningPick,
+            onPick: cubit.pickBonusMeaning,
+          ),
+        ] else if (b.isNumber)
+          // Soal angka (nomor urut / jumlah ayat).
+          TriviaNumberOptions(
+            options: [for (final n in b.numberOptions) '$n'],
+            picked: namePick,
+            onPick: cubit.pickBonus,
+          )
+        else
+          // Tebak surah klasik (identify / neighbor).
+          Column(
+            children: List.generate(b.options.length, (i) {
+              final order = state.bonusPicks.indexOf(i);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _SurahOptionTile(
+                  name: b.optionName(i),
+                  orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
+                  selected: order >= 0,
+                  onTap: () => cubit.pickBonus(i),
+                ),
+              );
+            }),
+          ),
+
+        if (b.needsSubmit) ...[
+          const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -719,11 +754,17 @@ class _BonusResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
+    final full = state.bonusFraction >= 1;
+    final partial = state.bonusFraction > 0 && !full;
     final correct = state.bonusCorrect == true;
-    final color = correct ? QuizColors.correct : QuizColors.missing;
+    final color = full
+        ? QuizColors.correct
+        : (partial ? QuizColors.gold : QuizColors.missing);
     final String title;
-    if (correct) {
+    if (full) {
       title = 'Benar! +${state.bonusEarned} poin bonus';
+    } else if (partial) {
+      title = 'Benar sebagian! +${state.bonusEarned} poin bonus';
     } else if (state.bonusSecondsLeft == 0) {
       title = 'Waktu habis';
     } else {
@@ -758,10 +799,10 @@ class _BonusResultCard extends StatelessWidget {
                       color: color)),
             ],
           ),
-          if (!correct) ...[
+          if (!full) ...[
             const SizedBox(height: 6),
             Text(
-              'Jawaban: ${b.answerNames.join(', ')}',
+              'Jawaban: ${b.answerLabel}',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: Colors.black54),
             ),
