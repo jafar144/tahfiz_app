@@ -20,9 +20,14 @@ class QuizConfig {
   /// Mode SUARA: maksimum Soal Bonus per sesi (cukup beberapa kali saja).
   static const int voiceBonusMaxPerSession = 3;
 
-  /// Mode PILIHAN: jumlah soal yang disiapkan. Sengaja berlebih karena sesi
-  /// dibatasi WAKTU (bukan jumlah soal) — pool besar agar tak habis lebih dulu.
+  /// Mode PILIHAN: jumlah soal per BATCH. Sesi dibatasi WAKTU (bukan jumlah
+  /// soal): saat sisa soal menipis, batch baru disambung otomatis sehingga soal
+  /// praktis tak terbatas — kuis hanya berhenti ketika waktu habis.
   static const int choicePoolCount = 40;
+
+  /// Mode PILIHAN: bila sisa soal (dari posisi saat ini) turun ≤ nilai ini,
+  /// batch soal baru disambung lebih dulu agar tak pernah kehabisan soal.
+  static const int choiceTopUpThreshold = 10;
 
   /// Mode PILIHAN: jumlah opsi ayat per soal (memuat jawaban benar + distraktor).
   static const int choiceOptionCount = 6;
@@ -80,7 +85,7 @@ class QuizConfig {
   /// detik & +[choiceTriviaPoints] poin ke sesi utama (benar sebagian pada
   /// nama+arti → setengahnya).
   static const int choiceTriviaSeconds = 15;
-  static const int choiceTriviaTimeBonus = 10;
+  static const int choiceTriviaTimeBonus = 8;
   static const int choiceTriviaPoints = 20;
 
   /// Mode PILIHAN: durasi splash "Soal Bonus" sesaat sebelum soal trivia
@@ -104,9 +109,9 @@ class QuizConfig {
   /// n = jumlah ayat yang diminta. 1 ayat→10, 2→14, 3→18. Salah = 0.
   static int choicePointsFor(int ayahCount) => 4 * ayahCount + 6;
 
-  /// Mode PILIHAN (soal lanjutan ayat): tambahan waktu bila BENAR = n + 1
-  /// detik (n = jumlah ayat). 1 ayat→+2 dtk, 2→+3, 3→+4.
-  static int choiceTimeBonusFor(int ayahCount) => ayahCount + 1;
+  /// Mode PILIHAN (soal lanjutan ayat): tambahan waktu bila BENAR = n detik
+  /// (n = jumlah ayat). 1 ayat→+1 dtk, 2→+2, 3→+3.
+  static int choiceTimeBonusFor(int ayahCount) => ayahCount;
 
   /// Soal BONUS (mode SUARA): poin PENUH bila benar — nilai TETAP (tak menyusut
   /// mengikuti sisa waktu). Nama+arti yang benar satu bagian → setengahnya.
