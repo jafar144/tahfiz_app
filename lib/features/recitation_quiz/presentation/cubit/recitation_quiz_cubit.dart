@@ -66,6 +66,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   DateTime? _bonusPrepDeadline;
   DateTime? _retryDeadline;
 
+  /// True selama batch soal tambahan mode pilihan sedang disusun (mencegah
+  /// penyambungan ganda yang berjalan bersamaan).
+  bool _toppingUp = false;
+
   /// Sumber acak untuk menyusun soal bonus.
   final Random _rng = Random();
 
@@ -326,6 +330,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     QuizSettings settings,
     List<QuizQuestion> questions,
   ) {
+    _toppingUp = false;
     emit(RecitationQuizState(
       status: QuizStatus.playing,
       settings: settings,
@@ -497,7 +502,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     final wasTrivia = state.currentQuestion?.isTrivia == true;
     final next = state.currentIndex + 1;
     if (next >= state.questions.length) {
-      _finishChoice(); // soal habis lebih dulu
+      // Pool habis lebih dulu padahal sesi dibatasi WAKTU: seharusnya sudah
+      // disambung oleh _maybeTopUpChoiceQuestions. Bila belum sempat (data
+      // terbatas / penyusunan gagal), selesaikan apa adanya sebagai pengaman.
+      _finishChoice();
       return;
     }
     final nextIsTrivia = state.questions[next].isTrivia;
@@ -514,6 +522,41 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     } else if (wasTrivia) {
       // Keluar dari Soal Bonus → jalankan lagi timer sesi utama.
       _startChoiceTimer();
+    }
+    // Sisa soal menipis → sambung batch baru lebih dulu agar tak kehabisan.
+    _maybeTopUpChoiceQuestions();
+  }
+
+  /// Bila sisa soal (dari posisi saat ini) ≤ [QuizConfig.choiceTopUpThreshold],
+  /// susun satu batch soal pilihan baru dan sambung ke daftar. Berjalan di latar
+  /// (tak menunda transisi soal) dan dijaga agar tak menyusun dua batch
+  /// bersamaan. Sesi mode pilihan jadi praktis tak terbatas — hanya waktu yang
+  /// mengakhirinya.
+  Future<void> _maybeTopUpChoiceQuestions() async {
+    if (_toppingUp || !state.settings.mode.isChoice) return;
+    final remaining = state.questions.length - state.currentIndex - 1;
+    if (remaining > QuizConfig.choiceTopUpThreshold) return;
+
+    _toppingUp = true;
+    try {
+      final res = await repository.generateQuestions(
+        count: QuizConfig.choicePoolCount,
+        settings: state.settings,
+      );
+      res.fold(
+        ifLeft: (_) {}, // gagal menyusun → biarkan; pengaman di _advanceChoice.
+        ifRight: (qs) {
+          // Hanya sambung bila masih bermain mode pilihan (hindari balapan
+          // dengan keluar/selesai sesi).
+          if (qs.isNotEmpty &&
+              state.status == QuizStatus.playing &&
+              state.settings.mode.isChoice) {
+            emit(state.copyWith(questions: [...state.questions, ...qs]));
+          }
+        },
+      );
+    } finally {
+      _toppingUp = false;
     }
   }
 
