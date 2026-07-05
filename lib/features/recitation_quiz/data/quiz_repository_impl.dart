@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -430,8 +431,11 @@ class QuizRepositoryImpl implements QuizRepository {
       var name = user.displayName ?? '';
       var role = '';
       try {
-        final doc =
-            await firestore.collection('users').doc(user.uid).get();
+        final doc = await firestore
+            .collection('users')
+            .doc(user.uid)
+            .get()
+            .timeout(const Duration(seconds: 5));
         final data = doc.data();
         if (data != null) {
           name = (data['name'] as String?)?.trim().isNotEmpty == true
@@ -453,20 +457,27 @@ class QuizRepositoryImpl implements QuizRepository {
       String two(int n) => n.toString().padLeft(2, '0');
       final dateKey = '${now.year}-${two(now.month)}-${two(now.day)}';
 
-      // 1) HISTORI — selalu ditulis (arsip lengkap tiap sesi).
-      await firestore.collection(_collection).add({
-        'user_id': user.uid,
-        'user_name': name,
-        'role': role,
-        'mode': mode.key,
-        'juz': juz,
-        'score': score,
-        'bonus_score': bonusTotal,
-        'question_scores': questionScores,
-        'question_count': questionScores.length,
-        'date_key': dateKey,
-        'created_at': FieldValue.serverTimestamp(),
-      });
+      // 1) HISTORI — selalu ditulis (arsip lengkap tiap sesi). Saat OFFLINE,
+      // Firestore mengantre tulisan ini di cache lokal & menyinkronkannya
+      // otomatis saat online — jadi bila menunggu ACK server melewati batas
+      // waktu, anggap tersimpan (data TIDAK hilang) daripada menggantung UI.
+      try {
+        await firestore.collection(_collection).add({
+          'user_id': user.uid,
+          'user_name': name,
+          'role': role,
+          'mode': mode.key,
+          'juz': juz,
+          'score': score,
+          'bonus_score': bonusTotal,
+          'question_scores': questionScores,
+          'question_count': questionScores.length,
+          'date_key': dateKey,
+          'created_at': FieldValue.serverTimestamp(),
+        }).timeout(const Duration(seconds: 6));
+      } on TimeoutException {
+        // Tersimpan di antrean lokal & akan tersinkron otomatis; lanjut.
+      }
 
       // 2) LEADERBOARD — hanya diperbarui bila skor melampaui best (best-effort;
       // histori di atas adalah sumber kebenaran, kegagalan di sini diabaikan).
@@ -478,9 +489,10 @@ class QuizRepositoryImpl implements QuizRepository {
           mode: mode,
           monthKey: _monthKey(now),
           score: score,
-        );
+        ).timeout(const Duration(seconds: 6));
       } catch (_) {
-        // Diabaikan; skor tetap tersimpan di histori.
+        // Diabaikan (termasuk offline: transaksi butuh server); skor tetap
+        // tersimpan di histori sebagai sumber kebenaran.
       }
 
       return const Right(null);

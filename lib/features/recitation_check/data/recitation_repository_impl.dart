@@ -89,7 +89,8 @@ class RecitationRepositoryImpl implements RecitationRepository {
       );
       return Right(result);
     } on TranscriptionException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Left(
+          e.isNetwork ? NetworkFailure(e.message) : ServerFailure(e.message));
     } catch (e) {
       return Left(ServerFailure('Gagal memeriksa bacaan: $e'));
     }

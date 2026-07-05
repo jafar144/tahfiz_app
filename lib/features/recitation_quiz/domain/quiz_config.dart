@@ -65,6 +65,11 @@ class QuizConfig {
   /// secara otomatis.
   static const int bonusPrepSeconds = 5;
 
+  /// Mode SUARA: dari [bonusPrepSeconds] jeda di atas, sekian detik TERAKHIR
+  /// dipakai untuk splash transisi "Soal Bonus" (layar emas). Sebelum itu, HASIL
+  /// "lolos" soal tetap ditampilkan agar santri tahu jawabannya BENAR dulu.
+  static const int bonusPrepSplashSeconds = 2;
+
   /// Mode SUARA: jeda "pikir dulu" (detik) setelah gagal di percobaan 1 —
   /// hitung mundur sebelum bacaan diulang otomatis (santri bisa siapkan napas).
   static const int retryPrepSeconds = 5;

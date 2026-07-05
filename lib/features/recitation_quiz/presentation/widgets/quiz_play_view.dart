@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
@@ -19,6 +20,9 @@ class QuizPlayView extends StatefulWidget {
 
 class _QuizPlayViewState extends State<QuizPlayView> {
   final AudioPlayer _player = AudioPlayer();
+
+  /// True selama sheet "koneksi terputus" sedang ditampilkan (cegah tampil ganda).
+  bool _offlineSheetOpen = false;
 
   @override
   void dispose() {
@@ -46,8 +50,24 @@ class _QuizPlayViewState extends State<QuizPlayView> {
               (p.phase != c.phase || p.currentIndex != c.currentIndex)) ||
           (c.bonusStage == BonusStage.done &&
               p.bonusStage != BonusStage.done) ||
-          (c.errorMessage != null && p.errorMessage != c.errorMessage),
+          (c.errorMessage != null && p.errorMessage != c.errorMessage) ||
+          (p.connectionLost != c.connectionLost),
       listener: (context, state) {
+        // Koneksi terputus saat mengirim rekaman → sheet "sambungkan lagi".
+        if (state.connectionLost && !_offlineSheetOpen) {
+          _offlineSheetOpen = true;
+          final cubit = context.read<RecitationQuizCubit>();
+          showModalBottomSheet(
+            context: context,
+            isDismissible: false,
+            enableDrag: false,
+            backgroundColor: Colors.transparent,
+            builder: (_) => BlocProvider.value(
+              value: cubit,
+              child: const _OfflineSheet(),
+            ),
+          ).whenComplete(() => _offlineSheetOpen = false);
+        }
         if (state.errorMessage != null) {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -70,7 +90,14 @@ class _QuizPlayViewState extends State<QuizPlayView> {
         if (q == null) return const SizedBox.shrink();
 
         // Soal Bonus mode suara: layar khusus penuh emas (meniru mode Pilihan).
-        if (state.bonusStage != BonusStage.none) {
+        // Selama jeda (offered), TAHAN dulu tampilan hasil "lolos" agar santri
+        // tahu soal tadi BENAR; baru di beberapa detik terakhir pindah ke splash
+        // transisi Soal Bonus. Saat berjalan / selesai selalu layar emas.
+        final inBonusSplash = state.bonusStage == BonusStage.offered &&
+            state.bonusPrepSecondsLeft <= QuizConfig.bonusPrepSplashSeconds;
+        if (state.bonusStage == BonusStage.running ||
+            state.bonusStage == BonusStage.done ||
+            inBonusSplash) {
           return _VoiceBonusScreen(state: state, cubit: cubit);
         }
 
@@ -180,6 +207,110 @@ class _QuizPlayViewState extends State<QuizPlayView> {
         style: TextStyle(
             color: color, fontSize: 11, fontWeight: FontWeight.w600),
       ),
+    );
+  }
+}
+
+/// Sheet non-dismissible saat koneksi terputus ketika mengirim rekaman (mode
+/// suara). Rekaman DITAHAN & menawarkan "Kirim Ulang" setelah tersambung lagi;
+/// menutup sendiri saat pengiriman berhasil atau sesi ditinggalkan.
+class _OfflineSheet extends StatelessWidget {
+  const _OfflineSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<RecitationQuizCubit, RecitationQuizState>(
+      listenWhen: (p, c) =>
+          p.connectionLost != c.connectionLost || p.phase != c.phase,
+      listener: (context, state) {
+        // Tertangani (berhasil kirim / keluar / error non-jaringan) → tutup.
+        final resolved =
+            !state.connectionLost && state.phase != AnswerPhase.processing;
+        if (resolved && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      },
+      builder: (context, state) {
+        final retrying = !state.connectionLost; // sedang mengirim ulang
+        return PopScope(
+          canPop: false, // wajib lewat tombol (Kirim Ulang / Keluar)
+          child: SafeArea(
+            top: false,
+            child: Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: QuizColors.missing.withValues(alpha: 0.12),
+                    ),
+                    child: const Icon(Icons.wifi_off_rounded,
+                        color: QuizColors.missing, size: 32),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Koneksi Terputus',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Bacaanmu perlu internet untuk diperiksa. Rekamanmu aman — '
+                    'sambungkan kembali lalu kirim ulang.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54, height: 1.4),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: retrying
+                          ? null
+                          : () =>
+                              context.read<RecitationQuizCubit>().retryCheck(),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: retrying
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.refresh_rounded),
+                      label: Text(retrying ? 'Mengirim ulang…' : 'Kirim Ulang',
+                          style: const TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // tutup sheet
+                        context.read<RecitationQuizCubit>().backToIntro();
+                      },
+                      style:
+                          TextButton.styleFrom(foregroundColor: Colors.black54),
+                      child: const Text('Keluar dari kuis'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

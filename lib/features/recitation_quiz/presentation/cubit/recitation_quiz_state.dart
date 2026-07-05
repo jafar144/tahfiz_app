@@ -128,6 +128,10 @@ class RecitationQuizState extends Equatable {
   final bool saving;
   final String? saveError;
 
+  /// True bila pengiriman rekaman (mode suara) gagal karena koneksi terputus.
+  /// UI menampilkan sheet "sambungkan lagi"; rekaman ditahan untuk dikirim ulang.
+  final bool connectionLost;
+
   // ── Mode pilihan (choice) ──────────────────────────────────────────────
   /// Sisa waktu mundur (detik) untuk seluruh sesi mode pilihan.
   final int secondsLeft;
@@ -211,6 +215,7 @@ class RecitationQuizState extends Equatable {
     this.result,
     this.saving = false,
     this.saveError,
+    this.connectionLost = false,
     this.secondsLeft = 0,
     this.picks = const [],
     this.meaningPick,
@@ -327,6 +332,7 @@ class RecitationQuizState extends Equatable {
     QuizResult? result,
     bool? saving,
     String? saveError,
+    bool? connectionLost,
     int? secondsLeft,
     List<int>? picks,
     int? meaningPick,
@@ -383,6 +389,7 @@ class RecitationQuizState extends Equatable {
       result: result ?? this.result,
       saving: saving ?? this.saving,
       saveError: clearSaveError ? null : (saveError ?? this.saveError),
+      connectionLost: connectionLost ?? this.connectionLost,
       secondsLeft: secondsLeft ?? this.secondsLeft,
       picks: picks ?? this.picks,
       meaningPick:
@@ -435,6 +442,7 @@ class RecitationQuizState extends Equatable {
         result,
         saving,
         saveError,
+        connectionLost,
         secondsLeft,
         picks,
         meaningPick,

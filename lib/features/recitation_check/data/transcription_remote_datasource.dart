@@ -4,9 +4,12 @@ import 'dart:typed_data';
 import 'package:cloud_functions/cloud_functions.dart';
 
 /// Dilempar saat transkripsi gagal, membawa pesan yang ramah pengguna.
+/// [isNetwork] true bila kegagalan karena koneksi (bukan kuota/kesalahan server)
+/// — dipakai UI untuk menampilkan sheet "sambungkan lagi", bukan sekadar error.
 class TranscriptionException implements Exception {
   final String message;
-  const TranscriptionException(this.message);
+  final bool isNetwork;
+  const TranscriptionException(this.message, {this.isNetwork = false});
 }
 
 /// Memanggil Cloud Function `transcribeRecitation` (proxy Groq Whisper).
@@ -35,8 +38,16 @@ class TranscriptionRemoteDataSource {
       final data = Map<String, dynamic>.from(result.data as Map);
       return (data['text'] as String?)?.trim() ?? '';
     } on FirebaseFunctionsException catch (e) {
-      // Pesan dari HttpsError di server (mis. kuota habis) sudah ramah.
-      throw TranscriptionException(e.message ?? 'Transkripsi gagal.');
+      // Koneksi terputus → callable gagal dengan kode ini. Bedakan agar UI bisa
+      // menawarkan "sambungkan lagi & kirim ulang".
+      final isNetwork =
+          e.code == 'unavailable' || e.code == 'deadline-exceeded';
+      throw TranscriptionException(
+        isNetwork
+            ? 'Koneksi internet terputus.'
+            : (e.message ?? 'Transkripsi gagal.'),
+        isNetwork: isNetwork,
+      );
     }
   }
 }

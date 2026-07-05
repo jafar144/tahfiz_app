@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
@@ -26,6 +27,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   final QuizSettingsStore settingsStore;
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordPath;
+
+  /// Path rekaman yang menunggu diperiksa; ditahan agar bisa DIKIRIM ULANG bila
+  /// pengiriman gagal karena koneksi terputus (mode suara).
+  String? _pendingCheckPath;
 
   /// Timer perpanjang lock sesi selama bermain; null bila tak bermain.
   Timer? _heartbeat;
@@ -141,12 +146,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _retryTimer = null;
     _bonusPrepTimer?.cancel();
     _bonusPrepTimer = null;
-    await _releaseSession();
+    // Reset UI dulu agar kembali ke intro terasa instan (penting saat offline:
+    // pelepasan lock ke server bisa lambat/timeout). Lepas lock di latar.
     emit(RecitationQuizState(
       settings: state.settings,
       settingsLoaded: state.settingsLoaded,
       energy: state.energy,
     ));
+    unawaited(_releaseSession());
     await loadEnergy();
   }
 
@@ -309,8 +316,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     if (!_enforceEnergy) return;
     _holdsLock = true;
     _heartbeat?.cancel();
-    _heartbeat = Timer.periodic(
-        QuizConfig.heartbeatInterval, (_) => repository.heartbeat());
+    // Kegagalan heartbeat (mis. koneksi terputus sesaat) diabaikan agar tak
+    // memunculkan error tak tertangani; lease server tetap terjaga oleh tick
+    // berikutnya saat online kembali.
+    _heartbeat = Timer.periodic(QuizConfig.heartbeatInterval,
+        (_) => repository.heartbeat().catchError((_) {}));
   }
 
   /// Lepas lock + hentikan heartbeat (dipanggil saat selesai / keluar).
@@ -319,7 +329,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _heartbeat = null;
     if (_holdsLock) {
       _holdsLock = false;
-      await repository.endSession();
+      // Best-effort: offline/gagal diabaikan (lease server kedaluwarsa sendiri),
+      // dengan timeout agar tak menggantung.
+      try {
+        await repository.endSession().timeout(const Duration(seconds: 5));
+      } catch (_) {}
     }
   }
 
@@ -675,26 +689,54 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         ));
         return;
       }
-      emit(state.copyWith(phase: AnswerPhase.processing, clearError: true));
-
-      final res = await repository.checkAnswer(
-        answerAyat: q.answer,
-        audioFilePath: path,
-        mimeType: 'audio/mp4',
-      );
-      res.fold(
-        ifLeft: (f) => emit(state.copyWith(
-          phase: AnswerPhase.idle,
-          errorMessage: f.message,
-        )),
-        ifRight: _applyResult,
-      );
+      await _submitForCheck(path);
     } catch (e) {
       emit(state.copyWith(
         phase: AnswerPhase.idle,
         errorMessage: 'Gagal memproses bacaan: $e',
       ));
     }
+  }
+
+  /// Kirim rekaman [path] ke server untuk diperiksa. Dipakai saat menghentikan
+  /// rekaman maupun saat "Kirim Ulang" setelah koneksi pulih.
+  Future<void> _submitForCheck(String path) async {
+    final q = state.currentQuestion;
+    if (q == null) return;
+    _pendingCheckPath = path;
+    emit(state.copyWith(
+      phase: AnswerPhase.processing,
+      clearError: true,
+      connectionLost: false,
+    ));
+
+    final res = await repository.checkAnswer(
+      answerAyat: q.answer,
+      audioFilePath: path,
+      mimeType: 'audio/mp4',
+    );
+    res.fold(
+      ifLeft: (f) {
+        if (f is NetworkFailure) {
+          // Koneksi terputus → tahan rekaman & tampilkan sheet "sambungkan
+          // lagi". Tetap di fase processing agar rekaman siap dikirim ulang.
+          emit(state.copyWith(connectionLost: true));
+        } else {
+          emit(state.copyWith(
+            phase: AnswerPhase.idle,
+            errorMessage: f.message,
+          ));
+        }
+      },
+      ifRight: _applyResult,
+    );
+  }
+
+  /// Kirim ulang rekaman terakhir setelah koneksi pulih (dipicu sheet offline).
+  void retryCheck() {
+    final path = _pendingCheckPath;
+    if (path == null) return;
+    unawaited(_submitForCheck(path));
   }
 
   void _applyResult(RecitationResult result) {
