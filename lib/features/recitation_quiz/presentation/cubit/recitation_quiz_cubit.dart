@@ -54,6 +54,18 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Timer jeda 5 detik sebelum Soal Bonus mulai otomatis (mode suara).
   Timer? _bonusPrepTimer;
 
+  // Batas waktu ABSOLUT (wall-clock) tiap hitung mundur. Sisa detik dihitung
+  // dari selisih terhadap [DateTime.now] pada tiap tick — BUKAN dengan
+  // mengurangi 1 per tick. Ini penting agar timer tetap akurat saat aplikasi
+  // sempat di-background: OS menangguhkan event loop sehingga banyak tick
+  // terlewat, tapi begitu satu tick jalan lagi sisa waktu langsung benar.
+  DateTime? _choiceDeadline;
+  DateTime? _choiceBonusDeadline;
+  DateTime? _voiceDeadline;
+  DateTime? _bonusDeadline;
+  DateTime? _bonusPrepDeadline;
+  DateTime? _retryDeadline;
+
   /// Sumber acak untuk menyusun soal bonus.
   final Random _rng = Random();
 
@@ -85,6 +97,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   RecitationQuizCubit(this.repository, this.settingsStore)
       : super(const RecitationQuizState());
+
+  /// Sisa detik menuju [deadline], dibulatkan KE ATAS agar hitung mundur mulai
+  /// dari angka penuh dan menyentuh 0 tepat saat deadline lewat. Tak pernah
+  /// negatif.
+  int _secondsLeftUntil(DateTime deadline) {
+    final ms = deadline.difference(DateTime.now()).inMilliseconds;
+    return ms <= 0 ? 0 : (ms + 999) ~/ 1000;
+  }
 
   /// Inisialisasi layar: muat setelan tersimpan lalu energi terkini.
   Future<void> init() async {
@@ -246,8 +266,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   void _startVoiceTimer() {
     _voiceTimer?.cancel();
     emit(state.copyWith(voiceSecondsLeft: QuizConfig.voiceQuestionSeconds));
+    _voiceDeadline = DateTime.now()
+        .add(Duration(seconds: QuizConfig.voiceQuestionSeconds));
     _voiceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.voiceSecondsLeft - 1;
+      final left = _secondsLeftUntil(_voiceDeadline!);
       if (left <= 0) {
         _voiceTimer?.cancel();
         emit(state.copyWith(voiceSecondsLeft: 0));
@@ -322,8 +344,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
   void _startChoiceTimer() {
     _choiceTimer?.cancel();
+    // (Re)mulai dari sisa detik saat ini — juga dipakai untuk MELANJUTKAN timer
+    // sesi setelah Soal Bonus (yang menjedanya) dengan sisa waktu yang tersimpan.
+    _choiceDeadline = DateTime.now().add(Duration(seconds: state.secondsLeft));
     _choiceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.secondsLeft - 1;
+      final left = _secondsLeftUntil(_choiceDeadline!);
       if (left <= 0) {
         _choiceTimer?.cancel();
         emit(state.copyWith(secondsLeft: 0));
@@ -452,6 +477,12 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
               ? ChoiceBonusStage.running
               : state.choiceBonusStage),
     ));
+    // Bonus waktu → geser deadline sesi utama agar tambahan waktu ikut terhitung
+    // pada timer yang sedang berjalan (soal biasa). Untuk Soal Bonus, timer sesi
+    // sedang dijeda; deadline akan dihitung ulang dari secondsLeft saat lanjut.
+    if (timeBonus > 0 && _choiceDeadline != null) {
+      _choiceDeadline = _choiceDeadline!.add(Duration(seconds: timeBonus));
+    }
     _feedbackTimer?.cancel();
     _feedbackTimer = Timer(
       bonusReward
@@ -506,8 +537,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     if (state.status != QuizStatus.playing) return;
     emit(state.copyWith(choiceBonusStage: ChoiceBonusStage.running));
     _choiceBonusTimer?.cancel();
+    _choiceBonusDeadline =
+        DateTime.now().add(Duration(seconds: state.choiceBonusSecondsLeft));
     _choiceBonusTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.choiceBonusSecondsLeft - 1;
+      final left = _secondsLeftUntil(_choiceBonusDeadline!);
       if (left <= 0) {
         _choiceBonusTimer?.cancel();
         emit(state.copyWith(choiceBonusSecondsLeft: 0));
@@ -705,8 +738,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Hitung mundur 5 detik jeda berpikir; di akhir, Soal Bonus mulai otomatis.
   void _startBonusPrep() {
     _bonusPrepTimer?.cancel();
+    _bonusPrepDeadline =
+        DateTime.now().add(Duration(seconds: state.bonusPrepSecondsLeft));
     _bonusPrepTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.bonusPrepSecondsLeft - 1;
+      final left = _secondsLeftUntil(_bonusPrepDeadline!);
       if (left <= 0) {
         _bonusPrepTimer?.cancel();
         emit(state.copyWith(bonusPrepSecondsLeft: 0));
@@ -720,8 +755,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Hitung mundur jeda "pikir dulu"; di akhir, bacaan diulang otomatis.
   void _startRetryTimer() {
     _retryTimer?.cancel();
+    _retryDeadline =
+        DateTime.now().add(Duration(seconds: state.retrySecondsLeft));
     _retryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.retrySecondsLeft - 1;
+      final left = _secondsLeftUntil(_retryDeadline!);
       if (left <= 0) {
         _retryTimer?.cancel();
         emit(state.copyWith(retrySecondsLeft: 0));
@@ -778,8 +815,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       clearBonusMeaningPick: true,
     ));
     _bonusTimer?.cancel();
+    _bonusDeadline = DateTime.now().add(Duration(seconds: b.durationSeconds));
     _bonusTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final left = state.bonusSecondsLeft - 1;
+      final left = _secondsLeftUntil(_bonusDeadline!);
       if (left <= 0) {
         emit(state.copyWith(bonusSecondsLeft: 0));
         _finishBonus(timedOut: true);
