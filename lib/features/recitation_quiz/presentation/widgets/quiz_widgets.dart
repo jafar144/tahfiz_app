@@ -25,6 +25,110 @@ class QuizColors {
   }
 }
 
+/// Pergantian soal ala Duolingo: soal & jawaban lama menggeser keluar ke kiri
+/// sementara soal baru masuk dari kanan. Hanya membungkus area soal+jawaban —
+/// timer/poin di luar tetap diam. [index] harus berubah tiap ganti soal agar
+/// animasi terpicu; perubahan lain dalam soal yang sama (mis. warna opsi saat
+/// terkunci) tidak ikut beranimasi karena key-nya tetap.
+class QuestionSlideSwitcher extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const QuestionSlideSwitcher({
+    super.key,
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 340),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          // Soal masuk (key = index terkini) meluncur dari kanan; soal lama
+          // (key lama) meluncur keluar ke kiri.
+          final incoming = child.key == ValueKey(index);
+          final begin = incoming ? const Offset(1, 0) : const Offset(-1, 0);
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: begin,
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          );
+        },
+        // Beri kedua kartu ukuran penuh agar konten ber-Expanded (mis. daftar
+        // opsi yang mengisi sisa layar) tetap punya tinggi terikat saat digeser.
+        layoutBuilder: (currentChild, previousChildren) => Stack(
+          children: [
+            for (final c in previousChildren) Positioned.fill(child: c),
+            if (currentChild != null) Positioned.fill(child: currentChild),
+          ],
+        ),
+        child: KeyedSubtree(key: ValueKey(index), child: child),
+      ),
+    );
+  }
+}
+
+/// Peralihan ke/dari layar Soal Bonus dengan gaya "menimpa": hanya lapisan
+/// bonus yang bergerak vertikal & selalu berada di atas, sedangkan layar soal
+/// biasa diam. Masuk → bonus naik dari bawah menutupi; keluar → bonus turun
+/// keluar menyingkap soal berikutnya di bawahnya. [showBonus] menandai layar
+/// bonus sedang tampil.
+class BonusCoverSwitcher extends StatelessWidget {
+  final bool showBonus;
+  final Widget child;
+
+  const BonusCoverSwitcher({
+    super.key,
+    required this.showBonus,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 380),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        // Hanya lapisan SOAL BONUS yang bergerak; layar soal biasa selalu diam.
+        // Masuk → bonus naik dari bawah menutupi; keluar → bonus turun keluar
+        // menyingkap soal berikutnya yang sudah diam di bawahnya (saat keluar,
+        // animasi lapisan bonus berjalan mundur sehingga bergeser ke bawah).
+        final isBonusLayer = child.key == const ValueKey(true);
+        if (!isBonusLayer) return child;
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        );
+      },
+      layoutBuilder: (currentChild, previousChildren) {
+        // Lapisan bonus wajib selalu di ATAS agar terlihat menimpa (saat masuk)
+        // dan menyingkap (saat keluar). Saat masuk, bonus = layar baru
+        // (current); saat keluar, bonus = layar lama (previous).
+        final prev = [
+          for (final c in previousChildren) Positioned.fill(child: c),
+        ];
+        final curr = currentChild == null
+            ? const <Widget>[]
+            : [Positioned.fill(child: currentChild)];
+        return Stack(
+          children: showBonus ? [...prev, ...curr] : [...curr, ...prev],
+        );
+      },
+      child: KeyedSubtree(key: ValueKey(showBonus), child: child),
+    );
+  }
+}
+
 /// Cincin skor beranimasi dengan angka persentase di tengah.
 class ScoreRing extends StatelessWidget {
   final int percent;
@@ -123,8 +227,8 @@ class SegmentedProgress extends StatelessWidget {
                 color: i < doneScores.length
                     ? QuizColors.forScore(doneScores[i])
                     : (i == currentIndex
-                        ? primary
-                        : primary.withValues(alpha: 0.15)),
+                          ? primary
+                          : primary.withValues(alpha: 0.15)),
               ),
             ),
           ),
@@ -188,40 +292,48 @@ class CorrectionText extends StatelessWidget {
     for (final d in diffs) {
       switch (d.status) {
         case WordStatus.correct:
-          spans.add(TextSpan(
-            text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
-            style: const TextStyle(color: QuizColors.correct),
-          ));
+          spans.add(
+            TextSpan(
+              text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
+              style: const TextStyle(color: QuizColors.correct),
+            ),
+          );
         case WordStatus.wrong:
-          spans.add(TextSpan(
-            text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
-            style: const TextStyle(
-              color: QuizColors.wrong,
-              decoration: TextDecoration.underline,
-              decorationStyle: TextDecorationStyle.dashed,
-              decorationColor: QuizColors.wrong,
+          spans.add(
+            TextSpan(
+              text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
+              style: const TextStyle(
+                color: QuizColors.wrong,
+                decoration: TextDecoration.underline,
+                decorationStyle: TextDecorationStyle.dashed,
+                decorationColor: QuizColors.wrong,
+              ),
             ),
-          ));
+          );
         case WordStatus.missing:
-          spans.add(TextSpan(
-            text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
-            style: const TextStyle(
-              color: QuizColors.missing,
-              decoration: TextDecoration.lineThrough,
-              decorationColor: QuizColors.missing,
+          spans.add(
+            TextSpan(
+              text: '${d.referenceWordDisplay ?? d.referenceWord ?? ''} ',
+              style: const TextStyle(
+                color: QuizColors.missing,
+                decoration: TextDecoration.lineThrough,
+                decorationColor: QuizColors.missing,
+              ),
             ),
-          ));
+          );
         case WordStatus.extra:
           final w = d.spokenWord ?? '';
           if (w.isEmpty) continue;
-          spans.add(TextSpan(
-            text: '$w ',
-            style: const TextStyle(
-              color: QuizColors.extra,
-              decoration: TextDecoration.underline,
-              decorationColor: QuizColors.extra,
+          spans.add(
+            TextSpan(
+              text: '$w ',
+              style: const TextStyle(
+                color: QuizColors.extra,
+                decoration: TextDecoration.underline,
+                decorationColor: QuizColors.extra,
+              ),
             ),
-          ));
+          );
       }
     }
     return Directionality(
@@ -275,7 +387,10 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: Colors.black54),
+        ),
       ],
     );
   }
@@ -296,36 +411,36 @@ String formatRefill(Duration d) {
 
 /// Tampilkan bottom sheet informasi kenapa kuis tidak bisa dimulai.
 Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
-  final ({IconData icon, Color color, String title, String message}) info =
-      switch (reason) {
+  final ({IconData icon, Color color, String title, String message})
+  info = switch (reason) {
     QuizBlockReason.busy => (
-        icon: Icons.groups_rounded,
-        color: QuizColors.gold,
-        title: 'Kuis sedang dipakai',
-        message:
-            'Sedang ada yang bermain kuis. Kuis hanya bisa dimainkan satu '
-                'orang dalam satu waktu — silakan tunggu sebentar lalu coba lagi.',
-      ),
+      icon: Icons.groups_rounded,
+      color: QuizColors.gold,
+      title: 'Kuis sedang dipakai',
+      message:
+          'Sedang ada yang bermain kuis. Kuis hanya bisa dimainkan satu '
+          'orang dalam satu waktu — silakan tunggu sebentar lalu coba lagi.',
+    ),
     QuizBlockReason.whisperLimit => (
-        icon: Icons.hourglass_top_rounded,
-        color: QuizColors.wrong,
-        title: 'Kuis sedang istirahat',
-        message:
-            'Kuota pemeriksaan bacaan sedang penuh. Silakan coba lagi beberapa '
-                'saat lagi, ya.',
-      ),
+      icon: Icons.hourglass_top_rounded,
+      color: QuizColors.wrong,
+      title: 'Kuis sedang istirahat',
+      message:
+          'Kuota pemeriksaan bacaan sedang penuh. Silakan coba lagi beberapa '
+          'saat lagi, ya.',
+    ),
     QuizBlockReason.noEnergy => (
-        icon: kEnergyIcon,
-        color: QuizColors.missing,
-        title: 'Energi habis',
-        message: 'Tunggu energi terisi kembali untuk bermain lagi.',
-      ),
+      icon: kEnergyIcon,
+      color: QuizColors.missing,
+      title: 'Energi habis',
+      message: 'Tunggu energi terisi kembali untuk bermain lagi.',
+    ),
     QuizBlockReason.unknown => (
-        icon: Icons.error_outline_rounded,
-        color: QuizColors.missing,
-        title: 'Belum bisa dimulai',
-        message: 'Terjadi kendala saat memulai kuis. Silakan coba lagi.',
-      ),
+      icon: Icons.error_outline_rounded,
+      color: QuizColors.missing,
+      title: 'Belum bisa dimulai',
+      message: 'Terjadi kendala saat memulai kuis. Silakan coba lagi.',
+    ),
   };
 
   return showModalBottomSheet<void>(
@@ -354,8 +469,7 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
             const SizedBox(height: 16),
             Text(
               info.title,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -375,9 +489,10 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text('Mengerti',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Mengerti',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -547,7 +662,10 @@ class _EnergyBadgeState extends State<EnergyBadge> {
             Text(
               '${e.current}/${e.max}',
               style: TextStyle(
-                  color: color, fontWeight: FontWeight.bold, fontSize: 13),
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
             const SizedBox(width: 3),
             Icon(Icons.keyboard_arrow_down_rounded, size: 15, color: color),
@@ -621,9 +739,11 @@ class _EnergyHintState extends State<EnergyHint> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(kEnergyIcon,
-            size: 15,
-            color: empty ? QuizColors.missing : QuizColors.goldDark),
+        Icon(
+          kEnergyIcon,
+          size: 15,
+          color: empty ? QuizColors.missing : QuizColors.goldDark,
+        ),
         const SizedBox(width: 6),
         Text(
           '$label ${formatRefill(remaining)}',
@@ -633,4 +753,3 @@ class _EnergyHintState extends State<EnergyHint> {
     );
   }
 }
-

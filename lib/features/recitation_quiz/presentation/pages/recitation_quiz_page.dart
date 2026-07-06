@@ -12,8 +12,27 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
-class RecitationQuizPage extends StatelessWidget {
+class RecitationQuizPage extends StatefulWidget {
   const RecitationQuizPage({super.key});
+
+  @override
+  State<RecitationQuizPage> createState() => _RecitationQuizPageState();
+}
+
+class _RecitationQuizPageState extends State<RecitationQuizPage> {
+  /// Urutan alur layar. Dipakai untuk menentukan arah transisi: menuju indeks
+  /// lebih besar = "maju" (halaman baru naik dari bawah), lebih kecil =
+  /// "mundur" (halaman baru turun dari atas).
+  static const _order = {
+    QuizStatus.intro: 0,
+    QuizStatus.loading: 1,
+    QuizStatus.error: 1,
+    QuizStatus.playing: 2,
+    QuizStatus.finished: 3,
+  };
+
+  QuizStatus? _prevStatus;
+  bool _advancing = true;
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +43,21 @@ class RecitationQuizPage extends StatelessWidget {
           c.startBlock != null && p.startBlock != c.startBlock,
       listener: (context, state) async {
         await showQuizBlockSheet(context, state.startBlock!);
-        if (context.mounted) context.read<RecitationQuizCubit>().clearStartBlock();
+        if (context.mounted) {
+          context.read<RecitationQuizCubit>().clearStartBlock();
+        }
       },
       builder: (context, state) {
-        final playing = state.status == QuizStatus.playing;
-        final atIntro = state.status == QuizStatus.intro;
+        final status = state.status;
+        // Perbarui arah transisi hanya ketika status benar-benar berganti,
+        // agar rebuild lain (mis. pindah soal) tak mengubah arah.
+        if (_prevStatus != null && _prevStatus != status) {
+          _advancing = (_order[status] ?? 0) >= (_order[_prevStatus] ?? 0);
+        }
+        _prevStatus = status;
+
+        final playing = status == QuizStatus.playing;
+        final atIntro = status == QuizStatus.intro;
         final isChoice = state.settings.mode.isChoice;
 
         return PopScope(
@@ -41,7 +70,9 @@ class RecitationQuizPage extends StatelessWidget {
               final leave = await _confirmLeave(context);
               if (leave != true) return;
             }
-            if (context.mounted) context.read<RecitationQuizCubit>().backToIntro();
+            if (context.mounted) {
+              context.read<RecitationQuizCubit>().backToIntro();
+            }
           },
           child: Scaffold(
             // Sembunyikan AppBar saat bermain agar layar lebih lega.
@@ -60,26 +91,39 @@ class RecitationQuizPage extends StatelessWidget {
                       const SizedBox(width: 10),
                     ],
                   ),
-            body: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 320),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              // Halaman baru meluncur masuk dari kanan sambil memudar; halaman
-              // lama memudar keluar ke kiri (nuansa maju ke depan).
-              transitionBuilder: (child, animation) {
-                final slide = Tween<Offset>(
-                  begin: const Offset(0.18, 0),
-                  end: Offset.zero,
-                ).animate(animation);
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(position: slide, child: child),
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey(state.status),
-                child: switch (state.status) {
-                  QuizStatus.intro => QuizIntroView(
+            body: ClipRect(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 380),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                // Transisi horizontal berarah: saat "maju" (mis. mulai kuis)
+                // halaman baru masuk dari kanan & halaman lama geser ke kiri;
+                // saat "mundur" (mis. tekan Selesai) halaman baru masuk dari
+                // kiri & halaman lama geser keluar ke kanan.
+                transitionBuilder: (child, animation) {
+                  final incoming = child.key == ValueKey(status);
+                  final Offset begin = _advancing
+                      ? (incoming ? const Offset(1, 0) : const Offset(-1, 0))
+                      : (incoming ? const Offset(-1, 0) : const Offset(1, 0));
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: begin,
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  );
+                },
+                layoutBuilder: (currentChild, previousChildren) => Stack(
+                  children: [
+                    for (final c in previousChildren) Positioned.fill(child: c),
+                    if (currentChild != null)
+                      Positioned.fill(child: currentChild),
+                  ],
+                ),
+                child: KeyedSubtree(
+                  key: ValueKey(status),
+                  child: switch (state.status) {
+                    QuizStatus.intro => QuizIntroView(
                       settings: state.settings,
                       onSettingsChanged: cubit.setSettings,
                       onStart: cubit.start,
@@ -87,15 +131,16 @@ class RecitationQuizPage extends StatelessWidget {
                       energyLoading: state.energyLoading,
                       onRefillReady: cubit.loadEnergy,
                     ),
-                  QuizStatus.loading => const _Loading(),
-                  QuizStatus.error => _ErrorView(
+                    QuizStatus.loading => const _Loading(),
+                    QuizStatus.error => _ErrorView(
                       message: state.errorMessage ?? 'Terjadi kesalahan.',
                       onRetry: () => cubit.start(state.settings),
                     ),
-                  QuizStatus.playing => isChoice
-                      ? const QuizChoicePlayView()
-                      : const QuizPlayView(),
-                  QuizStatus.finished => QuizResultView(
+                    QuizStatus.playing =>
+                      isChoice
+                          ? const QuizChoicePlayView()
+                          : const QuizPlayView(),
+                    QuizStatus.finished => QuizResultView(
                       result: state.result!,
                       review: state.review,
                       saving: state.saving,
@@ -106,7 +151,8 @@ class RecitationQuizPage extends StatelessWidget {
                       // "Selesai" kembali ke layar awal (bukan keluar ke home).
                       onFinish: cubit.backToIntro,
                     ),
-                },
+                  },
+                ),
               ),
             ),
           ),
@@ -170,8 +216,11 @@ class _LeaderboardButton extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.emoji_events_rounded,
-                  color: Colors.white, size: 21),
+              child: const Icon(
+                Icons.emoji_events_rounded,
+                color: Colors.white,
+                size: 21,
+              ),
             ),
           ),
         ),
@@ -212,8 +261,11 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded,
-                size: 48, color: Colors.redAccent),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: Colors.redAccent,
+            ),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 20),

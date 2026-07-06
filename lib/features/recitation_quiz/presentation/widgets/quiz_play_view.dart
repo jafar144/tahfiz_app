@@ -62,10 +62,8 @@ class _QuizPlayViewState extends State<QuizPlayView> {
             isDismissible: false,
             enableDrag: false,
             backgroundColor: Colors.transparent,
-            builder: (_) => BlocProvider.value(
-              value: cubit,
-              child: const _OfflineSheet(),
-            ),
+            builder: (_) =>
+                BlocProvider.value(value: cubit, child: const _OfflineSheet()),
           ).whenComplete(() => _offlineSheetOpen = false);
         }
         if (state.errorMessage != null) {
@@ -93,69 +91,88 @@ class _QuizPlayViewState extends State<QuizPlayView> {
         // Selama jeda (offered), TAHAN dulu tampilan hasil "lolos" agar santri
         // tahu soal tadi BENAR; baru di beberapa detik terakhir pindah ke splash
         // transisi Soal Bonus. Saat berjalan / selesai selalu layar emas.
-        final inBonusSplash = state.bonusStage == BonusStage.offered &&
+        final inBonusSplash =
+            state.bonusStage == BonusStage.offered &&
             state.bonusPrepSecondsLeft <= QuizConfig.bonusPrepSplashSeconds;
-        if (state.bonusStage == BonusStage.running ||
+        final showBonus =
+            state.bonusStage == BonusStage.running ||
             state.bonusStage == BonusStage.done ||
-            inBonusSplash) {
-          return _VoiceBonusScreen(state: state, cubit: cubit);
+            inBonusSplash;
+
+        // Layar bonus "menimpa" layar soal saat masuk/keluar; antar soal biasa
+        // memakai geser horizontal di dalamnya.
+        if (showBonus) {
+          return BonusCoverSwitcher(
+            showBonus: true,
+            child: _VoiceBonusScreen(state: state, cubit: cubit),
+          );
         }
 
-        return SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SegmentedProgress(
-                      total: state.total,
-                      currentIndex: state.currentIndex,
-                      doneScores: state.answers.map((a) => a.score).toList(),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text(
-                          'Soal ${state.questionNumber} dari ${state.total}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (state.attempt == 2 && !state.canAdvance) ...[
-                          _pill(context, 'Percobaan ke-2', QuizColors.gold),
-                          const SizedBox(width: 8),
-                        ],
-                        if (state.phase == AnswerPhase.idle ||
-                            state.phase == AnswerPhase.recording)
-                          _VoiceTimerChip(secondsLeft: state.voiceSecondsLeft),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        return BonusCoverSwitcher(
+          showBonus: false,
+          child: SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Petunjuk "lanjutkan" disembunyikan saat tahap bonus
-                      // (ayat tetap tampil sebagai acuan soal tebak surah).
-                      if (state.bonusStage == BonusStage.none) ...[
-                        _PromptHint(question: q),
-                        const SizedBox(height: 12),
-                      ],
-                      PromptAyahCard(text: q.prompt.text),
-                      const SizedBox(height: 24),
-                      _bottomSection(context, cubit, state),
+                      SegmentedProgress(
+                        total: state.total,
+                        currentIndex: state.currentIndex,
+                        doneScores: state.answers.map((a) => a.score).toList(),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            'Soal ${state.questionNumber} dari ${state.total}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (state.attempt == 2 && !state.canAdvance) ...[
+                            _pill(context, 'Percobaan ke-2', QuizColors.gold),
+                            const SizedBox(width: 8),
+                          ],
+                          if (state.phase == AnswerPhase.idle ||
+                              state.phase == AnswerPhase.recording)
+                            _VoiceTimerChip(
+                              secondsLeft: state.voiceSecondsLeft,
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                // Hanya soal + jawaban yang bergeser saat pindah soal; progress
+                // & timer di atas tetap diam.
+                Expanded(
+                  child: QuestionSlideSwitcher(
+                    index: state.currentIndex,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      child: Column(
+                        children: [
+                          // Petunjuk "lanjutkan" disembunyikan saat tahap bonus
+                          // (ayat tetap tampil sebagai acuan soal tebak surah).
+                          if (state.bonusStage == BonusStage.none) ...[
+                            _PromptHint(question: q),
+                            const SizedBox(height: 12),
+                          ],
+                          PromptAyahCard(text: q.prompt.text),
+                          const SizedBox(height: 24),
+                          _bottomSection(context, cubit, state),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -186,8 +203,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
             SizedBox(height: 8),
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Memeriksa bacaan…',
-                style: TextStyle(color: Colors.black54)),
+            Text('Memeriksa bacaan…', style: TextStyle(color: Colors.black54)),
           ],
         );
       case AnswerPhase.revealed:
@@ -205,7 +221,10 @@ class _QuizPlayViewState extends State<QuizPlayView> {
       child: Text(
         text,
         style: TextStyle(
-            color: color, fontSize: 11, fontWeight: FontWeight.w600),
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -253,13 +272,17 @@ class _OfflineSheet extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: QuizColors.missing.withValues(alpha: 0.12),
                     ),
-                    child: const Icon(Icons.wifi_off_rounded,
-                        color: QuizColors.missing, size: 32),
+                    child: const Icon(
+                      Icons.wifi_off_rounded,
+                      color: QuizColors.missing,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Koneksi Terputus',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Koneksi Terputus',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
                   const Text(
                     'Bacaanmu perlu internet untuk diperiksa. Rekamanmu aman — '
@@ -273,23 +296,32 @@ class _OfflineSheet extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: retrying
                           ? null
-                          : () =>
-                              context.read<RecitationQuizCubit>().retryCheck(),
+                          : () => context
+                                .read<RecitationQuizCubit>()
+                                .retryCheck(),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       icon: retrying
                           ? const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Icon(Icons.refresh_rounded),
-                      label: Text(retrying ? 'Mengirim ulang…' : 'Kirim Ulang',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      label: Text(
+                        retrying ? 'Mengirim ulang…' : 'Kirim Ulang',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -300,8 +332,9 @@ class _OfflineSheet extends StatelessWidget {
                         Navigator.of(context).pop(); // tutup sheet
                         context.read<RecitationQuizCubit>().backToIntro();
                       },
-                      style:
-                          TextButton.styleFrom(foregroundColor: Colors.black54),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black54,
+                      ),
                       child: const Text('Keluar dari kuis'),
                     ),
                   ),
@@ -352,16 +385,19 @@ class _VoiceBonusScreen extends StatelessWidget {
                       ? BonusIntroSplash(
                           key: const ValueKey('prep'),
                           subtitle:
-                              'Dimulai dalam ${state.bonusPrepSecondsLeft} dtk')
+                              'Dimulai dalam ${state.bonusPrepSecondsLeft} dtk',
+                        )
                       : stage == BonusStage.done
-                          ? _VoiceBonusResult(
-                              key: const ValueKey('done'),
-                              state: state,
-                              cubit: cubit)
-                          : _VoiceBonusContent(
-                              key: const ValueKey('run'),
-                              state: state,
-                              cubit: cubit),
+                      ? _VoiceBonusResult(
+                          key: const ValueKey('done'),
+                          state: state,
+                          cubit: cubit,
+                        )
+                      : _VoiceBonusContent(
+                          key: const ValueKey('run'),
+                          state: state,
+                          cubit: cubit,
+                        ),
                 ),
               ),
               if (stage == BonusStage.running && b.needsSubmit)
@@ -370,18 +406,22 @@ class _VoiceBonusScreen extends StatelessWidget {
                   child: SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed:
-                          state.bonusComplete ? cubit.submitBonus : null,
+                      onPressed: state.bonusComplete ? cubit.submitBonus : null,
                       style: FilledButton.styleFrom(
                         backgroundColor: QuizColors.goldDark,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       icon: const Icon(Icons.check_rounded),
-                      label: const Text('Jawab',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Jawab',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -410,34 +450,43 @@ class _VoiceBonusContent extends StatelessWidget {
   final RecitationQuizState state;
   final RecitationQuizCubit cubit;
 
-  const _VoiceBonusContent(
-      {super.key, required this.state, required this.cubit});
+  const _VoiceBonusContent({
+    super.key,
+    required this.state,
+    required this.cubit,
+  });
 
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
     final q = state.currentQuestion!;
-    final namePick =
-        state.bonusPicks.isNotEmpty ? state.bonusPicks.first : null;
+    final namePick = state.bonusPicks.isNotEmpty
+        ? state.bonusPicks.first
+        : null;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _VoiceGoldRing(
-              secondsLeft: state.bonusSecondsLeft, total: b.durationSeconds),
+            secondsLeft: state.bonusSecondsLeft,
+            total: b.durationSeconds,
+          ),
           const SizedBox(height: 16),
           PromptAyahCard(text: q.prompt.text),
           const SizedBox(height: 14),
           TriviaQuestionCard(
-              text: b.questionText, points: b.fullPoints, hint: b.hintText),
+            text: b.questionText,
+            points: b.fullPoints,
+            hint: b.hintText,
+          ),
           const SizedBox(height: 16),
           if (b.isNameMeaning) ...[
             TriviaSection(
               label: 'Nama Surah',
               icon: Icons.menu_book_rounded,
               options: [
-                for (var i = 0; i < b.options.length; i++) b.optionName(i)
+                for (var i = 0; i < b.options.length; i++) b.optionName(i),
               ],
               picked: namePick,
               onPick: cubit.pickBonus,
@@ -458,12 +507,15 @@ class _VoiceBonusContent extends StatelessWidget {
             )
           else ...[
             if (b.isMulti) ...[
-              Text('Pilih ${b.requiredPicks} surah sesuai urutan',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                      fontSize: 12.5,
-                      color: QuizColors.goldDark,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'Pilih ${b.requiredPicks} surah sesuai urutan',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: QuizColors.goldDark,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 10),
             ],
             ...List.generate(b.options.length, (i) {
@@ -490,8 +542,11 @@ class _VoiceBonusResult extends StatelessWidget {
   final RecitationQuizState state;
   final RecitationQuizCubit cubit;
 
-  const _VoiceBonusResult(
-      {super.key, required this.state, required this.cubit});
+  const _VoiceBonusResult({
+    super.key,
+    required this.state,
+    required this.cubit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -509,11 +564,16 @@ class _VoiceBonusResult extends StatelessWidget {
                 backgroundColor: QuizColors.goldDark,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
-              child: Text(state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.bold)),
+              child: Text(
+                state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -560,17 +620,23 @@ class _VoiceGoldRing extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('$secondsLeft',
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: color,
-                          height: 1.0)),
-                  Text('dtk',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: color.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    '$secondsLeft',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: color,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'dtk',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -582,11 +648,14 @@ class _VoiceGoldRing extends StatelessWidget {
           children: [
             Icon(Icons.bolt_rounded, size: 16, color: QuizColors.goldDark),
             SizedBox(width: 4),
-            Text('Soal Bonus',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: QuizColors.goldDark)),
+            Text(
+              'Soal Bonus',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: QuizColors.goldDark,
+              ),
+            ),
           ],
         ),
       ],
@@ -616,24 +685,33 @@ class _PromptHint extends StatelessWidget {
 
     final ayahCount = question.answerAyahCount;
     final TextSpan instruction = switch (question.task) {
-      QuizVoiceTask.lastAyah => TextSpan(style: base, children: [
+      QuizVoiceTask.lastAyah => TextSpan(
+        style: base,
+        children: [
           const TextSpan(text: 'Baca '),
           TextSpan(text: 'ayat TERAKHIR', style: strong),
           const TextSpan(text: ' dari surah ayat ini'),
-        ]),
-      QuizVoiceTask.specificAyah => TextSpan(style: base, children: [
+        ],
+      ),
+      QuizVoiceTask.specificAyah => TextSpan(
+        style: base,
+        children: [
           const TextSpan(text: 'Ini ayat penutup surah — baca '),
-          TextSpan(
-              text: 'ayat ke-${question.targetAyahNumber}', style: strong),
+          TextSpan(text: 'ayat ke-${question.targetAyahNumber}', style: strong),
           const TextSpan(text: ' surah ini'),
-        ]),
-      QuizVoiceTask.continueAyah => ayahCount > 1
-          ? TextSpan(style: base, children: [
-              const TextSpan(text: 'Lanjutkan '),
-              TextSpan(text: '$ayahCount ayat', style: strong),
-              const TextSpan(text: ' berikutnya'),
-            ])
-          : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
+        ],
+      ),
+      QuizVoiceTask.continueAyah =>
+        ayahCount > 1
+            ? TextSpan(
+                style: base,
+                children: [
+                  const TextSpan(text: 'Lanjutkan '),
+                  TextSpan(text: '$ayahCount ayat', style: strong),
+                  const TextSpan(text: ' berikutnya'),
+                ],
+              )
+            : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
     };
     // Kartu instruksi selebar penuh + label "SOAL" agar keseluruhan perintah
     // (bukan cuma ayatnya) langsung terbaca jelas — tanpa memperbesar teksnya.
@@ -714,9 +792,13 @@ class _RecordButton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        Text(label,
-            style:
-                const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -775,9 +857,13 @@ class _ResultPanel extends StatelessWidget {
               children: [
                 const Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Jawaban benar',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.black54)),
+                  child: Text(
+                    'Jawaban benar',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black54,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 CorrectionText(diffs: state.bestResult!.diffs),
@@ -802,21 +888,27 @@ class _ResultPanel extends StatelessWidget {
               // Jeda "pikir dulu": hitung mundur, lalu ulang otomatis.
               Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: QuizColors.gold.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(16),
-                  border:
-                      Border.all(color: QuizColors.gold.withValues(alpha: 0.45)),
+                  border: Border.all(
+                    color: QuizColors.gold.withValues(alpha: 0.45),
+                  ),
                 ),
                 child: Column(
                   children: [
-                    const Text('Tarik napas, siapkan dulu…',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: QuizColors.goldDark)),
+                    const Text(
+                      'Tarik napas, siapkan dulu…',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: QuizColors.goldDark,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TweenAnimationBuilder<double>(
                       key: ValueKey(state.retrySecondsLeft),
@@ -825,17 +917,21 @@ class _ResultPanel extends StatelessWidget {
                       curve: Curves.easeOutBack,
                       builder: (context, s, child) =>
                           Transform.scale(scale: s, child: child),
-                      child: Text('${state.retrySecondsLeft}',
-                          style: const TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w900,
-                              color: QuizColors.goldDark,
-                              height: 1.0)),
+                      child: Text(
+                        '${state.retrySecondsLeft}',
+                        style: const TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w900,
+                          color: QuizColors.goldDark,
+                          height: 1.0,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 6),
-                    const Text('Bacaan diulang otomatis',
-                        style:
-                            TextStyle(fontSize: 12.5, color: Colors.black54)),
+                    const Text(
+                      'Bacaan diulang otomatis',
+                      style: TextStyle(fontSize: 12.5, color: Colors.black54),
+                    ),
                   ],
                 ),
               ),
@@ -847,7 +943,8 @@ class _ResultPanel extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Ulangi sekarang'),
@@ -871,7 +968,8 @@ class _ResultPanel extends StatelessWidget {
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
         child: Text(
           state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
@@ -906,11 +1004,14 @@ class _BonusPrep extends StatelessWidget {
             children: [
               Icon(Icons.bolt_rounded, color: QuizColors.goldDark, size: 20),
               SizedBox(width: 6),
-              Text('Soal Bonus • Seputar Surah',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: QuizColors.goldDark)),
+              Text(
+                'Soal Bonus • Seputar Surah',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: QuizColors.goldDark,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -969,7 +1070,10 @@ class _VoiceTimerChip extends StatelessWidget {
           Text(
             '$secondsLeft dtk',
             style: TextStyle(
-                color: color, fontWeight: FontWeight.w800, fontSize: 13),
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
           ),
         ],
       ),
@@ -987,8 +1091,9 @@ class _BonusRunningView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
-    final namePick =
-        state.bonusPicks.isNotEmpty ? state.bonusPicks.first : null;
+    final namePick = state.bonusPicks.isNotEmpty
+        ? state.bonusPicks.first
+        : null;
     return Column(
       children: [
         _BonusTimerBar(
@@ -1006,9 +1111,10 @@ class _BonusRunningView extends StatelessWidget {
           Text(
             'Pilih ${b.requiredPicks} surah sesuai urutan',
             style: TextStyle(
-                fontSize: 12.5,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w600),
+              fontSize: 12.5,
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
         const SizedBox(height: 14),
@@ -1066,11 +1172,14 @@ class _BonusRunningView extends StatelessWidget {
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               icon: const Icon(Icons.check_rounded),
-              label: const Text('Jawab',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Jawab',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -1091,8 +1200,7 @@ class _BonusTimerBar extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final urgent = secondsLeft <= 3;
     final color = urgent ? QuizColors.missing : scheme.primary;
-    final progress =
-        total <= 0 ? 0.0 : (secondsLeft / total).clamp(0.0, 1.0);
+    final progress = total <= 0 ? 0.0 : (secondsLeft / total).clamp(0.0, 1.0);
     return Column(
       children: [
         Row(
@@ -1103,13 +1211,19 @@ class _BonusTimerBar extends StatelessWidget {
             Text(
               '$secondsLeft',
               style: TextStyle(
-                  fontSize: 24, fontWeight: FontWeight.w900, color: color),
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
             ),
-            Text(' dtk',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: color.withValues(alpha: 0.8))),
+            Text(
+              ' dtk',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: color.withValues(alpha: 0.8),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -1248,18 +1362,19 @@ class _BonusResultCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                correct
-                    ? Icons.check_circle_rounded
-                    : Icons.cancel_rounded,
+                correct ? Icons.check_circle_rounded : Icons.cancel_rounded,
                 color: color,
                 size: 20,
               ),
               const SizedBox(width: 6),
-              Text(title,
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14.5,
-                      color: color)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14.5,
+                  color: color,
+                ),
+              ),
             ],
           ),
           if (!full) ...[

@@ -1,4 +1,4 @@
-﻿import 'package:audioplayers/audioplayers.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -96,82 +96,98 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
           final q = state.currentQuestion;
           if (q == null) return const SizedBox.shrink();
 
-          // Soal BONUS (trivia): layar khusus bernuansa emas + gelombang tepi.
+          // Layar bonus "menimpa" layar soal biasa saat masuk/keluar; soal
+          // biasa ke soal biasa memakai geser horizontal di dalamnya.
+          final Widget screen;
           if (q.isTrivia) {
-            return _ChoiceTriviaScreen(state: state, cubit: cubit);
+            // Soal BONUS (trivia): layar khusus bernuansa emas + gelombang tepi.
+            screen = _ChoiceTriviaScreen(state: state, cubit: cubit);
+          } else {
+            final required = q.answerAyahCount;
+            final locked = state.choiceLocked;
+
+            screen = SafeArea(
+              child: Column(
+                children: [
+                  _Header(
+                    secondsLeft: state.secondsLeft,
+                    points: state.runningPoints,
+                    answered: state.answeredCount,
+                    showTimeBonus: state.choiceCorrect == true,
+                    timeBonus: state.lastTimeBonus,
+                    bonusTick: state.timeBonusTick,
+                  ),
+                  // Hanya soal + jawaban yang bergeser saat pindah soal; header
+                  // (timer/poin) di atas tetap diam.
+                  Expanded(
+                    child: QuestionSlideSwitcher(
+                      index: state.currentIndex,
+                      child: Column(
+                        children: [
+                          // Petunjuk soal (selalu terlihat).
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Column(
+                              children: [
+                                PromptAyahCard(text: q.prompt.text),
+                                const SizedBox(height: 10),
+                                _ChoiceHint(required: required),
+                                if (required > 1) ...[
+                                  const SizedBox(height: 10),
+                                  _OrderStrip(
+                                    question: q,
+                                    picks: state.picks,
+                                    locked: locked,
+                                    onRemove: cubit.pickOption,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Daftar opsi ayat (bergulir bila panjang).
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                              itemCount: q.options.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, i) {
+                                final order = state.picks.indexOf(i);
+                                return _OptionCard(
+                                  ayah: q.options[i],
+                                  orderLabel: order >= 0
+                                      ? '${order + 1}'
+                                      : null,
+                                  selected: order >= 0,
+                                  // Warnai hanya opsi yang DIPILIH saat terkunci
+                                  // (tanpa membocorkan jawaban benar).
+                                  lockedCorrect: locked && order >= 0
+                                      ? state.choiceCorrect
+                                      : null,
+                                  onTap: locked
+                                      ? null
+                                      : () => cubit.pickOption(i),
+                                );
+                              },
+                            ),
+                          ),
+                          // Tombol "Jawab" untuk soal multi-ayat.
+                          if (required > 1)
+                            _SubmitBar(
+                              enabled: state.choiceComplete && !locked,
+                              onSubmit: cubit.submitChoice,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
-          final required = q.answerAyahCount;
-          final locked = state.choiceLocked;
-
-          return SafeArea(
-            child: Column(
-              children: [
-                _Header(
-                  secondsLeft: state.secondsLeft,
-                  points: state.runningPoints,
-                  answered: state.answeredCount,
-                  showTimeBonus: state.choiceCorrect == true,
-                  timeBonus: state.lastTimeBonus,
-                  bonusTick: state.timeBonusTick,
-                ),
-                // Petunjuk soal (selalu terlihat).
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Column(
-                    children: [
-                      PromptAyahCard(text: q.prompt.text),
-                      const SizedBox(height: 10),
-                      _ChoiceHint(required: required),
-                      if (required > 1) ...[
-                        const SizedBox(height: 10),
-                        _OrderStrip(
-                          // Key per-soal: cegah warna slot beranimasi "nyambung"
-                          // dari soal sebelumnya saat pindah soal.
-                          key: ValueKey('order_${state.currentIndex}'),
-                          question: q,
-                          picks: state.picks,
-                          locked: locked,
-                          onRemove: cubit.pickOption,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Daftar opsi ayat (bergulir bila panjang).
-                Expanded(
-                  child: ListView.separated(
-                    // Key per-soal: kartu opsi selalu segar saat pindah soal,
-                    // agar warna hijau/merah tak "nyambung" ke soal berikutnya.
-                    key: ValueKey('opts_${state.currentIndex}'),
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                    itemCount: q.options.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 10),
-                    itemBuilder: (context, i) {
-                      final order = state.picks.indexOf(i);
-                      return _OptionCard(
-                        ayah: q.options[i],
-                        orderLabel: order >= 0 ? '${order + 1}' : null,
-                        selected: order >= 0,
-                        // Warnai hanya opsi yang DIPILIH saat terkunci
-                        // (tanpa membocorkan jawaban benar).
-                        lockedCorrect:
-                            locked && order >= 0 ? state.choiceCorrect : null,
-                        onTap: locked ? null : () => cubit.pickOption(i),
-                      );
-                    },
-                  ),
-                ),
-                // Tombol "Jawab" untuk soal multi-ayat.
-                if (required > 1)
-                  _SubmitBar(
-                    enabled: state.choiceComplete && !locked,
-                    onSubmit: cubit.submitChoice,
-                  ),
-              ],
-            ),
-          );
+          return BonusCoverSwitcher(showBonus: q.isTrivia, child: screen);
         },
       ),
     );
@@ -218,7 +234,8 @@ class _ChoiceTriviaScreen extends StatelessWidget {
                   duration: const Duration(milliseconds: 300),
                   child: intro
                       ? const BonusIntroSplash(
-                          subtitle: 'Waktu permainan dijeda • poin lebih besar')
+                          subtitle: 'Waktu permainan dijeda • poin lebih besar',
+                        )
                       : _TriviaContent(state: state, cubit: cubit),
                 ),
               ),
@@ -240,11 +257,9 @@ class _ChoiceTriviaScreen extends StatelessWidget {
               child: BonusRewardOverlay(
                 key: ValueKey(state.currentIndex),
                 seconds: state.lastTimeBonus,
-                points:
-                    state.answers.isNotEmpty ? state.answers.last.score : 0,
-                full: (state.answers.isNotEmpty
-                        ? state.answers.last.score
-                        : 0) >=
+                points: state.answers.isNotEmpty ? state.answers.last.score : 0,
+                full:
+                    (state.answers.isNotEmpty ? state.answers.last.score : 0) >=
                     QuizConfig.choiceTriviaPoints,
               ),
             ),
@@ -276,20 +291,28 @@ class _TriviaTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.pause_rounded,
-                    size: 15, color: Colors.black45),
+                const Icon(
+                  Icons.pause_rounded,
+                  size: 15,
+                  color: Colors.black45,
+                ),
                 const SizedBox(width: 4),
-                Text('$mainSeconds dtk',
-                    style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black45)),
+                Text(
+                  '$mainSeconds dtk',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black45,
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          const Text('waktu dijeda',
-              style: TextStyle(fontSize: 11.5, color: Colors.black38)),
+          const Text(
+            'waktu dijeda',
+            style: TextStyle(fontSize: 11.5, color: Colors.black38),
+          ),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -300,14 +323,20 @@ class _TriviaTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.star_rounded,
-                    size: 16, color: QuizColors.gold),
+                const Icon(
+                  Icons.star_rounded,
+                  size: 16,
+                  color: QuizColors.gold,
+                ),
                 const SizedBox(width: 4),
-                Text('$points',
-                    style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: QuizColors.goldDark)),
+                Text(
+                  '$points',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: QuizColors.goldDark,
+                  ),
+                ),
               ],
             ),
           ),
@@ -365,8 +394,9 @@ class _TriviaContent extends StatelessWidget {
               icon: Icons.translate_rounded,
               options: t.meaningOptions,
               picked: state.meaningPick,
-              lockedCorrect:
-                  locked ? t.meaningCorrect(state.meaningPick) : null,
+              lockedCorrect: locked
+                  ? t.meaningCorrect(state.meaningPick)
+                  : null,
               onPick: locked ? null : cubit.pickMeaning,
             ),
           ] else
@@ -420,17 +450,23 @@ class _GoldCountdown extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('$secondsLeft',
-                      style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: color,
-                          height: 1.0)),
-                  Text('dtk',
-                      style: TextStyle(
-                          fontSize: 11,
-                          color: color.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    '$secondsLeft',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: color,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'dtk',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -442,11 +478,14 @@ class _GoldCountdown extends StatelessWidget {
           children: [
             Icon(Icons.bolt_rounded, size: 16, color: QuizColors.goldDark),
             SizedBox(width: 4),
-            Text('Soal Bonus',
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: QuizColors.goldDark)),
+            Text(
+              'Soal Bonus',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: QuizColors.goldDark,
+              ),
+            ),
           ],
         ),
       ],
@@ -473,11 +512,14 @@ class _GoldSubmitBar extends StatelessWidget {
             backgroundColor: QuizColors.goldDark,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           icon: const Icon(Icons.check_rounded),
-          label: const Text('Jawab',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          label: const Text(
+            'Jawab',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
         ),
       ),
     );
@@ -558,7 +600,9 @@ class _Header extends StatelessWidget {
                     ? Container(
                         key: ValueKey(bonusTick),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: QuizColors.correct.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(999),
@@ -577,16 +621,21 @@ class _Header extends StatelessWidget {
               const Spacer(),
               // Poin berjalan.
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: QuizColors.gold.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.star_rounded,
-                        size: 16, color: QuizColors.gold),
+                    const Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: QuizColors.gold,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '$points',
@@ -651,7 +700,10 @@ class _ChoiceHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     const base = TextStyle(fontWeight: FontWeight.w600, color: Colors.black54);
-    final strong = TextStyle(fontWeight: FontWeight.w800, color: scheme.primary);
+    final strong = TextStyle(
+      fontWeight: FontWeight.w800,
+      color: scheme.primary,
+    );
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -659,13 +711,18 @@ class _ChoiceHint extends StatelessWidget {
         const SizedBox(width: 6),
         Text.rich(
           required > 1
-              ? TextSpan(style: base, children: [
-                  const TextSpan(text: 'Pilih '),
-                  TextSpan(text: '$required ayat', style: strong),
-                  const TextSpan(text: ' lanjutan sesuai urutan'),
-                ])
+              ? TextSpan(
+                  style: base,
+                  children: [
+                    const TextSpan(text: 'Pilih '),
+                    TextSpan(text: '$required ayat', style: strong),
+                    const TextSpan(text: ' lanjutan sesuai urutan'),
+                  ],
+                )
               : const TextSpan(
-                  text: 'Pilih lanjutan ayat yang benar', style: base),
+                  text: 'Pilih lanjutan ayat yang benar',
+                  style: base,
+                ),
         ),
       ],
     );
@@ -680,7 +737,6 @@ class _OrderStrip extends StatelessWidget {
   final ValueChanged<int> onRemove;
 
   const _OrderStrip({
-    super.key,
     required this.question,
     required this.picks,
     required this.locked,
@@ -728,9 +784,11 @@ class _OrderStrip extends StatelessWidget {
                             ),
                           ),
                           if (!locked)
-                            Icon(Icons.close_rounded,
-                                size: 14,
-                                color: scheme.primary.withValues(alpha: 0.7)),
+                            Icon(
+                              Icons.close_rounded,
+                              size: 14,
+                              color: scheme.primary.withValues(alpha: 0.7),
+                            ),
                         ],
                       )
                     : Text(
