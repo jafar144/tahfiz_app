@@ -145,6 +145,43 @@ void main() {
     });
   });
 
+  group('Washal & mad (Al-Fajr 15-16)', () {
+    // Teks mushaf (Hafs) Al-Fajr ayat 15 & 16 — memuat washal "مَا ٱبۡتَلَىٰهُ".
+    const ref15 =
+        'فَأَمَّا ٱلۡإِنسَٰنُ إِذَا مَا ٱبۡتَلَىٰهُ رَبُّهُۥ فَأَكۡرَمَهُۥ '
+        'وَنَعَّمَهُۥ فَيَقُولُ رَبِّيٓ أَكۡرَمَنِ';
+    const ref16 =
+        'وَأَمَّآ إِذَا مَا ٱبۡتَلَىٰهُ فَقَدَرَ عَلَيۡهِ رِزۡقَهُۥ فَيَقُولُ '
+        'رَبِّيٓ أَهَٰنَنِ';
+
+    test('mad "aa" (ىٰ / dagger) dinormalkan jadi alef', () {
+      // ٱبۡتَلَىٰهُ -> "ابتلاه" (bukan "ابتليه"); أَهَٰنَنِ -> "اهانن".
+      expect(ArabicNormalizer.normalizeWord('ٱبۡتَلَىٰهُ'), 'ابتلاه');
+      expect(ArabicNormalizer.normalizeWord('أَهَٰنَنِ'), 'اهانن');
+    });
+
+    test('washal: "مَا ٱبۡتَلَىٰهُ" terbaca menyatu (مبتلاه) tetap benar', () {
+      // Simulasi transkripsi Whisper seperti pada laporan pengguna: dua kata
+      // "مَا ٱبۡتَلَىٰهُ" menyatu jadi satu kata "مبتلاه", أَهَٰنَنِ -> "اهانا".
+      const spoken = 'فأما الإنسان إذا مبتلاه ربه فأكرمه ونعمه فيقول ربي أكرمن '
+          'وأما إذا مبتلاه فقدر عليه رزقه فيقول ربي أهانا';
+      final r = RecitationMatcher.compare(
+        referenceText: '$ref15 $ref16',
+        spokenText: spoken,
+      );
+      // Tidak boleh ada kata yang salah/kelewat gara-gara washal & mad.
+      expect(countStatus(r, WordStatus.wrong), 0);
+      expect(countStatus(r, WordStatus.missing), 0);
+      expect(r.accuracy, 1.0);
+    });
+
+    test('bacaan sempurna (identik) tetap 100%', () {
+      final ref = '$ref15 $ref16';
+      final r = RecitationMatcher.compare(referenceText: ref, spokenText: ref);
+      expect(r.accuracy, 1.0);
+    });
+  });
+
   group('Muqattaat (huruf terpisah)', () {
     test('dieja per huruf (ألف لام ميم) tetap benar', () {
       final r = RecitationMatcher.compare(

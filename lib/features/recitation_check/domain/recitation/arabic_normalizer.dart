@@ -9,14 +9,19 @@
 /// karakter asli saat kompilasi string, jadi source tetap ASCII murni dan aman
 /// dari combining-mark yang tidak terlihat di editor.
 class ArabicNormalizer {
-  // Tanda harakat + tanda anotasi mushaf yang dibuang.
+  // Alef maqsura (ى) berdagger alef (ٰ) — satu bunyi mad "aa" (mis. ٱبۡتَلَىٰهُ).
+  static final RegExp _alefMaqsuraDagger = RegExp('ىٰ');
+  // Dagger alef berdiri sendiri (mis. هَٰذَا, ٱلرَّحۡمَٰن) — bunyi mad "aa".
+  static final RegExp _daggerAlef = RegExp('ٰ');
+  // Tanda harakat + tanda anotasi mushaf yang dibuang. Dagger alef (U+0670)
+  // sudah ditangani lebih dulu di atas sehingga tak lagi tergantung di sini.
   static final RegExp _harakat = RegExp(
     '[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۤۧۨ-ۭ]',
   );
   static final RegExp _tatweel = RegExp('ـ');
   // Varian alef (آ أ إ ٱ ٲ ٳ) -> ا (ا)
   static final RegExp _alef = RegExp('[آأإٱٲٳ]');
-  static final RegExp _alefMaqsura = RegExp('ى'); // ى -> ي
+  static final RegExp _alefMaqsura = RegExp('ى'); // ى -> ا (bunyi "aa")
   static final RegExp _taaMarbuta = RegExp('ة'); // ة -> ه
   static final RegExp _wawHamza = RegExp('ؤ'); // ؤ -> و
   static final RegExp _yaaHamza = RegExp('ئ'); // ئ -> ي
@@ -25,13 +30,31 @@ class ArabicNormalizer {
   static final RegExp _nonArabicLetter = RegExp('[^ء-ي]');
   static final RegExp _whitespace = RegExp(r'\s+');
 
+  /// Alef washal (hamzatul wasl, ٱ U+0671) — di tengah kalimat dibaca menyambung
+  /// (bunyinya gugur). Dipakai pencocok untuk menggabung kata saat washal.
+  static const int hamzatulWaslRune = 0x0671;
+
+  /// True bila kata mentah [rawWord] diawali hamzatul wasl (ٱ) — kandidat kata
+  /// yang menyambung ke kata sebelumnya saat dibaca washal.
+  static bool startsWithHamzatulWasl(String rawWord) =>
+      rawWord.isNotEmpty && rawWord.runes.first == hamzatulWaslRune;
+
   /// Normalisasi satu kata menjadi huruf Arab telanjang tanpa harakat.
+  ///
+  /// Mad yang ditulis sebagai dagger alef (ٰ) atau alef maqsura+dagger (ىٰ)
+  /// disamakan menjadi ا (fonetik "aa") agar cocok dengan tulisan ASR (Whisper)
+  /// yang mengeja bunyi panjang itu sebagai alef penuh.
   static String normalizeWord(String text) {
     if (text.isEmpty) return '';
-    var t = text.replaceAll(_harakat, '').replaceAll(_tatweel, '');
+    // Tangani mad "aa" (dagger alef & alef maqsura+dagger) SEBELUM harakat
+    // lain dibuang, agar bunyinya tetap terwakili sebagai ا.
+    var t = text
+        .replaceAll(_alefMaqsuraDagger, 'ا') // ىٰ -> ا (satu mad)
+        .replaceAll(_daggerAlef, 'ا'); // ٰ  -> ا
+    t = t.replaceAll(_harakat, '').replaceAll(_tatweel, '');
     t = t
         .replaceAll(_alef, 'ا') // -> ا
-        .replaceAll(_alefMaqsura, 'ي') // -> ي
+        .replaceAll(_alefMaqsura, 'ا') // ى -> ا (bunyi "aa")
         .replaceAll(_taaMarbuta, 'ه') // -> ه
         .replaceAll(_wawHamza, 'و') // -> و
         .replaceAll(_yaaHamza, 'ي') // -> ي

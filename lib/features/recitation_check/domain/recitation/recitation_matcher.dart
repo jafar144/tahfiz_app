@@ -27,6 +27,12 @@ class RecitationMatcher {
   /// kena karena kemiripannya di bawah ambang.
   static const double _maddTolerance = 0.75;
 
+  /// Ambang kemiripan agar DUA kata mushaf yang dibaca MENYATU (washal / liaison)
+  /// lalu ditranskripsi ASR sebagai SATU kata dianggap benar keduanya. Mis.
+  /// `مَا ٱبۡتَلَىٰهُ` dibaca "mabtalāhu" → Whisper menulis `مبتلاه`. Tanpa ini,
+  /// satu kata jadi "kelewat" dan satunya "salah" padahal bacaannya benar.
+  static const double _mergeTolerance = 0.72;
+
   static RecitationResult compare({
     required String referenceText,
     required String spokenText,
@@ -34,6 +40,11 @@ class RecitationMatcher {
   }) {
     final refPairs = ArabicNormalizer.tokenizeWithOriginal(referenceText);
     final ref = refPairs.map((p) => p.normalized).toList(growable: false);
+    // Tandai kata yang diawali hamzatul wasl (ٱ): saat digabung ke kata
+    // sebelumnya (washal), alef awalnya gugur dari bunyi.
+    final refWasl = refPairs
+        .map((p) => ArabicNormalizer.startsWithHamzatulWasl(p.original))
+        .toList(growable: false);
     // Kuncupkan ejaan huruf muqatta'at (mis. "ألف لام ميم" -> "الم") agar cocok
     // dengan penulisan mushaf sebelum di-align.
     final hyp = Muqattaat.collapseSpoken(
@@ -61,7 +72,16 @@ class RecitationMatcher {
         final sub = score[i - 1][j - 1] + (2 * sim - 1); // sama:+1, beda:-1
         final del = score[i - 1][j] + _gap; // kata mushaf tak terbaca -> missing
         final ins = score[i][j - 1] + _gap; // kata terbaca di luar mushaf -> extra
-        score[i][j] = math.max(sub, math.max(del, ins));
+        var best = math.max(sub, math.max(del, ins));
+        // Merge: DUA kata mushaf (i-2, i-1) menyatu jadi SATU kata terbaca
+        // (j-1) karena washal. Diterima hanya bila gabungan lebih mirip ke kata
+        // terdengar daripada MASING-MASING kata sendirian — pembeda washal asli
+        // vs kata yang memang kelewat/salah. Hadiahnya setara dua kata benar.
+        if (i >= 2 && _mergeFits(ref, refWasl, hyp, i, j)) {
+          final sm = _similarity(_mergedRef(ref, refWasl, i - 2), hyp[j - 1]);
+          best = math.max(best, score[i - 2][j - 1] + 2 * sm);
+        }
+        score[i][j] = best;
       }
     }
 
@@ -82,6 +102,28 @@ class RecitationMatcher {
             spokenWord: hyp[j - 1],
           ));
           i--;
+          j--;
+          continue;
+        }
+      }
+      // Merge washal: dua kata mushaf (i-2, i-1) menyatu jadi satu kata terbaca
+      // (j-1). Keduanya ditandai BENAR (bukan kelewat + salah).
+      if (i >= 2 && j > 0 && _mergeFits(ref, refWasl, hyp, i, j)) {
+        final sm = _similarity(_mergedRef(ref, refWasl, i - 2), hyp[j - 1]);
+        if (_closeEnough(score[i][j], score[i - 2][j - 1] + 2 * sm)) {
+          out.add(WordDiff(
+            status: WordStatus.correct,
+            referenceWord: ref[i - 1],
+            referenceWordDisplay: refPairs[i - 1].original,
+            spokenWord: hyp[j - 1],
+          ));
+          out.add(WordDiff(
+            status: WordStatus.correct,
+            referenceWord: ref[i - 2],
+            referenceWordDisplay: refPairs[i - 2].original,
+            spokenWord: hyp[j - 1],
+          ));
+          i -= 2;
           j--;
           continue;
         }
@@ -110,6 +152,37 @@ class RecitationMatcher {
       referenceWordCount: m,
       transcription: transcription,
     );
+  }
+
+  /// True bila menggabung dua kata mushaf (i-2, i-1) menjadi satu kata terbaca
+  /// (j-1) layak — yakni gabungannya cukup mirip DAN lebih menjelaskan kata
+  /// terdengar dibanding masing-masing kata sendirian. Guard "lebih baik dari
+  /// keduanya" mencegah merge menutupi kata yang sebenarnya kelewat/salah
+  /// (kasus itu: satu kata sudah cocok sendirian dengan kata terdengar).
+  static bool _mergeFits(
+    List<String> ref,
+    List<bool> wasl,
+    List<String> hyp,
+    int i,
+    int j,
+  ) {
+    final merged = _similarity(_mergedRef(ref, wasl, i - 2), hyp[j - 1]);
+    if (merged < _mergeTolerance) return false;
+    final single1 = _similarity(ref[i - 1], hyp[j - 1]);
+    final single2 = _similarity(ref[i - 2], hyp[j - 1]);
+    return merged > single1 && merged > single2;
+  }
+
+  /// Bentuk gabungan dua kata mushaf berurutan (indeks [a] dan [a]+1) untuk
+  /// pengecekan washal: bila kata kedua diawali hamzatul wasl, alef awalnya
+  /// digugurkan lebih dulu (bunyinya memang menyatu ke kata sebelumnya).
+  static String _mergedRef(List<String> ref, List<bool> wasl, int a) {
+    final b = a + 1;
+    var second = ref[b];
+    if (wasl[b] && second.startsWith('ا')) {
+      second = second.substring(1);
+    }
+    return ref[a] + second;
   }
 
   static bool _closeEnough(double a, double b) => (a - b).abs() < 1e-9;
