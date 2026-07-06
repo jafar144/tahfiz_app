@@ -140,6 +140,12 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                           onTap: () =>
                               context.pushNamed(RouteNames.recitationQuiz),
                         ),
+                        // MenuCard(
+                        //   icon: Icons.explore_rounded,
+                        //   title: 'Petualangan Surah',
+                        //   onTap: () =>
+                        //       context.pushNamed(RouteNames.surahJourney),
+                        // ),
                       ],
                     ),
                     // if (state.activeHalaqah != null) ...[

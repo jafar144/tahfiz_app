@@ -80,6 +80,11 @@ import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
+import 'package:khoirunnasyien/features/surah_journey/data/surah_journey_repository_impl.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 
 
 final getIt = GetIt.instance;
@@ -345,4 +350,18 @@ Future<void> initDI() async {
   );
   getIt.registerFactory(() => RecitationQuizCubit(getIt(), getIt()));
   getIt.registerFactory(() => QuizLeaderboardCubit(getIt(), getIt()));
+
+  // Petualangan Surah (surah journey)
+  getIt.registerLazySingleton<SurahJourneyRepository>(
+    () => SurahJourneyRepositoryImpl(
+      local: getIt(),
+      recitation: getIt(),
+      firestore: getIt(),
+      auth: getIt(),
+    ),
+  );
+  getIt.registerFactory(() => SurahJourneyCubit(getIt()));
+  getIt.registerFactoryParam<SurahLessonCubit, SurahLesson, void>(
+    (lesson, _) => SurahLessonCubit(getIt(), lesson),
+  );
 }

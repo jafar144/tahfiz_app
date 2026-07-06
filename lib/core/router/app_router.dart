@@ -53,6 +53,11 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_leaderboard_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/recitation_quiz_page.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_journey_page.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_lesson_page.dart';
 
 class AppRouter {
 
@@ -330,6 +335,25 @@ class AppRouter {
           create: (_) => getIt<RecitationQuizCubit>()..init(),
           child: const RecitationQuizPage(),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.surahJourney,
+        name: RouteNames.surahJourney,
+        builder: (context, state) => BlocProvider(
+          create: (_) => getIt<SurahJourneyCubit>()..load(),
+          child: const SurahJourneyPage(),
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.surahLesson,
+        name: RouteNames.surahLesson,
+        builder: (context, state) {
+          final lesson = state.extra as SurahLesson;
+          return BlocProvider(
+            create: (_) => getIt<SurahLessonCubit>(param1: lesson)..init(),
+            child: const SurahLessonPage(),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.quizLeaderboard,
