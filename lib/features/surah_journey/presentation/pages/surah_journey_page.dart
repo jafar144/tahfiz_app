@@ -325,37 +325,41 @@ class _LevelNode extends StatelessWidget {
       );
     }
 
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        circle,
+        const SizedBox(height: 7),
+        // Nama surah.
+        Text(
+          node.lesson.nameLatin,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: unlocked ? Colors.white : Colors.white38,
+            fontWeight: FontWeight.w800,
+            fontSize: 13.5,
+          ),
+        ),
+        const SizedBox(height: 3),
+        // Status: nilai terbaik / ajakan mulai / terkunci.
+        if (completed)
+          _chip('Nilai ${node.progress.bestScore}', QuizColors.gold)
+        else if (unlocked)
+          _chip('MULAI', Colors.white)
+        else
+          Text(
+            'Level ${node.lesson.level}',
+            style: const TextStyle(color: Colors.white24, fontSize: 10.5),
+          ),
+      ],
+    );
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          circle,
-          const SizedBox(height: 7),
-          // Nama surah.
-          Text(
-            node.lesson.nameLatin,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: unlocked ? Colors.white : Colors.white38,
-              fontWeight: FontWeight.w800,
-              fontSize: 13.5,
-            ),
-          ),
-          const SizedBox(height: 3),
-          // Status: nilai terbaik / ajakan mulai / terkunci.
-          if (completed)
-            _chip('Nilai ${node.progress.bestScore}', QuizColors.gold)
-          else if (unlocked)
-            _chip('MULAI', Colors.white)
-          else
-            Text(
-              'Level ${node.lesson.level}',
-              style: const TextStyle(color: Colors.white24, fontSize: 10.5),
-            ),
-        ],
-      ),
+      // Hanya node AKTIF (terbuka, belum selesai) yang mengambang; seluruh isi
+      // node (lingkaran + label) ikut bergerak bersama sebagai satu kesatuan.
+      child: (unlocked && !completed) ? _FloatBob(child: content) : content,
     );
   }
 
@@ -434,10 +438,18 @@ class _PulsingHalo extends StatefulWidget {
 
 class _PulsingHaloState extends State<_PulsingHalo>
     with SingleTickerProviderStateMixin {
+  // reverse: true → nilai naik 0→1 lalu TURUN 1→0 dengan mulus (bawah-atas),
+  // bukan meloncat balik ke 0 (yang tampak "patah").
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1500),
-  )..repeat();
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  // Kurva easeInOut agar pergerakan naik-turunnya melambat di ujung (halus).
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOut,
+  );
 
   @override
   void dispose() {
@@ -448,29 +460,84 @@ class _PulsingHaloState extends State<_PulsingHalo>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: _t,
       builder: (context, child) {
-        final t = _controller.value;
-        return Stack(
-          alignment: Alignment.center,
-          clipBehavior: Clip.none,
-          children: [
-            // Cincin membesar & memudar.
-            Container(
-              width: 68 + 34 * t,
-              height: 68 + 34 * t,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: QuizColors.gold.withValues(alpha: 0.55 * (1 - t)),
-                  width: 3,
+        final t = _t.value;
+        // Footprint dikunci 68x68 (ukuran node); halo yang membesar dibiarkan
+        // MELUBER keluar lewat OverflowBox agar TIDAK menambah tinggi kolom —
+        // sehingga label surah di bawahnya tak ikut tergeser saat halo bernapas.
+        return SizedBox(
+          width: 68,
+          height: 68,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              // Halo emas yang "bernapas" mengikuti denyut (membesar-mengecil).
+              Center(
+                child: OverflowBox(
+                  maxWidth: double.infinity,
+                  maxHeight: double.infinity,
+                  child: Container(
+                    width: 68 + 22 * t,
+                    height: 68 + 22 * t,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: QuizColors.gold.withValues(
+                          alpha: 0.15 + 0.5 * (1 - t),
+                        ),
+                        width: 3,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            child!,
-          ],
+              child!,
+            ],
+          ),
         );
       },
+      child: widget.child,
+    );
+  }
+}
+
+/// Membuat seluruh node "mengambang" naik-turun lembut sebagai SATU kesatuan —
+/// lingkaran & label bergerak bersama dengan jarak yang sama (bukan cuma halo).
+class _FloatBob extends StatefulWidget {
+  final Widget child;
+
+  const _FloatBob({required this.child});
+
+  @override
+  State<_FloatBob> createState() => _FloatBobState();
+}
+
+class _FloatBobState extends State<_FloatBob>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  )..repeat(reverse: true);
+
+  late final Animation<double> _t = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeInOut,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _t,
+      builder: (context, child) =>
+          Transform.translate(offset: Offset(0, -5 * _t.value), child: child),
       child: widget.child,
     );
   }
