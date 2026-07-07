@@ -4,6 +4,8 @@
     <!-- Diperlukan untuk merekam bacaan (fitur Uji Bacaan Qur'an) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Diperlukan untuk getar kustom (amplitude/pola) di widget kuis -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="Khoirunnasyien"
         android:name="${applicationName}"
