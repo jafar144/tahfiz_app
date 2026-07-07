@@ -60,14 +60,18 @@ class TriviaQuestionCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(999),
-                border:
-                    Border.all(color: QuizColors.gold.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: QuizColors.gold.withValues(alpha: 0.4),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_rounded,
-                      size: 15, color: QuizColors.goldDark),
+                  const Icon(
+                    Icons.lightbulb_rounded,
+                    size: 15,
+                    color: QuizColors.goldDark,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -94,8 +98,11 @@ class TriviaQuestionCard extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.star_rounded,
-                      size: 15, color: QuizColors.goldDark),
+                  const Icon(
+                    Icons.star_rounded,
+                    size: 15,
+                    color: QuizColors.goldDark,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     '+$points poin',
@@ -149,8 +156,11 @@ class TriviaSection extends StatelessWidget {
         if (label != null) ...[
           Row(
             children: [
-              Icon(icon ?? Icons.label_important_rounded,
-                  size: 15, color: QuizColors.goldDark),
+              Icon(
+                icon ?? Icons.label_important_rounded,
+                size: 15,
+                color: QuizColors.goldDark,
+              ),
               const SizedBox(width: 6),
               Text(
                 label!.toUpperCase(),

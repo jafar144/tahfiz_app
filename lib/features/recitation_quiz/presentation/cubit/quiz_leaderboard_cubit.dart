@@ -10,26 +10,29 @@ class QuizLeaderboardCubit extends Cubit<QuizLeaderboardState> {
   final FirebaseAuth auth;
 
   QuizLeaderboardCubit(this.repository, this.auth)
-      : super(const QuizLeaderboardState());
+    : super(const QuizLeaderboardState());
 
   /// Muat papan juara untuk [mode] (default: mode saat ini di state).
   Future<void> load([QuizMode? mode]) async {
     final target = mode ?? state.mode;
-    emit(QuizLeaderboardState(
-      status: LeaderboardStatus.loading,
-      mode: target,
-      currentUserId: auth.currentUser?.uid,
-    ));
+    emit(
+      QuizLeaderboardState(
+        status: LeaderboardStatus.loading,
+        mode: target,
+        currentUserId: auth.currentUser?.uid,
+      ),
+    );
     final res = await repository.getMonthlyLeaderboard(target);
     res.fold(
-      ifLeft: (f) => emit(state.copyWith(
-        status: LeaderboardStatus.error,
-        errorMessage: f.message,
-      )),
-      ifRight: (lb) => emit(state.copyWith(
-        status: LeaderboardStatus.loaded,
-        leaderboard: lb,
-      )),
+      ifLeft: (f) => emit(
+        state.copyWith(
+          status: LeaderboardStatus.error,
+          errorMessage: f.message,
+        ),
+      ),
+      ifRight: (lb) => emit(
+        state.copyWith(status: LeaderboardStatus.loaded, leaderboard: lb),
+      ),
     );
   }
 

@@ -266,7 +266,7 @@ class PromptAyahCard extends StatelessWidget {
         text,
         textAlign: TextAlign.center,
         textDirection: TextDirection.rtl,
-        maxLines: 2,
+        maxLines: 4,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontFamily: 'QuranHafs',

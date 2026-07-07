@@ -244,14 +244,10 @@ class RecitationQuizState extends Equatable {
 
   /// Boleh mengulang: gagal di percobaan 1 dan kunci belum dibuka.
   bool get canRetry =>
-      phase == AnswerPhase.revealed &&
-      !passed &&
-      attempt == 1 &&
-      !revealAnswer;
+      phase == AnswerPhase.revealed && !passed && attempt == 1 && !revealAnswer;
 
   /// Boleh lanjut: soal sudah difinalisasi.
-  bool get canAdvance =>
-      phase == AnswerPhase.revealed && pendingAnswer != null;
+  bool get canAdvance => phase == AnswerPhase.revealed && pendingAnswer != null;
 
   bool get isProcessing => phase == AnswerPhase.processing;
   bool get isRecording => phase == AnswerPhase.recording;
@@ -376,14 +372,16 @@ class RecitationQuizState extends Equatable {
       voiceSecondsLeft: voiceSecondsLeft ?? this.voiceSecondsLeft,
       retrySecondsLeft: retrySecondsLeft ?? this.retrySecondsLeft,
       bonusPrepSecondsLeft: bonusPrepSecondsLeft ?? this.bonusPrepSecondsLeft,
-      currentResult:
-          clearCurrentResult ? null : (currentResult ?? this.currentResult),
+      currentResult: clearCurrentResult
+          ? null
+          : (currentResult ?? this.currentResult),
       bestPercent: bestPercent ?? this.bestPercent,
       bestResult: clearBestResult ? null : (bestResult ?? this.bestResult),
       passed: passed ?? this.passed,
       revealAnswer: revealAnswer ?? this.revealAnswer,
-      pendingAnswer:
-          clearPendingAnswer ? null : (pendingAnswer ?? this.pendingAnswer),
+      pendingAnswer: clearPendingAnswer
+          ? null
+          : (pendingAnswer ?? this.pendingAnswer),
       answers: answers ?? this.answers,
       review: review ?? this.review,
       result: result ?? this.result,
@@ -392,10 +390,10 @@ class RecitationQuizState extends Equatable {
       connectionLost: connectionLost ?? this.connectionLost,
       secondsLeft: secondsLeft ?? this.secondsLeft,
       picks: picks ?? this.picks,
-      meaningPick:
-          clearMeaningPick ? null : (meaningPick ?? this.meaningPick),
-      choiceCorrect:
-          clearChoiceFeedback ? null : (choiceCorrect ?? this.choiceCorrect),
+      meaningPick: clearMeaningPick ? null : (meaningPick ?? this.meaningPick),
+      choiceCorrect: clearChoiceFeedback
+          ? null
+          : (choiceCorrect ?? this.choiceCorrect),
       timeBonusTick: timeBonusTick ?? this.timeBonusTick,
       lastTimeBonus: lastTimeBonus ?? this.lastTimeBonus,
       choiceBonusStage: choiceBonusStage ?? this.choiceBonusStage,
@@ -410,54 +408,55 @@ class RecitationQuizState extends Equatable {
           : (bonusMeaningPick ?? this.bonusMeaningPick),
       bonusFraction: bonusFraction ?? this.bonusFraction,
       bonusEarned: bonusEarned ?? this.bonusEarned,
-      bonusCorrect:
-          clearBonusCorrect ? null : (bonusCorrect ?? this.bonusCorrect),
+      bonusCorrect: clearBonusCorrect
+          ? null
+          : (bonusCorrect ?? this.bonusCorrect),
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        errorMessage,
-        settings,
-        settingsLoaded,
-        energy,
-        energyLoading,
-        startBlock,
-        questions,
-        currentIndex,
-        phase,
-        attempt,
-        voiceSecondsLeft,
-        retrySecondsLeft,
-        bonusPrepSecondsLeft,
-        currentResult,
-        bestPercent,
-        bestResult,
-        passed,
-        revealAnswer,
-        pendingAnswer,
-        answers,
-        review,
-        result,
-        saving,
-        saveError,
-        connectionLost,
-        secondsLeft,
-        picks,
-        meaningPick,
-        choiceCorrect,
-        timeBonusTick,
-        lastTimeBonus,
-        choiceBonusStage,
-        choiceBonusSecondsLeft,
-        bonus,
-        bonusStage,
-        bonusSecondsLeft,
-        bonusPicks,
-        bonusMeaningPick,
-        bonusFraction,
-        bonusEarned,
-        bonusCorrect,
-      ];
+    status,
+    errorMessage,
+    settings,
+    settingsLoaded,
+    energy,
+    energyLoading,
+    startBlock,
+    questions,
+    currentIndex,
+    phase,
+    attempt,
+    voiceSecondsLeft,
+    retrySecondsLeft,
+    bonusPrepSecondsLeft,
+    currentResult,
+    bestPercent,
+    bestResult,
+    passed,
+    revealAnswer,
+    pendingAnswer,
+    answers,
+    review,
+    result,
+    saving,
+    saveError,
+    connectionLost,
+    secondsLeft,
+    picks,
+    meaningPick,
+    choiceCorrect,
+    timeBonusTick,
+    lastTimeBonus,
+    choiceBonusStage,
+    choiceBonusSecondsLeft,
+    bonus,
+    bonusStage,
+    bonusSecondsLeft,
+    bonusPicks,
+    bonusMeaningPick,
+    bonusFraction,
+    bonusEarned,
+    bonusCorrect,
+  ];
 }

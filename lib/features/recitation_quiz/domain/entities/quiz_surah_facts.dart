@@ -1,6 +1,7 @@
 /// Fakta surah untuk soal trivia Kuis Hafalan: ARTI nama surah & JUMLAH AYAT.
 ///
-/// Sementara hanya surah juz 29 & 30 (67..114) — selaras [QuizJuz.surahLatin].
+/// Mencakup surah juz 1-3 (Al-Fatihah, Al-Baqarah, Ali 'Imran) & juz 29-30
+/// (67..114) — selaras [QuizJuz.surahLatin].
 /// Sumber arti: terjemahan nama surah yang umum dipakai mushaf Indonesia
 /// (Kemenag). Jumlah ayat mengikuti hitungan Kufi (mushaf Madinah/Hafs).
 ///
@@ -12,6 +13,9 @@ class QuizSurahFacts {
 
   /// Arti nama surah (Indonesia) per id surah.
   static const Map<int, String> meaning = {
+    1: 'Pembukaan',
+    2: 'Sapi Betina',
+    3: 'Keluarga Imran',
     67: 'Kerajaan',
     68: 'Pena',
     69: 'Hari Kiamat yang Pasti Terjadi',
@@ -64,6 +68,9 @@ class QuizSurahFacts {
 
   /// Jumlah ayat per id surah (hitungan Kufi — mushaf Madinah/Hafs).
   static const Map<int, int> ayahCount = {
+    1: 7,
+    2: 286,
+    3: 200,
     67: 30,
     68: 52,
     69: 52,
@@ -115,8 +122,7 @@ class QuizSurahFacts {
   };
 
   /// True bila surah [s] punya data lengkap (arti + jumlah ayat).
-  static bool has(int s) =>
-      meaning.containsKey(s) && ayahCount.containsKey(s);
+  static bool has(int s) => meaning.containsKey(s) && ayahCount.containsKey(s);
 
   static String meaningOf(int s) => meaning[s] ?? '-';
 

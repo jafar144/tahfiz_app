@@ -41,8 +41,9 @@ class QuizEnergyRemoteDataSource {
     return QuizEnergy(
       current: current,
       max: max,
-      nextRefillAt:
-          secs == null ? null : DateTime.now().add(Duration(seconds: secs)),
+      nextRefillAt: secs == null
+          ? null
+          : DateTime.now().add(Duration(seconds: secs)),
     );
   }
 

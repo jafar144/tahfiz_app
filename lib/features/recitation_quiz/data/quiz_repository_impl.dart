@@ -54,11 +54,10 @@ class QuizRepositoryImpl implements QuizRepository {
   CollectionReference<Map<String, dynamic>> _entriesRef(
     String monthKey,
     QuizMode mode,
-  ) =>
-      firestore
-          .collection(_leaderboardCollection)
-          .doc(monthKey)
-          .collection(mode.key);
+  ) => firestore
+      .collection(_leaderboardCollection)
+      .doc(monthKey)
+      .collection(mode.key);
 
   @override
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
@@ -66,8 +65,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required QuizSettings settings,
   }) async {
     try {
-      final juzList =
-          settings.sortedJuz.where(QuizJuz.isSupported).toList();
+      final juzList = settings.sortedJuz.where(QuizJuz.isSupported).toList();
       if (juzList.isEmpty) {
         return const Left(UnknownFailure('Pilih minimal satu juz.'));
       }
@@ -79,25 +77,40 @@ class QuizRepositoryImpl implements QuizRepository {
       final pool = <Ayah>[];
       final segmentEnds = <int>{};
       for (final j in juzList) {
-        final seg = await local.getAyatForSurahRange(
-          fromSurah: settings.startSurahFor(j),
-          toSurah: QuizJuz.lastSurah(j),
-        );
-        if (seg.isEmpty) continue;
-        pool.addAll(seg);
-        segmentEnds.add(pool.length - 1);
+        final before = pool.length;
+        if (QuizJuz.hasAyahSegments(j)) {
+          // Juz "rentang ayat" (batas di tengah surah): rangkai tiap segmen.
+          for (final s in QuizJuz.ayahSegments(j)) {
+            pool.addAll(
+              await local.getAyatRange(surahId: s.$1, from: s.$2, to: s.$3),
+            );
+          }
+        } else {
+          // Juz "surah utuh": dari surah awal terpilih s.d. surah terakhir juz.
+          pool.addAll(
+            await local.getAyatForSurahRange(
+              fromSurah: settings.startSurahFor(j),
+              toSurah: QuizJuz.lastSurah(j),
+            ),
+          );
+        }
+        // Tiap juz = satu segmen kontigu; lanjutan tak boleh menyeberang celah
+        // antar-juz.
+        if (pool.length > before) segmentEnds.add(pool.length - 1);
       }
       if (pool.length < 2) {
-        return const Left(UnknownFailure('Rentang target terpilih terlalu pendek.'));
+        return const Left(
+          UnknownFailure('Rentang target terpilih terlalu pendek.'),
+        );
       }
 
       // Basmalah (dari Al-Fatihah 1:1) untuk transisi antar surah.
       final basmalahList = await local.getAyatRange(surahId: 1, from: 1, to: 1);
-      final basmalahText =
-          basmalahList.isNotEmpty ? basmalahList.first.text : '';
+      final basmalahText = basmalahList.isNotEmpty
+          ? basmalahList.first.text
+          : '';
 
       // Peta bantu per surah — dipakai soal "ayat terakhir" & "ayat ke-N".
-      // Rentang selalu memuat surah UTUH, jadi peta ini lengkap per surah.
       final ayatBySurah = <int, Map<int, Ayah>>{};
       final lastAyahOf = <int, Ayah>{};
       for (final a in pool) {
@@ -106,14 +119,22 @@ class QuizRepositoryImpl implements QuizRepository {
         if (last == null || a.number > last.number) lastAyahOf[a.surahId] = a;
       }
 
-      // Himpunan surah dalam rentang target (distraktor soal trivia).
-      final allowedSurahs = <int>{
-        for (final j in juzList)
-          for (var s = settings.startSurahFor(j);
-              s <= QuizJuz.lastSurah(j);
-              s++)
-            s,
+      // Surah yang UTUH dalam pool (ayat 1..terakhir-asli lengkap) → boleh dipakai
+      // untuk tugas "ayat terakhir surah" & "ayat ke-N". Surah terpotong (mis.
+      // Al-Baqarah pada juz 1-3) hanya untuk tugas "lanjutkan ayat".
+      final surahTotals = <int, int>{
+        for (final s in await local.getSurahList()) s.id: s.totalVerses,
       };
+      final completeSurahs = <int>{
+        for (final e in ayatBySurah.entries)
+          if (surahTotals[e.key] != null &&
+              e.value.containsKey(1) &&
+              e.value.length == surahTotals[e.key])
+            e.key,
+      };
+
+      // Himpunan surah dalam pool (distraktor soal trivia / tebak surah).
+      final allowedSurahs = pool.map((a) => a.surahId).toSet();
 
       // Kandidat prompt = indeks ayat yang punya minimal 1 ayat lanjutan valid
       // (bukan ayat penutup segmen — lanjutannya akan menyeberang celah).
@@ -124,7 +145,8 @@ class QuizRepositoryImpl implements QuizRepository {
       }
       if (candidates.isEmpty) {
         return const Left(
-            UnknownFailure('Data tidak cukup untuk menyusun soal.'));
+          UnknownFailure('Data tidak cukup untuk menyusun soal.'),
+        );
       }
 
       final rng = Random();
@@ -144,7 +166,8 @@ class QuizRepositoryImpl implements QuizRepository {
         );
         if (choiceQuestions.isEmpty) {
           return const Left(
-              UnknownFailure('Data tidak cukup untuk menyusun soal.'));
+            UnknownFailure('Data tidak cukup untuk menyusun soal.'),
+          );
         }
         return Right(choiceQuestions);
       }
@@ -164,27 +187,38 @@ class QuizRepositoryImpl implements QuizRepository {
         final prompt = pool[i];
 
         // Undi tugas soal (lanjutkan / ayat terakhir / ayat ke-N).
-        final task = _rollVoiceTask(prompt, lastAyahOf, usedVariants, rng);
+        final task = _rollVoiceTask(
+          prompt,
+          lastAyahOf,
+          completeSurahs,
+          usedVariants,
+          rng,
+        );
         switch (task) {
           case QuizVoiceTask.continueAyah:
             if (!usedPrompts.add(keyOf(prompt))) continue;
-            final maxLen = _availableAnswerLen(pool, i, segmentEnds);
-            final len = 1 + rng.nextInt(maxLen);
+            // Jumlah ayat jawaban menyesuaikan PANJANG ayat (pendek → banyak,
+            // panjang → 1).
+            final len = _voiceAnswerLen(pool, i, segmentEnds, rng);
             final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
-            questions.add(QuizQuestion(
-              prompt: prompt,
-              answer: _withBasmalah(rawAnswer, basmalahText),
-            ));
+            questions.add(
+              QuizQuestion(
+                prompt: prompt,
+                answer: _withBasmalah(rawAnswer, basmalahText),
+              ),
+            );
 
           case QuizVoiceTask.lastAyah:
             // Ayat tampil dijamin bukan penutup surah (dicek saat undi tugas).
             if (!usedPrompts.add(keyOf(prompt))) continue;
             usedVariants.add('last:${prompt.surahId}');
-            questions.add(QuizQuestion(
-              task: QuizVoiceTask.lastAyah,
-              prompt: prompt,
-              answer: [lastAyahOf[prompt.surahId]!],
-            ));
+            questions.add(
+              QuizQuestion(
+                task: QuizVoiceTask.lastAyah,
+                prompt: prompt,
+                answer: [lastAyahOf[prompt.surahId]!],
+              ),
+            );
 
           case QuizVoiceTask.specificAyah:
             // Prompt DIGANTI jadi ayat penutup surah; minta baca ayat ke-N
@@ -199,17 +233,20 @@ class QuizRepositoryImpl implements QuizRepository {
             if (target == null) continue;
             if (!usedPrompts.add(keyOf(closing))) continue;
             usedVariants.add('specific:$s');
-            questions.add(QuizQuestion(
-              task: QuizVoiceTask.specificAyah,
-              prompt: closing,
-              answer: _withBasmalah([target], basmalahText),
-            ));
+            questions.add(
+              QuizQuestion(
+                task: QuizVoiceTask.specificAyah,
+                prompt: closing,
+                answer: _withBasmalah([target], basmalahText),
+              ),
+            );
         }
       }
 
       if (questions.isEmpty) {
         return const Left(
-            UnknownFailure('Data tidak cukup untuk menyusun soal.'));
+          UnknownFailure('Data tidak cukup untuk menyusun soal.'),
+        );
       }
 
       questions.shuffle(rng);
@@ -295,11 +332,13 @@ class QuizRepositoryImpl implements QuizRepository {
       final maxLen = _availableAnswerLen(pool, i, segmentEnds);
       final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
       final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
-      questions.add(QuizQuestion(
-        prompt: prompt,
-        answer: rawAnswer,
-        options: _buildOptions(pool, prompt, rawAnswer, rng),
-      ));
+      questions.add(
+        QuizQuestion(
+          prompt: prompt,
+          answer: rawAnswer,
+          options: _buildOptions(pool, prompt, rawAnswer, rng),
+        ),
+      );
     }
     return questions;
   }
@@ -309,26 +348,34 @@ class QuizRepositoryImpl implements QuizRepository {
   QuizVoiceTask _rollVoiceTask(
     Ayah prompt,
     Map<int, Ayah> lastAyahOf,
+    Set<int> completeSurahs,
     Set<String> usedVariants,
     Random rng,
   ) {
     final s = prompt.surahId;
     final last = lastAyahOf[s];
+    // Variasi "ayat terakhir/ke-N" HANYA untuk surah UTUH dalam pool (surah
+    // terpotong pada juz 1-3 tak boleh mereferensi ayat di luar rentang).
+    final whole = completeSurahs.contains(s);
     final entries = <(QuizVoiceTask, int)>[
       (QuizVoiceTask.continueAyah, QuizConfig.voiceTaskWeightContinue),
     ];
     // "Ayat terakhir surah": ayat tampil tak boleh penutup surah itu sendiri.
-    if (last != null &&
+    if (whole &&
+        last != null &&
         prompt.number != last.number &&
         !usedVariants.contains('last:$s')) {
       entries.add((QuizVoiceTask.lastAyah, QuizConfig.voiceTaskWeightLastAyah));
     }
     // "Baca ayat ke-N": butuh minimal 2 ayat agar N ≠ ayat penutup.
-    if (last != null &&
+    if (whole &&
+        last != null &&
         last.number >= 2 &&
         !usedVariants.contains('specific:$s')) {
-      entries.add(
-          (QuizVoiceTask.specificAyah, QuizConfig.voiceTaskWeightSpecificAyah));
+      entries.add((
+        QuizVoiceTask.specificAyah,
+        QuizConfig.voiceTaskWeightSpecificAyah,
+      ));
     }
     var roll = rng.nextInt(entries.fold(0, (t, e) => t + e.$2));
     for (final e in entries) {
@@ -345,13 +392,15 @@ class QuizRepositoryImpl implements QuizRepository {
     final answer = <Ayah>[];
     for (final a in rawAnswer) {
       if (a.number == 1) {
-        answer.add(Ayah(
-          surahId: a.surahId,
-          number: 0, // penanda basmalah (bukan ayat bernomor)
-          text: basmalahText,
-          page: a.page,
-          surahName: a.surahName,
-        ));
+        answer.add(
+          Ayah(
+            surahId: a.surahId,
+            number: 0, // penanda basmalah (bukan ayat bernomor)
+            text: basmalahText,
+            page: a.page,
+            surahName: a.surahName,
+          ),
+        );
       }
       answer.add(a);
     }
@@ -371,10 +420,11 @@ class QuizRepositoryImpl implements QuizRepository {
         a.surahId == b.surahId && a.number == b.number;
 
     final used = [prompt, ...answer];
-    final distractorPool = pool
-        .where((a) => a.number != 0 && !used.any((u) => sameAyah(u, a)))
-        .toList()
-      ..shuffle(rng);
+    final distractorPool =
+        pool
+            .where((a) => a.number != 0 && !used.any((u) => sameAyah(u, a)))
+            .toList()
+          ..shuffle(rng);
 
     final options = <Ayah>[...answer];
     for (final a in distractorPool) {
@@ -387,18 +437,55 @@ class QuizRepositoryImpl implements QuizRepository {
     return options;
   }
 
-  /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1..maxAnswerAyah).
+  /// Jumlah ayat lanjutan yang tersedia dari indeks [i] (1..[maxCap]).
   /// Berhenti di batas segmen (indeks penutup di [segmentEnds]) agar lanjutan
   /// tak menyeberang celah antar rentang juz.
-  int _availableAnswerLen(List<Ayah> pool, int i, Set<int> segmentEnds) {
+  int _availableAnswerLen(
+    List<Ayah> pool,
+    int i,
+    Set<int> segmentEnds, {
+    int maxCap = QuizConfig.maxAnswerAyah,
+  }) {
     var len = 0;
-    for (var k = 1; k <= QuizConfig.maxAnswerAyah; k++) {
+    for (var k = 1; k <= maxCap; k++) {
       final idx = i + k;
       if (idx >= pool.length) break;
       if (segmentEnds.contains(idx - 1)) break; // pool[idx] mulai segmen baru
       len++;
     }
     return len; // >= 1 karena i selalu diambil dari kandidat valid
+  }
+
+  /// Perkiraan jumlah kata sebuah ayat (untuk mengklasifikasi panjang ayat).
+  int _wordCount(String text) =>
+      text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+
+  /// Jumlah ayat jawaban mode SUARA menurut PANJANG ayat pertama jawaban:
+  /// pendek → lebih banyak (3-4), sedang → 2-3, panjang → 1. Diundi dalam range
+  /// kategori lalu dibatasi ketersediaan ayat (tak menyeberang batas juz).
+  int _voiceAnswerLen(
+    List<Ayah> pool,
+    int i,
+    Set<int> segmentEnds,
+    Random rng,
+  ) {
+    final available = _availableAnswerLen(
+      pool,
+      i,
+      segmentEnds,
+      maxCap: QuizConfig.voiceMaxAnswerAyah,
+    );
+    if (available <= 1) return available; // kandidat selalu punya ≥ 1 lanjutan
+
+    final words = _wordCount(pool[i + 1].text);
+    final range = words <= QuizConfig.voiceShortAyahMaxWords
+        ? QuizConfig.voiceShortRange
+        : words <= QuizConfig.voiceMediumAyahMaxWords
+        ? QuizConfig.voiceMediumRange
+        : QuizConfig.voiceLongRange;
+    final target = range.$1 + rng.nextInt(range.$2 - range.$1 + 1);
+    final len = target < available ? target : available;
+    return len < 1 ? 1 : len;
   }
 
   @override
@@ -462,19 +549,22 @@ class QuizRepositoryImpl implements QuizRepository {
       // otomatis saat online — jadi bila menunggu ACK server melewati batas
       // waktu, anggap tersimpan (data TIDAK hilang) daripada menggantung UI.
       try {
-        await firestore.collection(_collection).add({
-          'user_id': user.uid,
-          'user_name': name,
-          'role': role,
-          'mode': mode.key,
-          'juz': juz,
-          'score': score,
-          'bonus_score': bonusTotal,
-          'question_scores': questionScores,
-          'question_count': questionScores.length,
-          'date_key': dateKey,
-          'created_at': FieldValue.serverTimestamp(),
-        }).timeout(const Duration(seconds: 6));
+        await firestore
+            .collection(_collection)
+            .add({
+              'user_id': user.uid,
+              'user_name': name,
+              'role': role,
+              'mode': mode.key,
+              'juz': juz,
+              'score': score,
+              'bonus_score': bonusTotal,
+              'question_scores': questionScores,
+              'question_count': questionScores.length,
+              'date_key': dateKey,
+              'created_at': FieldValue.serverTimestamp(),
+            })
+            .timeout(const Duration(seconds: 6));
       } on TimeoutException {
         // Tersimpan di antrean lokal & akan tersinkron otomatis; lanjut.
       }
@@ -601,13 +691,15 @@ class QuizRepositoryImpl implements QuizRepository {
         }
       }
 
-      return Right(MonthlyLeaderboard(
-        mode: mode,
-        monthKey: monthKey,
-        entries: entries,
-        myEntry: myEntry,
-        myRank: myRank,
-      ));
+      return Right(
+        MonthlyLeaderboard(
+          mode: mode,
+          monthKey: monthKey,
+          entries: entries,
+          myEntry: myEntry,
+          myRank: myRank,
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure('Gagal memuat leaderboard: $e'));
     }
@@ -645,15 +737,16 @@ class QuizRepositoryImpl implements QuizRepository {
     try {
       return Right(await energyRemote.startSession());
     } on FirebaseFunctionsException catch (e) {
-      return Left(QuizBlockedFailure(
-        _reasonOf(e),
-        e.message ?? 'Kuis sedang tidak bisa dimulai.',
-      ));
+      return Left(
+        QuizBlockedFailure(
+          _reasonOf(e),
+          e.message ?? 'Kuis sedang tidak bisa dimulai.',
+        ),
+      );
     } catch (e) {
-      return Left(QuizBlockedFailure(
-        QuizBlockReason.unknown,
-        'Gagal memulai sesi: $e',
-      ));
+      return Left(
+        QuizBlockedFailure(QuizBlockReason.unknown, 'Gagal memulai sesi: $e'),
+      );
     }
   }
 

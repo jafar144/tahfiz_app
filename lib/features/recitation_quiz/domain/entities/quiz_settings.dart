@@ -9,13 +9,14 @@ class QuizSettings extends Equatable {
   /// Mode permainan: suara (Whisper) atau pilihan ganda.
   final QuizMode mode;
 
-  /// Juz yang diikutkan (subset dari {29, 30}), minimal satu.
+  /// Juz yang diikutkan (subset dari [QuizJuz.supported]), minimal satu.
   final Set<int> juz;
 
-  /// Surah AWAL rentang target hafalan per juz (id surah mushaf). Ujung akhir
-  /// selalu dikunci ke surah terakhir juz; santri hanya mengatur surah awal.
-  /// Bila sebuah juz tak punya entri, dianggap mulai dari surah pertama juz
-  /// (rentang penuh).
+  /// Surah AWAL rentang target hafalan per juz (id surah mushaf) — HANYA untuk
+  /// juz "surah utuh" (29 & 30). Ujung akhir selalu dikunci ke surah terakhir
+  /// juz; santri hanya mengatur surah awal. Bila sebuah juz tak punya entri,
+  /// dianggap mulai dari surah pertama juz (rentang penuh). Juz "rentang ayat"
+  /// (1-3) mengabaikan ini.
   final Map<int, int> rangeStart;
 
   const QuizSettings({
@@ -27,20 +28,25 @@ class QuizSettings extends Equatable {
   /// Daftar juz terurut menaik (untuk penyimpanan & tampilan).
   List<int> get sortedJuz => juz.toList()..sort();
 
-  /// Surah awal rentang target juz [j] (default: surah pertama juz).
-  int startSurahFor(int j) =>
-      QuizJuz.clampStart(j, rangeStart[j] ?? QuizJuz.firstSurah(j));
+  /// Surah awal rentang target juz [j] (default: surah pertama juz). Untuk juz
+  /// "rentang ayat" (tanpa kustomisasi), kembalikan surah awal segmen pertama.
+  int startSurahFor(int j) {
+    if (!QuizJuz.supportsCustomRange(j)) {
+      final segs = QuizJuz.ayahSegments(j);
+      return segs.isNotEmpty ? segs.first.$1 : j;
+    }
+    return QuizJuz.clampStart(j, rangeStart[j] ?? QuizJuz.firstSurah(j));
+  }
 
   QuizSettings copyWith({
     QuizMode? mode,
     Set<int>? juz,
     Map<int, int>? rangeStart,
-  }) =>
-      QuizSettings(
-        mode: mode ?? this.mode,
-        juz: juz ?? this.juz,
-        rangeStart: rangeStart ?? this.rangeStart,
-      );
+  }) => QuizSettings(
+    mode: mode ?? this.mode,
+    juz: juz ?? this.juz,
+    rangeStart: rangeStart ?? this.rangeStart,
+  );
 
   /// Setel surah awal rentang target untuk juz [j].
   QuizSettings withRangeStart(int j, int startSurah) {
@@ -50,13 +56,15 @@ class QuizSettings extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'mode': mode.key,
-        'juz': sortedJuz,
-        'range_start': rangeStart.map((k, v) => MapEntry(k.toString(), v)),
-      };
+    'mode': mode.key,
+    'juz': sortedJuz,
+    'range_start': rangeStart.map((k, v) => MapEntry(k.toString(), v)),
+  };
 
   factory QuizSettings.fromJson(Map<String, dynamic> json) {
-    final juzRaw = (json['juz'] as List?)?.whereType<num>().map((e) => e.toInt());
+    final juzRaw = (json['juz'] as List?)?.whereType<num>().map(
+      (e) => e.toInt(),
+    );
     final juz = <int>{
       for (final j in (juzRaw ?? const <int>[]))
         if (QuizJuz.isSupported(j)) j,
@@ -66,7 +74,8 @@ class QuizSettings extends Equatable {
     rangeRaw.forEach((k, v) {
       final j = int.tryParse(k.toString());
       final s = v is num ? v.toInt() : null;
-      if (j != null && s != null && QuizJuz.isSupported(j)) {
+      // Rentang target hanya berlaku untuk juz "surah utuh" (29 & 30).
+      if (j != null && s != null && QuizJuz.supportsCustomRange(j)) {
         rangeStart[j] = QuizJuz.clampStart(j, s);
       }
     });

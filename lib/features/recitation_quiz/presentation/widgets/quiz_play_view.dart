@@ -169,13 +169,14 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                     ],
                   ),
                 ),
-                // Hanya soal + jawaban yang bergeser saat pindah soal;
-                // progress & timer di atas tetap diam.
+                // Hanya soal (instruksi + ayat) yang bergeser saat pindah soal;
+                // progress & timer di atas tetap diam. Tombol rekam TIDAK di sini
+                // agar bisa diletakkan di bawah-tengah layar.
                 Expanded(
                   child: QuestionSlideSwitcher(
                     index: state.currentIndex,
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Column(
                         children: [
                           // Instruksi soal tetap tampil saat hasil muncul (agar
@@ -186,13 +187,18 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             const SizedBox(height: 12),
                           ],
                           PromptAyahCard(text: q.prompt.text),
-                          const SizedBox(height: 24),
-                          _bottomSection(context, cubit, state),
                         ],
                       ),
                     ),
                   ),
                 ),
+                // Aksi bawah (rekam / memeriksa) di BAWAH-TENGAH, bukan menempel
+                // di bawah soal. Saat hasil tampil, digantikan sheet hasil.
+                if (!showResultSheet)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 72),
+                    child: _bottomSection(context, cubit, state),
+                  ),
                 // Sheet hasil (naik dari bawah).
                 if (showResultSheet)
                   _VoiceResultSheet(

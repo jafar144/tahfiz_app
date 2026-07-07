@@ -130,12 +130,12 @@ class QuizBonusQuestion {
   /// Tingkat kesulitan soal bonus (mode suara) → menentukan poin penuh &
   /// durasi hitung mundur.
   QuizBonusDifficulty get difficulty => switch (type) {
-        QuizBonusType.identify => QuizBonusDifficulty.easy,
-        QuizBonusType.ayahCount => QuizBonusDifficulty.medium,
-        QuizBonusType.nameMeaning => QuizBonusDifficulty.medium,
-        QuizBonusType.neighbor => QuizBonusDifficulty.hard,
-        QuizBonusType.orderNumber => QuizBonusDifficulty.hard,
-      };
+    QuizBonusType.identify => QuizBonusDifficulty.easy,
+    QuizBonusType.ayahCount => QuizBonusDifficulty.medium,
+    QuizBonusType.nameMeaning => QuizBonusDifficulty.medium,
+    QuizBonusType.neighbor => QuizBonusDifficulty.hard,
+    QuizBonusType.orderNumber => QuizBonusDifficulty.hard,
+  };
 
   /// Poin PENUH bila benar (mode suara), nilai tetap. Untuk [nameMeaning],
   /// benar satu bagian saja → setengah dari nilai ini.
@@ -143,33 +143,32 @@ class QuizBonusQuestion {
 
   /// Teks jawaban benar siap tampil (saat salah/waktu habis).
   String get answerLabel => switch (type) {
-        QuizBonusType.nameMeaning =>
-          '${QuizJuz.nameOf(answerSurahs.first)} — $answerMeaning',
-        QuizBonusType.orderNumber =>
-          'Urutan ke-${answerSurahs.first} (${QuizJuz.nameOf(answerSurahs.first)})',
-        QuizBonusType.ayahCount =>
-          '$answerNumber ayat (${QuizJuz.nameOf(answerSurahs.first)})',
-        _ => answerNames.join(', '),
-      };
+    QuizBonusType.nameMeaning =>
+      '${QuizJuz.nameOf(answerSurahs.first)} — $answerMeaning',
+    QuizBonusType.orderNumber =>
+      'Urutan ke-${answerSurahs.first} (${QuizJuz.nameOf(answerSurahs.first)})',
+    QuizBonusType.ayahCount =>
+      '$answerNumber ayat (${QuizJuz.nameOf(answerSurahs.first)})',
+    _ => answerNames.join(', '),
+  };
 
   /// Teks pertanyaan dengan [subject] = frasa ayat rujukan ("ayat tadi" di
   /// bonus suara, "ayat di atas" di mode pilihan). Untuk [neighbor] &
   /// [orderNumber], surah target SENGAJA tidak disebut namanya — santri harus
   /// mengenali sendiri surahnya dari ayat.
   String questionTextWith(String subject) => switch (type) {
-        QuizBonusType.neighbor =>
-          '$offset surah ${after ? 'setelah' : 'sebelum'} surah dari '
-              '$subject, surahnya apa?',
-        QuizBonusType.nameMeaning =>
-          'Apa NAMA dan ARTI surah dari $subject?',
-        QuizBonusType.orderNumber =>
-          'Surah dari $subject urutan ke berapa dalam Al-Qur\'an?',
-        QuizBonusType.ayahCount =>
-          'Berapa jumlah ayat surah dari $subject?',
-        QuizBonusType.identify => isMulti
-            ? '${_cap(subject)} mencakup surah apa saja?'
-            : '${_cap(subject)} dari surah apa?',
-      };
+    QuizBonusType.neighbor =>
+      '$offset surah ${after ? 'setelah' : 'sebelum'} surah dari '
+          '$subject, surahnya apa?',
+    QuizBonusType.nameMeaning => 'Apa NAMA dan ARTI surah dari $subject?',
+    QuizBonusType.orderNumber =>
+      'Surah dari $subject urutan ke berapa dalam Al-Qur\'an?',
+    QuizBonusType.ayahCount => 'Berapa jumlah ayat surah dari $subject?',
+    QuizBonusType.identify =>
+      isMulti
+          ? '${_cap(subject)} mencakup surah apa saja?'
+          : '${_cap(subject)} dari surah apa?',
+  };
 
   /// Petunjuk tambahan yang ditampilkan di bawah pertanyaan. Untuk [orderNumber]
   /// menyebut satu surah acuan + nomornya sebagai titik hitung; null untuk tipe
@@ -187,10 +186,10 @@ class QuizBonusQuestion {
   /// Detik hitung mundur untuk soal ini (bonus mode suara) menurut [difficulty]
   /// — makin sulit, makin lama waktunya.
   int get durationSeconds => switch (difficulty) {
-        QuizBonusDifficulty.easy => QuizConfig.bonusSecondsEasy,
-        QuizBonusDifficulty.medium => QuizConfig.bonusSecondsMedium,
-        QuizBonusDifficulty.hard => QuizConfig.bonusSecondsHard,
-      };
+    QuizBonusDifficulty.easy => QuizConfig.bonusSecondsEasy,
+    QuizBonusDifficulty.medium => QuizConfig.bonusSecondsMedium,
+    QuizBonusDifficulty.hard => QuizConfig.bonusSecondsHard,
+  };
 
   /// Susun soal bonus (mode suara) dari surah-surah yang BARUSAN DIBACA santri
   /// [readSurahs] & himpunan surah dalam rentang target [allowed]. Jenis soal
@@ -249,14 +248,14 @@ class QuizBonusQuestion {
     if (!QuizSurahFacts.has(surah) || !named.contains(surah)) return null;
 
     QuizBonusQuestion? build(QuizBonusType t) => switch (t) {
-          QuizBonusType.nameMeaning => _nameMeaning(surah, allowed, named, rng),
-          QuizBonusType.ayahCount => _ayahCount(surah, rng),
-          QuizBonusType.orderNumber =>
-            _orderReferenceCandidates(surah, named).isEmpty
-                ? null
-                : _orderNumber(surah, named, rng),
-          _ => null,
-        };
+      QuizBonusType.nameMeaning => _nameMeaning(surah, allowed, named, rng),
+      QuizBonusType.ayahCount => _ayahCount(surah, rng),
+      QuizBonusType.orderNumber =>
+        _orderReferenceCandidates(surah, named).isEmpty
+            ? null
+            : _orderNumber(surah, named, rng),
+      _ => null,
+    };
 
     if (type != null) return build(type);
 
@@ -353,8 +352,7 @@ class QuizBonusQuestion {
       rng: rng,
     );
     if (options == null) return null;
-    final meanings =
-        _assembleMeaningOptions(base, preferred, fallback, rng);
+    final meanings = _assembleMeaningOptions(base, preferred, fallback, rng);
     if (meanings == null) return null;
     return QuizBonusQuestion(
       type: QuizBonusType.nameMeaning,
@@ -384,16 +382,12 @@ class QuizBonusQuestion {
   /// Kandidat surah acuan untuk [orderNumber]: bernama & berjarak
   /// 1..[QuizConfig.orderNumberMaxRefDistance] dari target (tidak jauh-jauh).
   static List<int> _orderReferenceCandidates(int base, Set<int> named) => [
-        for (var d = 1; d <= QuizConfig.orderNumberMaxRefDistance; d++)
-          for (final r in [base - d, base + d])
-            if (named.contains(r)) r,
-      ];
+    for (var d = 1; d <= QuizConfig.orderNumberMaxRefDistance; d++)
+      for (final r in [base - d, base + d])
+        if (named.contains(r)) r,
+  ];
 
-  static QuizBonusQuestion? _orderNumber(
-    int base,
-    Set<int> named,
-    Random rng,
-  ) {
+  static QuizBonusQuestion? _orderNumber(int base, Set<int> named, Random rng) {
     final refs = _orderReferenceCandidates(base, named);
     if (refs.isEmpty) return null;
     final ref = refs[rng.nextInt(refs.length)];
@@ -427,13 +421,16 @@ class QuizBonusQuestion {
   }) {
     final chosen = <int>{...answers};
 
-    List<int> pickable(Set<int> from) => from
-        .where((s) =>
-            s != exclude &&
-            !chosen.contains(s) &&
-            QuizJuz.surahLatin.containsKey(s))
-        .toList()
-      ..shuffle(rng);
+    List<int> pickable(Set<int> from) =>
+        from
+            .where(
+              (s) =>
+                  s != exclude &&
+                  !chosen.contains(s) &&
+                  QuizJuz.surahLatin.containsKey(s),
+            )
+            .toList()
+          ..shuffle(rng);
 
     for (final s in pickable(preferred)) {
       if (chosen.length >= QuizConfig.bonusOptionCount) break;
@@ -493,7 +490,10 @@ class QuizBonusQuestion {
     while (chosen.length < QuizConfig.bonusOptionCount && radius < 60) {
       final candidates = [
         for (var n = answer - radius; n <= answer + radius; n++)
-          if (n >= min && n <= max && !exclude.contains(n) && !chosen.contains(n))
+          if (n >= min &&
+              n <= max &&
+              !exclude.contains(n) &&
+              !chosen.contains(n))
             n,
       ]..shuffle(rng);
       for (final n in candidates) {

@@ -159,8 +159,8 @@ class QuizIntroView extends StatelessWidget {
         icon: Icons.menu_book_rounded,
         title: '10 soal acak & bervariasi',
         subtitle:
-            'Lanjutkan 1-3 ayat, baca ayat terakhir surah, atau baca '
-            'ayat ke-N dari surahnya.',
+            'Lanjutkan ayat (jumlahnya menyesuaikan panjang ayat), baca ayat '
+            'terakhir surah, atau baca ayat ke-N dari surahnya.',
       ),
       _RuleTile(
         icon: Icons.mic_rounded,
@@ -248,10 +248,10 @@ class QuizIntroView extends StatelessWidget {
               children: [
                 // Energi tampil sebagai tooltip melayang di atas tombol mulai
                 // (hanya mode suara — mode pilihan tak memakai energi).
-                if (!settings.mode.isChoice && energy != null) ...[
-                  _EnergyTooltip(energy: energy!, onRefillReady: onRefillReady),
-                  const SizedBox(height: 2),
-                ],
+                // if (!settings.mode.isChoice && energy != null) ...[
+                //   _EnergyTooltip(energy: energy!, onRefillReady: onRefillReady),
+                //   const SizedBox(height: 2),
+                // ],
                 // Tombol gear pengaturan (~1/5) di KIRI + tombol mulai.
                 Row(
                   children: [
@@ -265,7 +265,26 @@ class QuizIntroView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(flex: 4, child: _buildStartButton(context)),
+                    Expanded(
+                      flex: 4,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topCenter,
+                        children: [
+
+                          _buildStartButton(context),
+
+                          if (!settings.mode.isChoice && energy != null)
+                            Positioned(
+                              top: -52,
+                              child: _EnergyTooltip(
+                                energy: energy!,
+                                onRefillReady: onRefillReady,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -417,9 +436,23 @@ class _SettingsSheet extends StatefulWidget {
 class _SettingsSheetState extends State<_SettingsSheet> {
   late QuizSettings _s = widget.initial;
 
+  /// Seksi rentang hafalan (opsional) — terbuka bila sudah pernah disesuaikan.
+  late bool _rangeExpanded = _s.sortedJuz
+      .where(QuizJuz.supportsCustomRange)
+      .any((j) => _s.startSurahFor(j) != QuizJuz.firstSurah(j));
+
   void _update(QuizSettings next) {
     setState(() => _s = next);
     widget.onChanged(next);
+  }
+
+  /// Ringkasan penyesuaian rentang untuk header seksi (saat terlipat).
+  String get _rangeSummary {
+    final custom = _s.sortedJuz.where(QuizJuz.supportsCustomRange);
+    final adjusted = custom
+        .where((j) => _s.startSurahFor(j) != QuizJuz.firstSurah(j))
+        .length;
+    return adjusted == 0 ? 'Semua penuh' : '$adjusted juz disesuaikan';
   }
 
   void _toggleJuz(int j) {
@@ -512,44 +545,48 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             ],
             const SizedBox(height: 20),
             const _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                for (final j in QuizJuz.supported) ...[
-                  if (j != QuizJuz.supported.first) const SizedBox(width: 12),
-                  Expanded(
-                    child: _JuzOption(
-                      juz: j,
-                      range:
-                          '${QuizJuz.nameOf(QuizJuz.firstSurah(j))} — ${QuizJuz.nameOf(QuizJuz.lastSurah(j))}',
-                      selected: _s.juz.contains(j),
-                      onTap: () => _toggleJuz(j),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 20),
-            const _SectionLabel(
-              icon: Icons.flag_rounded,
-              text: 'Rentang Target Hafalan',
-            ),
             const SizedBox(height: 4),
             const Text(
-              'Atur surah awal yang kamu hafal. Surah terakhir tiap juz dikunci '
-              'sebagai ujung target.',
+              'Boleh pilih lebih dari satu.',
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 10),
-            for (final j in selectedJuz) ...[
-              _RangeTargetCard(
-                juz: j,
-                startSurah: _s.startSurahFor(j),
-                onStartChanged: (s) => _update(_s.withRangeStart(j, s)),
+            // Chip ringkas — jauh lebih hemat ruang daripada kartu besar.
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final j in QuizJuz.supported)
+                  _JuzChip(
+                    juz: j,
+                    selected: _s.juz.contains(j),
+                    onTap: () => _toggleJuz(j),
+                  ),
+              ],
+            ),
+            // Rentang target — seksi opsional yang bisa dilipat (hanya juz 29/30).
+            if (selectedJuz.any(QuizJuz.supportsCustomRange)) ...[
+              const SizedBox(height: 14),
+              _RangeExpander(
+                expanded: _rangeExpanded,
+                summary: _rangeSummary,
+                onToggle: () =>
+                    setState(() => _rangeExpanded = !_rangeExpanded),
               ),
-              const SizedBox(height: 10),
+              if (_rangeExpanded) ...[
+                const SizedBox(height: 10),
+                for (final j in selectedJuz)
+                  if (QuizJuz.supportsCustomRange(j)) ...[
+                    _RangeTargetCard(
+                      juz: j,
+                      startSurah: _s.startSurahFor(j),
+                      onStartChanged: (s) => _update(_s.withRangeStart(j, s)),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+              ],
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: QuizButton(
@@ -664,16 +701,14 @@ class _ModeOption extends StatelessWidget {
   }
 }
 
-/// Kartu pilihan juz (dapat dicentang), gaya selaras tema.
-class _JuzOption extends StatelessWidget {
+/// Chip pilihan juz ringkas (dapat dicentang) untuk Wrap.
+class _JuzChip extends StatelessWidget {
   final int juz;
-  final String range;
   final bool selected;
   final VoidCallback onTap;
 
-  const _JuzOption({
+  const _JuzChip({
     required this.juz,
-    required this.range,
     required this.selected,
     required this.onTap,
   });
@@ -681,48 +716,94 @@ class _JuzOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final color = selected ? scheme.primary : Colors.black26;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withValues(alpha: 0.08)
+              ? scheme.primary.withValues(alpha: 0.10)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? scheme.primary : Colors.black12,
             width: selected ? 1.6 : 1,
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text(
-                  'Juz $juz',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: selected ? scheme.primary : Colors.black87,
-                  ),
-                ),
-                const Spacer(),
-                Icon(
-                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                  size: 20,
-                  color: color,
-                ),
-              ],
+            Icon(
+              selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+              size: 18,
+              color: selected ? scheme.primary : Colors.black26,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(width: 7),
             Text(
-              range,
-              style: const TextStyle(fontSize: 11.5, color: Colors.black54),
+              'Juz $juz',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14.5,
+                color: selected ? scheme.primary : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Header seksi rentang hafalan yang bisa dilipat (opsional).
+class _RangeExpander extends StatelessWidget {
+  final bool expanded;
+  final String summary;
+  final VoidCallback onToggle;
+
+  const _RangeExpander({
+    required this.expanded,
+    required this.summary,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.flag_rounded, size: 18, color: scheme.primary),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Rentang hafalan (opsional)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            if (!expanded) ...[
+              Text(
+                summary,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
+              ),
+              const SizedBox(width: 4),
+            ],
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Colors.black45,
+              ),
             ),
           ],
         ),
@@ -751,119 +832,82 @@ class _RangeTargetCard extends StatelessWidget {
     final lastSurah = QuizJuz.lastSurah(juz);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.black12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            'Juz $juz',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: scheme.primary,
+          // Badge juz.
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Juz $juz',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 12.5,
+                color: scheme.primary,
+              ),
             ),
           ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // Surah awal (bisa dipilih).
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Dari surah',
-                      style: TextStyle(fontSize: 11.5, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black12),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<int>(
-                          isExpanded: true,
-                          isDense: true,
-                          value: startSurah,
-                          borderRadius: BorderRadius.circular(12),
-                          items: [
-                            for (final s in surahs)
-                              DropdownMenuItem<int>(
-                                value: s,
-                                child: Text(
-                                  QuizJuz.nameOf(s),
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13.5),
-                                ),
-                              ),
-                          ],
-                          onChanged: (v) {
-                            if (v != null) onStartChanged(v);
-                          },
+          const SizedBox(width: 10),
+          const Text(
+            'Dari',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(width: 6),
+          // Surah awal (bisa dipilih).
+          Expanded(
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                isExpanded: true,
+                isDense: true,
+                value: startSurah,
+                borderRadius: BorderRadius.circular(12),
+                items: [
+                  for (final s in surahs)
+                    DropdownMenuItem<int>(
+                      value: s,
+                      child: Text(
+                        QuizJuz.nameOf(s),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                ],
+                onChanged: (v) {
+                  if (v != null) onStartChanged(v);
+                },
               ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                child: Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 18,
-                  color: Colors.black38,
-                ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.arrow_forward_rounded,
+            size: 16,
+            color: Colors.black38,
+          ),
+          const SizedBox(width: 6),
+          // Surah akhir (dikunci ke akhir juz).
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 96),
+            child: Text(
+              QuizJuz.nameOf(lastSurah),
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
               ),
-              // Surah akhir (dikunci).
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Hingga surah',
-                      style: TextStyle(fontSize: 11.5, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              QuizJuz.nameOf(lastSurah),
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const Icon(
-                            Icons.lock_rounded,
-                            size: 15,
-                            color: Colors.black38,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

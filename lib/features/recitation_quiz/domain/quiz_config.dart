@@ -36,7 +36,29 @@ class QuizConfig {
   static const int bonusOptionCount = 6;
 
   /// Maksimum ayat yang harus dilanjutkan dalam satu soal (jawaban 1..maks ayat).
+  /// Dipakai mode PILIHAN. Mode SUARA memakai aturan berbasis panjang ayat di
+  /// bawah (bisa sampai [voiceShortRange]).
   static const int maxAnswerAyah = 3;
+
+  // ── Mode SUARA: jumlah ayat jawaban menyesuaikan PANJANG ayat ──────────────
+  // Ayat diklasifikasi dari jumlah KATA ayat pertama jawaban: pendek → boleh
+  // lebih banyak, panjang → cukup 1 (agar tak berat dihafal/dibaca sekaligus).
+  // Range = (min, max) ayat; jumlah aktual diundi dalam range lalu dibatasi
+  // ketersediaan ayat (tak menyeberang batas juz).
+
+  /// Ambang MAKS jumlah kata agar ayat dianggap PENDEK.
+  static const int voiceShortAyahMaxWords = 6;
+
+  /// Ambang MAKS jumlah kata agar ayat dianggap SEDANG (di atas ini = PANJANG).
+  static const int voiceMediumAyahMaxWords = 13;
+
+  /// Range jumlah ayat jawaban per kategori panjang ayat (min..max).
+  static const (int, int) voiceShortRange = (3, 4); // ayat pendek
+  static const (int, int) voiceMediumRange = (2, 2); // ayat sedang
+  static const (int, int) voiceLongRange = (1, 1); // ayat panjang
+
+  /// Batas atas jumlah ayat jawaban mode suara (mengikuti maks [voiceShortRange]).
+  static const int voiceMaxAnswerAyah = 4;
 
   /// Soal suara "baca ayat ke-N": N diundi 1..min(nilai ini, jumlah ayat surah).
   static const int specificAyahMaxNumber = 5;
@@ -57,9 +79,17 @@ class QuizConfig {
 
   // ═══════════════════════════════════════════════════════════════ Waktu ════
 
-  /// Mode SUARA: batas waktu berpikir + menjawab per soal (detik). Bila habis
+  /// Mode SUARA: batas waktu berpikir + menjawab per soal (detik) — dipakai
+  /// sebagai fallback bila kategori panjang ayat tak diketahui. Bila habis
   /// sebelum jawaban dikirim → soal di-skip otomatis (Soal Bonus ikut hangus).
   static const int voiceQuestionSeconds = 30;
+
+  /// Mode SUARA: batas waktu berpikir per soal MENURUT PANJANG ayat jawaban
+  /// (kategori sama dengan penentu jumlah ayat): pendek → 30, sedang → 45,
+  /// panjang → 60 detik.
+  static const int voiceShortSeconds = 30;
+  static const int voiceMediumSeconds = 45;
+  static const int voiceLongSeconds = 60;
 
   /// Mode SUARA: jeda berpikir (detik) setelah lolos, sebelum Soal Bonus mulai
   /// secara otomatis.

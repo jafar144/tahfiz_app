@@ -58,8 +58,7 @@ class QuizQuestion {
 
   /// Nomor ayat yang diminta pada tugas [QuizVoiceTask.specificAyah]
   /// (diambil dari ayat jawaban pertama).
-  int get targetAyahNumber =>
-      answerAyat.isEmpty ? 0 : answerAyat.first.number;
+  int get targetAyahNumber => answerAyat.isEmpty ? 0 : answerAyat.first.number;
 
   /// True bila jawaban memuat basmalah (dimulai dari awal surah).
   bool get hasBasmalah => answer.any((a) => a.number == 0);

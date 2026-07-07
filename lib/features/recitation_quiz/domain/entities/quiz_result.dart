@@ -35,13 +35,13 @@ class QuizAnswer {
 
   /// Salinan dengan poin bonus terisi (dipakai setelah soal bonus dijawab).
   QuizAnswer withBonus(int bonus) => QuizAnswer(
-        questionIndex: questionIndex,
-        score: score,
-        attempts: attempts,
-        passed: passed,
-        bestResult: bestResult,
-        bonusScore: bonus,
-      );
+    questionIndex: questionIndex,
+    score: score,
+    attempts: attempts,
+    passed: passed,
+    bestResult: bestResult,
+    bonusScore: bonus,
+  );
 }
 
 /// Rekap keseluruhan sesi kuis.

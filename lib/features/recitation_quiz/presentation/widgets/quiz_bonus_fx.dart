@@ -65,8 +65,10 @@ class _GoldEdgeGlowPainter extends CustomPainter {
     canvas.drawRect(rect, vignette);
 
     // Gelombang berjalan: sweep gradient berputar sepanjang bingkai.
-    final rrect =
-        RRect.fromRectAndRadius(rect.deflate(3), const Radius.circular(30));
+    final rrect = RRect.fromRectAndRadius(
+      rect.deflate(3),
+      const Radius.circular(30),
+    );
     final glowOpacity = 0.4 + 0.2 * (0.5 + 0.5 * sin(2 * pi * t));
     final sweep = Paint()
       ..style = PaintingStyle.stroke
@@ -94,7 +96,10 @@ class _GoldEdgeGlowPainter extends CustomPainter {
 class BonusIntroSplash extends StatelessWidget {
   final String subtitle;
 
-  const BonusIntroSplash({super.key, this.subtitle = 'Soal spesial • poin lebih besar'});
+  const BonusIntroSplash({
+    super.key,
+    this.subtitle = 'Soal spesial • poin lebih besar',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -128,20 +133,28 @@ class BonusIntroSplash extends StatelessWidget {
                   ),
                 ],
               ),
-              child:
-                  const Icon(Icons.bolt_rounded, color: Colors.white, size: 52),
+              child: const Icon(
+                Icons.bolt_rounded,
+                color: Colors.white,
+                size: 52,
+              ),
             ),
             const SizedBox(height: 18),
-            const Text('SOAL BONUS',
-                style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    color: QuizColors.goldDark)),
+            const Text(
+              'SOAL BONUS',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                color: QuizColors.goldDark,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text(subtitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.black54)),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Colors.black54),
+            ),
           ],
         ),
       ),
@@ -195,8 +208,10 @@ class _BonusRewardOverlayState extends State<BonusRewardOverlay>
         final flyT = ((t - flyStart) / (1 - flyStart)).clamp(0.0, 1.0);
         final flyE = Curves.easeInCubic.transform(flyT);
 
-        final cardOpacity =
-            (introT * (1 - (flyT / 0.3).clamp(0.0, 1.0))).clamp(0.0, 1.0);
+        final cardOpacity = (introT * (1 - (flyT / 0.3).clamp(0.0, 1.0))).clamp(
+          0.0,
+          1.0,
+        );
         final cardScale = (0.75 + 0.25 * introT) * (1 - 0.08 * flyE);
 
         final flyOut = ((flyE - 0.62) / 0.38).clamp(0.0, 1.0);
@@ -224,7 +239,9 @@ class _BonusRewardOverlayState extends State<BonusRewardOverlay>
         return Stack(
           children: [
             Positioned.fill(
-              child: ColoredBox(color: Colors.black.withValues(alpha: scrimAlpha)),
+              child: ColoredBox(
+                color: Colors.black.withValues(alpha: scrimAlpha),
+              ),
             ),
             Align(
               alignment: const Alignment(0, -0.18),
@@ -306,20 +323,26 @@ class _RewardCard extends StatelessWidget {
                 colors: [QuizColors.gold, QuizColors.goldDark],
               ),
             ),
-            child: const Icon(Icons.celebration_rounded,
-                color: Colors.white, size: 32),
+            child: const Icon(
+              Icons.celebration_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             full ? 'Benar! 🎉' : 'Benar sebagian! 👍',
             style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: QuizColors.goldDark),
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: QuizColors.goldDark,
+            ),
           ),
           const SizedBox(height: 4),
-          const Text('Hadiah untukmu…',
-              style: TextStyle(fontSize: 13, color: Colors.black54)),
+          const Text(
+            'Hadiah untukmu…',
+            style: TextStyle(fontSize: 13, color: Colors.black54),
+          ),
         ],
       ),
     );

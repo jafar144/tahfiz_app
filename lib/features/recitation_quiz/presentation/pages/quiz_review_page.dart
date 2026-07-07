@@ -16,14 +16,13 @@ class QuizReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final benar = items.where((e) => e.correct).length;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Review Soal'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Review Soal'), centerTitle: true),
       body: items.isEmpty
           ? const Center(
-              child: Text('Belum ada soal untuk ditinjau.',
-                  style: TextStyle(color: Colors.black54)),
+              child: Text(
+                'Belum ada soal untuk ditinjau.',
+                style: TextStyle(color: Colors.black54),
+              ),
             )
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -36,9 +35,10 @@ class QuizReviewPage extends StatelessWidget {
                     child: Text(
                       '$benar benar dari ${items.length} soal',
                       style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black54),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black54,
+                      ),
                     ),
                   );
                 }
@@ -71,13 +71,19 @@ class _ReviewCard extends StatelessWidget {
           // Header: nomor soal + status benar/salah.
           Row(
             children: [
-              Text('Soal $number',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                'Soal $number',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -86,45 +92,63 @@ class _ReviewCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                        item.correct
-                            ? Icons.check_circle_rounded
-                            : Icons.cancel_rounded,
-                        size: 15,
-                        color: color),
+                      item.correct
+                          ? Icons.check_circle_rounded
+                          : Icons.cancel_rounded,
+                      size: 15,
+                      color: color,
+                    ),
                     const SizedBox(width: 4),
-                    Text(item.correct ? 'Benar' : 'Salah',
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      item.correct ? 'Benar' : 'Salah',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(width: 6),
-                    Text('${item.score}',
-                        style: TextStyle(
-                            color: color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900)),
+                    Text(
+                      '${item.score}',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(item.question,
-              style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87)),
+          Text(
+            item.question,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
           if (item.promptArabic != null) ...[
             const SizedBox(height: 10),
             _arabic(item.promptArabic!, const Color(0xFF212121), 20),
           ],
           const SizedBox(height: 12),
-          _answerBlock('Jawabanmu', item.yourAnswer, item.yourAnswerArabic,
-              item.correct ? QuizColors.correct : QuizColors.missing),
+          _answerBlock(
+            'Jawabanmu',
+            item.yourAnswer,
+            item.yourAnswerArabic,
+            item.correct ? QuizColors.correct : QuizColors.missing,
+          ),
           if (!item.correct) ...[
             const SizedBox(height: 8),
-            _answerBlock('Jawaban benar', item.correctAnswer,
-                item.correctAnswerArabic, QuizColors.correct),
+            _answerBlock(
+              'Jawaban benar',
+              item.correctAnswer,
+              item.correctAnswerArabic,
+              QuizColors.correct,
+            ),
           ],
         ],
       ),
@@ -143,20 +167,26 @@ class _ReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label.toUpperCase(),
-              style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.5,
-                  color: color)),
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: color,
+            ),
+          ),
           const SizedBox(height: 5),
           arabic
               ? _arabic(value, const Color(0xFF212121), 19)
-              : Text(value,
+              : Text(
+                  value,
                   style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87)),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
         ],
       ),
     );

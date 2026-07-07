@@ -28,16 +28,16 @@ class _LbColors {
   static const bronzeDeep = Color(0xFFB05E2C);
 
   static Color ringFor(int rank) => switch (rank) {
-        1 => gold,
-        2 => silver,
-        _ => bronze,
-      };
+    1 => gold,
+    2 => silver,
+    _ => bronze,
+  };
 
   static List<Color> podiumGradient(int rank) => switch (rank) {
-        1 => const [gold, goldDeep],
-        2 => const [silver, silverDeep],
-        _ => const [bronze, bronzeDeep],
-      };
+    1 => const [gold, goldDeep],
+    2 => const [silver, silverDeep],
+    _ => const [bronze, bronzeDeep],
+  };
 }
 
 class QuizLeaderboardPage extends StatelessWidget {
@@ -87,15 +87,14 @@ class QuizLeaderboardPage extends StatelessWidget {
                         child: switch (state.status) {
                           LeaderboardStatus.loading => const _Skeleton(),
                           LeaderboardStatus.error => _ErrorView(
-                              message:
-                                  state.errorMessage ?? 'Terjadi kesalahan.',
-                              onRetry: () =>
-                                  context.read<QuizLeaderboardCubit>().load(),
-                            ),
+                            message: state.errorMessage ?? 'Terjadi kesalahan.',
+                            onRetry: () =>
+                                context.read<QuizLeaderboardCubit>().load(),
+                          ),
                           LeaderboardStatus.loaded => _LoadedView(
-                              leaderboard: state.leaderboard!,
-                              currentUserId: state.currentUserId,
-                            ),
+                            leaderboard: state.leaderboard!,
+                            currentUserId: state.currentUserId,
+                          ),
                         },
                       ),
                     ],
@@ -228,10 +227,7 @@ class _LoadedView extends StatelessWidget {
             ),
           ),
         ),
-        _MyRankBar(
-          myEntry: leaderboard.myEntry,
-          myRank: leaderboard.myRank,
-        ),
+        _MyRankBar(myEntry: leaderboard.myEntry, myRank: leaderboard.myRank),
       ],
     );
   }
@@ -264,8 +260,11 @@ class _MonthChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.calendar_month_rounded,
-                size: 15, color: _LbColors.gold),
+            const Icon(
+              Icons.calendar_month_rounded,
+              size: 15,
+              color: _LbColors.gold,
+            ),
             const SizedBox(width: 6),
             Text(
               'Bulan Ini • $_label',
@@ -376,8 +375,11 @@ class _PodiumSpot extends StatelessWidget {
           ),
           child: Center(
             child: e == null
-                ? Icon(Icons.person_outline_rounded,
-                    color: Colors.black26, size: avatarSize * 0.5)
+                ? Icon(
+                    Icons.person_outline_rounded,
+                    color: Colors.black26,
+                    size: avatarSize * 0.5,
+                  )
                 : Text(
                     _initials(e.name),
                     style: TextStyle(
@@ -437,8 +439,7 @@ class _PodiumSpot extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: _LbColors.podiumGradient(rank),
             ),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(14)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.25),
@@ -454,9 +455,7 @@ class _PodiumSpot extends StatelessWidget {
                 fontSize: rank == 1 ? 34 : 26,
                 fontWeight: FontWeight.w900,
                 color: Colors.white.withValues(alpha: 0.9),
-                shadows: const [
-                  Shadow(color: Colors.black26, blurRadius: 4),
-                ],
+                shadows: const [Shadow(color: Colors.black26, blurRadius: 4)],
               ),
             ),
           ),
@@ -616,7 +615,9 @@ class _RankTile extends StatelessWidget {
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 7, vertical: 2),
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(999),
@@ -638,8 +639,11 @@ class _RankTile extends StatelessWidget {
           // Skor.
           Row(
             children: [
-              const Icon(Icons.star_rounded,
-                  size: 16, color: _LbColors.goldDeep),
+              const Icon(
+                Icons.star_rounded,
+                size: 16,
+                color: _LbColors.goldDeep,
+              ),
               const SizedBox(width: 3),
               Text(
                 '${entry.bestScore}',
@@ -666,8 +670,11 @@ class _EmptyBoard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 28),
       child: Column(
         children: [
-          Icon(Icons.emoji_events_outlined,
-              size: 52, color: AppColors.primary.withValues(alpha: 0.4)),
+          Icon(
+            Icons.emoji_events_outlined,
+            size: 52,
+            color: AppColors.primary.withValues(alpha: 0.4),
+          ),
           const SizedBox(height: 12),
           const Text(
             'Belum ada juara bulan ini',
@@ -745,8 +752,11 @@ class _MyRankBar extends StatelessWidget {
               ),
               child: Center(
                 child: e == null
-                    ? const Icon(Icons.rocket_launch_rounded,
-                        color: Colors.white, size: 20)
+                    ? const Icon(
+                        Icons.rocket_launch_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      )
                     : Text(
                         myRank != null ? '#$myRank' : '—',
                         style: const TextStyle(
@@ -763,7 +773,9 @@ class _MyRankBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    e == null ? 'Kamu belum ikut bulan ini' : 'Peringkatmu bulan ini',
+                    e == null
+                        ? 'Kamu belum ikut bulan ini'
+                        : 'Peringkatmu bulan ini',
                     style: const TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
@@ -784,8 +796,11 @@ class _MyRankBar extends StatelessWidget {
               ),
             ),
             if (e != null) ...[
-              const Icon(Icons.star_rounded,
-                  size: 20, color: _LbColors.goldDeep),
+              const Icon(
+                Icons.star_rounded,
+                size: 20,
+                color: _LbColors.goldDeep,
+              ),
               const SizedBox(width: 3),
               Text(
                 '${e.bestScore}',
@@ -826,13 +841,13 @@ class _SkeletonState extends State<_Skeleton>
   }
 
   Widget _box(double w, double h, {double r = 12}) => Container(
-        width: w,
-        height: h,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(r),
-        ),
-      );
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(r),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -910,11 +925,16 @@ class _ErrorView extends StatelessWidget {
 
 /// Inisial nama (maks 2 huruf), mis. "Ahmad Fauzi" → "AF".
 String _initials(String name) {
-  final parts =
-      name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((p) => p.isNotEmpty)
+      .toList();
   if (parts.isEmpty) return '?';
   if (parts.length == 1) {
-    return parts.first.substring(0, math.min(2, parts.first.length)).toUpperCase();
+    return parts.first
+        .substring(0, math.min(2, parts.first.length))
+        .toUpperCase();
   }
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }

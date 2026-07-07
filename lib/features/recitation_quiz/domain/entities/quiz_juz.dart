@@ -1,21 +1,64 @@
-/// Metadata juz yang didukung Kuis Hafalan (29 & 30) + nama surah Latin.
+/// Metadata juz yang didukung Kuis Hafalan + nama surah Latin.
+///
+/// Dua macam juz:
+///  • Juz "surah utuh" (29 & 30): batas juz pas di batas surah → boleh memilih
+///    rentang target hafalan (surah awal kustom).
+///  • Juz "rentang ayat" (1, 2, 3): batasnya di TENGAH surah (Al-Baqarah
+///    membentang juz 1-3) → didefinisikan sebagai segmen ayat mushaf, tanpa
+///    kustomisasi rentang.
 ///
 /// Dipakai bersama oleh repo (menyusun pool ayat), layar intro, dan lembar
-/// pengaturan (memilih rentang target hafalan). Sumber tunggal agar rentang
-/// surah tiap juz konsisten di seluruh fitur.
+/// pengaturan. Sumber tunggal agar rentang tiap juz konsisten di seluruh fitur.
 class QuizJuz {
   QuizJuz._();
 
   /// Juz yang didukung, urut menaik.
-  static const List<int> supported = [29, 30];
+  static const List<int> supported = [1, 2, 3, 29, 30];
 
-  /// Rentang surah [pertama, terakhir] tiap juz (id surah mushaf).
+  /// Juz "surah utuh": rentang surah [pertama, terakhir] (id surah mushaf).
+  /// Hanya juz ini yang mendukung pemilihan rentang target (surah awal kustom).
   static const Map<int, (int first, int last)> _range = {
     29: (67, 77), // Al-Mulk .. Al-Mursalat
     30: (78, 114), // An-Naba' .. An-Nas
   };
 
-  static bool isSupported(int juz) => _range.containsKey(juz);
+  /// Juz "rentang ayat": daftar segmen (surah, ayatAwal, ayatAkhir) mushaf.
+  /// Untuk juz yang batasnya di tengah surah.
+  static const Map<int, List<(int surah, int from, int to)>> _ayahSegments = {
+    1: [(1, 1, 7), (2, 1, 141)], // Al-Fatihah utuh + Al-Baqarah 1-141
+    2: [(2, 142, 252)], // Al-Baqarah 142-252
+    3: [(2, 253, 286), (3, 1, 91)], // Al-Baqarah 253-286 + Ali 'Imran 1-91
+  };
+
+  static bool isSupported(int juz) =>
+      _range.containsKey(juz) || _ayahSegments.containsKey(juz);
+
+  /// True bila juz boleh memilih rentang target hafalan (surah awal kustom) —
+  /// hanya juz "surah utuh" (29 & 30).
+  static bool supportsCustomRange(int juz) => _range.containsKey(juz);
+
+  /// True bila juz didefinisikan sebagai segmen ayat (batas di tengah surah).
+  static bool hasAyahSegments(int juz) => _ayahSegments.containsKey(juz);
+
+  /// Segmen ayat (surah, from, to) pembentuk juz "rentang ayat"; kosong untuk
+  /// juz "surah utuh".
+  static List<(int surah, int from, int to)> ayahSegments(int juz) =>
+      _ayahSegments[juz] ?? const [];
+
+  /// Label ringkas cakupan juz untuk ditampilkan di kartu pilihan juz.
+  static String spanLabel(int juz) {
+    switch (juz) {
+      case 1:
+        return 'Al-Fatihah — Al-Baqarah 141';
+      case 2:
+        return 'Al-Baqarah 142–252';
+      case 3:
+        return 'Al-Baqarah 253 — Ali Imran 91';
+      default:
+        final r = _range[juz];
+        return r == null ? 'Juz $juz' : '${nameOf(r.$1)} — ${nameOf(r.$2)}';
+    }
+  }
 
   /// Surah pertama juz (di awal juz secara mushaf).
   static int firstSurah(int juz) => _range[juz]!.$1;
@@ -37,8 +80,11 @@ class QuizJuz {
     return surah;
   }
 
-  /// Nama Latin surah untuk tampilan (khusus surah dalam juz 29 & 30).
+  /// Nama Latin surah untuk tampilan (surah dalam juz 1-3 & 29-30).
   static const Map<int, String> surahLatin = {
+    1: 'Al-Fatihah',
+    2: 'Al-Baqarah',
+    3: "Ali 'Imran",
     67: 'Al-Mulk',
     68: 'Al-Qalam',
     69: 'Al-Haqqah',

@@ -45,7 +45,9 @@ class QuizResultView extends StatelessWidget {
           children: [
             const Spacer(),
             Text(
-              isChoice ? _gradePoints(result.totalPoints) : _grade(result.averageScore),
+              isChoice
+                  ? _gradePoints(result.totalPoints)
+                  : _grade(result.averageScore),
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -91,15 +93,21 @@ class QuizResultView extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                icon: Icon(canPlay
-                    ? Icons.refresh_rounded
-                    : Icons.hourglass_bottom_rounded),
+                icon: Icon(
+                  canPlay
+                      ? Icons.refresh_rounded
+                      : Icons.hourglass_bottom_rounded,
+                ),
                 label: Text(
-                    canPlay ? 'Main Lagi' : 'Energi habis',
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold)),
+                  canPlay ? 'Main Lagi' : 'Energi habis',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -111,18 +119,21 @@ class QuizResultView extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => QuizReviewPage(
-                              items: review, mode: result.mode),
+                          builder: (_) =>
+                              QuizReviewPage(items: review, mode: result.mode),
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       icon: const Icon(Icons.fact_check_rounded, size: 20),
-                      label: const Text('Review',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Review',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -134,13 +145,17 @@ class QuizResultView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       foregroundColor: Colors.black54,
                       side: BorderSide(
-                          color: Colors.black.withValues(alpha: 0.18)),
+                        color: Colors.black.withValues(alpha: 0.18),
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
                     icon: const Icon(Icons.check_rounded, size: 20),
-                    label: const Text('Selesai',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Selesai',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -157,9 +172,10 @@ class QuizResultView extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2)),
+            width: 14,
+            height: 14,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
           SizedBox(width: 8),
           Text('Menyimpan hasil…', style: TextStyle(color: Colors.black45)),
         ],
@@ -169,12 +185,17 @@ class QuizResultView extends StatelessWidget {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.cloud_off_rounded,
-              size: 16, color: QuizColors.missing),
+          const Icon(
+            Icons.cloud_off_rounded,
+            size: 16,
+            color: QuizColors.missing,
+          ),
           const SizedBox(width: 6),
           Flexible(
-            child: Text('Gagal menyimpan hasil',
-                style: TextStyle(color: QuizColors.missing, fontSize: 12)),
+            child: Text(
+              'Gagal menyimpan hasil',
+              style: TextStyle(color: QuizColors.missing, fontSize: 12),
+            ),
           ),
         ],
       );
@@ -219,10 +240,7 @@ class _PointsBadge extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            QuizColors.gold,
-            QuizColors.goldDark,
-          ],
+          colors: [QuizColors.gold, QuizColors.goldDark],
         ),
         boxShadow: [
           BoxShadow(
@@ -366,8 +384,9 @@ class _VoiceScoreRevealState extends State<_VoiceScoreReveal>
         }
 
         // Peralihan warna angka (→ emas) & kilau overcharge saat tahap 2.
-        final double goldT =
-            _hasBonus && e > _flyEnd ? _ease((e - _flyEnd) / (_fill2End - _flyEnd)) : 0.0;
+        final double goldT = _hasBonus && e > _flyEnd
+            ? _ease((e - _flyEnd) / (_fill2End - _flyEnd))
+            : 0.0;
         final glow = overcharged ? goldT : 0.0;
         final numberColor = Color.lerp(baseColor, QuizColors.goldDark, goldT)!;
         final showPoin = _hasBonus && e > _flyEnd;
@@ -380,7 +399,9 @@ class _VoiceScoreRevealState extends State<_VoiceScoreReveal>
         // angka, lalu menyelam & mengecil masuk ke tengah (terserap).
         double badgeOpacity = 0, badgeScale = 0.6, badgeDy = 0;
         if (_hasBonus) {
-          final flyT = _ease(((e - _holdEnd) / (_flyEnd - _holdEnd)).clamp(0.0, 1.0));
+          final flyT = _ease(
+            ((e - _holdEnd) / (_flyEnd - _holdEnd)).clamp(0.0, 1.0),
+          );
           final absorbT = ((e - _flyEnd) / 300).clamp(0.0, 1.0);
           badgeOpacity = flyT * (1 - absorbT);
           badgeScale = (0.6 + 0.4 * flyT) * (1 - 0.5 * absorbT);
@@ -489,19 +510,27 @@ class _VoiceScoreRevealState extends State<_VoiceScoreReveal>
   }
 
   Widget _op(String s, double t) => Opacity(
-        opacity: t,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(s,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black38)),
+    opacity: t,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Text(
+        s,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: Colors.black38,
         ),
-      );
+      ),
+    ),
+  );
 
-  Widget _stat(String label, int value, Color color, double t,
-      {bool emphasize = false}) {
+  Widget _stat(
+    String label,
+    int value,
+    Color color,
+    double t, {
+    bool emphasize = false,
+  }) {
     return Opacity(
       opacity: t,
       child: Transform.translate(
@@ -519,8 +548,10 @@ class _VoiceScoreRevealState extends State<_VoiceScoreReveal>
               ),
             ),
             const SizedBox(height: 2),
-            Text(label,
-                style: const TextStyle(fontSize: 11, color: Colors.black45)),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Colors.black45),
+            ),
           ],
         ),
       ),
@@ -642,8 +673,13 @@ class _ScoreRingPainter extends CustomPainter {
       canvas.drawArc(rect, start, full * baseEnd, false, stroked(baseColor));
     }
     if (firstLap > baseFraction) {
-      canvas.drawArc(rect, start + full * baseFraction,
-          full * (firstLap - baseFraction), false, stroked(bonusColor));
+      canvas.drawArc(
+        rect,
+        start + full * baseFraction,
+        full * (firstLap - baseFraction),
+        false,
+        stroked(bonusColor),
+      );
     }
 
     // ── Putaran ke-2+ (menimpa, emas lebih terang) ─────────────────────────
