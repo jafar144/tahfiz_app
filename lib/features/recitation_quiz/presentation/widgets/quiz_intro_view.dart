@@ -6,7 +6,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_ene
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// True bila santri mencentang "jangan tampilkan lagi" pada info deteksi suara.
@@ -97,7 +97,6 @@ class QuizIntroView extends StatelessWidget {
   /// deteksi suara tak sempurna beserta tips (sekali per sesi app; bisa
   /// dinonaktifkan lewat centang di bottom sheet).
   Future<void> _handleStart(BuildContext context) async {
-    QuizHaptics.tap();
     if (settings.mode.isChoice || _voiceTipDismissed) {
       onStart(settings);
       return;
@@ -127,19 +126,11 @@ class QuizIntroView extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      child: FilledButton.icon(
+      child: QuizButton(
+        label: label,
+        icon: icon,
+        color: Theme.of(context).colorScheme.primary,
         onPressed: canPlay ? () => _handleStart(context) : null,
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        icon: Icon(icon),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
       ),
     );
   }
@@ -1040,20 +1031,14 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
             // Tombol mulai.
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
+              child: QuizButton(
+                label: 'Mulai Rekam',
+                icon: Icons.mic_rounded,
+                color: Theme.of(context).colorScheme.primary,
                 onPressed: () {
                   _voiceTipDismissed = _dontShow;
                   Navigator.of(context).pop(true);
                 },
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.mic_rounded),
-                label: const Text('Mulai Rekam',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart'
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -413,28 +414,11 @@ class _VoiceBonusScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: SizedBox(
                     width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: state.bonusComplete
-                          ? () {
-                              QuizHaptics.tap();
-                              cubit.submitBonus();
-                            }
-                          : null,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: QuizColors.goldDark,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text(
-                        'Jawab',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    child: QuizButton(
+                      label: 'Jawab',
+                      icon: Icons.check_rounded,
+                      color: QuizColors.goldDark,
+                      onPressed: state.bonusComplete ? cubit.submitBonus : null,
                     ),
                   ),
                 ),
@@ -574,25 +558,10 @@ class _VoiceBonusResult extends StatelessWidget {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: FilledButton(
-              onPressed: () {
-                QuizHaptics.tap();
-                cubit.next();
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: QuizColors.goldDark,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            child: QuizButton(
+              label: state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
+              color: QuizColors.goldDark,
+              onPressed: cubit.next,
             ),
           ),
         ],
@@ -980,29 +949,18 @@ class _ResultPanel extends StatelessWidget {
         else if (hasBonus && state.bonusStage == BonusStage.offered)
           _BonusPrep(secondsLeft: state.bonusPrepSecondsLeft)
         else
-          _nextButton(),
+          _nextButton(context),
       ],
     );
   }
 
-  Widget _nextButton() {
+  Widget _nextButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
-        onPressed: () {
-          QuizHaptics.tap();
-          cubit.next();
-        },
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Text(
-          state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-        ),
+      child: QuizButton(
+        label: state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
+        color: Theme.of(context).colorScheme.primary,
+        onPressed: cubit.next,
       ),
     );
   }
@@ -1198,19 +1156,11 @@ class _BonusRunningView extends StatelessWidget {
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
+            child: QuizButton(
+              label: 'Jawab',
+              icon: Icons.check_rounded,
+              color: Theme.of(context).colorScheme.primary,
               onPressed: state.bonusComplete ? cubit.submitBonus : null,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              icon: const Icon(Icons.check_rounded),
-              label: const Text(
-                'Jawab',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
             ),
           ),
         ],

@@ -64,50 +64,57 @@ class _QuizButtonState extends State<QuizButton> {
     final lipColor = enabled ? _darken(widget.color) : const Color(0xFFC8C8C8);
     final fg = enabled ? widget.foregroundColor : const Color(0xFF9E9E9E);
 
+    // Tekan hanya menggeser saat aktif; nonaktif selalu "rata di atas".
+    final down = enabled && _pressed;
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: _down,
       onTapUp: (_) => _release(),
       onTapCancel: _release,
       onTap: enabled ? widget.onPressed : null,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: lipColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        // Total padding vertikal selalu = _lip → tinggi tombol tetap; hanya
-        // posisinya yang bergeser turun saat ditekan (bibir "tertutup").
-        child: AnimatedPadding(
+      // Sisakan ruang untuk bibir bawah agar tak menimpa konten di bawahnya.
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: _lip),
+        child: AnimatedContainer(
           duration: const Duration(milliseconds: 60),
           curve: Curves.easeOut,
-          padding: EdgeInsets.only(
-            top: _pressed ? _lip : 0,
-            bottom: _pressed ? 0 : _lip,
+          // Saat ditekan, permukaan turun sejauh bibirnya (menutup bibir).
+          transform: Matrix4.translationValues(0, down ? _lip : 0, 0),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          decoration: BoxDecoration(
+            color: faceColor,
+            borderRadius: BorderRadius.circular(16),
+            // Bibir 3D = bayangan keras (tanpa blur) yang bergeser ke bawah;
+            // saat ditekan offset-nya 0 → tersembunyi di balik permukaan.
+            // Nonaktif → tanpa bibir (rata).
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: lipColor,
+                      offset: Offset(0, down ? 0 : _lip),
+                      blurRadius: 0,
+                    ),
+                  ]
+                : null,
           ),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-            decoration: BoxDecoration(
-              color: faceColor,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.icon != null) ...[
-                  Icon(widget.icon, color: fg, size: 20),
-                  const SizedBox(width: 8),
-                ],
-                Text(
-                  widget.label,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, color: fg, size: 20),
+                const SizedBox(width: 8),
               ],
-            ),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ),

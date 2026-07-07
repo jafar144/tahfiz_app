@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart'
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -512,25 +513,11 @@ class _GoldSubmitBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: SizedBox(
         width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: enabled
-              ? () {
-                  QuizHaptics.tap();
-                  onSubmit();
-                }
-              : null,
-          style: FilledButton.styleFrom(
-            backgroundColor: QuizColors.goldDark,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: const Icon(Icons.check_rounded),
-          label: const Text(
-            'Jawab',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
+        child: QuizButton(
+          label: 'Jawab',
+          icon: Icons.check_rounded,
+          color: QuizColors.goldDark,
+          onPressed: enabled ? onSubmit : null,
         ),
       ),
     );
@@ -956,24 +943,11 @@ class _SubmitBar extends StatelessWidget {
       ),
       child: SizedBox(
         width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: enabled
-              ? () {
-                  QuizHaptics.tap();
-                  onSubmit();
-                }
-              : null,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          icon: const Icon(Icons.check_rounded),
-          label: const Text(
-            'Jawab',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-          ),
+        child: QuizButton(
+          label: 'Jawab',
+          icon: Icons.check_rounded,
+          color: Theme.of(context).colorScheme.primary,
+          onPressed: enabled ? onSubmit : null,
         ),
       ),
     );
