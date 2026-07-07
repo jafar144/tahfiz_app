@@ -19,6 +19,15 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_paymen
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
+import 'package:khoirunnasyien/core/utils/role.dart';
+import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriDetailPage extends StatefulWidget {
   final String santriId;
@@ -159,8 +168,6 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                // _buildLastSetoranSection(detail),
-                // const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Informasi Akademik'),
                 const SizedBox(height: 10),
                 AiwaInfoCard(children: [
@@ -230,6 +237,11 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      value: detail.nomorWali ?? '-',
                    ),
                 ]),
+                // Penilaian bulanan hanya ditampilkan untuk admin.
+                if (_isAdmin) ...[
+                  const SizedBox(height: 20),
+                  _buildLatestReport(detail),
+                ],
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Riwayat Pembayaran'),
                 const SizedBox(height: 10),
@@ -240,6 +252,117 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Hanya admin yang boleh melihat penilaian bulanan santri di halaman ini.
+  bool get _isAdmin {
+    final authState = context.read<AuthCubit>().state;
+    return authState is AuthAuthenticated &&
+        authState.user.role == UserRole.admin;
+  }
+
+  /// Penilaian bulanan terbaru + tombol "Lihat Semua" ke riwayat lengkap.
+  Widget _buildLatestReport(SantriDetail detail) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const AiwaFormSectionTitle(title: 'Penilaian Bulanan'),
+            TextButton(
+              onPressed: () => _openAllReports(detail),
+              child: const Text('Lihat Semua'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        FutureBuilder(
+          future:
+              getIt<MonthlyReportRepository>().getLatestReportBySantri(detail.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Skeletonizer(
+                enabled: true,
+                child: MonthlyReportCard(report: MonthlyReport.dummy()),
+              );
+            }
+
+            MonthlyReport? latest;
+            snapshot.data?.fold(
+              ifLeft: (_) {},
+              ifRight: (report) => latest = report,
+            );
+
+            if (latest == null) {
+              return _buildEmptyReportCard();
+            }
+            return MonthlyReportCard(report: latest!);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyReportCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.assessment_outlined, size: 40, color: Colors.grey.shade300),
+          const SizedBox(height: 8),
+          Text(
+            'Belum ada penilaian',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Buka halaman riwayat penilaian lengkap milik santri ini.
+  void _openAllReports(SantriDetail detail) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SantriReportDetailPage(
+          santri: _toSantriEntity(detail),
+          viewOnly: true,
+        ),
+      ),
+    );
+  }
+
+  /// SantriReportDetailPage butuh [SantriEntity]; kita punya [SantriDetail].
+  SantriEntity _toSantriEntity(SantriDetail detail) {
+    return SantriEntity(
+      id: detail.id,
+      name: detail.name,
+      nis: detail.nis,
+      kelas: detail.kelas,
+      jenisKelamin: detail.jenisKelamin,
+      isActive: detail.isActive,
+      isFree: detail.isFree,
+      freeUntil: detail.freeUntil,
+      tanggalMasuk: detail.tanggalMasuk,
+      pembimbing: detail.pembimbing,
+      nomorWali: detail.nomorWali,
+      tipeKelas: detail.tipeKelas,
+      halaqahId: detail.halaqahId,
+      halaqahName: detail.halaqahName,
+      photoUrl: detail.photoUrl,
     );
   }
 

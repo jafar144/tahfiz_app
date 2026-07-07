@@ -20,22 +20,31 @@ import 'package:skeletonizer/skeletonizer.dart';
 class SantriReportDetailPage extends StatelessWidget {
   final SantriEntity santri;
 
-  const SantriReportDetailPage({super.key, required this.santri});
+  /// Mode lihat-saja: sembunyikan tombol tambah/edit penilaian. Dipakai saat
+  /// halaman dibuka dari detail santri (admin hanya melihat riwayat).
+  final bool viewOnly;
+
+  const SantriReportDetailPage({
+    super.key,
+    required this.santri,
+    this.viewOnly = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => SantriReportDetailCubit(repository: getIt())
         ..load(santri.id, joinedAt: santri.tanggalMasuk),
-      child: _SantriReportDetailView(santri: santri),
+      child: _SantriReportDetailView(santri: santri, viewOnly: viewOnly),
     );
   }
 }
 
 class _SantriReportDetailView extends StatefulWidget {
   final SantriEntity santri;
+  final bool viewOnly;
 
-  const _SantriReportDetailView({required this.santri});
+  const _SantriReportDetailView({required this.santri, this.viewOnly = false});
 
   @override
   State<_SantriReportDetailView> createState() =>
@@ -72,22 +81,24 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AiwaAppBar(title: MonthlyReportStrings.riwayatPenilaian),
-      floatingActionButton:
-          BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
-        builder: (context, state) {
-          final isEdit =
-              state is SantriReportDetailLoaded && state.currentMonthFilled;
-          return FloatingActionButton.extended(
-            onPressed: _onAddPressed,
-            icon: Icon(isEdit ? Icons.edit_rounded : Icons.add_rounded),
-            label: Text(
-              isEdit
-                  ? MonthlyReportStrings.editPenilaian
-                  : MonthlyReportStrings.tambahPenilaian,
+      // Mode lihat-saja (mis. dibuka dari detail santri) tak punya tombol tambah.
+      floatingActionButton: widget.viewOnly
+          ? null
+          : BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
+              builder: (context, state) {
+                final isEdit = state is SantriReportDetailLoaded &&
+                    state.currentMonthFilled;
+                return FloatingActionButton.extended(
+                  onPressed: _onAddPressed,
+                  icon: Icon(isEdit ? Icons.edit_rounded : Icons.add_rounded),
+                  label: Text(
+                    isEdit
+                        ? MonthlyReportStrings.editPenilaian
+                        : MonthlyReportStrings.tambahPenilaian,
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
       body: SafeArea(
         child: Column(
           children: [
