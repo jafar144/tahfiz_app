@@ -47,9 +47,9 @@ class _QuizPlayViewState extends State<QuizPlayView> {
 
     return BlocConsumer<RecitationQuizCubit, RecitationQuizState>(
       listenWhen: (p, c) =>
+          // Baru masuk ke tahap hasil (lolos / gagal) → bunyi + getar + sheet.
           (c.phase == AnswerPhase.revealed &&
-              c.passed &&
-              (p.phase != c.phase || p.currentIndex != c.currentIndex)) ||
+              p.phase != AnswerPhase.revealed) ||
           (c.bonusStage == BonusStage.done &&
               p.bonusStage != BonusStage.done) ||
           (c.errorMessage != null && p.errorMessage != c.errorMessage) ||
@@ -73,13 +73,18 @@ class _QuizPlayViewState extends State<QuizPlayView> {
             ..hideCurrentSnackBar()
             ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
         }
-        // Denting saat bacaan lolos (sebelum tahap bonus).
+        // Umpan balik hasil bacaan (bukan tahap bonus): lolos → denting +
+        // getar mantap; gagal → bunyi salah + pola getar salah.
         if (state.phase == AnswerPhase.revealed &&
-            state.passed &&
             (state.bonusStage == BonusStage.none ||
                 state.bonusStage == BonusStage.offered)) {
-          _playChime();
-          QuizHaptics.correct();
+          if (state.passed) {
+            _playChime();
+            QuizHaptics.correct();
+          } else {
+            _playWrong();
+            QuizHaptics.wrong();
+          }
         }
         // Umpan balik saat soal bonus selesai.
         if (state.bonusStage == BonusStage.done) {
@@ -117,9 +122,16 @@ class _QuizPlayViewState extends State<QuizPlayView> {
           );
         }
 
+        // Hasil bacaan (lolos / gagal / kunci jawaban) tampil sebagai bottom
+        // sheet ala Duolingo, bukan di tengah layar.
+        final showResultSheet = state.phase == AnswerPhase.revealed;
+
         return BonusCoverSwitcher(
           showBonus: false,
           child: SafeArea(
+            bottom: false,
+            // Sheet hasil menjadi anak paling bawah (bukan overlay) agar area
+            // soal menyusut ke atas — soal TETAP terlihat saat hasil muncul.
             child: Column(
               children: [
                 Padding(
@@ -157,8 +169,8 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                     ],
                   ),
                 ),
-                // Hanya soal + jawaban yang bergeser saat pindah soal; progress
-                // & timer di atas tetap diam.
+                // Hanya soal + jawaban yang bergeser saat pindah soal;
+                // progress & timer di atas tetap diam.
                 Expanded(
                   child: QuestionSlideSwitcher(
                     index: state.currentIndex,
@@ -166,8 +178,9 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                       child: Column(
                         children: [
-                          // Petunjuk "lanjutkan" disembunyikan saat tahap bonus
-                          // (ayat tetap tampil sebagai acuan soal tebak surah).
+                          // Instruksi soal tetap tampil saat hasil muncul (agar
+                          // santri ingat tugasnya); hanya disembunyikan di tahap
+                          // Soal Bonus.
                           if (state.bonusStage == BonusStage.none) ...[
                             _PromptHint(question: q),
                             const SizedBox(height: 12),
@@ -180,6 +193,13 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                     ),
                   ),
                 ),
+                // Sheet hasil (naik dari bawah).
+                if (showResultSheet)
+                  _VoiceResultSheet(
+                    key: ValueKey('${state.currentIndex}-${state.attempt}'),
+                    state: state,
+                    cubit: cubit,
+                  ),
               ],
             ),
           ),
@@ -216,7 +236,8 @@ class _QuizPlayViewState extends State<QuizPlayView> {
           ],
         );
       case AnswerPhase.revealed:
-        return _ResultPanel(cubit: cubit, state: state);
+        // Hasil ditampilkan pada bottom sheet, bukan di aliran ini.
+        return const SizedBox.shrink();
     }
   }
 
@@ -795,213 +816,261 @@ class _RecordButton extends StatelessWidget {
   }
 }
 
-/// Panel hasil sebuah percobaan: skor + aksi (ulang / bonus / lanjut / kunci).
-class _ResultPanel extends StatelessWidget {
-  final RecitationQuizCubit cubit;
+/// Bottom sheet hasil bacaan ala Duolingo (mode suara): naik dari bawah,
+/// berwarna hijau (lolos) / merah (gagal), memuat skor, penjelasan jawaban
+/// benar (saat kunci dibuka), alur ulang, dan tombol Lanjut di paling bawah.
+class _VoiceResultSheet extends StatelessWidget {
   final RecitationQuizState state;
+  final RecitationQuizCubit cubit;
 
-  const _ResultPanel({required this.cubit, required this.state});
+  const _VoiceResultSheet({
+    super.key,
+    required this.state,
+    required this.cubit,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Tahap bonus berjalan → fokuskan layar pada soal tebak surah.
-    if (state.bonusStage == BonusStage.running && state.bonus != null) {
-      return _BonusRunningView(cubit: cubit, state: state);
-    }
-
-    final pct = state.currentResult?.accuracyPercent ?? 0;
+    final pct = state.currentResult?.accuracyPercent ?? state.bestPercent;
     final passed = state.passed;
+    final canRetry = state.canRetry;
+    final reveal = state.revealAnswer && state.bestResult != null;
+    final hasBonusOffered =
+        state.bonus != null && state.bonusStage == BonusStage.offered;
 
-    final String headline;
+    final Color accent = passed ? QuizColors.correct : QuizColors.missing;
+    final IconData icon = passed
+        ? Icons.check_circle_rounded
+        : Icons.cancel_rounded;
+    final String title;
+    final String subtitle;
     if (passed) {
-      headline = pct > 90 ? 'Masyaa Allah! 🎉' : 'Alhamdulillah, lolos!';
-    } else if (state.canRetry) {
-      headline = 'Belum cukup, coba lagi ya';
+      title = pct > 90 ? 'Masyaa Allah! 🎉' : 'Alhamdulillah, lolos!';
+      subtitle = 'Bacaanmu sudah tepat. Lanjutkan!';
+    } else if (canRetry) {
+      title = 'Belum tepat, coba lagi';
+      subtitle = 'Tarik napas, siapkan bacaanmu.';
     } else {
-      headline = 'Belum tepat — ini jawabannya';
+      title = 'Belum tepat';
+      subtitle = 'Ini jawaban yang benar — pelajari, ya.';
     }
 
-    final hasBonus = passed && state.bonus != null;
+    final maxHeight = MediaQuery.of(context).size.height * 0.66;
 
-    return Column(
-      children: [
-        ScoreRing(percent: pct, size: 130),
-        const SizedBox(height: 12),
-        Text(
-          headline,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 20),
-
-        // Kunci jawaban + koreksi (hanya saat gagal 2x).
-        if (state.revealAnswer && state.bestResult != null) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black12),
+    // Naik dari bawah + memudar saat pertama muncul.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 1, end: 0),
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: 1 - t,
+        child: FractionalTranslation(translation: Offset(0, t), child: child),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          // Datar (tanpa lengkungan) & tanpa shadow. Warna latar sedikit beda
+          // dari latar permainan (5% onSurface) agar sheet tak menyatu, plus
+          // garis tipis atas berwarna hasil sebagai pemisah.
+          decoration: BoxDecoration(
+            color: Color.alphaBlend(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+              Theme.of(context).scaffoldBackgroundColor,
             ),
-            child: Column(
-              children: [
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Jawaban benar',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                CorrectionText(diffs: state.bestResult!.diffs),
-                const SizedBox(height: 14),
-                const CorrectionLegend(),
-              ],
+            border: Border(
+              top: BorderSide(color: accent.withValues(alpha: 0.55), width: 2),
             ),
           ),
-          const SizedBox(height: 20),
-        ],
-
-        // Hasil bonus (tahap done).
-        if (hasBonus && state.bonusStage == BonusStage.done) ...[
-          _BonusResultCard(state: state),
-          const SizedBox(height: 16),
-        ],
-
-        // Aksi.
-        if (state.canRetry)
-          Column(
-            children: [
-              // Jeda "pikir dulu": hitung mundur, lalu ulang otomatis.
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: QuizColors.gold.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: QuizColors.gold.withValues(alpha: 0.45),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Tarik napas, siapkan dulu…',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: QuizColors.goldDark,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TweenAnimationBuilder<double>(
-                      key: ValueKey(state.retrySecondsLeft),
-                      tween: Tween(begin: 0.7, end: 1),
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutBack,
-                      builder: (context, s, child) =>
-                          Transform.scale(scale: s, child: child),
-                      child: Text(
-                        '${state.retrySecondsLeft}',
-                        style: const TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w900,
-                          color: QuizColors.goldDark,
-                          height: 1.0,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Bacaan diulang otomatis',
-                      style: TextStyle(fontSize: 12.5, color: Colors.black54),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _header(accent, icon, title, subtitle, pct),
+                  if (reveal) ...[
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: SingleChildScrollView(child: _correctAnswerCard()),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 18),
+                  _actions(context, passed, canRetry, hasBonusOffered),
+                ],
               ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    QuizHaptics.tap();
-                    cubit.retry();
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _header(
+    Color accent,
+    IconData icon,
+    String title,
+    String subtitle,
+    int pct,
+  ) {
+    return Row(
+      children: [
+        ScoreRing(percent: pct, size: 74, color: accent),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: accent, size: 22),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        color: accent,
+                      ),
                     ),
                   ),
-                  icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Ulangi sekarang'),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                  height: 1.3,
                 ),
               ),
             ],
-          )
-        else if (hasBonus && state.bonusStage == BonusStage.offered)
-          _BonusPrep(secondsLeft: state.bonusPrepSecondsLeft)
-        else
-          _nextButton(context),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _nextButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: QuizButton(
-        label: state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-        color: Theme.of(context).colorScheme.primary,
-        onPressed: cubit.next,
-      ),
-    );
-  }
-}
-
-/// Jeda berpikir setelah lolos: kartu + hitung mundur; Soal Bonus mulai
-/// otomatis di akhir hitungan (tanpa tombol).
-class _BonusPrep extends StatelessWidget {
-  final int secondsLeft;
-
-  const _BonusPrep({required this.secondsLeft});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _correctAnswerCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: QuizColors.gold.withValues(alpha: 0.10),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.5)),
+        border: Border.all(color: Colors.black12),
       ),
       child: Column(
         children: [
-          const Row(
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Jawaban benar',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          CorrectionText(diffs: state.bestResult!.diffs),
+          const SizedBox(height: 14),
+          const CorrectionLegend(),
+        ],
+      ),
+    );
+  }
+
+  Widget _actions(
+    BuildContext context,
+    bool passed,
+    bool canRetry,
+    bool hasBonusOffered,
+  ) {
+    // Lolos + ada Soal Bonus → hitung mundur; bonus mulai otomatis (tanpa tombol).
+    if (passed && hasBonusOffered) {
+      return _SheetBonusPrep(secondsLeft: state.bonusPrepSecondsLeft);
+    }
+
+    // Gagal percobaan 1 → jeda "pikir dulu" + tombol ulang sekarang.
+    if (canRetry) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.bolt_rounded, color: QuizColors.goldDark, size: 20),
-              SizedBox(width: 6),
+              const Icon(
+                Icons.hourglass_bottom_rounded,
+                size: 16,
+                color: Colors.black45,
+              ),
+              const SizedBox(width: 6),
               Text(
-                'Soal Bonus • Seputar Surah',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: QuizColors.goldDark,
+                'Diulang otomatis dalam ${state.retrySecondsLeft} dtk',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          // Angka hitung mundur besar.
+          QuizButton(
+            label: 'Ulangi Sekarang',
+            icon: Icons.refresh_rounded,
+            color: QuizColors.missing,
+            onPressed: cubit.retry,
+          ),
+        ],
+      );
+    }
+
+    // Lolos tanpa bonus / gagal 2x → tombol Lanjut (warna sesuai hasil).
+    return QuizButton(
+      label: state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
+      color: passed ? QuizColors.correct : QuizColors.missing,
+      onPressed: cubit.next,
+    );
+  }
+}
+
+/// Hitung mundur ringkas Soal Bonus di dalam bottom sheet lolos (mode suara).
+class _SheetBonusPrep extends StatelessWidget {
+  final int secondsLeft;
+
+  const _SheetBonusPrep({required this.secondsLeft});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: QuizColors.gold.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bolt_rounded, color: QuizColors.goldDark, size: 22),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Soal Bonus dimulai otomatis…',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14.5,
+                color: QuizColors.goldDark,
+              ),
+            ),
+          ),
           TweenAnimationBuilder<double>(
             key: ValueKey(secondsLeft),
             tween: Tween(begin: 0.7, end: 1),
@@ -1009,21 +1078,24 @@ class _BonusPrep extends StatelessWidget {
             curve: Curves.easeOutBack,
             builder: (context, scale, child) =>
                 Transform.scale(scale: scale, child: child),
-            child: Text(
-              '$secondsLeft',
-              style: const TextStyle(
-                fontSize: 44,
-                fontWeight: FontWeight.w900,
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
                 color: QuizColors.goldDark,
-                height: 1.0,
+              ),
+              child: Text(
+                '$secondsLeft',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1.0,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Bersiap… Soal Bonus dimulai otomatis',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12.5, color: Colors.black54),
           ),
         ],
       ),
@@ -1063,165 +1135,6 @@ class _VoiceTimerChip extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Layar soal bonus berjalan: hitung mundur + pertanyaan + opsi surah.
-class _BonusRunningView extends StatelessWidget {
-  final RecitationQuizCubit cubit;
-  final RecitationQuizState state;
-
-  const _BonusRunningView({required this.cubit, required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final b = state.bonus!;
-    final namePick = state.bonusPicks.isNotEmpty
-        ? state.bonusPicks.first
-        : null;
-    return Column(
-      children: [
-        _BonusTimerBar(
-          secondsLeft: state.bonusSecondsLeft,
-          total: b.durationSeconds,
-        ),
-        const SizedBox(height: 18),
-        TriviaQuestionCard(
-          text: b.questionText,
-          hint: b.hintText,
-          points: b.fullPoints,
-        ),
-        if (b.isMulti) ...[
-          const SizedBox(height: 8),
-          Text(
-            'Pilih ${b.requiredPicks} surah sesuai urutan',
-            style: TextStyle(
-              fontSize: 12.5,
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-        const SizedBox(height: 14),
-
-        // Opsi jawaban sesuai jenis soal.
-        if (b.isNameMeaning) ...[
-          // Dua bagian: nama surah + arti surah.
-          TriviaSection(
-            label: 'Nama Surah',
-            icon: Icons.menu_book_rounded,
-            options: [
-              for (var i = 0; i < b.options.length; i++) b.optionName(i),
-            ],
-            picked: namePick,
-            onPick: cubit.pickBonus,
-          ),
-          const SizedBox(height: 12),
-          TriviaSection(
-            label: 'Arti Surah',
-            icon: Icons.translate_rounded,
-            options: b.meaningOptions,
-            picked: state.bonusMeaningPick,
-            onPick: cubit.pickBonusMeaning,
-          ),
-        ] else if (b.isNumber)
-          // Soal angka (nomor urut / jumlah ayat).
-          TriviaNumberOptions(
-            options: [for (final n in b.numberOptions) '$n'],
-            picked: namePick,
-            onPick: cubit.pickBonus,
-          )
-        else
-          // Tebak surah klasik (identify / neighbor).
-          Column(
-            children: List.generate(b.options.length, (i) {
-              final order = state.bonusPicks.indexOf(i);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _SurahOptionTile(
-                  name: b.optionName(i),
-                  orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
-                  selected: order >= 0,
-                  onTap: () {
-                    QuizHaptics.select();
-                    cubit.pickBonus(i);
-                  },
-                ),
-              );
-            }),
-          ),
-
-        if (b.needsSubmit) ...[
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: QuizButton(
-              label: 'Jawab',
-              icon: Icons.check_rounded,
-              color: Theme.of(context).colorScheme.primary,
-              onPressed: state.bonusComplete ? cubit.submitBonus : null,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-/// Hitung mundur soal bonus (angka + bar), memerah saat waktu menipis.
-class _BonusTimerBar extends StatelessWidget {
-  final int secondsLeft;
-  final int total;
-
-  const _BonusTimerBar({required this.secondsLeft, required this.total});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final urgent = secondsLeft <= 3;
-    final color = urgent ? QuizColors.missing : scheme.primary;
-    final progress = total <= 0 ? 0.0 : (secondsLeft / total).clamp(0.0, 1.0);
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.timer_rounded, size: 20, color: color),
-            const SizedBox(width: 6),
-            Text(
-              '$secondsLeft',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: color,
-              ),
-            ),
-            Text(
-              ' dtk',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: color.withValues(alpha: 0.8),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: progress, end: progress),
-            duration: const Duration(milliseconds: 300),
-            builder: (context, value, _) => LinearProgressIndicator(
-              value: value,
-              minHeight: 7,
-              backgroundColor: color.withValues(alpha: 0.12),
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

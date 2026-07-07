@@ -54,7 +54,9 @@ class _QuizButtonState extends State<QuizButton> {
   /// Bibir bawah: versi lebih gelap dari warna permukaan.
   Color _darken(Color c, [double amount = 0.18]) {
     final hsl = HSLColor.fromColor(c);
-    return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
+    return hsl
+        .withLightness((hsl.lightness - amount).clamp(0.0, 1.0))
+        .toColor();
   }
 
   @override
@@ -107,11 +109,14 @@ class _QuizButtonState extends State<QuizButton> {
                 const SizedBox(width: 8),
               ],
               Text(
-                widget.label,
+                // Kapital + sedikit jarak antar-huruf ala Duolingo.
+                widget.label.toUpperCase(),
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: fg,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
                 ),
               ),
             ],
