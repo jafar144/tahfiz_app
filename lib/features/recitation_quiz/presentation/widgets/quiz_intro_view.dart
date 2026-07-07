@@ -64,19 +64,6 @@ class QuizIntroView extends StatelessWidget {
     this.onRefillReady,
   });
 
-  String get _juzSummary {
-    final sorted = settings.sortedJuz;
-    final parts = sorted.map((j) {
-      final start = settings.startSurahFor(j);
-      return start == QuizJuz.firstSurah(j)
-          ? 'Juz $j'
-          : 'Juz $j (${QuizJuz.rangeLabel(j, start)})';
-    });
-    return parts.join(' · ');
-  }
-
-  String get _settingsSummary => 'Mode ${settings.mode.label} · $_juzSummary';
-
   Future<void> _openSettings(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -86,10 +73,8 @@ class QuizIntroView extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => _SettingsSheet(
-        initial: settings,
-        onChanged: onSettingsChanged,
-      ),
+      builder: (ctx) =>
+          _SettingsSheet(initial: settings, onChanged: onSettingsChanged),
     );
   }
 
@@ -142,12 +127,14 @@ class QuizIntroView extends StatelessWidget {
         _RuleTile(
           icon: Icons.grid_view_rounded,
           title: 'Pilihan ganda 6 opsi',
-          subtitle: 'Pilih lanjutan ayat yang benar — 1 sampai 3 ayat berurutan.',
+          subtitle:
+              'Pilih lanjutan ayat yang benar — 1 sampai 3 ayat berurutan.',
         ),
         _RuleTile(
           icon: Icons.timer_rounded,
           title: 'Adu cepat 60 detik',
-          subtitle: 'Benar → +waktu (makin banyak ayat, makin banyak). '
+          subtitle:
+              'Benar → +waktu (makin banyak ayat, makin banyak). '
               'Jawab sebanyak mungkin sebelum waktu habis.',
         ),
         _RuleTile(
@@ -161,7 +148,8 @@ class QuizIntroView extends StatelessWidget {
         _RuleTile(
           icon: Icons.bolt_rounded,
           title: 'Benar = poin, tanpa energi',
-          subtitle: 'Soal biasa: 10 poin (1 ayat), 14 (2 ayat), 18 (3 ayat). '
+          subtitle:
+              'Soal biasa: 10 poin (1 ayat), 14 (2 ayat), 18 (3 ayat). '
               'Energi tidak terpakai.',
         ),
       ];
@@ -170,7 +158,8 @@ class QuizIntroView extends StatelessWidget {
       _RuleTile(
         icon: Icons.menu_book_rounded,
         title: '10 soal acak & bervariasi',
-        subtitle: 'Lanjutkan 1-3 ayat, baca ayat terakhir surah, atau baca '
+        subtitle:
+            'Lanjutkan 1-3 ayat, baca ayat terakhir surah, atau baca '
             'ayat ke-N dari surahnya.',
       ),
       _RuleTile(
@@ -215,7 +204,7 @@ class QuizIntroView extends StatelessWidget {
                         end: Alignment.bottomRight,
                         colors: [
                           scheme.primary,
-                          scheme.primary.withValues(alpha: 0.7)
+                          scheme.primary.withValues(alpha: 0.7),
                         ],
                       ),
                       boxShadow: [
@@ -226,8 +215,11 @@ class QuizIntroView extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.emoji_events_rounded,
-                        color: QuizColors.gold, size: 48),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: QuizColors.gold,
+                      size: 48,
+                    ),
                   ),
                   const SizedBox(height: 18),
                   const Text(
@@ -240,13 +232,6 @@ class QuizIntroView extends StatelessWidget {
                         ? 'Uji hafalanmu dengan pilihan ganda'
                         : 'Uji hafalanmu dengan suara',
                     style: const TextStyle(fontSize: 13, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Ringkasan pengaturan (detail disimpan di bottom sheet).
-                  _SettingsOverview(
-                    summary: _settingsSummary,
-                    onTap: () => _openSettings(context),
                   ),
                   const SizedBox(height: 24),
 
@@ -264,13 +249,25 @@ class QuizIntroView extends StatelessWidget {
                 // Energi tampil sebagai tooltip melayang di atas tombol mulai
                 // (hanya mode suara — mode pilihan tak memakai energi).
                 if (!settings.mode.isChoice && energy != null) ...[
-                  _EnergyTooltip(
-                    energy: energy!,
-                    onRefillReady: onRefillReady,
-                  ),
+                  _EnergyTooltip(energy: energy!, onRefillReady: onRefillReady),
                   const SizedBox(height: 2),
                 ],
-                _buildStartButton(context),
+                // Tombol gear pengaturan (~1/5) di KIRI + tombol mulai.
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: QuizButton(
+                        icon: Icons.settings_rounded,
+                        color: const Color(0xFFEDEDED),
+                        foregroundColor: Colors.black54,
+                        onPressed: () => _openSettings(context),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(flex: 4, child: _buildStartButton(context)),
+                  ],
+                ),
               ],
             ),
           ),
@@ -405,65 +402,6 @@ class _EnergyTooltipState extends State<_EnergyTooltip> {
   }
 }
 
-/// Kartu ringkasan pengaturan di layar depan; diketuk untuk membuka setelan.
-class _SettingsOverview extends StatelessWidget {
-  final String summary;
-  final VoidCallback onTap;
-
-  const _SettingsOverview({required this.summary, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.black12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.tune_rounded, color: scheme.primary, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Pengaturan Kuis',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15)),
-                  const SizedBox(height: 2),
-                  Text(summary,
-                      style: const TextStyle(
-                          fontSize: 12.5, color: Colors.black54)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text('Atur',
-                style: TextStyle(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13)),
-            Icon(Icons.chevron_right_rounded, color: scheme.primary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// Isi bottom sheet pengaturan: pilih mode + juz + rentang target hafalan.
 /// Menyimpan salinan kerja lokal & mengabarkan tiap perubahan lewat [onChanged].
 class _SettingsSheet extends StatefulWidget {
@@ -490,10 +428,12 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       if (juz.length == 1) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(
-            content: Text('Minimal satu juz harus dipilih.'),
-            duration: Duration(seconds: 2),
-          ));
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Minimal satu juz harus dipilih.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
         return;
       }
       juz.remove(j);
@@ -514,11 +454,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pengaturan Kuis',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Pengaturan Kuis',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 18),
             const _SectionLabel(
-                icon: Icons.sports_esports_rounded, text: 'Mode Main'),
+              icon: Icons.sports_esports_rounded,
+              text: 'Mode Main',
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -547,8 +491,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded,
-                      size: 14, color: Colors.black45),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: Colors.black45,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -584,7 +531,9 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             ),
             const SizedBox(height: 20),
             const _SectionLabel(
-                icon: Icons.flag_rounded, text: 'Rentang Target Hafalan'),
+              icon: Icons.flag_rounded,
+              text: 'Rentang Target Hafalan',
+            ),
             const SizedBox(height: 4),
             const Text(
               'Atur surah awal yang kamu hafal. Surah terakhir tiap juz dikunci '
@@ -603,17 +552,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: QuizButton(
+                label: 'Selesai',
+                color: Theme.of(context).colorScheme.primary,
                 onPressed: () => Navigator.of(context).pop(),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text('Selesai',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -688,14 +630,14 @@ class _ModeOption extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon,
-                    size: 20,
-                    color: selected ? scheme.primary : Colors.black45),
+                Icon(
+                  icon,
+                  size: 20,
+                  color: selected ? scheme.primary : Colors.black45,
+                ),
                 const Spacer(),
                 Icon(
-                  selected
-                      ? Icons.check_circle_rounded
-                      : Icons.circle_outlined,
+                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   size: 20,
                   color: selected ? scheme.primary : Colors.black26,
                 ),
@@ -771,9 +713,7 @@ class _JuzOption extends StatelessWidget {
                 ),
                 const Spacer(),
                 Icon(
-                  selected
-                      ? Icons.check_circle_rounded
-                      : Icons.circle_outlined,
+                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   size: 20,
                   color: color,
                 ),
@@ -836,9 +776,10 @@ class _RangeTargetCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Dari surah',
-                        style:
-                            TextStyle(fontSize: 11.5, color: Colors.black54)),
+                    const Text(
+                      'Dari surah',
+                      style: TextStyle(fontSize: 11.5, color: Colors.black54),
+                    ),
                     const SizedBox(height: 4),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -874,17 +815,21 @@ class _RangeTargetCard extends StatelessWidget {
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                child: Icon(Icons.arrow_forward_rounded,
-                    size: 18, color: Colors.black38),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 18,
+                  color: Colors.black38,
+                ),
               ),
               // Surah akhir (dikunci).
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Hingga surah',
-                        style:
-                            TextStyle(fontSize: 11.5, color: Colors.black54)),
+                    const Text(
+                      'Hingga surah',
+                      style: TextStyle(fontSize: 11.5, color: Colors.black54),
+                    ),
                     const SizedBox(height: 4),
                     Container(
                       height: 42,
@@ -907,8 +852,11 @@ class _RangeTargetCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const Icon(Icons.lock_rounded,
-                              size: 15, color: Colors.black38),
+                          const Icon(
+                            Icons.lock_rounded,
+                            size: 15,
+                            color: Colors.black38,
+                          ),
                         ],
                       ),
                     ),
@@ -955,8 +903,11 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
                   shape: BoxShape.circle,
                   color: scheme.primary.withValues(alpha: 0.12),
                 ),
-                child: Icon(Icons.graphic_eq_rounded,
-                    color: scheme.primary, size: 34),
+                child: Icon(
+                  Icons.graphic_eq_rounded,
+                  color: scheme.primary,
+                  size: 34,
+                ),
               ),
             ),
             const SizedBox(height: 14),
@@ -971,7 +922,11 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
               'Sistem deteksi suara belum sempurna dan bisa saja keliru menilai '
               'bacaanmu. Agar hasilnya maksimal, perhatikan hal berikut:',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.5, color: Colors.black54, height: 1.4),
+              style: TextStyle(
+                fontSize: 13.5,
+                color: Colors.black54,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 18),
 
@@ -979,7 +934,8 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
             const _VoiceTip(
               icon: Icons.record_voice_over_rounded,
               title: 'Baca dengan jelas & tartil',
-              subtitle: 'Lafalkan tiap huruf dengan jelas, jangan terburu-buru.',
+              subtitle:
+                  'Lafalkan tiap huruf dengan jelas, jangan terburu-buru.',
             ),
             const SizedBox(height: 12),
             const _VoiceTip(
@@ -1009,8 +965,7 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
                       child: Checkbox(
                         value: _dontShow,
                         visualDensity: VisualDensity.compact,
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         onChanged: (v) =>
                             setState(() => _dontShow = v ?? false),
                       ),
@@ -1080,12 +1035,18 @@ class _VoiceTip extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(subtitle,
-                  style: const TextStyle(fontSize: 12.5, color: Colors.black54)),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+              ),
             ],
           ),
         ),
@@ -1126,13 +1087,18 @@ class _RuleTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style:
-                        const TextStyle(fontSize: 12.5, color: Colors.black54)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                ),
               ],
             ),
           ),

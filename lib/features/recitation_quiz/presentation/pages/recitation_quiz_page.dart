@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_choice_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
@@ -182,7 +183,7 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
   }
 }
 
-/// Tombol leaderboard bergaya (piala emas) untuk AppBar kuis.
+/// Tombol leaderboard (piala emas) untuk AppBar kuis — gaya tombol kuis (3D).
 class _LeaderboardButton extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -193,35 +194,16 @@ class _LeaderboardButton extends StatelessWidget {
     return Tooltip(
       message: 'Leaderboard',
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Ink(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [QuizColors.gold, QuizColors.goldDark],
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: QuizColors.gold.withValues(alpha: 0.45),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.emoji_events_rounded,
-                color: Colors.white,
-                size: 21,
-              ),
-            ),
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: SizedBox(
+          width: 46,
+          child: QuizButton(
+            icon: Icons.emoji_events_rounded,
+            iconSize: 21,
+            color: QuizColors.gold,
+            padding: const EdgeInsets.all(8),
+            borderRadius: 12,
+            onPressed: onTap,
           ),
         ),
       ),
