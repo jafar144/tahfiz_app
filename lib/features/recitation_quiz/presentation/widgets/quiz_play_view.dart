@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart'
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -77,10 +78,17 @@ class _QuizPlayViewState extends State<QuizPlayView> {
             (state.bonusStage == BonusStage.none ||
                 state.bonusStage == BonusStage.offered)) {
           _playChime();
+          QuizHaptics.correct();
         }
         // Umpan balik saat soal bonus selesai.
         if (state.bonusStage == BonusStage.done) {
-          state.bonusCorrect == true ? _playChime() : _playWrong();
+          if (state.bonusCorrect == true) {
+            _playChime();
+            QuizHaptics.correct();
+          } else {
+            _playWrong();
+            QuizHaptics.wrong();
+          }
         }
       },
       builder: (context, state) {
@@ -406,7 +414,12 @@ class _VoiceBonusScreen extends StatelessWidget {
                   child: SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: state.bonusComplete ? cubit.submitBonus : null,
+                      onPressed: state.bonusComplete
+                          ? () {
+                              QuizHaptics.tap();
+                              cubit.submitBonus();
+                            }
+                          : null,
                       style: FilledButton.styleFrom(
                         backgroundColor: QuizColors.goldDark,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -526,7 +539,10 @@ class _VoiceBonusContent extends StatelessWidget {
                   name: b.optionName(i),
                   orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
                   selected: order >= 0,
-                  onTap: () => cubit.pickBonus(i),
+                  onTap: () {
+                    QuizHaptics.select();
+                    cubit.pickBonus(i);
+                  },
                 ),
               );
             }),
@@ -559,7 +575,10 @@ class _VoiceBonusResult extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: cubit.next,
+              onPressed: () {
+                QuizHaptics.tap();
+                cubit.next();
+              },
               style: FilledButton.styleFrom(
                 backgroundColor: QuizColors.goldDark,
                 padding: const EdgeInsets.symmetric(vertical: 15),
@@ -769,7 +788,10 @@ class _RecordButton extends StatelessWidget {
     return Column(
       children: [
         GestureDetector(
-          onTap: onTap,
+          onTap: () {
+            QuizHaptics.tap();
+            onTap();
+          },
           child: Container(
             width: 96,
             height: 96,
@@ -939,7 +961,10 @@ class _ResultPanel extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: cubit.retry,
+                  onPressed: () {
+                    QuizHaptics.tap();
+                    cubit.retry();
+                  },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -964,7 +989,10 @@ class _ResultPanel extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
-        onPressed: cubit.next,
+        onPressed: () {
+          QuizHaptics.tap();
+          cubit.next();
+        },
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 15),
           shape: RoundedRectangleBorder(
@@ -1157,7 +1185,10 @@ class _BonusRunningView extends StatelessWidget {
                   name: b.optionName(i),
                   orderLabel: b.isMulti && order >= 0 ? '${order + 1}' : null,
                   selected: order >= 0,
-                  onTap: () => cubit.pickBonus(i),
+                  onTap: () {
+                    QuizHaptics.select();
+                    cubit.pickBonus(i);
+                  },
                 ),
               );
             }),

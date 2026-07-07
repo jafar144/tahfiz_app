@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart'
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -62,8 +63,10 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
           listener: (context, state) {
             if (state.choiceCorrect == true) {
               _chimeCorrect();
+              QuizHaptics.correct();
             } else if (state.choiceCorrect == false) {
               _chimeWrong();
+              QuizHaptics.wrong();
             }
           },
         ),
@@ -167,7 +170,10 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
                                       : null,
                                   onTap: locked
                                       ? null
-                                      : () => cubit.pickOption(i),
+                                      : () {
+                                          QuizHaptics.select();
+                                          cubit.pickOption(i);
+                                        },
                                 );
                               },
                             ),
@@ -507,7 +513,12 @@ class _GoldSubmitBar extends StatelessWidget {
       child: SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
-          onPressed: enabled ? onSubmit : null,
+          onPressed: enabled
+              ? () {
+                  QuizHaptics.tap();
+                  onSubmit();
+                }
+              : null,
           style: FilledButton.styleFrom(
             backgroundColor: QuizColors.goldDark,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -756,7 +767,12 @@ class _OrderStrip extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 5),
           child: GestureDetector(
-            onTap: (filled && !locked) ? () => onRemove(optionIndex) : null,
+            onTap: (filled && !locked)
+                ? () {
+                    QuizHaptics.light();
+                    onRemove(optionIndex);
+                  }
+                : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
               width: 54,
@@ -941,7 +957,12 @@ class _SubmitBar extends StatelessWidget {
       child: SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
-          onPressed: enabled ? onSubmit : null,
+          onPressed: enabled
+              ? () {
+                  QuizHaptics.tap();
+                  onSubmit();
+                }
+              : null,
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(

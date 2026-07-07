@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Widget bersama untuk soal trivia surah (nama+arti / urutan / jumlah ayat) —
@@ -173,7 +174,12 @@ class TriviaSection extends StatelessWidget {
               label: options[i],
               selected: selected,
               lockedCorrect: selected ? lockedCorrect : null,
-              onTap: onPick == null ? null : () => onPick!(i),
+              onTap: onPick == null
+                  ? null
+                  : () {
+                      QuizHaptics.select();
+                      onPick!(i);
+                    },
             );
           }),
         ),
@@ -316,7 +322,12 @@ class TriviaNumberOptions extends StatelessWidget {
           label: options[i],
           selected: selected,
           lockedCorrect: selected ? lockedCorrect : null,
-          onTap: onPick == null ? null : () => onPick!(i),
+          onTap: onPick == null
+              ? null
+              : () {
+                  QuizHaptics.select();
+                  onPick!(i);
+                },
         );
       }),
     );
