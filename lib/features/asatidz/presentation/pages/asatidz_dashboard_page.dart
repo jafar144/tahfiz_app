@@ -135,17 +135,10 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                           },
                         ),
                         MenuCard(
-                          icon: Icons.emoji_events_rounded,
-                          title: 'Kuis Hafalan',
-                          onTap: () =>
-                              context.pushNamed(RouteNames.recitationQuiz),
+                          icon: Icons.sports_esports_rounded,
+                          title: 'Tahfiz Arena',
+                          onTap: () => context.pushNamed(RouteNames.arena),
                         ),
-                        // MenuCard(
-                        //   icon: Icons.explore_rounded,
-                        //   title: 'Petualangan Surah',
-                        //   onTap: () =>
-                        //       context.pushNamed(RouteNames.surahJourney),
-                        // ),
                       ],
                     ),
                     // if (state.activeHalaqah != null) ...[

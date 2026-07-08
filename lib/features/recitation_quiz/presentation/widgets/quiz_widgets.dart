@@ -435,6 +435,14 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
       title: 'Energi habis',
       message: 'Tunggu energi terisi kembali untuk bermain lagi.',
     ),
+    QuizBlockReason.dailyLimit => (
+      icon: Icons.event_repeat_rounded,
+      color: QuizColors.gold,
+      title: 'Jatah hari ini terpakai',
+      message:
+          'Tantangan hanya bisa dimainkan 1x sehari untuk tiap mode. '
+          'Kembali lagi besok, ya!',
+    ),
     QuizBlockReason.unknown => (
       icon: Icons.error_outline_rounded,
       color: QuizColors.missing,
@@ -543,11 +551,18 @@ class _EnergyBadgeSkeletonState extends State<EnergyBadgeSkeleton>
 ///
 /// Diketuk → memunculkan info pengisian ("+1 energi dalam 3j 54m"). Berdenyut
 /// di latar untuk memuat ulang energi ([onRefillReady]) saat waktunya tiba.
+/// [dark] = tampil di atas latar gelap (mis. top bar Tahfiz Arena).
 class EnergyBadge extends StatefulWidget {
   final QuizEnergy energy;
   final VoidCallback? onRefillReady;
+  final bool dark;
 
-  const EnergyBadge({super.key, required this.energy, this.onRefillReady});
+  const EnergyBadge({
+    super.key,
+    required this.energy,
+    this.onRefillReady,
+    this.dark = false,
+  });
 
   @override
   State<EnergyBadge> createState() => _EnergyBadgeState();
@@ -644,15 +659,20 @@ class _EnergyBadgeState extends State<EnergyBadge> {
   Widget build(BuildContext context) {
     final e = widget.energy;
     final empty = !e.canPlay;
-    final color = empty ? QuizColors.missing : QuizColors.goldDark;
+    final color = empty
+        ? (widget.dark ? const Color(0xFFFF8A80) : QuizColors.missing)
+        : (widget.dark ? QuizColors.gold : QuizColors.goldDark);
     return InkWell(
       onTap: _showInfo,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
+          color: color.withValues(alpha: widget.dark ? 0.18 : 0.12),
           borderRadius: BorderRadius.circular(20),
+          border: widget.dark
+              ? Border.all(color: color.withValues(alpha: 0.45))
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

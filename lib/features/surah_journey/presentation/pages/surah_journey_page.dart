@@ -32,31 +32,45 @@ class SurahJourneyPage extends StatelessWidget {
             colors: [_skyTop, _skyBottom],
           ),
         ),
-        child: SafeArea(
+        child: const SafeArea(
           bottom: false,
-          child: Column(
-            children: [
-              _Header(),
-              Expanded(
-                child: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
-                  builder: (context, state) {
-                    return switch (state.status) {
-                      JourneyStatus.loading => const Center(
-                        child: CircularProgressIndicator(color: Colors.white70),
-                      ),
-                      JourneyStatus.error => _ErrorView(
-                        message: state.errorMessage ?? 'Terjadi kesalahan.',
-                        onRetry: () => context.read<SurahJourneyCubit>().load(),
-                      ),
-                      JourneyStatus.ready => _JourneyMap(state: state),
-                    };
-                  },
-                ),
-              ),
-            ],
-          ),
+          child: SurahJourneyView(),
         ),
       ),
+    );
+  }
+}
+
+/// Isi peta Petualangan Surah (header + peta) TANPA Scaffold/gradien sendiri —
+/// dipakai halaman mandiri di atas, dan ditanam sebagai tab di Tahfiz Arena
+/// ([showBack] false karena Arena punya top bar sendiri).
+class SurahJourneyView extends StatelessWidget {
+  final bool showBack;
+
+  const SurahJourneyView({super.key, this.showBack = true});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _Header(showBack: showBack),
+        Expanded(
+          child: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
+            builder: (context, state) {
+              return switch (state.status) {
+                JourneyStatus.loading => const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                ),
+                JourneyStatus.error => _ErrorView(
+                  message: state.errorMessage ?? 'Terjadi kesalahan.',
+                  onRetry: () => context.read<SurahJourneyCubit>().load(),
+                ),
+                JourneyStatus.ready => _JourneyMap(state: state),
+              };
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -64,30 +78,36 @@ class SurahJourneyPage extends StatelessWidget {
 // ────────────────────────────────────────────────────────────────── Header ──
 
 class _Header extends StatelessWidget {
+  final bool showBack;
+
+  const _Header({this.showBack = true});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+      padding: EdgeInsets.fromLTRB(showBack ? 12 : 16, 8, 16, 8),
       child: Row(
         children: [
-          // Tombol kembali bundar semi-transparan.
-          Material(
-            color: Colors.white.withValues(alpha: 0.12),
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => context.pop(),
-              child: const Padding(
-                padding: EdgeInsets.all(9),
-                child: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 21,
+          if (showBack) ...[
+            // Tombol kembali bundar semi-transparan.
+            Material(
+              color: Colors.white.withValues(alpha: 0.12),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => context.pop(),
+                child: const Padding(
+                  padding: EdgeInsets.all(9),
+                  child: Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                    size: 21,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

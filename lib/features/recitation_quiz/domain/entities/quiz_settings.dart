@@ -19,10 +19,17 @@ class QuizSettings extends Equatable {
   /// (1-3) mengabaikan ini.
   final Map<int, int> rangeStart;
 
+  /// Surah tambahan DI LUAR [juz] (id mushaf) — dipakai mode Tantangan untuk
+  /// paket surah pilihan yang tidak berurutan (mis. paket Pra Takhossus Awal
+  /// di juz 29). Surah yang berurutan dirangkai jadi satu segmen sambungan
+  /// ayat; lompatan antar kelompok tidak pernah disambung.
+  final Set<int> extraSurahs;
+
   const QuizSettings({
     this.mode = QuizMode.voice,
     this.juz = const {29, 30},
     this.rangeStart = const {},
+    this.extraSurahs = const {},
   });
 
   /// Daftar juz terurut menaik (untuk penyimpanan & tampilan).
@@ -38,14 +45,19 @@ class QuizSettings extends Equatable {
     return QuizJuz.clampStart(j, rangeStart[j] ?? QuizJuz.firstSurah(j));
   }
 
+  /// Daftar surah tambahan terurut menaik (mushaf).
+  List<int> get sortedExtraSurahs => extraSurahs.toList()..sort();
+
   QuizSettings copyWith({
     QuizMode? mode,
     Set<int>? juz,
     Map<int, int>? rangeStart,
+    Set<int>? extraSurahs,
   }) => QuizSettings(
     mode: mode ?? this.mode,
     juz: juz ?? this.juz,
     rangeStart: rangeStart ?? this.rangeStart,
+    extraSurahs: extraSurahs ?? this.extraSurahs,
   );
 
   /// Setel surah awal rentang target untuk juz [j].
@@ -87,5 +99,5 @@ class QuizSettings extends Equatable {
   }
 
   @override
-  List<Object?> get props => [mode, juz, rangeStart];
+  List<Object?> get props => [mode, juz, rangeStart, extraSurahs];
 }

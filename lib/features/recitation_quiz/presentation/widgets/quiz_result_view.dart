@@ -10,9 +10,15 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Layar rekap akhir sesi kuis (mode suara & pilihan).
+///
+/// [isChallenge] true → hasil TANTANGAN: status penyimpanan ditampilkan dan
+/// tombol "Main Lagi" disembunyikan (jatah 1x per hari per mode). Latihan →
+/// hasil tidak disimpan (status simpan disembunyikan), boleh main lagi selama
+/// energi masih ada.
 class QuizResultView extends StatelessWidget {
   final QuizResult result;
   final List<QuizReviewItem> review;
+  final bool isChallenge;
   final bool saving;
   final String? saveError;
   final QuizEnergy? energy;
@@ -24,6 +30,7 @@ class QuizResultView extends StatelessWidget {
     super.key,
     required this.result,
     this.review = const [],
+    this.isChallenge = false,
     required this.saving,
     required this.saveError,
     this.energy,
@@ -35,8 +42,8 @@ class QuizResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isChoice = result.mode.isChoice;
-    // Mode pilihan tak memakai energi → selalu bisa main lagi.
-    final canPlay = isChoice || (energy?.canPlay ?? true);
+    // Latihan memakai energi di KEDUA mode (suara & pilihan).
+    final canPlay = energy?.canPlay ?? true;
 
     return SafeArea(
       child: Padding(
@@ -77,39 +84,65 @@ class QuizResultView extends StatelessWidget {
               ),
 
             const SizedBox(height: 20),
-            _saveStatus(context),
+            // Latihan tidak disimpan → status simpan hanya untuk Tantangan.
+            if (isChallenge) _saveStatus(context),
             const Spacer(),
 
-            // Energi hanya relevan pada mode suara.
-            if (!isChoice && energy != null && !energy!.isFull) ...[
-              EnergyHint(energy: energy!, onRefillReady: onRefillReady),
-              const SizedBox(height: 12),
-            ],
-            // Aksi utama.
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: canPlay ? onPlayAgain : null,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            if (isChallenge) ...[
+              // Tantangan: jatah hari ini terpakai — ajak kembali besok.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.event_repeat_rounded,
+                    size: 16,
+                    color: Colors.black45,
                   ),
-                ),
-                icon: Icon(
-                  canPlay
-                      ? Icons.refresh_rounded
-                      : Icons.hourglass_bottom_rounded,
-                ),
-                label: Text(
-                  canPlay ? 'Main Lagi' : 'Energi habis',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Tantangan hari ini selesai — kembali lagi besok, ya!',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              // Latihan memakai energi (kedua mode).
+              if (energy != null && !energy!.isFull) ...[
+                EnergyHint(energy: energy!, onRefillReady: onRefillReady),
+                const SizedBox(height: 12),
+              ],
+              // Aksi utama (hanya latihan — Tantangan 1x per hari).
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: canPlay ? onPlayAgain : null,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  icon: Icon(
+                    canPlay
+                        ? Icons.refresh_rounded
+                        : Icons.hourglass_bottom_rounded,
+                  ),
+                  label: Text(
+                    canPlay ? 'Main Lagi' : 'Energi habis',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 10),
             // Aksi sekunder berdampingan: Review (bila ada) + Selesai.
             Row(

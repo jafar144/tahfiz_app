@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:khoirunnasyien/core/firebase/auth_client.dart';
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/core/firebase/firestore_client.dart';
 import 'package:khoirunnasyien/core/firebase/storage_client.dart';
 import 'package:khoirunnasyien/core/notifications/fcm_token_datasource.dart';
@@ -350,6 +351,15 @@ Future<void> initDI() async {
   );
   getIt.registerFactory(() => RecitationQuizCubit(getIt(), getIt()));
   getIt.registerFactory(() => QuizLeaderboardCubit(getIt(), getIt()));
+
+  // Tahfiz Arena (shell Petualangan + Kuis + Papan Juara)
+  getIt.registerFactory(
+    () => ArenaCubit(
+      getIt<QuizRepository>(),
+      getIt<FirebaseAuth>(),
+      getIt<FirebaseFirestore>(),
+    ),
+  );
 
   // Petualangan Surah (surah journey)
   getIt.registerLazySingleton<SurahJourneyRepository>(

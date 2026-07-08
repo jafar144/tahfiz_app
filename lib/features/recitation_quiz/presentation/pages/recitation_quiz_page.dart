@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_choice_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
@@ -60,18 +58,23 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
         final playing = status == QuizStatus.playing;
         final atIntro = status == QuizStatus.intro;
         final isChoice = state.settings.mode.isChoice;
+        final challenge = state.challenge;
 
         return PopScope(
-          // Hanya di layar intro tombol back keluar ke halaman sebelumnya;
-          // di layar lain back kembali ke intro (bukan langsung ke home).
-          canPop: atIntro,
+          // Latihan: hanya layar intro yang boleh langsung keluar; layar lain
+          // kembali ke intro. Tantangan: tanpa intro — back keluar halaman
+          // (saat bermain dikonfirmasi dulu).
+          canPop: challenge ? !playing : atIntro,
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
             if (state.status == QuizStatus.playing) {
-              final leave = await _confirmLeave(context);
+              final leave = await _confirmLeave(context, challenge: challenge);
               if (leave != true) return;
             }
-            if (context.mounted) {
+            if (!context.mounted) return;
+            if (challenge) {
+              context.pop(); // lock dilepas oleh cubit.close()
+            } else {
               context.read<RecitationQuizCubit>().backToIntro();
             }
           },
@@ -80,17 +83,8 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
             appBar: playing
                 ? null
                 : AppBar(
-                    title: const Text('Kuis Hafalan'),
+                    title: Text(challenge ? 'Tantangan' : 'Latihan Kuis'),
                     centerTitle: true,
-                    actions: [
-                      _LeaderboardButton(
-                        onTap: () => context.pushNamed(
-                          RouteNames.quizLeaderboard,
-                          extra: state.settings.mode,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
                   ),
             body: ClipRect(
               child: AnimatedSwitcher(
@@ -124,6 +118,9 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                 child: KeyedSubtree(
                   key: ValueKey(status),
                   child: switch (state.status) {
+                    // Tantangan tak punya layar intro — status intro hanya
+                    // sekejap sebelum cubit memulai sesi; tampilkan loading.
+                    QuizStatus.intro when challenge => const _Loading(),
                     QuizStatus.intro => QuizIntroView(
                       settings: state.settings,
                       onSettingsChanged: cubit.setSettings,
@@ -144,13 +141,17 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                     QuizStatus.finished => QuizResultView(
                       result: state.result!,
                       review: state.review,
+                      isChallenge: challenge,
                       saving: state.saving,
                       saveError: state.saveError,
                       energy: state.energy,
                       onPlayAgain: cubit.playAgain,
                       onRefillReady: cubit.loadEnergy,
-                      // "Selesai" kembali ke layar awal (bukan keluar ke home).
-                      onFinish: cubit.backToIntro,
+                      // "Selesai": latihan kembali ke layar awal; Tantangan
+                      // keluar halaman (jatah harian sudah terpakai).
+                      onFinish: challenge
+                          ? () => context.pop()
+                          : cubit.backToIntro,
                     ),
                   },
                 ),
@@ -162,12 +163,18 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
     );
   }
 
-  Future<bool?> _confirmLeave(BuildContext context) {
+  Future<bool?> _confirmLeave(BuildContext context, {bool challenge = false}) {
     return showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar dari kuis?'),
-        content: const Text('Progres kuis saat ini tidak akan disimpan.'),
+        content: Text(
+          challenge
+              ? 'Jatah Tantangan hari ini sudah terpakai — bila keluar '
+                    'sekarang, skormu tidak tercatat dan tidak bisa diulang '
+                    'hari ini.'
+              : 'Progres kuis saat ini tidak akan disimpan.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -178,34 +185,6 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
             child: const Text('Keluar'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Tombol leaderboard (piala emas) untuk AppBar kuis — gaya tombol kuis (3D).
-class _LeaderboardButton extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _LeaderboardButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Leaderboard',
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
-        child: SizedBox(
-          width: 46,
-          child: QuizButton(
-            icon: Icons.emoji_events_rounded,
-            iconSize: 21,
-            color: QuizColors.gold,
-            padding: const EdgeInsets.all(8),
-            borderRadius: 12,
-            onPressed: onTap,
-          ),
-        ),
       ),
     );
   }

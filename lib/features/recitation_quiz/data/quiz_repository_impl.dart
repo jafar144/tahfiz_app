@@ -66,7 +66,7 @@ class QuizRepositoryImpl implements QuizRepository {
   }) async {
     try {
       final juzList = settings.sortedJuz.where(QuizJuz.isSupported).toList();
-      if (juzList.isEmpty) {
+      if (juzList.isEmpty && settings.extraSurahs.isEmpty) {
         return const Left(UnknownFailure('Pilih minimal satu juz.'));
       }
 
@@ -98,6 +98,31 @@ class QuizRepositoryImpl implements QuizRepository {
         // antar-juz.
         if (pool.length > before) segmentEnds.add(pool.length - 1);
       }
+
+      // Surah tambahan di luar juz terpilih (paket Tantangan yang tak
+      // berurutan, mis. Pra Takhossus Awal). Surah yang BERURUTAN mushaf
+      // dirangkai jadi satu segmen (sambungan antar surah tetap jalan);
+      // lompatan antar kelompok menjadi batas segmen baru.
+      final poolSurahs = pool.map((a) => a.surahId).toSet();
+      final extras = settings.sortedExtraSurahs
+          .where((s) => !poolSurahs.contains(s))
+          .toList();
+      for (var i = 0; i < extras.length;) {
+        var end = i;
+        while (end + 1 < extras.length && extras[end + 1] == extras[end] + 1) {
+          end++;
+        }
+        final before = pool.length;
+        pool.addAll(
+          await local.getAyatForSurahRange(
+            fromSurah: extras[i],
+            toSurah: extras[end],
+          ),
+        );
+        if (pool.length > before) segmentEnds.add(pool.length - 1);
+        i = end + 1;
+      }
+
       if (pool.length < 2) {
         return const Left(
           UnknownFailure('Rentang target terpilih terlalu pendek.'),
@@ -508,6 +533,8 @@ class QuizRepositoryImpl implements QuizRepository {
     required List<int> questionScores,
     required List<int> juz,
     int bonusTotal = 0,
+    String? kelas,
+    String? scopeKelas,
   }) async {
     try {
       final user = auth.currentUser;
@@ -562,6 +589,11 @@ class QuizRepositoryImpl implements QuizRepository {
               'question_scores': questionScores,
               'question_count': questionScores.length,
               'date_key': dateKey,
+              // Penanda Tantangan (challenge) + kelas terkait; null = latihan
+              // lama (data sebelum fitur Arena).
+              'kind': 'challenge',
+              'kelas': ?kelas,
+              'scope_kelas': ?scopeKelas,
               'created_at': FieldValue.serverTimestamp(),
             })
             .timeout(const Duration(seconds: 6));
@@ -579,6 +611,7 @@ class QuizRepositoryImpl implements QuizRepository {
           mode: mode,
           monthKey: _monthKey(now),
           score: score,
+          kelas: kelas,
         ).timeout(const Duration(seconds: 6));
       } catch (_) {
         // Diabaikan (termasuk offline: transaksi butuh server); skor tetap
@@ -593,6 +626,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
   /// Tulis best-score ke `quiz_leaderboards/{bulan}/{mode}/{uid}` hanya bila
   /// [score] melebihi best-score yang sudah tercatat (bulan + mode ini).
+  /// [kelas] = kelas leaderboard santri (papan juara difilter per kelas).
   Future<void> _upsertLeaderboardEntry({
     required String uid,
     required String name,
@@ -600,6 +634,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required QuizMode mode,
     required String monthKey,
     required int score,
+    String? kelas,
   }) {
     final ref = _entriesRef(monthKey, mode).doc(uid);
     return firestore.runTransaction((tx) async {
@@ -612,6 +647,7 @@ class QuizRepositoryImpl implements QuizRepository {
         'role': role,
         'month_key': monthKey,
         'mode': mode.key,
+        'kelas': ?kelas,
         'last_score': score,
         'play_count': FieldValue.increment(1),
         'updated_at': FieldValue.serverTimestamp(),
@@ -640,13 +676,18 @@ class QuizRepositoryImpl implements QuizRepository {
 
   @override
   Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
-    QuizMode mode,
-  ) async {
+    QuizMode mode, {
+    String? kelas,
+  }) async {
     try {
       final monthKey = _monthKey(DateTime.now());
       final entriesRef = _entriesRef(monthKey, mode);
 
-      final snap = await entriesRef
+      // Papan per kelas (Tantangan): saring entri milik kelas terkait.
+      Query<Map<String, dynamic>> query = entriesRef;
+      if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
+
+      final snap = await query
           .orderBy('best_score', descending: true)
           .limit(QuizConfig.leaderboardLimit)
           .get();
@@ -674,12 +715,15 @@ class QuizRepositoryImpl implements QuizRepository {
         } else {
           final mySnap = await entriesRef.doc(uid).get();
           final myData = mySnap.data();
-          if (myData != null) {
+          // Pada papan per kelas, entri user hanya relevan bila kelasnya sama
+          // (mis. admin membuka papan kelas lain → tanpa kartu "Kamu").
+          if (myData != null &&
+              (kelas == null || myData['kelas'] == kelas)) {
             myEntry = _entryFromDoc(myData);
             // Peringkat = 1 + jumlah user dengan skor lebih tinggi
             // (aggregate count — tidak membaca isi dokumen).
             try {
-              final agg = await entriesRef
+              final agg = await query
                   .where('best_score', isGreaterThan: myEntry.bestScore)
                   .count()
                   .get();
@@ -733,9 +777,14 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
-  Future<Either<Failure, QuizEnergy>> startSession() async {
+  Future<Either<Failure, QuizEnergy>> startSession({
+    required QuizMode mode,
+    bool challenge = false,
+  }) async {
     try {
-      return Right(await energyRemote.startSession());
+      return Right(
+        await energyRemote.startSession(mode: mode, challenge: challenge),
+      );
     } on FirebaseFunctionsException catch (e) {
       return Left(
         QuizBlockedFailure(
@@ -767,6 +816,8 @@ class QuizRepositoryImpl implements QuizRepository {
         return QuizBlockReason.whisperLimit;
       case 'no_energy':
         return QuizBlockReason.noEnergy;
+      case 'daily_limit':
+        return QuizBlockReason.dailyLimit;
     }
     // Fallback berdasarkan kode HttpsError bila details tak ada.
     switch (e.code) {

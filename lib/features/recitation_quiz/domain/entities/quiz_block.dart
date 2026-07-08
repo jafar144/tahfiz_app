@@ -11,6 +11,9 @@ enum QuizBlockReason {
   /// Energi pengguna habis.
   noEnergy,
 
+  /// Jatah Tantangan hari ini (mode terkait) sudah terpakai.
+  dailyLimit,
+
   /// Sebab lain (jaringan/server).
   unknown,
 }

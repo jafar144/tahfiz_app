@@ -179,16 +179,10 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   onTap: () => context.pushNamed(RouteNames.recitationCheck),
                 ),
                 MenuCard(
-                  icon: Icons.emoji_events_rounded,
-                  title: 'Kuis Hafalan',
+                  icon: Icons.sports_esports_rounded,
+                  title: 'Tahfiz Arena',
                   color: Colors.blue,
-                  onTap: () => context.pushNamed(RouteNames.recitationQuiz),
-                ),
-                MenuCard(
-                  icon: Icons.explore_rounded,
-                  title: 'Petualangan Surah',
-                  color: Colors.blue,
-                  onTap: () => context.pushNamed(RouteNames.surahJourney),
+                  onTap: () => context.pushNamed(RouteNames.arena),
                 ),
               ]),
 

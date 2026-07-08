@@ -91,10 +91,9 @@ class QuizIntroView extends StatelessWidget {
   }
 
   Widget _buildStartButton(BuildContext context) {
-    final isChoice = settings.mode.isChoice;
-    final loading = !isChoice && energyLoading && energy == null;
-    // Mode pilihan tak memakai energi → selalu bisa mulai.
-    final canPlay = isChoice || (!loading && (energy?.canPlay ?? true));
+    final loading = energyLoading && energy == null;
+    // Latihan memakai 1 energi per sesi — di KEDUA mode (suara & pilihan).
+    final canPlay = !loading && (energy?.canPlay ?? true);
 
     final String label;
     final IconData icon;
@@ -147,10 +146,10 @@ class QuizIntroView extends StatelessWidget {
         ),
         _RuleTile(
           icon: Icons.bolt_rounded,
-          title: 'Benar = poin, tanpa energi',
+          title: 'Benar = poin',
           subtitle:
               'Soal biasa: 10 poin (1 ayat), 14 (2 ayat), 18 (3 ayat). '
-              'Energi tidak terpakai.',
+              '1 sesi latihan memakai 1 energi.',
         ),
       ];
     }
@@ -274,7 +273,7 @@ class QuizIntroView extends StatelessWidget {
 
                           _buildStartButton(context),
 
-                          if (!settings.mode.isChoice && energy != null)
+                          if (energy != null)
                             Positioned(
                               top: -52,
                               child: _EnergyTooltip(
@@ -520,29 +519,27 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 ),
               ],
             ),
-            if (_s.mode.isChoice) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    size: 14,
-                    color: Colors.black45,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Mode pilihan tidak memakai energi.',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Colors.green.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
+            const SizedBox(height: 8),
+            const Row(
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: Colors.black45,
+                ),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Tiap sesi latihan memakai 1 energi (mode apa pun).',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
             const SizedBox(height: 20),
             const _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
             const SizedBox(height: 4),

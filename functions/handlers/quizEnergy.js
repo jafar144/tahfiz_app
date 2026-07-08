@@ -2,16 +2,28 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
 const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 
-// Sistem energi Kuis Hafalan — dihitung SISI SERVER (waktu server) agar tidak
-// bisa diakali dengan mengubah jam HP. Tiap pengguna (admin/asatidz/santri)
-// punya energi sendiri: dokumen quiz_energy/{uid}.
+// Sistem energi & sesi Kuis Hafalan (Tahfiz Arena) — dihitung SISI SERVER
+// (waktu server) agar tidak bisa diakali dengan mengubah jam HP. Tiap pengguna
+// (admin/asatidz/santri) punya energi sendiri: dokumen quiz_energy/{uid}.
 //
-// Aturan: maksimum 5 energi, terisi +1 tiap 4 jam, 1 sesi kuis = 1 energi.
+// Aturan:
+//  • Energi: maksimum 10, terisi +1 tiap 4 jam.
+//  • LATIHAN (practice): 1 sesi = 1 energi (mode suara & pilihan).
+//  • TANTANGAN (challenge): tanpa energi, tapi hanya 1x per HARI per mode
+//    (hari mengikuti zona WIB) — dicatat di quiz_challenge_days/{uid}.
+//  • Lock 1-user & cooldown Whisper hanya berlaku untuk mode SUARA.
 
 const OPTIONS = { region: "asia-southeast2" };
 const COLLECTION = "quiz_energy";
-const MAX_ENERGY = 5;
+const CHALLENGE_COLLECTION = "quiz_challenge_days";
+const MAX_ENERGY = 10;
 const REFILL_MS = 4 * 60 * 60 * 1000; // 4 jam
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7
+
+/** Kunci tanggal "yyyy-mm-dd" menurut zona WIB dari epoch millis server. */
+function wibDateKey(nowMs) {
+  return new Date(nowMs + WIB_OFFSET_MS).toISOString().slice(0, 10);
+}
 
 /**
  * Hitung energi terkini dari nilai tersimpan pada [updatedAtMs].
@@ -81,8 +93,13 @@ exports.getQuizEnergy = onCall(OPTIONS, async (request) => {
   return toResponse(current, anchorMs, nowMs);
 });
 
-// Mulai sesi kuis: cek kuota Whisper → ambil lock 1-user → potong 1 energi.
-// Semua dalam satu transaksi (dok lock + dok energi) agar konsisten.
+// Mulai sesi kuis. Aturan menurut parameter dari klien:
+//  • kind:  "practice" (default) → potong 1 energi;
+//           "challenge"          → tanpa energi, cek & tandai jatah 1x/hari
+//                                  per mode (quiz_challenge_days/{uid}).
+//  • mode:  "voice" (default) → cek cooldown Whisper + ambil lock 1-user;
+//           "choice"          → tanpa lock (tak memakai Whisper).
+// Semua dalam satu transaksi agar konsisten.
 exports.startQuizSession = onCall(OPTIONS, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
 
@@ -90,57 +107,92 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
   const token = request.auth.token || {};
   const name = token.name || token.email || "";
 
+  const data = request.data || {};
+  const isChallenge = data.kind === "challenge";
+  const mode = data.mode === "choice" ? "choice" : "voice";
+  const needsLock = mode === "voice";
+
   const energyRef = db.collection(COLLECTION).doc(uid);
+  const challengeRef = db.collection(CHALLENGE_COLLECTION).doc(uid);
   const lock = lockRef();
 
   const outcome = await db.runTransaction(async (tx) => {
     const nowMs = Date.now();
     const lockSnap = await tx.get(lock);
     const energySnap = await tx.get(energyRef);
+    const challengeSnap = isChallenge ? await tx.get(challengeRef) : null;
     const lockData = lockSnap.exists ? lockSnap.data() || {} : {};
 
-    // 1) Kuota Whisper sedang penuh?
-    if (tsMillis(lockData.whisper_cooldown_until) > nowMs) {
-      return { block: "whisper" };
+    if (needsLock) {
+      // 1) Kuota Whisper sedang penuh?
+      if (tsMillis(lockData.whisper_cooldown_until) > nowMs) {
+        return { block: "whisper" };
+      }
+
+      // 2) Sedang dipakai user lain (lock masih berlaku)?
+      const holder = lockData.holder_uid || null;
+      const leaseActive = tsMillis(lockData.lease_expires_at) > nowMs;
+      if (holder && holder !== uid && leaseActive) {
+        return { block: "busy", holderName: lockData.holder_name || "" };
+      }
     }
 
-    // 2) Sedang dipakai user lain (lock masih berlaku)?
-    const holder = lockData.holder_uid || null;
-    const leaseActive = tsMillis(lockData.lease_expires_at) > nowMs;
-    if (holder && holder !== uid && leaseActive) {
-      return { block: "busy", holderName: lockData.holder_name || "" };
-    }
-
-    // 3) Energi cukup?
+    // 3) Energi terkini (selalu dihitung untuk dikembalikan ke klien).
     const { stored, updatedAtMs } = readDoc(energySnap, nowMs);
     const { current, anchorMs } = regen(stored, updatedAtMs, nowMs);
-    if (current <= 0) {
-      return { block: "no_energy" };
+
+    let newCurrent = current;
+    let newAnchorMs = anchorMs;
+
+    if (isChallenge) {
+      // Tantangan: jatah 1x per hari (WIB) per mode; energi tidak dipotong.
+      const todayKey = wibDateKey(nowMs);
+      const days = challengeSnap && challengeSnap.exists
+        ? challengeSnap.data() || {}
+        : {};
+      if (days[mode] === todayKey) {
+        return { block: "daily_limit" };
+      }
+      tx.set(
+        challengeRef,
+        {
+          [mode]: todayKey,
+          updated_at: admin.firestore.Timestamp.fromMillis(nowMs),
+        },
+        { merge: true }
+      );
+    } else {
+      // Latihan: butuh energi (mode suara maupun pilihan).
+      if (current <= 0) {
+        return { block: "no_energy" };
+      }
+      const wasFull = current >= MAX_ENERGY;
+      newCurrent = current - 1;
+      newAnchorMs = wasFull ? nowMs : anchorMs;
+      tx.set(
+        energyRef,
+        {
+          energy: newCurrent,
+          updated_at: admin.firestore.Timestamp.fromMillis(newAnchorMs),
+        },
+        { merge: true }
+      );
     }
 
-    // Ambil lock + potong 1 energi.
-    const wasFull = current >= MAX_ENERGY;
-    const newCurrent = current - 1;
-    const newAnchorMs = wasFull ? nowMs : anchorMs;
-
-    tx.set(
-      lock,
-      {
-        holder_uid: uid,
-        holder_name: name,
-        session_started_at: admin.firestore.Timestamp.fromMillis(nowMs),
-        lease_expires_at: admin.firestore.Timestamp.fromMillis(nowMs + LEASE_MS),
-      },
-      { merge: true }
-    );
-    tx.set(
-      energyRef,
-      {
-        energy: newCurrent,
-        updated_at: admin.firestore.Timestamp.fromMillis(newAnchorMs),
-      },
-      { merge: true }
-    );
+    if (needsLock) {
+      tx.set(
+        lock,
+        {
+          holder_uid: uid,
+          holder_name: name,
+          session_started_at: admin.firestore.Timestamp.fromMillis(nowMs),
+          lease_expires_at: admin.firestore.Timestamp.fromMillis(
+            nowMs + LEASE_MS
+          ),
+        },
+        { merge: true }
+      );
+    }
     return { ok: true, energy: toResponse(newCurrent, newAnchorMs, nowMs) };
   });
 
@@ -162,6 +214,13 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
     throw new HttpsError("failed-precondition", "Energi habis.", {
       reason: "no_energy",
     });
+  }
+  if (outcome.block === "daily_limit") {
+    throw new HttpsError(
+      "failed-precondition",
+      "Jatah Tantangan hari ini sudah terpakai. Kembali lagi besok, ya!",
+      { reason: "daily_limit" }
+    );
   }
   return outcome.energy;
 });

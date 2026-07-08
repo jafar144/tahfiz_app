@@ -37,8 +37,9 @@ abstract class RouteNames {
 
   static const recitationCheck = 'recitation_check';
   static const recitationQuiz = 'recitation_quiz';
-  static const quizLeaderboard = 'quiz_leaderboard';
 
   static const surahJourney = 'surah_journey';
   static const surahLesson = 'surah_lesson';
+
+  static const arena = 'arena';
 }

@@ -48,10 +48,11 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthl
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
+import 'package:khoirunnasyien/features/arena/presentation/pages/arena_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_leaderboard_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/recitation_quiz_page.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
@@ -331,9 +332,29 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.recitationQuiz,
         name: RouteNames.recitationQuiz,
-        builder: (context, state) => BlocProvider(
-          create: (_) => getIt<RecitationQuizCubit>()..init(),
-          child: const RecitationQuizPage(),
+        builder: (context, state) {
+          // extra QuizLaunch = sesi TANTANGAN (dari Tahfiz Arena);
+          // tanpa extra = sesi LATIHAN dengan layar intro biasa.
+          final launch = state.extra is QuizLaunch
+              ? state.extra as QuizLaunch
+              : null;
+          return BlocProvider(
+            create: (_) =>
+                getIt<RecitationQuizCubit>()..init(challenge: launch),
+            child: const RecitationQuizPage(),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.arena,
+        name: RouteNames.arena,
+        builder: (context, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => getIt<ArenaCubit>()..load()),
+            BlocProvider(create: (_) => getIt<SurahJourneyCubit>()..load()),
+            BlocProvider(create: (_) => getIt<QuizLeaderboardCubit>()),
+          ],
+          child: const ArenaPage(),
         ),
       ),
       GoRoute(
@@ -352,19 +373,6 @@ class AppRouter {
           return BlocProvider(
             create: (_) => getIt<SurahLessonCubit>(param1: lesson)..init(),
             child: const SurahLessonPage(),
-          );
-        },
-      ),
-      GoRoute(
-        path: RoutePaths.quizLeaderboard,
-        name: RouteNames.quizLeaderboard,
-        builder: (context, state) {
-          final mode = state.extra is QuizMode
-              ? state.extra as QuizMode
-              : QuizMode.voice;
-          return BlocProvider(
-            create: (_) => getIt<QuizLeaderboardCubit>()..load(mode),
-            child: const QuizLeaderboardPage(),
           );
         },
       ),

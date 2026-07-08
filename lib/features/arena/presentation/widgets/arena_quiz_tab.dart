@@ -1,0 +1,608 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_state.dart';
+import 'package:khoirunnasyien/features/arena/presentation/pages/arena_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+
+/// Tab Kuis Tahfiz Arena: dua kartu senada — LATIHAN (bebas atur, pakai
+/// energi, tak disimpan) dan TANTANGAN (sesuai kurikulum kelas, 1x/hari per
+/// mode, masuk papan juara; khusus santri non-Tahsin).
+class ArenaQuizTab extends StatelessWidget {
+  const ArenaQuizTab({super.key});
+
+  Future<void> _openPractice(BuildContext context) async {
+    final cubit = context.read<ArenaCubit>();
+    await context.pushNamed(RouteNames.recitationQuiz);
+    cubit.refresh();
+  }
+
+  Future<void> _openChallengeSheet(
+    BuildContext context,
+    ArenaState state,
+  ) async {
+    final cubit = context.read<ArenaCubit>();
+    final launch = await showModalBottomSheet<QuizLaunch>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ArenaColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _ChallengeSheet(state: state),
+    );
+    if (launch == null || !context.mounted) return;
+    await context.pushNamed(RouteNames.recitationQuiz, extra: launch);
+    cubit.refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ArenaCubit, ArenaState>(
+      builder: (context, state) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Mau main apa hari ini?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Asah hafalanmu lewat latihan bebas atau Tantangan harian.',
+                style: TextStyle(color: Colors.white60, fontSize: 12.5),
+              ),
+              const SizedBox(height: 20),
+
+              // ── Kartu LATIHAN ─────────────────────────────────────────
+              _ModeCard(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF1D4ED8), Color(0xFF0E7490)],
+                ),
+                icon: Icons.fitness_center_rounded,
+                title: 'Latihan',
+                subtitle:
+                    'Bebas pilih juz, rentang hafalan, dan mode (Suara / '
+                    'Pilihan). Hasil tidak dicatat — santai saja!',
+                chips: const [
+                  _InfoChip(icon: kEnergyIcon, label: '1 energi / sesi'),
+                  _InfoChip(
+                    icon: Icons.tune_rounded,
+                    label: 'Bebas dikustom',
+                  ),
+                ],
+                buttonLabel: 'Mulai Latihan',
+                onPressed: () => _openPractice(context),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Kartu TANTANGAN ───────────────────────────────────────
+              _buildChallengeCard(context, state),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildChallengeCard(BuildContext context, ArenaState state) {
+    const gradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF9A3412), Color(0xFFB45309)],
+    );
+
+    // Profil (role + kelas) belum termuat → kartu belum bisa diketuk.
+    if (state.status != ArenaStatus.ready) {
+      return const _ModeCard(
+        gradient: gradient,
+        icon: Icons.local_fire_department_rounded,
+        title: 'Tantangan',
+        subtitle:
+            'Soal sesuai kurikulum kelasmu, 1x per hari per mode — skor '
+            'terbaik masuk papan juara kelas.',
+        chips: [],
+        buttonLabel: 'Memuat…',
+        onPressed: null,
+      );
+    }
+
+    // Bukan santri (admin/asatidz) → kartu terkunci.
+    if (!state.isSantri) {
+      return _ModeCard(
+        gradient: gradient,
+        icon: Icons.local_fire_department_rounded,
+        title: 'Tantangan',
+        subtitle:
+            'Khusus santri: soal sesuai kurikulum kelas, 1x per hari, '
+            'hasilnya masuk papan juara kelas.',
+        chips: const [
+          _InfoChip(icon: Icons.lock_rounded, label: 'Khusus santri'),
+        ],
+        buttonLabel: 'Khusus Santri',
+        onPressed: null,
+      );
+    }
+
+    // Santri kelas Tahsin (atau kelas tak dikenal) → belum bisa ikut.
+    if (!state.canChallenge) {
+      return _ModeCard(
+        gradient: gradient,
+        icon: Icons.local_fire_department_rounded,
+        title: 'Tantangan',
+        subtitle:
+            'Tantangan terbuka mulai kelas Mutawassith. Selesaikan dulu '
+            'jenjang Tahsin-mu — semangat!',
+        chips: const [
+          _InfoChip(
+            icon: Icons.school_rounded,
+            label: 'Mulai kelas Mutawassith',
+          ),
+        ],
+        buttonLabel: 'Belum Terbuka',
+        onPressed: null,
+      );
+    }
+
+    final bothDone = state.voiceDoneToday && state.choiceDoneToday;
+    return _ModeCard(
+      gradient: gradient,
+      icon: Icons.local_fire_department_rounded,
+      title: 'Tantangan',
+      subtitle:
+          'Soal mengikuti kurikulum kelasmu${state.kelas != null ? ' (${state.kelas})' : ''}. '
+          'Sekali sehari tiap mode — skor terbaikmu masuk papan juara kelas!',
+      chips: [
+        _InfoChip(
+          icon: state.voiceDoneToday
+              ? Icons.check_circle_rounded
+              : Icons.mic_rounded,
+          label: state.voiceDoneToday ? 'Suara ✓ hari ini' : 'Suara 1x/hari',
+        ),
+        _InfoChip(
+          icon: state.choiceDoneToday
+              ? Icons.check_circle_rounded
+              : Icons.grid_view_rounded,
+          label: state.choiceDoneToday
+              ? 'Pilihan ✓ hari ini'
+              : 'Pilihan 1x/hari',
+        ),
+      ],
+      buttonLabel: bothDone ? 'Selesai — kembali besok!' : 'Mulai Tantangan',
+      onPressed: bothDone ? null : () => _openChallengeSheet(context, state),
+    );
+  }
+}
+
+// ───────────────────────────────────────────────────────────── Mode card ──
+
+class _ModeCard extends StatelessWidget {
+  final Gradient gradient;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Widget> chips;
+  final String buttonLabel;
+  final VoidCallback? onPressed;
+
+  const _ModeCard({
+    required this.gradient,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.chips,
+    required this.buttonLabel,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.30),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: Colors.white, size: 26),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 12.5,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 8, children: chips),
+          const SizedBox(height: 14),
+          QuizButton(
+            onPressed: onPressed,
+            label: buttonLabel,
+            color: Colors.white,
+            foregroundColor: const Color(0xFF12324B),
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            borderRadius: 14,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────── Challenge sheet ──
+
+/// Lembar setelan Tantangan: pilih mode (Suara/Pilihan, yang sudah dimainkan
+/// hari ini terkunci) dan cakupan kelas (kelas sendiri / turun 1 kelas bila
+/// tersedia). Mengembalikan [QuizLaunch] lewat `Navigator.pop`.
+class _ChallengeSheet extends StatefulWidget {
+  final ArenaState state;
+
+  const _ChallengeSheet({required this.state});
+
+  @override
+  State<_ChallengeSheet> createState() => _ChallengeSheetState();
+}
+
+class _ChallengeSheetState extends State<_ChallengeSheet> {
+  late QuizMode _mode = widget.state.voiceDoneToday
+      ? QuizMode.choice
+      : QuizMode.voice;
+
+  /// Kelas cakupan terpilih (default: kelas sendiri).
+  late String _scope = widget.state.kelas!;
+
+  String get _ownKelas => widget.state.kelas!;
+
+  String? get _belowKelas => QuizCurriculum.classBelow(_ownKelas);
+
+  bool _doneToday(QuizMode m) =>
+      m.isVoice ? widget.state.voiceDoneToday : widget.state.choiceDoneToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final below = _belowKelas;
+    final canStart = !_doneToday(_mode);
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  color: QuizColors.gold,
+                  size: 22,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Tantangan Harian',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Sekali sehari tiap mode. Skor terbaik bulan ini tampil di '
+              'papan juara kelasmu.',
+              style: TextStyle(color: Colors.white60, fontSize: 12),
+            ),
+            const SizedBox(height: 18),
+
+            const _SheetLabel('Mode main'),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _SheetOption(
+                    icon: Icons.mic_rounded,
+                    title: 'Suara',
+                    subtitle: _doneToday(QuizMode.voice)
+                        ? 'Sudah main hari ini'
+                        : 'Bacakan jawabannya',
+                    selected: _mode.isVoice,
+                    disabled: _doneToday(QuizMode.voice),
+                    onTap: () => setState(() => _mode = QuizMode.voice),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SheetOption(
+                    icon: Icons.grid_view_rounded,
+                    title: 'Pilihan',
+                    subtitle: _doneToday(QuizMode.choice)
+                        ? 'Sudah main hari ini'
+                        : '6 opsi · 60 detik',
+                    selected: _mode.isChoice,
+                    disabled: _doneToday(QuizMode.choice),
+                    onTap: () => setState(() => _mode = QuizMode.choice),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+
+            const _SheetLabel('Cakupan soal'),
+            const SizedBox(height: 10),
+            _SheetOption(
+              icon: Icons.school_rounded,
+              title: 'Kelasku — $_ownKelas',
+              subtitle: _scopeSummary(_ownKelas),
+              selected: _scope == _ownKelas,
+              onTap: () => setState(() => _scope = _ownKelas),
+            ),
+            if (below != null) ...[
+              const SizedBox(height: 10),
+              _SheetOption(
+                icon: Icons.south_rounded,
+                title: 'Turun 1 kelas — $below',
+                subtitle: _scopeSummary(below),
+                selected: _scope == below,
+                onTap: () => setState(() => _scope = below),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Pilih ini bila materi kelasmu belum tuntas — skormu tetap '
+                'masuk papan juara kelasmu sendiri.',
+                style: TextStyle(color: Colors.white38, fontSize: 11),
+              ),
+            ],
+            const SizedBox(height: 20),
+
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: canStart
+                    ? () => Navigator.of(context).pop(
+                        QuizLaunch(
+                          mode: _mode,
+                          ownKelas: _ownKelas,
+                          scopeKelas: _scope,
+                        ),
+                      )
+                    : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: QuizColors.gold,
+                  disabledBackgroundColor: Colors.white12,
+                  foregroundColor: const Color(0xFF3A2A00),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(
+                  canStart ? 'Mulai Tantangan' : 'Jatah mode ini habis',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Ringkasan cakupan kurikulum sebuah kelas untuk subtitle opsi.
+  static String _scopeSummary(String kelas) {
+    final scope = QuizCurriculum.scopeFor(kelas);
+    if (scope == null) return '';
+    final parts = <String>[];
+    if (scope.juz.isNotEmpty) {
+      parts.add('Juz ${scope.juz.join(', ')}');
+    }
+    if (scope.extraSurahs.isNotEmpty) {
+      parts.add('+ paket surah pilihan Juz 29');
+    }
+    return parts.join(' ');
+  }
+}
+
+class _SheetLabel extends StatelessWidget {
+  final String text;
+
+  const _SheetLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white70,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _SheetOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  const _SheetOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    this.disabled = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final active = selected && !disabled;
+    final baseColor = disabled ? Colors.white24 : Colors.white;
+    return InkWell(
+      onTap: disabled ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: active
+              ? QuizColors.gold.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: active ? QuizColors.gold : Colors.white12,
+            width: active ? 1.6 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              disabled ? Icons.check_circle_rounded : icon,
+              size: 20,
+              color: active
+                  ? QuizColors.gold
+                  : (disabled ? Colors.white24 : Colors.white54),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: active ? QuizColors.gold : baseColor,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: disabled ? Colors.white24 : Colors.white54,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

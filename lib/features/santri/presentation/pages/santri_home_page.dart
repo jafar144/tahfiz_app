@@ -79,6 +79,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 children: [
                   _buildHeader(state),
                   _buildJourneySection(state),
+                  // _buildArenaCard(),
                   const KelulusanCarousel(),
                   _buildPaymentStatus(state),
                   // _buildMenuSection(context),
@@ -295,6 +296,85 @@ class _SantriHomePageState extends State<SantriHomePage> {
       child: JourneySummaryCard(
         info: info,
         onTap: () => context.pushNamed(RouteNames.journey, extra: kelas),
+      ),
+    );
+  }
+
+  /// Kartu pintu masuk Tahfiz Arena (Petualangan Surah + Kuis + Papan Juara)
+  /// bernuansa malam, senada dengan gaya Arena.
+  Widget _buildArenaCard() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.pushNamed(RouteNames.arena),
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0B2540), Color(0xFF123B33)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0B2540).withValues(alpha: 0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(
+                    Icons.sports_esports_rounded,
+                    color: Color(0xFFF6A609),
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tahfiz Arena',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Petualangan surah, kuis hafalan, dan papan juara '
+                        'kelasmu — main sambil muroja\'ah!',
+                        style: TextStyle(color: Colors.white70, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white54,
+                  size: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

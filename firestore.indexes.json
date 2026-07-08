@@ -15,6 +15,38 @@
         { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
         { "fieldPath": "tanggal_keluar", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "voice",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "best_score", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "voice",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "best_score", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "choice",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "best_score", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "choice",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "best_score", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

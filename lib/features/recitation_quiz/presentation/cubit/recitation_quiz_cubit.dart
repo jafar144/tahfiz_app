@@ -12,8 +12,10 @@ import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
@@ -99,10 +101,17 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Sudah pernah menanyakan role admin ke repo (agar tak berulang).
   bool _roleResolved = false;
 
-  /// Energi & lock hanya berlaku pada mode SUARA, bila master switch aktif, dan
-  /// user bukan admin. Mode pilihan tak pernah memakai energi.
-  bool get _enforceEnergy =>
-      QuizConfig.enforceEnergy && !_isAdmin && state.settings.mode.isVoice;
+  /// Info Tantangan aktif; null = sesi LATIHAN (practice).
+  QuizLaunch? _launch;
+
+  bool get _isChallenge => _launch != null;
+
+  /// Sesi harus melalui server (energi/jatah harian/lock) — berlaku untuk
+  /// SEMUA mode & jenis sesi, kecuali master switch mati atau user admin.
+  bool get _serverGated => QuizConfig.enforceEnergy && !_isAdmin;
+
+  /// Lock 1-user & heartbeat hanya untuk mode SUARA (menjaga kuota Whisper).
+  bool get _needsLock => _serverGated && state.settings.mode.isVoice;
 
   RecitationQuizCubit(this.repository, this.settingsStore)
     : super(const RecitationQuizState());
@@ -115,8 +124,27 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     return ms <= 0 ? 0 : (ms + 999) ~/ 1000;
   }
 
-  /// Inisialisasi layar: muat setelan tersimpan lalu energi terkini.
-  Future<void> init() async {
+  /// Inisialisasi layar.
+  ///  • [challenge] null  → LATIHAN: muat setelan tersimpan + energi (intro).
+  ///  • [challenge] terisi → TANTANGAN: setelan dikunci dari kurikulum kelas,
+  ///    langsung mulai tanpa layar intro.
+  Future<void> init({QuizLaunch? challenge}) async {
+    if (challenge != null) {
+      _launch = challenge;
+      final settings = QuizCurriculum.settingsFor(
+        challenge.scopeKelas,
+        challenge.mode,
+      );
+      emit(
+        state.copyWith(
+          challenge: true,
+          settings: settings,
+          settingsLoaded: true,
+        ),
+      );
+      await start(settings);
+      return;
+    }
     final saved = await settingsStore.load();
     emit(state.copyWith(settings: saved, settingsLoaded: true));
     await loadEnergy();
@@ -150,6 +178,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     // pelepasan lock ke server bisa lambat/timeout). Lepas lock di latar.
     emit(
       RecitationQuizState(
+        challenge: state.challenge,
         settings: state.settings,
         settingsLoaded: state.settingsLoaded,
         energy: state.energy,
@@ -170,10 +199,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   Future<void> loadEnergy() async {
     await _ensureRoleResolved();
     // Testing / admin: tampilkan energi penuh & jangan panggil server.
-    if (!_enforceEnergy) {
+    if (!_serverGated) {
       emit(
         state.copyWith(
-          energy: const QuizEnergy(current: 5, max: 5),
+          energy: const QuizEnergy(current: 10, max: 10),
           energyLoading: false,
         ),
       );
@@ -192,8 +221,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
     await _ensureRoleResolved();
-    // Ingat setelan terakhir yang dipakai untuk sesi berikutnya.
-    unawaited(settingsStore.save(settings));
+    // Ingat setelan terakhir yang dipakai untuk sesi berikutnya — hanya
+    // LATIHAN (setelan Tantangan dikunci kurikulum, jangan menimpa setelan
+    // latihan tersimpan).
+    if (!_isChallenge) unawaited(settingsStore.save(settings));
     // Layar untuk kembali bila gagal mulai (intro, atau result saat "Main Lagi").
     final backStatus = state.status == QuizStatus.finished
         ? QuizStatus.finished
@@ -220,24 +251,36 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         state.copyWith(status: QuizStatus.error, errorMessage: f.message),
       ),
       ifRight: (qs) async {
-        // Mode pilihan: tanpa energi/lock, langsung mulai + timer mundur.
-        if (settings.mode.isChoice) {
-          _enterChoicePlaying(settings, qs);
+        // Testing / admin: lewati server (energi/jatah/lock) sepenuhnya.
+        if (!_serverGated) {
+          settings.mode.isChoice
+              ? _enterChoicePlaying(settings, qs)
+              : _enterPlaying(settings, qs, state.energy);
           return;
         }
 
-        // Testing / admin (mode suara): lewati lock & energi sepenuhnya.
-        if (!_enforceEnergy) {
-          _enterPlaying(settings, qs, state.energy);
-          return;
-        }
-
-        final started = await repository.startSession();
+        // Server memvalidasi & mencatat sesi: latihan memotong 1 energi
+        // (kedua mode), Tantangan menandai jatah harian; lock hanya suara.
+        final started = await repository.startSession(
+          mode: settings.mode,
+          challenge: _isChallenge,
+        );
         await started.fold(
           ifLeft: (f) async {
             final reason = f is QuizBlockedFailure
                 ? f.reason
                 : QuizBlockReason.unknown;
+            // Tantangan tak punya layar intro → tampilkan sebagai error
+            // dengan pesan server (mis. jatah harian sudah terpakai).
+            if (_isChallenge) {
+              emit(
+                state.copyWith(
+                  status: QuizStatus.error,
+                  errorMessage: f.message,
+                ),
+              );
+              return;
+            }
             if (reason == QuizBlockReason.noEnergy) {
               // Energi habis → segarkan; tombol menonaktif sendiri.
               final refreshed = await repository.getEnergy();
@@ -255,7 +298,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
               emit(state.copyWith(status: backStatus, startBlock: reason));
             }
           },
-          ifRight: (energy) async => _enterPlaying(settings, qs, energy),
+          ifRight: (energy) async => settings.mode.isChoice
+              ? _enterChoicePlaying(settings, qs, energy: energy)
+              : _enterPlaying(settings, qs, energy),
         );
       },
     );
@@ -272,6 +317,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     emit(
       RecitationQuizState(
         status: QuizStatus.playing,
+        challenge: state.challenge,
         settings: settings,
         energy: energy,
         questions: questions,
@@ -347,7 +393,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   }
 
   void _startHeartbeat() {
-    if (!_enforceEnergy) return;
+    // Lock hanya dipegang sesi mode SUARA (mode pilihan tak memakai Whisper).
+    if (!_needsLock) return;
     _holdsLock = true;
     _heartbeat?.cancel();
     // Kegagalan heartbeat (mis. koneksi terputus sesaat) diabaikan agar tak
@@ -378,13 +425,16 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Masuk fase bermain mode pilihan + mulai timer mundur.
   void _enterChoicePlaying(
     QuizSettings settings,
-    List<QuizQuestion> questions,
-  ) {
+    List<QuizQuestion> questions, {
+    QuizEnergy? energy,
+  }) {
     _toppingUp = false;
     emit(
       RecitationQuizState(
         status: QuizStatus.playing,
+        challenge: state.challenge,
         settings: settings,
+        energy: energy ?? state.energy,
         questions: questions,
         secondsLeft: QuizConfig.choiceDurationSeconds,
         picks: const [],
@@ -673,6 +723,22 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       questionCount: state.answers.length,
       mode: QuizMode.choice,
     );
+
+    // Hasil LATIHAN tidak disimpan; hanya TANTANGAN yang masuk histori &
+    // leaderboard kelas.
+    if (!_isChallenge) {
+      emit(
+        state.copyWith(
+          status: QuizStatus.finished,
+          result: result,
+          saving: false,
+          clearChoiceFeedback: true,
+          clearSaveError: true,
+        ),
+      );
+      return;
+    }
+
     emit(
       state.copyWith(
         status: QuizStatus.finished,
@@ -688,6 +754,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       score: result.leaderboardScore,
       questionScores: result.scores,
       juz: state.settings.sortedJuz,
+      kelas: _launch?.ownKelas,
+      scopeKelas: _launch?.scopeKelas,
     );
     save.fold(
       ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
@@ -945,7 +1013,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Himpunan surah yang tercakup rentang target (agar soal bonus tak overflow
   /// keluar dari juz/rentang yang dipilih).
   Set<int> _allowedSurahs(QuizSettings s) {
-    final set = <int>{};
+    final set = <int>{...s.extraSurahs};
     for (final j in s.sortedJuz) {
       if (!QuizJuz.isSupported(j)) continue;
       if (QuizJuz.supportsCustomRange(j)) {
@@ -1103,6 +1171,24 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         questionCount: state.questions.length,
         mode: QuizMode.voice,
       );
+
+      // Hasil LATIHAN tidak disimpan; hanya TANTANGAN yang masuk histori &
+      // leaderboard kelas.
+      if (!_isChallenge) {
+        emit(
+          state.copyWith(
+            status: QuizStatus.finished,
+            answers: answers,
+            review: review,
+            result: result,
+            saving: false,
+            clearSaveError: true,
+          ),
+        );
+        await _releaseSession();
+        return;
+      }
+
       emit(
         state.copyWith(
           status: QuizStatus.finished,
@@ -1119,6 +1205,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         questionScores: result.scores,
         juz: state.settings.sortedJuz,
         bonusTotal: result.totalBonus,
+        kelas: _launch?.ownKelas,
+        scopeKelas: _launch?.scopeKelas,
       );
       save.fold(
         ifLeft: (f) =>
@@ -1159,8 +1247,13 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _startVoiceTimer();
   }
 
-  /// Main lagi dari awal dengan setelan yang sama (soal baru).
-  Future<void> playAgain() => start(state.settings);
+  /// Main lagi dari awal dengan setelan yang sama (soal baru). Tantangan
+  /// tidak bisa diulang (jatah 1x per hari) — tombolnya memang disembunyikan,
+  /// guard di sini sekadar pengaman.
+  Future<void> playAgain() async {
+    if (_isChallenge) return;
+    await start(state.settings);
+  }
 
   /// Ringkasan review satu soal mode PILIHAN (pertanyaan + jawaban + kunci).
   QuizReviewItem _choiceReview(

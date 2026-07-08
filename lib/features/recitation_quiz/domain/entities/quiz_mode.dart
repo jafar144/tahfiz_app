@@ -1,9 +1,12 @@
 /// Mode permainan Kuis Hafalan.
 ///
-/// - [voice]  : jawab dengan suara (dicek Whisper). Memakai energi, tanpa timer,
-///              jumlah soal tetap.
-/// - [choice] : pilihan ganda dari 6 opsi ayat. TANPA energi, ada timer mundur
-///              60 detik untuk seluruh sesi (jumlah soal tak dibatasi).
+/// - [voice]  : jawab dengan suara (dicek Whisper). Tanpa timer sesi,
+///              jumlah soal tetap; memegang lock 1-user (kuota Whisper).
+/// - [choice] : pilihan ganda dari 6 opsi ayat, timer mundur 60 detik untuk
+///              seluruh sesi (jumlah soal tak dibatasi).
+///
+/// Biaya sesi diatur per JENIS sesi (bukan mode): Latihan memakai 1 energi
+/// (kedua mode), Tantangan 1x per hari per mode.
 enum QuizMode { voice, choice }
 
 extension QuizModeX on QuizMode {

@@ -62,6 +62,11 @@ class RecitationQuizState extends Equatable {
   final QuizStatus status;
   final String? errorMessage;
 
+  /// True bila sesi ini adalah TANTANGAN (challenge): setelan dikunci sesuai
+  /// kurikulum kelas, tanpa layar intro, hasil disimpan ke leaderboard kelas,
+  /// dan tidak ada "Main Lagi" (jatah 1x per hari per mode).
+  final bool challenge;
+
   /// Setelan sesi aktif (mode + juz terpilih + rentang target per juz).
   final QuizSettings settings;
 
@@ -192,6 +197,7 @@ class RecitationQuizState extends Equatable {
   const RecitationQuizState({
     this.status = QuizStatus.intro,
     this.errorMessage,
+    this.challenge = false,
     this.settings = const QuizSettings(),
     this.settingsLoaded = false,
     this.energy,
@@ -305,6 +311,7 @@ class RecitationQuizState extends Equatable {
   RecitationQuizState copyWith({
     QuizStatus? status,
     String? errorMessage,
+    bool? challenge,
     QuizSettings? settings,
     bool? settingsLoaded,
     QuizEnergy? energy,
@@ -360,6 +367,7 @@ class RecitationQuizState extends Equatable {
     return RecitationQuizState(
       status: status ?? this.status,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      challenge: challenge ?? this.challenge,
       settings: settings ?? this.settings,
       settingsLoaded: settingsLoaded ?? this.settingsLoaded,
       energy: energy ?? this.energy,
@@ -418,6 +426,7 @@ class RecitationQuizState extends Equatable {
   List<Object?> get props => [
     status,
     errorMessage,
+    challenge,
     settings,
     settingsLoaded,
     energy,
