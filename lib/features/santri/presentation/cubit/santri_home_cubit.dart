@@ -52,7 +52,10 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       
       // Calculate overdue months from startDate up to now.
       int overdueMonthsCount = 0;
-      final startDate = PaymentUtils.resolveStartDate(santri);
+      final startDate = PaymentUtils.resolveStartDate(
+        freeUntil: santri.freeUntil,
+        tanggalMasuk: santri.tanggalMasuk,
+      );
       
       if (startDate != null) {
         DateTime current = DateTime(startDate.year, startDate.month);

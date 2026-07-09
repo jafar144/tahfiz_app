@@ -494,7 +494,10 @@ class _SantriHomePageState extends State<SantriHomePage> {
                   InkWell(
                     onTap: () {
                       final startDate = state.santri != null
-                          ? PaymentUtils.resolveStartDate(state.santri!)
+                          ? PaymentUtils.resolveStartDate(
+                              freeUntil: state.santri!.freeUntil,
+                              tanggalMasuk: state.santri!.tanggalMasuk,
+                            )
                           : null;
                       final currentSantriId =
                           context.read<SantriHomeCubit>().currentSantriId;

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/error_handler.dart';
+import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/features/financial_report/domain/entities/financial_report_data.dart';
 import 'package:khoirunnasyien/features/financial_report/presentation/cubit/financial_report_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
@@ -32,9 +33,18 @@ class FinancialReportCubit extends Cubit<FinancialReportState> {
       final previousPayments = results[1];
 
       // Ambil seluruh santri aktif sekali saja.
-      final allSantri =
+      final allActiveSantri =
           await santriRepository.getSantriList(isActive: true, limit: 9999);
-      final santriMap = {for (final s in allSantri) s.id: s};
+      final santriMap = {for (final s in allActiveSantri) s.id: s};
+
+      // Hanya hitung santri yang sudah terdaftar (tanggal_masuk) pada bulan terpilih.
+      final allSantri = allActiveSantri
+          .where((s) => PaymentUtils.isEnrolledInMonth(
+                tanggalMasuk: s.tanggalMasuk,
+                month: selected.month,
+                year: selected.year,
+              ))
+          .toList();
 
       final totalRevenue =
           currentPayments.fold<int>(0, (sum, p) => sum + p.total);

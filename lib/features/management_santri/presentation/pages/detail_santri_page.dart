@@ -539,7 +539,10 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
             padding: const EdgeInsets.fromLTRB(8, 12, 8, 16),
             child: PaymentYearView(
               paidData: paidData,
-              startDate: PaymentUtils.resolveStartDate(detail),
+              startDate: PaymentUtils.resolveStartDate(
+                freeUntil: detail.freeUntil,
+                tanggalMasuk: detail.tanggalMasuk,
+              ),
             ),
           );
         }

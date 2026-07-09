@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repo
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
 import 'package:khoirunnasyien/core/utils/error_handler.dart';
+import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 class PaymentCubit extends Cubit<PaymentState> {
   final PaymentRepository paymentRepository;
   final SantriRepository santriRepository;
@@ -22,7 +23,16 @@ class PaymentCubit extends Cubit<PaymentState> {
       final payments = await paymentRepository.getPayments(month, year);
       
       // 2. Fetch All Active Santri
-      final allSantri = await santriRepository.getSantriList(isActive: true, limit: 9999);
+      final allActiveSantri = await santriRepository.getSantriList(isActive: true, limit: 9999);
+
+      // Hanya hitung santri yang sudah terdaftar (tanggal_masuk) pada bulan/tahun terpilih.
+      final allSantri = allActiveSantri
+          .where((s) => PaymentUtils.isEnrolledInMonth(
+                tanggalMasuk: s.tanggalMasuk,
+                month: date.month,
+                year: date.year,
+              ))
+          .toList();
 
       // 3. Separate Paid and Unpaid
       final paidStudents = <SantriEntity>[];
