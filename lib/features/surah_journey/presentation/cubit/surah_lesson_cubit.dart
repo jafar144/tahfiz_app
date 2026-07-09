@@ -4,15 +4,25 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 
-/// Cubit sesi SATU surah Petualangan Surah: halaman belajar → ujian 10 soal
-/// (suara + pilihan materi) → hasil & simpan progres.
+/// Cubit sesi SATU surah Petualangan Surah: daftar bagian → belajar per
+/// bagian → test kecil → (semua lulus) ujian akhir → hasil + XP.
+///
+/// Energi: tiap percobaan test yang BELUM pernah lulus memotong 1 energi
+/// (lewat `startQuizSession` di server, seperti Latihan kuis); setelah pernah
+/// lulus, mengulang gratis. Admin & master switch mati → tanpa energi.
 class SurahLessonCubit extends Cubit<SurahLessonState> {
   final SurahJourneyRepository repository;
+  final QuizRepository quizRepository;
 
   final AudioRecorder _recorder = AudioRecorder();
   String? _recordPath;
@@ -20,31 +30,164 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
   /// Penjaga auto-lanjut soal pilihan: hanya berlaku untuk soal yang sama.
   int _feedbackTicket = 0;
 
-  SurahLessonCubit(this.repository, SurahLesson lesson)
+  /// Diisi saat init; admin tidak terkena potongan energi.
+  bool _isAdmin = false;
+
+  /// Status lulus target test SEBELUM percobaan berjalan (penentu XP &
+  /// gratis/berbayarnya percobaan berikut pada layar hasil).
+  bool _passedBefore = false;
+
+  SurahLessonCubit(this.repository, this.quizRepository, SurahLesson lesson)
     : super(SurahLessonState(lesson: lesson));
 
-  /// Muat teks surah untuk halaman belajar.
+  /// Muat teks surah + progres surah ini + status admin.
   Future<void> init() async {
-    final res = await repository.getSurahAyat(state.lesson.surahId);
-    res.fold(
+    final ayatRes = await repository.getSurahAyat(state.lesson.surahId);
+    if (isClosed) return;
+    ayatRes.fold(
       ifLeft: (f) => emit(state.copyWith(errorMessage: f.message)),
       ifRight: (ayat) => emit(state.copyWith(surahAyat: ayat)),
     );
+
+    final progressRes = await repository.getProgress();
+    if (isClosed) return;
+    progressRes.fold(
+      ifLeft: (f) => emit(state.copyWith(errorMessage: f.message)),
+      ifRight: (p) =>
+          emit(state.copyWith(progress: p.of(state.lesson.surahId))),
+    );
+
+    _isAdmin = await quizRepository.isCurrentUserAdmin();
   }
 
-  // ─────────────────────────────────────────────────────────────── Ujian ──
+  // ─────────────────────────────────────────────────────────── Navigasi ──
 
-  /// Mulai ujian: tandai sudah belajar, susun soal, masuk layar ujian.
-  Future<void> startTest() async {
-    emit(state.copyWith(status: LessonStatus.loading, clearError: true));
+  /// Buka halaman belajar sebuah bagian.
+  void openSection(LessonSection section) {
+    emit(
+      state.copyWith(
+        status: LessonStatus.learning,
+        activeSection: section,
+        clearError: true,
+      ),
+    );
+  }
 
-    // Progres "sudah belajar" tak menghalangi ujian bila gagal tersimpan.
-    unawaited(repository.markLearned(state.lesson.surahId));
+  /// Kembali ke daftar bagian (dari belajar/test/hasil).
+  void backToOverview() {
+    _feedbackTicket++;
+    emit(
+      state.copyWith(
+        status: LessonStatus.overview,
+        clearActiveSection: true,
+        phase: LessonPhase.idle,
+        clearVoiceResult: true,
+        clearChoicePick: true,
+        choiceLocked: false,
+        clearXpGained: true,
+        clearError: true,
+      ),
+    );
+  }
 
-    final res = await repository.generateTest(state.lesson);
+  /// Kembali ke halaman belajar bagian aktif (dari hasil yang gagal).
+  void backToLearning() {
+    final section = state.activeSection;
+    if (section == null) {
+      backToOverview();
+      return;
+    }
+    _feedbackTicket++;
+    emit(
+      state.copyWith(
+        status: LessonStatus.learning,
+        phase: LessonPhase.idle,
+        clearVoiceResult: true,
+        clearChoicePick: true,
+        choiceLocked: false,
+        clearXpGained: true,
+        clearError: true,
+      ),
+    );
+  }
+
+  /// Dari hasil lulus: langsung buka bagian berikutnya.
+  void continueToSection(LessonSection section) => openSection(section);
+
+  // ─────────────────────────────────────────────────────────────── Test ──
+
+  /// Mulai test bagian yang sedang dipelajari.
+  Future<void> startSectionTest() async {
+    final section = state.activeSection;
+    if (section == null) return;
+    await _startTest(section: section);
+  }
+
+  /// Mulai UJIAN AKHIR surah (dari daftar bagian; semua bagian harus lulus).
+  Future<void> startExam() async {
+    if (!state.examUnlocked) return;
+    await _startTest(section: null);
+  }
+
+  /// Ulangi test yang barusan selesai (soal diundi ulang; energi mengikuti
+  /// status lulus TERBARU — sudah lulus → gratis).
+  Future<void> retryTest() => _startTest(section: state.activeSection);
+
+  Future<void> _startTest({required LessonSection? section}) async {
+    emit(
+      state.copyWith(
+        status: LessonStatus.loading,
+        activeSection: section,
+        clearActiveSection: section == null,
+        clearError: true,
+      ),
+    );
+
+    _passedBefore = section == null
+        ? state.progress.examPassed
+        : state.progress.of(section.id).passed;
+
+    // Potong energi di server bila belum pernah lulus (admin/master off skip).
+    if (!_passedBefore && QuizConfig.enforceEnergy && !_isAdmin) {
+      final energyRes = await quizRepository.startSession(
+        mode: QuizMode.choice,
+      );
+      if (isClosed) return;
+      String? blockMessage;
+      energyRes.fold(
+        ifLeft: (f) {
+          blockMessage =
+              f is QuizBlockedFailure && f.reason == QuizBlockReason.noEnergy
+              ? 'Energimu habis! Tunggu pengisian energi dulu, ya.'
+              : f.message;
+        },
+        ifRight: (_) {},
+      );
+      if (blockMessage != null) {
+        emit(
+          state.copyWith(
+            status: section == null
+                ? LessonStatus.overview
+                : LessonStatus.learning,
+            errorMessage: blockMessage,
+          ),
+        );
+        return;
+      }
+    }
+
+    final res = section == null
+        ? await repository.generateExam(state.lesson)
+        : await repository.generateSectionTest(state.lesson, section);
+    if (isClosed) return;
     res.fold(
       ifLeft: (f) => emit(
-        state.copyWith(status: LessonStatus.learning, errorMessage: f.message),
+        state.copyWith(
+          status: section == null
+              ? LessonStatus.overview
+              : LessonStatus.learning,
+          errorMessage: f.message,
+        ),
       ),
       ifRight: (questions) => emit(
         state.copyWith(
@@ -56,26 +199,8 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
           clearChoicePick: true,
           choiceLocked: false,
           answers: const [],
-          savedProgress: null,
+          clearXpGained: true,
         ),
-      ),
-    );
-  }
-
-  /// Ulangi ujian dengan soal yang diundi ulang.
-  Future<void> retryTest() => startTest();
-
-  /// Kembali ke halaman belajar (dari ujian/hasil).
-  void backToLearning() {
-    _feedbackTicket++;
-    emit(
-      state.copyWith(
-        status: LessonStatus.learning,
-        phase: LessonPhase.idle,
-        clearVoiceResult: true,
-        clearChoicePick: true,
-        choiceLocked: false,
-        clearError: true,
       ),
     );
   }
@@ -185,9 +310,9 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
     });
   }
 
-  // ─────────────────────────────────────────────────────────── Navigasi ──
+  // ─────────────────────────────────────────────────────────── Lanjut soal ──
 
-  /// Lanjut ke soal berikutnya, atau selesaikan ujian di soal terakhir.
+  /// Lanjut ke soal berikutnya, atau selesaikan test di soal terakhir.
   void next() {
     if (state.status != LessonStatus.testing) return;
     _feedbackTicket++;
@@ -208,21 +333,58 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
   }
 
   Future<void> _finish() async {
-    emit(state.copyWith(status: LessonStatus.finished, saving: true));
-    final res = await repository.saveTestResult(
-      surahId: state.lesson.surahId,
-      score: state.score,
+    final section = state.activeSection;
+    final passed = state.passed;
+
+    // XP: lulus pertama → hadiah penuh (+bonus sempurna khusus ujian akhir);
+    // lulus lagi → XP kecil; gagal → 0.
+    int xpDelta = 0;
+    if (passed) {
+      if (_passedBefore) {
+        xpDelta = LessonConfig.xpRepeatPass;
+      } else if (section != null) {
+        xpDelta = section.test.xpReward;
+      } else {
+        xpDelta =
+            LessonConfig.xpExamPass +
+            (state.correctCount == state.questions.length
+                ? LessonConfig.xpExamPerfectBonus
+                : 0);
+      }
+    }
+
+    emit(
+      state.copyWith(
+        status: LessonStatus.finished,
+        saving: true,
+        xpGained: xpDelta,
+      ),
     );
+
+    final res = section != null
+        ? await repository.saveSectionResult(
+            surahId: state.lesson.surahId,
+            sectionId: section.id,
+            correct: state.correctCount,
+            passed: passed,
+            xpDelta: xpDelta,
+          )
+        : await repository.saveExamResult(
+            surahId: state.lesson.surahId,
+            score: state.score,
+            passed: passed,
+            xpDelta: xpDelta,
+          );
     if (isClosed) return;
     res.fold(
       ifLeft: (f) => emit(
         state.copyWith(
           saving: false,
-          errorMessage: 'Nilai gagal tersimpan: ${f.message}',
+          errorMessage: 'Hasil gagal tersimpan: ${f.message}',
         ),
       ),
       ifRight: (progress) =>
-          emit(state.copyWith(saving: false, savedProgress: progress)),
+          emit(state.copyWith(saving: false, progress: progress)),
     );
   }
 

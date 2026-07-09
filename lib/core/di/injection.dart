@@ -370,8 +370,10 @@ Future<void> initDI() async {
       auth: getIt(),
     ),
   );
-  getIt.registerFactory(() => SurahJourneyCubit(getIt()));
+  getIt.registerFactory(
+    () => SurahJourneyCubit(getIt(), getIt<QuizRepository>()),
+  );
   getIt.registerFactoryParam<SurahLessonCubit, SurahLesson, void>(
-    (lesson, _) => SurahLessonCubit(getIt(), lesson),
+    (lesson, _) => SurahLessonCubit(getIt(), getIt<QuizRepository>(), lesson),
   );
 }

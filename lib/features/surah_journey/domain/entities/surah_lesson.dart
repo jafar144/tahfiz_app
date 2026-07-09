@@ -1,7 +1,11 @@
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
+
 /// Materi belajar SATU surah pada Petualangan Surah.
 ///
-/// Konten (arti, asbabun nuzul, fakta, bank soal) disusun statis di
+/// Konten disusun modular per BAGIAN ([LessonSection]) di
 /// `surah_lesson_seed.dart`; teks ayat diambil dari mushaf lokal saat runtime.
+/// Setiap bagian punya ujian kecil; setelah semua bagian lulus, terbuka
+/// UJIAN AKHIR surah (aturannya di `lesson_config.dart`).
 class SurahLesson {
   /// Nomor surah pada mushaf (mis. 92 = Al-Lail).
   final int surahId;
@@ -20,17 +24,8 @@ class SurahLesson {
   /// Golongan turunnya surah: 'Makkiyah' / 'Madaniyah'.
   final String place;
 
-  /// Paragraf pengenalan singkat surah (halaman pertama belajar).
-  final String intro;
-
-  /// Kisah asbabun nuzul / kisah utama surah (opsional).
-  final String? asbabunNuzul;
-
-  /// Fakta menarik surah (ditampilkan sebagai kartu-kartu poin).
-  final List<String> facts;
-
-  /// Bank soal pilihan ganda dari materi; ujian mengambil beberapa secara acak.
-  final List<FactQuestion> questionBank;
+  /// Bagian-bagian pembelajaran, urut sesuai alur belajar.
+  final List<LessonSection> sections;
 
   const SurahLesson({
     required this.surahId,
@@ -40,14 +35,11 @@ class SurahLesson {
     required this.meaning,
     required this.ayahCount,
     required this.place,
-    required this.intro,
-    this.asbabunNuzul,
-    required this.facts,
-    required this.questionBank,
+    required this.sections,
   });
 }
 
-/// Satu soal pilihan ganda dari materi pembelajaran surah.
+/// Satu soal pilihan ganda.
 class FactQuestion {
   final String question;
 
@@ -57,9 +49,21 @@ class FactQuestion {
   /// Indeks opsi yang benar pada [options].
   final int correctIndex;
 
+  /// Teks Arab yang ditampilkan besar di kartu soal (mis. ayat kosa kata).
+  final String? arabicText;
+
+  /// Potongan [arabicText] yang disorot (mis. kata yang ditanya artinya).
+  final String? highlightWord;
+
+  /// Opsi jawaban berupa teks Arab (dirender dengan font mushaf).
+  final bool arabicOptions;
+
   const FactQuestion({
     required this.question,
     required this.options,
     required this.correctIndex,
+    this.arabicText,
+    this.highlightWord,
+    this.arabicOptions = false,
   });
 }

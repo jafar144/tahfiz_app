@@ -3,13 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
-import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
-import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
-/// Halaman BELAJAR satu surah: kartu materi yang digeser seperti pelajaran
-/// Duolingo — pengenalan → baca surah → asbabun nuzul → fakta menarik → ujian.
+/// Halaman BELAJAR satu bagian surah: blok-blok konten modular digeser
+/// seperti pelajaran Duolingo, ditutup tombol mulai test bagian tersebut.
+///
+/// Menambah jenis blok baru: tambahkan subclass di `lesson_section.dart`
+/// lalu petakan cara menggambarnya di [_blockPage].
 class LessonLearnView extends StatefulWidget {
   const LessonLearnView({super.key});
 
@@ -33,298 +36,127 @@ class _LessonLearnViewState extends State<LessonLearnView> {
 
     return BlocBuilder<SurahLessonCubit, SurahLessonState>(
       builder: (context, state) {
-        final lesson = state.lesson;
-        final pages = <Widget>[
-          _CoverPage(lesson: lesson),
-          _AyatPage(lesson: lesson, ayat: state.surahAyat),
-          if (lesson.asbabunNuzul != null)
-            _StoryPage(text: lesson.asbabunNuzul!),
-          _FactsPage(facts: lesson.facts),
+        final section = state.activeSection;
+        if (section == null) return const SizedBox.shrink();
+
+        final pages = [
+          for (final block in section.blocks)
+            _blockPage(block, state.surahAyat),
         ];
         final isLast = _page >= pages.length - 1;
+        final needEnergy = !state.progress.of(section.id).passed;
 
-        return SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView(
-                  controller: _controller,
-                  onPageChanged: (i) => setState(() => _page = i),
-                  children: pages,
-                ),
+        return Column(
+          children: [
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (i) => setState(() => _page = i),
+                children: pages,
               ),
-              // Navigasi bawah: titik progres + tombol lanjut / mulai ujian.
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        for (var i = 0; i < pages.length; i++)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            margin: const EdgeInsets.symmetric(horizontal: 3.5),
-                            width: i == _page ? 22 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: i == _page
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.black12,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
+            ),
+            // Navigasi bawah: titik progres + tombol lanjut / mulai test.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < pages.length; i++)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.symmetric(horizontal: 3.5),
+                          width: i == _page ? 22 : 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: i == _page
+                                ? QuizColors.gold
+                                : Colors.white24,
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: isLast
-                          ? FilledButton.icon(
-                              onPressed: cubit.startTest,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: QuizColors.goldDark,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              icon: const Icon(Icons.rocket_launch_rounded),
-                              label: Text(
-                                'Mulai Ujian • ${LessonConfig.questionCount} Soal',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            )
-                          : FilledButton(
-                              onPressed: () => _controller.nextPage(
-                                duration: const Duration(milliseconds: 320),
-                                curve: Curves.easeOutCubic,
-                              ),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 15,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: const Text(
-                                'Lanjut',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  isLast
+                      ? JourneyPrimaryButton(
+                          onPressed: cubit.startSectionTest,
+                          icon: Icons.rocket_launch_rounded,
+                          label:
+                              'Mulai Test • ${section.test.questionCount} Soal',
+                          showEnergyCost: needEnergy,
+                        )
+                      : JourneyPrimaryButton(
+                          onPressed: () => _controller.nextPage(
+                            duration: const Duration(milliseconds: 320),
+                            curve: Curves.easeOutCubic,
+                          ),
+                          label: 'Lanjut',
+                        ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
+
+  /// Petakan satu blok konten → halaman geser.
+  Widget _blockPage(LessonBlock block, List<Ayah> ayat) {
+    return switch (block) {
+      ParagraphBlock() => _ParagraphPage(block: block),
+      FactListBlock() => _FactsPage(facts: block.facts),
+      FullSurahBlock() => _FullSurahPage(ayat: ayat),
+      VocabListBlock() => _VocabPage(items: block.items, ayat: ayat),
+    };
+  }
 }
 
-// ─────────────────────────────────────────────── Halaman 1: Pengenalan ──
+// ─────────────────────────────────────────────────────── Blok: paragraf ──
 
-class _CoverPage extends StatelessWidget {
-  final SurahLesson lesson;
+class _ParagraphPage extends StatelessWidget {
+  final ParagraphBlock block;
 
-  const _CoverPage({required this.lesson});
+  const _ParagraphPage({required this.block});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
       child: Column(
         children: [
-          // Badge nama Arab dalam lingkaran gradasi.
+          if (block.title != null) ...[
+            const Icon(
+              Icons.auto_awesome_rounded,
+              size: 32,
+              color: QuizColors.gold,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              block.title!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
           Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [scheme.primary, scheme.primary.withValues(alpha: 0.7)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.35),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                lesson.nameArabic,
-                style: const TextStyle(
-                  fontFamily: 'QuranHafs',
-                  fontSize: 34,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Surah ${lesson.nameLatin}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '"${lesson.meaning}"',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: scheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Chip info ringkas.
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _infoChip(Icons.bookmark_rounded, 'Surah ke-${lesson.surahId}'),
-              _infoChip(
-                Icons.format_list_numbered_rounded,
-                '${lesson.ayahCount} ayat',
-              ),
-              _infoChip(Icons.mosque_rounded, lesson.place),
-              _infoChip(Icons.auto_stories_rounded, 'Juz 30'),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _SectionCard(
-            icon: Icons.waving_hand_rounded,
-            title: 'Kenalan Dulu, Yuk!',
-            color: Theme.of(context).colorScheme.primary,
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: journeyCardDecoration(),
             child: Text(
-              lesson.intro,
-              style: const TextStyle(fontSize: 14.5, height: 1.65),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoChip(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.045),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: QuizColors.goldDark),
-          const SizedBox(width: 5),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────── Halaman 2: Baca surah ──
-
-class _AyatPage extends StatelessWidget {
-  final SurahLesson lesson;
-  final List<Ayah> ayat;
-
-  const _AyatPage({required this.lesson, required this.ayat});
-
-  @override
-  Widget build(BuildContext context) {
-    if (ayat.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      children: [
-        const _PageHeading(
-          icon: Icons.menu_book_rounded,
-          title: 'Baca Surahnya Dulu',
-          subtitle: 'Baca pelan-pelan sambil diingat urutan ayatnya, ya!',
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.fromLTRB(18, 6, 18, 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFBF2),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: QuizColors.gold.withValues(alpha: 0.35)),
-          ),
-          child: Column(
-            children: [
-              for (final a in ayat)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  child: Text(
-                    a.text,
-                    textAlign: TextAlign.center,
-                    textDirection: TextDirection.rtl,
-                    style: const TextStyle(
-                      fontFamily: 'QuranHafs',
-                      fontSize: 21,
-                      height: 1.9,
-                      color: Color(0xFF212121),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ──────────────────────────────────────────── Halaman 3: Asbabun nuzul ──
-
-class _StoryPage extends StatelessWidget {
-  final String text;
-
-  const _StoryPage({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      child: Column(
-        children: [
-          const _PageHeading(
-            icon: Icons.history_edu_rounded,
-            title: 'Kisah di Balik Surah',
-            subtitle: 'Simak baik-baik — nanti keluar di ujian, lho!',
-          ),
-          const SizedBox(height: 14),
-          _SectionCard(
-            icon: Icons.auto_awesome_rounded,
-            title: 'Asbabun Nuzul & Kisahnya',
-            color: QuizColors.goldDark,
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14.5, height: 1.7),
+              block.body,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14.5,
+                height: 1.7,
+              ),
             ),
           ),
         ],
@@ -333,7 +165,7 @@ class _StoryPage extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────── Halaman 4: Fakta menarik ──
+// ────────────────────────────────────────────────────────── Blok: fakta ──
 
 class _FactsPage extends StatelessWidget {
   final List<String> facts;
@@ -342,25 +174,32 @@ class _FactsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
       children: [
-        const _PageHeading(
-          icon: Icons.lightbulb_rounded,
-          title: 'Fakta Menariknya',
-          subtitle: 'Ingat-ingat fakta ini untuk menjawab soal pilihan!',
+        const Icon(Icons.lightbulb_rounded, size: 32, color: QuizColors.gold),
+        const SizedBox(height: 8),
+        const Text(
+          'Fakta Menariknya',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Ingat-ingat fakta ini untuk menjawab soal, ya!',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white54, fontSize: 12.5),
         ),
         const SizedBox(height: 14),
         for (var i = 0; i < facts.length; i++)
           Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black12),
-            ),
+            decoration: journeyCardDecoration(radius: 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -369,13 +208,13 @@ class _FactsPage extends StatelessWidget {
                   height: 30,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: scheme.primary.withValues(alpha: 0.1),
+                    color: QuizColors.gold.withValues(alpha: 0.16),
                   ),
                   child: Center(
                     child: Text(
                       '${i + 1}',
-                      style: TextStyle(
-                        color: scheme.primary,
+                      style: const TextStyle(
+                        color: QuizColors.gold,
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
                       ),
@@ -386,7 +225,11 @@ class _FactsPage extends StatelessWidget {
                 Expanded(
                   child: Text(
                     facts[i],
-                    style: const TextStyle(fontSize: 13.5, height: 1.6),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13.5,
+                      height: 1.6,
+                    ),
                   ),
                 ),
               ],
@@ -397,87 +240,164 @@ class _FactsPage extends StatelessWidget {
   }
 }
 
-// ──────────────────────────────────────────────────────── Widget bantu ──
+// ─────────────────────────────────────────────────── Blok: surah lengkap ──
 
-class _PageHeading extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
+class _FullSurahPage extends StatelessWidget {
+  final List<Ayah> ayat;
 
-  const _PageHeading({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+  const _FullSurahPage({required this.ayat});
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
+    if (ayat.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white70),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
       children: [
-        Icon(icon, size: 34, color: scheme.primary),
+        const Icon(Icons.menu_book_rounded, size: 32, color: QuizColors.gold),
         const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
+        const Text(
+          'Baca Surahnya',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 8),
+          decoration: journeyCardDecoration(
+            borderColor: QuizColors.gold.withValues(alpha: 0.35),
+          ),
+          child: Column(
+            children: [
+              for (final a in ayat)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    a.text,
+                    textAlign: TextAlign.center,
+                    textDirection: TextDirection.rtl,
+                    style: const TextStyle(
+                      fontFamily: 'QuranHafs',
+                      fontSize: 21,
+                      height: 1.9,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Color color;
-  final Widget child;
+// ─────────────────────────────────────────────────── Blok: kosa kata ──
 
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.child,
-  });
+class _VocabPage extends StatelessWidget {
+  final List<VocabItem> items;
+  final List<Ayah> ayat;
+
+  const _VocabPage({required this.items, required this.ayat});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: color),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14.5,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
+    final textOf = {for (final a in ayat) a.number: a.text};
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+      children: [
+        const Icon(Icons.translate_rounded, size: 32, color: QuizColors.gold),
+        const SizedBox(height: 8),
+        const Text(
+          'Kosa Kata Penting',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
           ),
-          const SizedBox(height: 10),
-          child,
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Perhatikan kata yang disorot beserta artinya, ya!',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white54, fontSize: 12.5),
+        ),
+        const SizedBox(height: 14),
+        for (final item in items)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: journeyCardDecoration(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Ayat penuh dengan kata disorot.
+                HighlightedAyahText(
+                  text: textOf[item.ayahNumber] ?? item.word,
+                  highlight: item.word,
+                  fontSize: 20,
+                ),
+                const SizedBox(height: 10),
+                Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: QuizColors.gold.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        item.latin,
+                        style: const TextStyle(
+                          color: QuizColors.gold,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '= ${item.meaning}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (item.note != null) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    item.note!,
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

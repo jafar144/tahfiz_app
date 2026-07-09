@@ -7,9 +7,11 @@ import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_que
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
-/// Layar UJIAN surah: campuran soal suara (sambung ayat / ayat terakhir) dan
-/// soal pilihan dari materi belajar. Soal berganti dengan animasi geser.
+/// Layar TEST bergaya journey (malam): campuran soal suara (sambung ayat /
+/// ayat terakhir) dan soal pilihan (materi / arti kata). Soal berganti dengan
+/// animasi geser.
 class LessonTestView extends StatefulWidget {
   const LessonTestView({super.key});
 
@@ -64,11 +66,13 @@ class _LessonTestViewState extends State<LessonTestView> {
                     Row(
                       children: [
                         Text(
+                          '${state.isExam ? 'Ujian Akhir — ' : ''}'
                           'Soal ${state.currentIndex + 1} dari '
                           '${state.questions.length}',
                           style: const TextStyle(
+                            color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                            fontSize: 14.5,
                           ),
                         ),
                         const Spacer(),
@@ -103,25 +107,25 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final (icon, label, color) = question.isVoice
-        ? (Icons.mic_rounded, 'Soal Suara', scheme.primary)
-        : (Icons.touch_app_rounded, 'Pilihan', QuizColors.goldDark);
+    final (icon, label) = question.isVoice
+        ? (Icons.mic_rounded, 'Soal Suara')
+        : (Icons.touch_app_rounded, 'Pilihan');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: QuizColors.gold.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: color),
+          Icon(icon, size: 14, color: QuizColors.gold),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              color: color,
+            style: const TextStyle(
+              color: QuizColors.gold,
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
             ),
@@ -149,7 +153,16 @@ class _VoiceQuestion extends StatelessWidget {
         children: [
           _InstructionCard(question: q),
           const SizedBox(height: 12),
-          PromptAyahCard(text: q.prompt!.text),
+          // Ayat petunjuk.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: journeyCardDecoration(
+              borderColor: QuizColors.gold.withValues(alpha: 0.3),
+              radius: 20,
+            ),
+            child: HighlightedAyahText(text: q.prompt!.text, fontSize: 23),
+          ),
           const SizedBox(height: 24),
           switch (state.phase) {
             LessonPhase.idle => _RecordButton(
@@ -165,11 +178,11 @@ class _VoiceQuestion extends StatelessWidget {
             LessonPhase.processing => const Column(
               children: [
                 SizedBox(height: 8),
-                CircularProgressIndicator(),
+                CircularProgressIndicator(color: Colors.white70),
                 SizedBox(height: 16),
                 Text(
                   'Memeriksa bacaan…',
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(color: Colors.white70),
                 ),
               ],
             ),
@@ -189,24 +202,20 @@ class _InstructionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final base = TextStyle(
-      fontWeight: FontWeight.w500,
-      color: scheme.primary.withValues(alpha: 0.85),
-    );
-    final strong = TextStyle(
+    const base = TextStyle(fontWeight: FontWeight.w500, color: Colors.white70);
+    const strong = TextStyle(
       fontWeight: FontWeight.w900,
-      color: scheme.primary,
+      color: QuizColors.gold,
     );
 
     final ayahCount = question.answer.length;
     final TextSpan instruction = switch (question.type) {
-      LessonTaskType.voiceLastAyah => TextSpan(
+      LessonTaskType.voiceLastAyah => const TextSpan(
         style: base,
         children: [
-          const TextSpan(text: 'Baca '),
+          TextSpan(text: 'Baca '),
           TextSpan(text: 'ayat TERAKHIR', style: strong),
-          const TextSpan(text: ' dari surah ini'),
+          TextSpan(text: ' dari surah ini'),
         ],
       ),
       _ =>
@@ -219,23 +228,23 @@ class _InstructionCard extends StatelessWidget {
                   const TextSpan(text: ' berikutnya'),
                 ],
               )
-            : TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
+            : const TextSpan(text: 'Lanjutkan ayat berikutnya', style: base),
     };
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.12),
+        color: QuizColors.gold.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: scheme.primary,
+              color: QuizColors.goldDark,
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Text(
@@ -250,7 +259,11 @@ class _InstructionCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: Text.rich(instruction)),
-          Icon(Icons.arrow_downward_rounded, size: 20, color: scheme.primary),
+          const Icon(
+            Icons.arrow_downward_rounded,
+            size: 20,
+            color: QuizColors.gold,
+          ),
         ],
       ),
     );
@@ -271,8 +284,7 @@ class _RecordButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = recording ? Colors.red : scheme.primary;
+    final color = recording ? Colors.red : QuizColors.gold;
     return Column(
       children: [
         GestureDetector(
@@ -285,9 +297,9 @@ class _RecordButton extends StatelessWidget {
               color: color,
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: recording ? 0.5 : 0.3),
-                  blurRadius: recording ? 28 : 16,
-                  spreadRadius: recording ? 4 : 0,
+                  color: color.withValues(alpha: recording ? 0.5 : 0.35),
+                  blurRadius: recording ? 28 : 18,
+                  spreadRadius: recording ? 4 : 1,
                 ),
               ],
             ),
@@ -302,7 +314,7 @@ class _RecordButton extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.black54,
+            color: Colors.white70,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -335,18 +347,22 @@ class _VoiceResult extends StatelessWidget {
                     ? 'Masyaa Allah, sempurna! 🎉'
                     : 'Alhamdulillah, benar!')
               : 'Belum tepat — perhatikan koreksinya',
-          style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16.5,
+            fontWeight: FontWeight.bold,
+          ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 18),
         if (!passed) ...[
+          // Koreksi memakai kartu terang agar warna koreksi tetap terbaca.
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black12),
             ),
             child: Column(
               children: [
@@ -369,21 +385,9 @@ class _VoiceResult extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: cubit.next,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: Text(
-              state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-          ),
+        JourneyPrimaryButton(
+          onPressed: cubit.next,
+          label: state.isLastQuestion ? 'Lihat Hasil' : 'Lanjut',
         ),
       ],
     );
@@ -416,8 +420,8 @@ class _ChoiceQuestion extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  QuizColors.gold.withValues(alpha: 0.14),
-                  QuizColors.gold.withValues(alpha: 0.05),
+                  QuizColors.gold.withValues(alpha: 0.20),
+                  QuizColors.gold.withValues(alpha: 0.06),
                 ],
               ),
               borderRadius: BorderRadius.circular(18),
@@ -428,18 +432,28 @@ class _ChoiceQuestion extends StatelessWidget {
                 const Icon(
                   Icons.psychology_rounded,
                   size: 30,
-                  color: QuizColors.goldDark,
+                  color: QuizColors.gold,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   fact.question,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
+                    color: Colors.white,
                     fontSize: 15.5,
                     fontWeight: FontWeight.w700,
                     height: 1.5,
                   ),
                 ),
+                // Ayat kosa kata dengan kata disorot (bila ada).
+                if (fact.arabicText != null) ...[
+                  const SizedBox(height: 12),
+                  HighlightedAyahText(
+                    text: fact.arabicText!,
+                    highlight: fact.highlightWord,
+                    fontSize: 21,
+                  ),
+                ],
               ],
             ),
           ),
@@ -449,6 +463,7 @@ class _ChoiceQuestion extends StatelessWidget {
             _OptionTile(
               letter: String.fromCharCode(65 + i),
               text: fact.options[i],
+              arabic: fact.arabicOptions,
               picked: state.choicePick == i,
               // Setelah terkunci: opsi benar hijau; pilihan salah merah.
               lockedState: !locked
@@ -466,10 +481,13 @@ class _ChoiceQuestion extends StatelessWidget {
   }
 }
 
-/// Kartu satu opsi jawaban dengan huruf A/B/C/D.
+/// Kartu satu opsi jawaban dengan huruf A/B/C/D — gaya gelap journey.
 class _OptionTile extends StatelessWidget {
   final String letter;
   final String text;
+
+  /// Teks opsi berupa Arab (font mushaf, RTL).
+  final bool arabic;
   final bool picked;
 
   /// null = netral; true = tampil benar (hijau); false = tampil salah (merah).
@@ -479,6 +497,7 @@ class _OptionTile extends StatelessWidget {
   const _OptionTile({
     required this.letter,
     required this.text,
+    required this.arabic,
     required this.picked,
     required this.lockedState,
     required this.onTap,
@@ -486,27 +505,28 @@ class _OptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    const correctColor = Color(0xFF34D399);
+    const wrongColor = Color(0xFFF87171);
 
     Color border;
     Color bg;
     Color badge;
     if (lockedState == true) {
-      border = QuizColors.correct;
-      bg = QuizColors.correct.withValues(alpha: 0.10);
-      badge = QuizColors.correct;
+      border = correctColor;
+      bg = correctColor.withValues(alpha: 0.14);
+      badge = correctColor;
     } else if (lockedState == false) {
-      border = QuizColors.missing;
-      bg = QuizColors.missing.withValues(alpha: 0.10);
-      badge = QuizColors.missing;
+      border = wrongColor;
+      bg = wrongColor.withValues(alpha: 0.14);
+      badge = wrongColor;
     } else if (picked) {
-      border = scheme.primary;
-      bg = scheme.primary.withValues(alpha: 0.06);
-      badge = scheme.primary;
+      border = QuizColors.gold;
+      bg = QuizColors.gold.withValues(alpha: 0.10);
+      badge = QuizColors.gold;
     } else {
-      border = Colors.black12;
-      bg = Colors.white;
-      badge = Colors.black38;
+      border = JourneyColors.cardBorder;
+      bg = JourneyColors.card;
+      badge = Colors.white38;
     }
 
     return InkWell(
@@ -531,7 +551,7 @@ class _OptionTile extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: badge.withValues(
-                  alpha: lockedState != null || picked ? 1 : 0.08,
+                  alpha: lockedState != null || picked ? 1 : 0.10,
                 ),
                 border: Border.all(
                   color: badge.withValues(
@@ -556,8 +576,8 @@ class _OptionTile extends StatelessWidget {
                         letter,
                         style: TextStyle(
                           color: lockedState != null || picked
-                              ? Colors.white
-                              : Colors.black54,
+                              ? const Color(0xFF0B2540)
+                              : Colors.white70,
                           fontWeight: FontWeight.w900,
                           fontSize: 13.5,
                         ),
@@ -566,14 +586,27 @@ class _OptionTile extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  height: 1.4,
-                ),
-              ),
+              child: arabic
+                  ? Text(
+                      text,
+                      textDirection: TextDirection.rtl,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontFamily: 'QuranHafs',
+                        color: Colors.white,
+                        fontSize: 19,
+                        height: 1.6,
+                      ),
+                    )
+                  : Text(
+                      text,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
             ),
           ],
         ),

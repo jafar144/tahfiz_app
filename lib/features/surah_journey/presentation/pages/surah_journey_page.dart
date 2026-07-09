@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_state.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 /// Peta Petualangan Surah bergaya game: jalur berkelok bernuansa malam islami
 /// (bintang + bulan sabit), node level dari bawah ke atas. Level terkunci
@@ -77,6 +78,8 @@ class SurahJourneyView extends StatelessWidget {
 
 // ────────────────────────────────────────────────────────────────── Header ──
 
+/// Top bar peta terbagi tiga: kiri pilihan Juz (dropdown; juz 29 masih
+/// terkunci), tengah total XP, kanan energi.
 class _Header extends StatelessWidget {
   final bool showBack;
 
@@ -86,86 +89,150 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(showBack ? 12 : 16, 8, 16, 8),
-      child: Row(
-        children: [
-          if (showBack) ...[
-            // Tombol kembali bundar semi-transparan.
-            Material(
-              color: Colors.white.withValues(alpha: 0.12),
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () => context.pop(),
-                child: const Padding(
-                  padding: EdgeInsets.all(9),
-                  child: Icon(
-                    Icons.arrow_back_rounded,
-                    color: Colors.white,
-                    size: 21,
-                  ),
+      child: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
+        builder: (context, state) {
+          return Row(
+            children: [
+              // ── Kiri: kembali (opsional) + dropdown juz ──
+              Expanded(
+                child: Row(
+                  children: [
+                    if (showBack) ...[
+                      Material(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => context.pop(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(9),
+                            child: Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white,
+                              size: 21,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                    ],
+                    _JuzDropdown(selected: state.selectedJuz),
+                  ],
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-          ],
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              // ── Tengah: total XP ──
+              if (state.status == JourneyStatus.ready)
+                XpBadge(xp: state.xp)
+              else
+                const SizedBox.shrink(),
+              // ── Kanan: energi ──
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: state.energy != null
+                      ? EnergyBadge(
+                          energy: state.energy!,
+                          dark: true,
+                          onRefillReady: () => context
+                              .read<SurahJourneyCubit>()
+                              .refreshEnergy(),
+                        )
+                      : state.energyLoading
+                      ? const EnergyBadgeSkeleton()
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Pil dropdown pemilih juz — juz yang belum tersedia tampil terkunci.
+class _JuzDropdown extends StatelessWidget {
+  final int selected;
+
+  const _JuzDropdown({required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<int>(
+      color: const Color(0xFF14324A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      offset: const Offset(0, 42),
+      itemBuilder: (context) => [
+        for (final opt in SurahJourneyState.juzOptions)
+          PopupMenuItem<int>(
+            value: opt.juz,
+            enabled: opt.available,
+            child: Row(
               children: [
+                Icon(
+                  opt.available
+                      ? (opt.juz == selected
+                            ? Icons.check_circle_rounded
+                            : Icons.circle_outlined)
+                      : Icons.lock_rounded,
+                  size: 18,
+                  color: opt.available
+                      ? (opt.juz == selected ? QuizColors.gold : Colors.white54)
+                      : Colors.white30,
+                ),
+                const SizedBox(width: 10),
                 Text(
-                  'Petualangan Surah',
+                  'Juz ${opt.juz}',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
+                    color: opt.available ? Colors.white : Colors.white38,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
                   ),
                 ),
-                Text(
-                  'Belajar & taklukkan surah juz 30',
-                  style: TextStyle(color: Colors.white60, fontSize: 11.5),
-                ),
+                if (!opt.available) ...[
+                  const Spacer(),
+                  const Text(
+                    'Segera',
+                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                  ),
+                ],
               ],
             ),
           ),
-          BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
-            builder: (context, state) {
-              if (state.status != JourneyStatus.ready) {
-                return const SizedBox.shrink();
-              }
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: QuizColors.gold.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: QuizColors.gold.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.flag_rounded,
-                      size: 15,
-                      color: QuizColors.gold,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${state.completedCount}/${state.nodes.length}',
-                      style: const TextStyle(
-                        color: QuizColors.gold,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13.5,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+      ],
+      // Sementara hanya juz 30 yang bisa dipilih — tak ada aksi lain.
+      onSelected: (_) {},
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.auto_stories_rounded,
+              size: 15,
+              color: QuizColors.gold,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Juz $selected',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+            const Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 20,
+              color: Colors.white70,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -363,7 +430,7 @@ class _LevelNode extends StatelessWidget {
         const SizedBox(height: 3),
         // Status: nilai terbaik / ajakan mulai / terkunci.
         if (completed)
-          _chip('Nilai ${node.progress.bestScore}', QuizColors.gold)
+          _chip('Nilai ${node.progress.examBestScore}', QuizColors.gold)
         else if (unlocked)
           _chip('MULAI', Colors.white)
         else

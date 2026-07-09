@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_state.dart';
@@ -53,7 +52,10 @@ class _ArenaPageState extends State<ArenaPage> {
           bottom: false,
           child: Column(
             children: [
-              _TopBar(title: _titles[_tab], subtitle: _subtitles[_tab]),
+              // Tab Petualangan punya top bar sendiri (Juz • XP • Energi);
+              // tab lain memakai top bar Arena.
+              if (_tab != 0)
+                _TopBar(title: _titles[_tab], subtitle: _subtitles[_tab]),
               Expanded(
                 child: IndexedStack(
                   index: _tab,
@@ -100,23 +102,6 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
       child: Row(
         children: [
-          Material(
-            color: Colors.white.withValues(alpha: 0.12),
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => context.pop(),
-              child: const Padding(
-                padding: EdgeInsets.all(9),
-                child: Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 21,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

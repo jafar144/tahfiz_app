@@ -2,21 +2,25 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.da
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_progress.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 
 /// Tahapan layar sesi satu surah.
 enum LessonStatus {
-  /// Halaman belajar (kartu materi).
+  /// Daftar bagian surah (peta kecil di dalam surah).
+  overview,
+
+  /// Halaman belajar sebuah bagian (kartu materi).
   learning,
 
-  /// Menyiapkan soal ujian.
+  /// Menyiapkan soal test.
   loading,
 
-  /// Sedang mengerjakan ujian.
+  /// Sedang mengerjakan test.
   testing,
 
-  /// Ujian selesai — layar hasil.
+  /// Test selesai — layar hasil.
   finished,
 }
 
@@ -27,10 +31,17 @@ class SurahLessonState {
   final SurahLesson lesson;
   final LessonStatus status;
 
-  /// Seluruh ayat surah (halaman belajar "Baca Surahnya").
+  /// Progres surah ini milik pengguna (termuat saat init, diperbarui usai
+  /// menyimpan hasil test).
+  final SurahProgress progress;
+
+  /// Bagian yang sedang dibuka/diuji; null = UJIAN AKHIR surah.
+  final LessonSection? activeSection;
+
+  /// Seluruh ayat surah (blok "Baca Surahnya" & penyusunan soal kosa kata).
   final List<Ayah> surahAyat;
 
-  // ── Ujian ──────────────────────────────────────────────────────────────
+  // ── Test ───────────────────────────────────────────────────────────────
   final List<LessonQuestion> questions;
   final int currentIndex;
   final LessonPhase phase;
@@ -48,14 +59,16 @@ class SurahLessonState {
   // ── Hasil & penyimpanan ────────────────────────────────────────────────
   final bool saving;
 
-  /// Progres surah setelah hasil tersimpan (berisi best score & completed).
-  final SurahProgress? savedProgress;
+  /// XP yang didapat dari test barusan (layar hasil); null = belum dihitung.
+  final int? xpGained;
 
   final String? errorMessage;
 
   const SurahLessonState({
     required this.lesson,
-    this.status = LessonStatus.learning,
+    this.status = LessonStatus.overview,
+    this.progress = SurahProgress.empty,
+    this.activeSection,
     this.surahAyat = const [],
     this.questions = const [],
     this.currentIndex = 0,
@@ -65,9 +78,12 @@ class SurahLessonState {
     this.choiceLocked = false,
     this.answers = const [],
     this.saving = false,
-    this.savedProgress,
+    this.xpGained,
     this.errorMessage,
   });
+
+  /// Test yang sedang berlangsung adalah UJIAN AKHIR surah.
+  bool get isExam => status != LessonStatus.overview && activeSection == null;
 
   LessonQuestion? get currentQuestion =>
       (currentIndex >= 0 && currentIndex < questions.length)
@@ -78,14 +94,44 @@ class SurahLessonState {
 
   int get correctCount => answers.where((a) => a).length;
 
-  /// Nilai akhir 0..100 (per soal bernilai sama).
+  /// Jumlah benar minimal test aktif agar lulus.
+  int get minCorrect =>
+      activeSection?.test.minCorrect ?? LessonConfig.examMinCorrect;
+
+  bool get passed => correctCount >= minCorrect;
+
+  /// Nilai 0..100 (untuk ujian akhir & tampilan).
   int get score =>
       questions.isEmpty ? 0 : (correctCount * 100 / questions.length).round();
 
-  bool get passed => score >= LessonConfig.passScore;
+  /// Seluruh bagian surah sudah lulus → ujian akhir terbuka.
+  bool get examUnlocked =>
+      progress.allSectionsPassed(lesson.sections.map((s) => s.id));
+
+  /// Bagian [section] terbuka bila semua bagian sebelumnya sudah lulus.
+  bool sectionUnlocked(LessonSection section) {
+    for (final s in lesson.sections) {
+      if (s.id == section.id) return true;
+      if (!progress.of(s.id).passed) return false;
+    }
+    return true;
+  }
+
+  /// Bagian pertama yang belum lulus setelah [sectionId]; null = tidak ada.
+  LessonSection? nextSectionAfter(String sectionId) {
+    final sections = lesson.sections;
+    final idx = sections.indexWhere((s) => s.id == sectionId);
+    for (var i = idx + 1; i < sections.length; i++) {
+      if (!progress.of(sections[i].id).passed) return sections[i];
+    }
+    return null;
+  }
 
   SurahLessonState copyWith({
     LessonStatus? status,
+    SurahProgress? progress,
+    LessonSection? activeSection,
+    bool clearActiveSection = false,
     List<Ayah>? surahAyat,
     List<LessonQuestion>? questions,
     int? currentIndex,
@@ -97,13 +143,18 @@ class SurahLessonState {
     bool? choiceLocked,
     List<bool>? answers,
     bool? saving,
-    SurahProgress? savedProgress,
+    int? xpGained,
+    bool clearXpGained = false,
     String? errorMessage,
     bool clearError = false,
   }) {
     return SurahLessonState(
       lesson: lesson,
       status: status ?? this.status,
+      progress: progress ?? this.progress,
+      activeSection: clearActiveSection
+          ? null
+          : (activeSection ?? this.activeSection),
       surahAyat: surahAyat ?? this.surahAyat,
       questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,
@@ -113,7 +164,7 @@ class SurahLessonState {
       choiceLocked: choiceLocked ?? this.choiceLocked,
       answers: answers ?? this.answers,
       saving: saving ?? this.saving,
-      savedProgress: savedProgress ?? this.savedProgress,
+      xpGained: clearXpGained ? null : (xpGained ?? this.xpGained),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
     );
   }
