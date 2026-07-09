@@ -52,16 +52,10 @@ class _ArenaPageState extends State<ArenaPage> {
           bottom: false,
           child: Column(
             children: [
-              // Tab Petualangan punya top bar sendiri (Juz • XP • Energi);
-              // tab lain memakai top bar Arena.
-              if (_tab != 0)
-                _TopBar(title: _titles[_tab], subtitle: _subtitles[_tab]),
               Expanded(
                 child: IndexedStack(
                   index: _tab,
                   children: const [
-                    // Tab 1: peta Petualangan Surah (header back disembunyikan
-                    // karena Arena punya top bar sendiri — cukup progress).
                     _JourneyTab(),
                     ArenaQuizTab(),
                     ArenaLeaderboardTab(),

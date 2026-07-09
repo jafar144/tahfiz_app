@@ -12,9 +12,6 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.d
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
-/// Tab Kuis Tahfiz Arena: dua kartu senada — LATIHAN (bebas atur, pakai
-/// energi, tak disimpan) dan TANTANGAN (sesuai kurikulum kelas, 1x/hari per
-/// mode, masuk papan juara; khusus santri non-Tahsin).
 class ArenaQuizTab extends StatelessWidget {
   const ArenaQuizTab({super.key});
 
