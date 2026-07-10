@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/router/route_paths.dart';
@@ -50,6 +51,8 @@ import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/reci
 import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/pages/arena_page.dart';
+import 'package:khoirunnasyien/features/arena/presentation/pages/arena_stats_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
@@ -61,6 +64,72 @@ import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_j
 import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_lesson_page.dart';
 
 class AppRouter {
+
+  /// Transisi khas Tahfiz Arena ala Android native: halaman baru meluncur
+  /// masuk dari kanan MENIMPA halaman lama (halaman lama diam, tidak ikut
+  /// bergeser); saat back, halaman atas meluncur keluar menyingkap halaman
+  /// di bawahnya. Kuncinya: hanya memakai [animation] (primary) — tidak
+  /// menyentuh secondaryAnimation sehingga halaman lama tak bergerak.
+  static CustomTransitionPage<T> _slideOverPage<T>({
+    required LocalKey key,
+    required Widget child,
+  }) {
+    return CustomTransitionPage<T>(
+      key: key,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 340),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(1, 0),
+            end: Offset.zero,
+          ).animate(curved),
+          // Bayangan tipis di tepi agar terasa "menimpa" halaman di bawahnya.
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              boxShadow: [
+                BoxShadow(color: Colors.black38, blurRadius: 24),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
+  /// Transisi naik dari bawah (untuk halaman detail Energi & XP).
+  static CustomTransitionPage<T> _slideUpPage<T>({
+    required LocalKey key,
+    required Widget child,
+  }) {
+    return CustomTransitionPage<T>(
+      key: key,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 360),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        );
+      },
+    );
+  }
 
   static final router = GoRouter(
     initialLocation: RoutePaths.splash,
@@ -332,47 +401,74 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.recitationQuiz,
         name: RouteNames.recitationQuiz,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           // extra QuizLaunch = sesi TANTANGAN (dari Tahfiz Arena);
           // tanpa extra = sesi LATIHAN dengan layar intro biasa.
           final launch = state.extra is QuizLaunch
               ? state.extra as QuizLaunch
               : null;
-          return BlocProvider(
-            create: (_) =>
-                getIt<RecitationQuizCubit>()..init(challenge: launch),
-            child: const RecitationQuizPage(),
+          return _slideOverPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) =>
+                  getIt<RecitationQuizCubit>()..init(challenge: launch),
+              child: const RecitationQuizPage(),
+            ),
           );
         },
       ),
       GoRoute(
         path: RoutePaths.arena,
         name: RouteNames.arena,
-        builder: (context, state) => MultiBlocProvider(
-          providers: [
-            BlocProvider(create: (_) => getIt<ArenaCubit>()..load()),
-            BlocProvider(create: (_) => getIt<SurahJourneyCubit>()..load()),
-            BlocProvider(create: (_) => getIt<QuizLeaderboardCubit>()),
-          ],
-          child: const ArenaPage(),
+        pageBuilder: (context, state) => _slideOverPage(
+          key: state.pageKey,
+          child: MultiBlocProvider(
+            providers: [
+              BlocProvider(create: (_) => getIt<ArenaCubit>()..load()),
+              BlocProvider(create: (_) => getIt<SurahJourneyCubit>()..load()),
+              BlocProvider(create: (_) => getIt<QuizLeaderboardCubit>()),
+            ],
+            child: const ArenaPage(),
+          ),
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.arenaStats,
+        name: RouteNames.arenaStats,
+        pageBuilder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>? ?? const {};
+          return _slideUpPage(
+            key: state.pageKey,
+            child: ArenaStatsPage(
+              xp: extras['xp'] as int? ?? 0,
+              energy: extras['energy'] as QuizEnergy?,
+              focus: extras['focus'] as String? ?? 'energy',
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.surahJourney,
         name: RouteNames.surahJourney,
-        builder: (context, state) => BlocProvider(
-          create: (_) => getIt<SurahJourneyCubit>()..load(),
-          child: const SurahJourneyPage(),
+        pageBuilder: (context, state) => _slideOverPage(
+          key: state.pageKey,
+          child: BlocProvider(
+            create: (_) => getIt<SurahJourneyCubit>()..load(),
+            child: const SurahJourneyPage(),
+          ),
         ),
       ),
       GoRoute(
         path: RoutePaths.surahLesson,
         name: RouteNames.surahLesson,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final lesson = state.extra as SurahLesson;
-          return BlocProvider(
-            create: (_) => getIt<SurahLessonCubit>(param1: lesson)..init(),
-            child: const SurahLessonPage(),
+          return _slideOverPage(
+            key: state.pageKey,
+            child: BlocProvider(
+              create: (_) => getIt<SurahLessonCubit>(param1: lesson)..init(),
+              child: const SurahLessonPage(),
+            ),
           );
         },
       ),

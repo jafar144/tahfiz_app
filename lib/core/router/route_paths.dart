@@ -42,4 +42,5 @@ abstract class RoutePaths {
   static const surahLesson = '/surah_lesson';
 
   static const arena = '/arena';
+  static const arenaStats = '/arena_stats';
 }

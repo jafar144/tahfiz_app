@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -55,6 +56,20 @@ class _SurahLessonPageState extends State<SurahLessonPage> {
 
         final testing = status == LessonStatus.testing;
         final cubit = context.read<SurahLessonCubit>();
+
+        // Data awal (ayat + progres) belum siap → halaman loading dedicated
+        // yang sama dengan seluruh Tahfiz Arena, bukan konten yang "menyusun
+        // diri" sepotong-sepotong.
+        if (!state.initialized) {
+          return Scaffold(
+            body: NightLoadingPage(
+              title: 'Membuka Surah ${state.lesson.nameLatin}…',
+              subtitle: 'Memuat ayat & progres belajarmu',
+              showBack: true,
+              onBack: () => Navigator.of(context).maybePop(),
+            ),
+          );
+        }
 
         return PopScope(
           // Hanya di daftar bagian back menutup halaman; layar lain kembali
@@ -225,15 +240,11 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(color: Colors.white70),
-          SizedBox(height: 16),
-          Text('Menyiapkan soal…', style: TextStyle(color: Colors.white70)),
-        ],
-      ),
+    return const NightLoadingPage(
+      title: 'Menyiapkan soal…',
+      subtitle: 'Test-mu segera dimulai',
+      icon: Icons.menu_book_rounded,
+      withBackground: false,
     );
   }
 }

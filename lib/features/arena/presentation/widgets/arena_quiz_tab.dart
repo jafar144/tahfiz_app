@@ -11,14 +11,19 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 
 class ArenaQuizTab extends StatelessWidget {
   const ArenaQuizTab({super.key});
 
   Future<void> _openPractice(BuildContext context) async {
     final cubit = context.read<ArenaCubit>();
+    // Energi juga dipakai header tab Petualangan (SurahJourneyCubit) — segarkan
+    // KEDUANYA saat kembali dari kuis agar angkanya tidak basi.
+    final journey = context.read<SurahJourneyCubit>();
     await context.pushNamed(RouteNames.recitationQuiz);
     cubit.refresh();
+    journey.refreshEnergy();
   }
 
   Future<void> _openChallengeSheet(
@@ -26,6 +31,7 @@ class ArenaQuizTab extends StatelessWidget {
     ArenaState state,
   ) async {
     final cubit = context.read<ArenaCubit>();
+    final journey = context.read<SurahJourneyCubit>();
     final launch = await showModalBottomSheet<QuizLaunch>(
       context: context,
       isScrollControlled: true,
@@ -38,6 +44,7 @@ class ArenaQuizTab extends StatelessWidget {
     if (launch == null || !context.mounted) return;
     await context.pushNamed(RouteNames.recitationQuiz, extra: launch);
     cubit.refresh();
+    journey.refreshEnergy();
   }
 
   @override
@@ -457,7 +464,12 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
 
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
+              child: QuizButton(
+                label: canStart ? 'Mulai Tantangan' : 'Jatah mode ini habis',
+                icon: Icons.play_arrow_rounded,
+                color: QuizColors.gold,
+                foregroundColor: const Color(0xFF3A2A00),
+                borderRadius: 14,
                 onPressed: canStart
                     ? () => Navigator.of(context).pop(
                         QuizLaunch(
@@ -467,23 +479,6 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                         ),
                       )
                     : null,
-                style: FilledButton.styleFrom(
-                  backgroundColor: QuizColors.gold,
-                  disabledBackgroundColor: Colors.white12,
-                  foregroundColor: const Color(0xFF3A2A00),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: Text(
-                  canStart ? 'Mulai Tantangan' : 'Jatah mode ini habis',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
               ),
             ),
           ],

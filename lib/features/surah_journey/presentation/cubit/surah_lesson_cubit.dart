@@ -40,7 +40,9 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
   SurahLessonCubit(this.repository, this.quizRepository, SurahLesson lesson)
     : super(SurahLessonState(lesson: lesson));
 
-  /// Muat teks surah + progres surah ini + status admin.
+  /// Muat teks surah + progres surah ini + status admin. Selesai (sukses
+  /// ataupun gagal) → [SurahLessonState.initialized] true agar halaman keluar
+  /// dari loading dedicated dan menampilkan daftar bagian.
   Future<void> init() async {
     final ayatRes = await repository.getSurahAyat(state.lesson.surahId);
     if (isClosed) return;
@@ -58,6 +60,8 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
     );
 
     _isAdmin = await quizRepository.isCurrentUserAdmin();
+    if (isClosed) return;
+    emit(state.copyWith(initialized: true));
   }
 
   // ─────────────────────────────────────────────────────────── Navigasi ──

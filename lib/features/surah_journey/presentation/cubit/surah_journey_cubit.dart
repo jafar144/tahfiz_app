@@ -21,10 +21,20 @@ class SurahJourneyCubit extends Cubit<SurahJourneyState> {
   SurahJourneyCubit(this.repository, this.quizRepository)
     : super(const SurahJourneyState());
 
+  /// Muat progres DAN energi bersamaan, lalu emit `ready` sekali saja setelah
+  /// keduanya siap — supaya halaman loading dedicated menahan tampilan sampai
+  /// XP & energi benar-benar ada (tidak ada lagi skeleton energi menyusul
+  /// setelah peta sudah tampil).
   Future<void> load() async {
     emit(state.copyWith(status: JourneyStatus.loading));
-    final res = await repository.getProgress();
-    res.fold(
+
+    final progressFuture = repository.getProgress();
+    final energyFuture = _fetchEnergy();
+
+    final progressResult = await progressFuture;
+    final energy = await energyFuture;
+
+    progressResult.fold(
       ifLeft: (f) => emit(
         state.copyWith(status: JourneyStatus.error, errorMessage: f.message),
       ),
@@ -33,31 +43,30 @@ class SurahJourneyCubit extends Cubit<SurahJourneyState> {
           status: JourneyStatus.ready,
           nodes: _buildNodes(progress),
           xp: progress.xp,
+          energy: energy,
+          energyLoading: false,
         ),
       ),
     );
-    // Energi menyusul agar peta tidak menunggu panggilan server.
-    await refreshEnergy();
   }
 
-  /// Muat ulang energi (dipanggil saat kembali dari sesi / pengisian tiba).
-  /// Admin & master switch mati → tampil penuh (samakan dengan Arena/Kuis).
+  /// Muat ulang energi saja (dipanggil saat pengisian energi tiba/refill).
   Future<void> refreshEnergy() async {
-    if (!QuizConfig.enforceEnergy || await quizRepository.isCurrentUserAdmin()) {
-      emit(
-        state.copyWith(
-          energy: const QuizEnergy(current: 10, max: 10),
-          energyLoading: false,
-        ),
-      );
-      return;
-    }
     emit(state.copyWith(energyLoading: true));
-    final res = await quizRepository.getEnergy();
+    final energy = await _fetchEnergy();
     if (isClosed) return;
-    res.fold(
-      ifLeft: (_) => emit(state.copyWith(energyLoading: false)),
-      ifRight: (e) => emit(state.copyWith(energy: e, energyLoading: false)),
+    emit(state.copyWith(energy: energy, energyLoading: false));
+  }
+
+  /// Admin & master switch mati → tampil penuh (samakan dengan Arena/Kuis).
+  Future<QuizEnergy> _fetchEnergy() async {
+    if (!QuizConfig.enforceEnergy || await quizRepository.isCurrentUserAdmin()) {
+      return const QuizEnergy(current: 10, max: 10);
+    }
+    final res = await quizRepository.getEnergy();
+    return res.fold(
+      ifLeft: (_) => state.energy ?? const QuizEnergy(current: 0, max: 10),
+      ifRight: (e) => e,
     );
   }
 

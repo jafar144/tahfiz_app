@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 
 /// Palet warna khusus kuis (gamifikasi, tetap selaras tema app).
 class QuizColors {
@@ -16,6 +17,20 @@ class QuizColors {
   static const wrong = Color(0xFFE65100);
   static const missing = Color(0xFFC62828);
   static const extra = Colors.blueGrey;
+
+  // ── Palet "malam islami" (samakan dengan Petualangan Surah / Arena) ──
+  static const nightTop = Color(0xFF0B2540);
+  static const nightBottom = Color(0xFF123B33);
+  static const nightCard = Color(0xFF14324A);
+
+  /// Permukaan tombol netral di atas latar malam (sedikit lebih terang dari
+  /// kartu agar "bibir" QuizButton tetap terlihat).
+  static const nightButton = Color(0xFF1C4364);
+
+  // Varian cerah untuk teks/aksen di atas latar gelap.
+  static const correctBright = Color(0xFF34D399);
+  static const missingBright = Color(0xFFFF8A80);
+  static const xpBlue = Color(0xFF1CB0F6);
 
   /// Warna berdasarkan persentase skor.
   static Color forScore(int pct) {
@@ -135,6 +150,7 @@ class ScoreRing extends StatelessWidget {
   final double size;
   final Color? color;
   final String? caption;
+  final Color captionColor;
 
   const ScoreRing({
     super.key,
@@ -142,6 +158,7 @@ class ScoreRing extends StatelessWidget {
     this.size = 140,
     this.color,
     this.caption,
+    this.captionColor = Colors.black54,
   });
 
   @override
@@ -185,7 +202,7 @@ class ScoreRing extends StatelessWidget {
                     caption ?? '%',
                     style: TextStyle(
                       fontSize: size * 0.12,
-                      color: Colors.black54,
+                      color: captionColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -239,10 +256,12 @@ class SegmentedProgress extends StatelessWidget {
 }
 
 /// Kartu menampilkan teks ayat prompt (buta — tanpa nama surah / nomor).
+/// [dark] = tampil di atas latar malam (kartu gelap, teks putih).
 class PromptAyahCard extends StatelessWidget {
   final String text;
+  final bool dark;
 
-  const PromptAyahCard({super.key, required this.text});
+  const PromptAyahCard({super.key, required this.text, this.dark = false});
 
   @override
   Widget build(BuildContext context) {
@@ -252,15 +271,22 @@ class PromptAyahCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            scheme.primary.withValues(alpha: 0.06),
-            scheme.primary.withValues(alpha: 0.02),
-          ],
+        color: dark ? QuizColors.nightCard : null,
+        gradient: dark
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  scheme.primary.withValues(alpha: 0.06),
+                  scheme.primary.withValues(alpha: 0.02),
+                ],
+              ),
+        border: Border.all(
+          color: dark
+              ? Colors.white.withValues(alpha: 0.16)
+              : scheme.primary.withValues(alpha: 0.15),
         ),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.15)),
       ),
       child: Text(
         text,
@@ -268,11 +294,11 @@ class PromptAyahCard extends StatelessWidget {
         textDirection: TextDirection.rtl,
         maxLines: 4,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'QuranHafs',
           fontSize: 23,
           height: 1.7,
-          color: Color(0xFF212121),
+          color: dark ? Colors.white : const Color(0xFF212121),
         ),
       ),
     );
@@ -454,7 +480,7 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    backgroundColor: QuizColors.nightCard,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -470,37 +496,33 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
               height: 68,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: info.color.withValues(alpha: 0.14),
+                color: info.color.withValues(alpha: 0.18),
               ),
               child: Icon(info.icon, color: info.color, size: 34),
             ),
             const SizedBox(height: 16),
             Text(
               info.title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               info.message,
-              style: const TextStyle(fontSize: 13.5, color: Colors.black54),
+              style: const TextStyle(fontSize: 13.5, color: Colors.white70),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: QuizButton(
+                label: 'Mengerti',
+                color: QuizColors.goldDark,
                 onPressed: () => Navigator.of(ctx).pop(),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Mengerti',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
               ),
             ),
           ],
@@ -702,7 +724,15 @@ class EnergyHint extends StatefulWidget {
   final QuizEnergy energy;
   final VoidCallback? onRefillReady;
 
-  const EnergyHint({super.key, required this.energy, this.onRefillReady});
+  /// True bila tampil di atas latar malam (teks terang).
+  final bool dark;
+
+  const EnergyHint({
+    super.key,
+    required this.energy,
+    this.onRefillReady,
+    this.dark = false,
+  });
 
   @override
   State<EnergyHint> createState() => _EnergyHintState();
@@ -762,12 +792,17 @@ class _EnergyHintState extends State<EnergyHint> {
         Icon(
           kEnergyIcon,
           size: 15,
-          color: empty ? QuizColors.missing : QuizColors.goldDark,
+          color: empty
+              ? (widget.dark ? QuizColors.missingBright : QuizColors.missing)
+              : (widget.dark ? QuizColors.gold : QuizColors.goldDark),
         ),
         const SizedBox(width: 6),
         Text(
           '$label ${formatRefill(remaining)}',
-          style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+          style: TextStyle(
+            fontSize: 12.5,
+            color: widget.dark ? Colors.white70 : Colors.black54,
+          ),
         ),
       ],
     );

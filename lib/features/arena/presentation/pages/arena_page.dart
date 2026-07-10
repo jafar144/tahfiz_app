@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
-import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_state.dart';
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_leaderboard_tab.dart';
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_quiz_tab.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -29,13 +26,6 @@ class ArenaPage extends StatefulWidget {
 
 class _ArenaPageState extends State<ArenaPage> {
   int _tab = 0;
-
-  static const _titles = ['Petualangan Surah', 'Kuis Hafalan', 'Papan Juara'];
-  static const _subtitles = [
-    'Belajar & taklukkan surah juz 30',
-    'Latihan bebas atau Tantangan harian',
-    'Juara Tantangan bulan ini per kelas',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -80,64 +70,6 @@ class _JourneyTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SurahJourneyView(showBack: false);
-}
-
-// ─────────────────────────────────────────────────────────────── Top bar ──
-
-class _TopBar extends StatelessWidget {
-  final String title;
-  final String subtitle;
-
-  const _TopBar({required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white60, fontSize: 11.5),
-                ),
-              ],
-            ),
-          ),
-          // Energi ala Duolingo di pojok kanan atas.
-          BlocBuilder<ArenaCubit, ArenaState>(
-            buildWhen: (p, c) =>
-                p.energy != c.energy || p.energyLoading != c.energyLoading,
-            builder: (context, state) {
-              final energy = state.energy;
-              if (energy == null) {
-                return state.energyLoading
-                    ? const EnergyBadgeSkeleton()
-                    : const SizedBox.shrink();
-              }
-              return EnergyBadge(
-                energy: energy,
-                dark: true,
-                onRefillReady: () =>
-                    context.read<ArenaCubit>().refreshEnergy(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ──────────────────────────────────────────────────────────── Bottom nav ──

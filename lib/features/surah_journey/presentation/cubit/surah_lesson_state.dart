@@ -31,6 +31,10 @@ class SurahLessonState {
   final SurahLesson lesson;
   final LessonStatus status;
 
+  /// False selama data awal (ayat + progres) masih dimuat — halaman
+  /// menampilkan loading dedicated dulu sebelum daftar bagian muncul.
+  final bool initialized;
+
   /// Progres surah ini milik pengguna (termuat saat init, diperbarui usai
   /// menyimpan hasil test).
   final SurahProgress progress;
@@ -67,6 +71,7 @@ class SurahLessonState {
   const SurahLessonState({
     required this.lesson,
     this.status = LessonStatus.overview,
+    this.initialized = false,
     this.progress = SurahProgress.empty,
     this.activeSection,
     this.surahAyat = const [],
@@ -129,6 +134,7 @@ class SurahLessonState {
 
   SurahLessonState copyWith({
     LessonStatus? status,
+    bool? initialized,
     SurahProgress? progress,
     LessonSection? activeSection,
     bool clearActiveSection = false,
@@ -151,6 +157,7 @@ class SurahLessonState {
     return SurahLessonState(
       lesson: lesson,
       status: status ?? this.status,
+      initialized: initialized ?? this.initialized,
       progress: progress ?? this.progress,
       activeSection: clearActiveSection
           ? null

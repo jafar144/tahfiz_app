@@ -133,7 +133,7 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                             child: Column(
                               children: [
-                                PromptAyahCard(text: q.prompt.text),
+                                PromptAyahCard(text: q.prompt.text, dark: true),
                                 const SizedBox(height: 10),
                                 _ChoiceHint(required: required),
                                 if (required > 1) ...[
@@ -551,9 +551,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final urgent = secondsLeft <= 10;
-    final timerColor = urgent ? QuizColors.missing : scheme.primary;
+    final timerColor = urgent ? QuizColors.missingBright : Colors.white;
     final progress = (secondsLeft / 60).clamp(0.0, 1.0);
 
     return Padding(
@@ -602,7 +601,9 @@ class _Header extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: QuizColors.correct.withValues(alpha: 0.14),
+                          color: QuizColors.correctBright.withValues(
+                            alpha: 0.18,
+                          ),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
@@ -610,7 +611,7 @@ class _Header extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w900,
-                            color: QuizColors.correct,
+                            color: QuizColors.correctBright,
                           ),
                         ),
                       )
@@ -679,7 +680,7 @@ class _Header extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.black45,
+                color: Colors.white54,
               ),
             ),
           ),
@@ -696,16 +697,15 @@ class _ChoiceHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    const base = TextStyle(fontWeight: FontWeight.w600, color: Colors.black54);
-    final strong = TextStyle(
+    const base = TextStyle(fontWeight: FontWeight.w600, color: Colors.white70);
+    const strong = TextStyle(
       fontWeight: FontWeight.w800,
-      color: scheme.primary,
+      color: QuizColors.gold,
     );
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.touch_app_rounded, size: 16, color: scheme.primary),
+        const Icon(Icons.touch_app_rounded, size: 16, color: QuizColors.gold),
         const SizedBox(width: 6),
         Text.rich(
           required > 1
@@ -743,7 +743,6 @@ class _OrderStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final required = question.answerAyahCount;
 
     return Row(
@@ -766,11 +765,11 @@ class _OrderStrip extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: filled
-                    ? scheme.primary.withValues(alpha: 0.12)
-                    : Colors.black.withValues(alpha: 0.03),
+                    ? QuizColors.gold.withValues(alpha: 0.16)
+                    : Colors.white.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: filled ? scheme.primary : Colors.black12,
+                  color: filled ? QuizColors.gold : Colors.white12,
                   width: filled ? 1.5 : 1,
                 ),
               ),
@@ -781,16 +780,16 @@ class _OrderStrip extends StatelessWidget {
                         children: [
                           Text(
                             '${slot + 1}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w900,
-                              color: scheme.primary,
+                              color: QuizColors.gold,
                             ),
                           ),
                           if (!locked)
                             Icon(
                               Icons.close_rounded,
                               size: 14,
-                              color: scheme.primary.withValues(alpha: 0.7),
+                              color: QuizColors.gold.withValues(alpha: 0.7),
                             ),
                         ],
                       )
@@ -798,7 +797,7 @@ class _OrderStrip extends StatelessWidget {
                         '${slot + 1}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: Colors.black26,
+                          color: Colors.white30,
                         ),
                       ),
               ),
@@ -830,27 +829,25 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     Color border;
     Color bg;
     Color badge;
     if (lockedCorrect == true) {
-      border = QuizColors.correct;
-      bg = QuizColors.correct.withValues(alpha: 0.10);
-      badge = QuizColors.correct;
+      border = QuizColors.correctBright;
+      bg = QuizColors.correctBright.withValues(alpha: 0.14);
+      badge = QuizColors.correctBright;
     } else if (lockedCorrect == false) {
-      border = QuizColors.missing;
-      bg = QuizColors.missing.withValues(alpha: 0.10);
-      badge = QuizColors.missing;
+      border = QuizColors.missingBright;
+      bg = QuizColors.missingBright.withValues(alpha: 0.14);
+      badge = QuizColors.missingBright;
     } else if (selected) {
-      border = scheme.primary;
-      bg = scheme.primary.withValues(alpha: 0.06);
-      badge = scheme.primary;
+      border = QuizColors.gold;
+      bg = QuizColors.gold.withValues(alpha: 0.12);
+      badge = QuizColors.gold;
     } else {
-      border = Colors.black12;
-      bg = Colors.white;
-      badge = scheme.primary;
+      border = Colors.white12;
+      bg = QuizColors.nightCard;
+      badge = QuizColors.gold;
     }
 
     return InkWell(
@@ -881,7 +878,7 @@ class _OptionCard extends StatelessWidget {
                   fontFamily: 'QuranHafs',
                   fontSize: 18,
                   height: 1.8,
-                  color: Color(0xFF212121),
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -897,7 +894,7 @@ class _OptionCard extends StatelessWidget {
                 border: Border.all(
                   color: orderLabel != null
                       ? badge
-                      : Colors.black.withValues(alpha: 0.18),
+                      : Colors.white.withValues(alpha: 0.25),
                   width: 1.5,
                 ),
               ),
@@ -929,24 +926,14 @@ class _SubmitBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
       child: SizedBox(
         width: double.infinity,
         child: QuizButton(
           label: 'Jawab',
           icon: Icons.check_rounded,
-          color: Theme.of(context).colorScheme.primary,
+          color: QuizColors.goldDark,
           onPressed: enabled ? onSubmit : null,
         ),
       ),

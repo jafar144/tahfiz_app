@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 /// Layar REVIEW pasca-sesi: menampilkan tiap soal, jawaban santri, dan jawaban
 /// benar (saat salah). Data hanya dari memori sesi — tidak diambil dari server.
+/// Latar malam mengikuti kuis; kartu soal tetap putih agar teks Arab dan warna
+/// koreksinya mudah dibaca.
 class QuizReviewPage extends StatelessWidget {
   final List<QuizReviewItem> items;
   final QuizMode mode;
@@ -16,35 +19,78 @@ class QuizReviewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final benar = items.where((e) => e.correct).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Review Soal'), centerTitle: true),
-      body: items.isEmpty
-          ? const Center(
-              child: Text(
-                'Belum ada soal untuk ditinjau.',
-                style: TextStyle(color: Colors.black54),
-              ),
-            )
-          : ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-              itemCount: items.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
-              itemBuilder: (context, i) {
-                if (i == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      '$benar benar dari ${items.length} soal',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black54,
+      body: JourneyBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 16, 4),
+                child: Row(
+                  children: [
+                    Material(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => Navigator.of(context).maybePop(),
+                        child: const Padding(
+                          padding: EdgeInsets.all(9),
+                          child: Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 21,
+                          ),
+                        ),
                       ),
                     ),
-                  );
-                }
-                return _ReviewCard(number: i, item: items[i - 1]);
-              },
-            ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Review Soal',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: items.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Belum ada soal untuk ditinjau.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                        itemCount: items.length + 1,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          if (i == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '$benar benar dari ${items.length} soal',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            );
+                          }
+                          return _ReviewCard(number: i, item: items[i - 1]);
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

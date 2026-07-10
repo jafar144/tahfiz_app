@@ -27,6 +27,9 @@ class QuizButton extends StatefulWidget {
   /// Radius sudut permukaan tombol.
   final double borderRadius;
 
+  /// Widget kecil di kanan label (mis. chip biaya energi).
+  final Widget? trailing;
+
   const QuizButton({
     super.key,
     required this.onPressed,
@@ -37,6 +40,7 @@ class QuizButton extends StatefulWidget {
     this.foregroundColor = Colors.white,
     this.padding = const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
     this.borderRadius = 16,
+    this.trailing,
   });
 
   @override
@@ -126,17 +130,24 @@ class _QuizButtonState extends State<QuizButton> {
                 Icon(widget.icon, color: fg, size: widget.iconSize),
               if (widget.icon != null && hasLabel) const SizedBox(width: 8),
               if (hasLabel)
-                Text(
-                  // Kapital + sedikit jarak antar-huruf ala Duolingo.
-                  widget.label!.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
+                Flexible(
+                  child: Text(
+                    // Kapital + sedikit jarak antar-huruf ala Duolingo.
+                    widget.label!.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
+              if (widget.trailing != null) ...[
+                const SizedBox(width: 8),
+                widget.trailing!,
+              ],
             ],
           ),
         ),

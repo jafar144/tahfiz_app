@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_choice_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 class RecitationQuizPage extends StatefulWidget {
   const RecitationQuizPage({super.key});
@@ -79,81 +82,98 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
             }
           },
           child: Scaffold(
-            // Sembunyikan AppBar saat bermain agar layar lebih lega.
-            appBar: playing
-                ? null
-                : AppBar(
-                    title: Text(challenge ? 'Tantangan' : 'Latihan Kuis'),
-                    centerTitle: true,
-                  ),
-            body: ClipRect(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 380),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                // Transisi horizontal berarah: saat "maju" (mis. mulai kuis)
-                // halaman baru masuk dari kanan & halaman lama geser ke kiri;
-                // saat "mundur" (mis. tekan Selesai) halaman baru masuk dari
-                // kiri & halaman lama geser keluar ke kanan.
-                transitionBuilder: (child, animation) {
-                  final incoming = child.key == ValueKey(status);
-                  final Offset begin = _advancing
-                      ? (incoming ? const Offset(1, 0) : const Offset(-1, 0))
-                      : (incoming ? const Offset(-1, 0) : const Offset(1, 0));
-                  return SlideTransition(
-                    position: Tween<Offset>(
-                      begin: begin,
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  );
-                },
-                layoutBuilder: (currentChild, previousChildren) => Stack(
+            // Latar malam islami — senada Petualangan Surah & Tahfiz Arena.
+            body: JourneyBackground(
+              child: SafeArea(
+                bottom: false,
+                child: Column(
                   children: [
-                    for (final c in previousChildren) Positioned.fill(child: c),
-                    if (currentChild != null)
-                      Positioned.fill(child: currentChild),
+                    // Bar atas disembunyikan saat bermain agar layar lega.
+                    if (!playing)
+                      _TopBar(title: challenge ? 'Tantangan' : 'Latihan Kuis'),
+                    Expanded(
+                      child: ClipRect(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 380),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          // Transisi horizontal berarah: saat "maju" (mis.
+                          // mulai kuis) halaman baru masuk dari kanan & halaman
+                          // lama geser ke kiri; saat "mundur" (mis. tekan
+                          // Selesai) sebaliknya.
+                          transitionBuilder: (child, animation) {
+                            final incoming = child.key == ValueKey(status);
+                            final Offset begin = _advancing
+                                ? (incoming
+                                      ? const Offset(1, 0)
+                                      : const Offset(-1, 0))
+                                : (incoming
+                                      ? const Offset(-1, 0)
+                                      : const Offset(1, 0));
+                            return SlideTransition(
+                              position: Tween<Offset>(
+                                begin: begin,
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            );
+                          },
+                          layoutBuilder: (currentChild, previousChildren) =>
+                              Stack(
+                                children: [
+                                  for (final c in previousChildren)
+                                    Positioned.fill(child: c),
+                                  if (currentChild != null)
+                                    Positioned.fill(child: currentChild),
+                                ],
+                              ),
+                          child: KeyedSubtree(
+                            key: ValueKey(status),
+                            child: switch (state.status) {
+                              // Tantangan tak punya layar intro — status intro
+                              // hanya sekejap sebelum sesi dimulai; tampilkan
+                              // halaman loading yang sama.
+                              QuizStatus.intro when challenge =>
+                                const _QuizLoading(),
+                              QuizStatus.intro => QuizIntroView(
+                                settings: state.settings,
+                                onSettingsChanged: cubit.setSettings,
+                                onStart: cubit.start,
+                                energy: state.energy,
+                                energyLoading: state.energyLoading,
+                                onRefillReady: cubit.loadEnergy,
+                              ),
+                              QuizStatus.loading => const _QuizLoading(),
+                              QuizStatus.error => _ErrorView(
+                                message:
+                                    state.errorMessage ?? 'Terjadi kesalahan.',
+                                onRetry: () => cubit.start(state.settings),
+                              ),
+                              QuizStatus.playing =>
+                                isChoice
+                                    ? const QuizChoicePlayView()
+                                    : const QuizPlayView(),
+                              QuizStatus.finished => QuizResultView(
+                                result: state.result!,
+                                review: state.review,
+                                isChallenge: challenge,
+                                saving: state.saving,
+                                saveError: state.saveError,
+                                energy: state.energy,
+                                onPlayAgain: cubit.playAgain,
+                                onRefillReady: cubit.loadEnergy,
+                                // "Selesai": latihan kembali ke layar awal;
+                                // Tantangan keluar halaman (jatah terpakai).
+                                onFinish: challenge
+                                    ? () => context.pop()
+                                    : cubit.backToIntro,
+                              ),
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-                child: KeyedSubtree(
-                  key: ValueKey(status),
-                  child: switch (state.status) {
-                    // Tantangan tak punya layar intro — status intro hanya
-                    // sekejap sebelum cubit memulai sesi; tampilkan loading.
-                    QuizStatus.intro when challenge => const _Loading(),
-                    QuizStatus.intro => QuizIntroView(
-                      settings: state.settings,
-                      onSettingsChanged: cubit.setSettings,
-                      onStart: cubit.start,
-                      energy: state.energy,
-                      energyLoading: state.energyLoading,
-                      onRefillReady: cubit.loadEnergy,
-                    ),
-                    QuizStatus.loading => const _Loading(),
-                    QuizStatus.error => _ErrorView(
-                      message: state.errorMessage ?? 'Terjadi kesalahan.',
-                      onRetry: () => cubit.start(state.settings),
-                    ),
-                    QuizStatus.playing =>
-                      isChoice
-                          ? const QuizChoicePlayView()
-                          : const QuizPlayView(),
-                    QuizStatus.finished => QuizResultView(
-                      result: state.result!,
-                      review: state.review,
-                      isChallenge: challenge,
-                      saving: state.saving,
-                      saveError: state.saveError,
-                      energy: state.energy,
-                      onPlayAgain: cubit.playAgain,
-                      onRefillReady: cubit.loadEnergy,
-                      // "Selesai": latihan kembali ke layar awal; Tantangan
-                      // keluar halaman (jatah harian sudah terpakai).
-                      onFinish: challenge
-                          ? () => context.pop()
-                          : cubit.backToIntro,
-                    ),
-                  },
                 ),
               ),
             ),
@@ -190,20 +210,66 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
   }
 }
 
-class _Loading extends StatelessWidget {
-  const _Loading();
+/// Bar atas gelap: tombol kembali bulat + judul — gaya sama dengan halaman
+/// belajar surah di Petualangan.
+class _TopBar extends StatelessWidget {
+  final String title;
+
+  const _TopBar({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 16, 4),
+      child: Row(
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Menyiapkan soal…', style: TextStyle(color: Colors.black54)),
+          Material(
+            color: Colors.white.withValues(alpha: 0.12),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => Navigator.of(context).maybePop(),
+              child: const Padding(
+                padding: EdgeInsets.all(9),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 21,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+/// Loading menyiapkan sesi — halaman loading malam yang sama di seluruh Arena
+/// (tanpa latar sendiri karena halaman kuis sudah bergradien malam).
+class _QuizLoading extends StatelessWidget {
+  const _QuizLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const NightLoadingPage(
+      title: 'Menyiapkan soalmu…',
+      subtitle: 'Sesi kuis segera dimulai',
+      icon: Icons.videogame_asset_rounded,
+      withBackground: false,
     );
   }
 }
@@ -223,14 +289,25 @@ class _ErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.error_outline_rounded,
+              Icons.cloud_off_rounded,
               size: 48,
-              color: Colors.redAccent,
+              color: Colors.white54,
             ),
             const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
             const SizedBox(height: 20),
-            FilledButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+            QuizButton(
+              label: 'Coba Lagi',
+              icon: Icons.refresh_rounded,
+              color: QuizColors.nightButton,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              onPressed: onRetry,
+            ),
           ],
         ),
       ),

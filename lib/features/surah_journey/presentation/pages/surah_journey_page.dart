@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,10 +6,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_state.dart';
-import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 /// Peta Petualangan Surah bergaya game: jalur berkelok bernuansa malam islami
 /// (bintang + bulan sabit), node level dari bawah ke atas. Level terkunci
@@ -52,6 +55,50 @@ class SurahJourneyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
+      buildWhen: (p, c) => p.status != c.status,
+      builder: (context, state) {
+        final isLoading = state.status == JourneyStatus.loading;
+        // Halaman loading dedicated ditukar ke konten (header + peta/error)
+        // dengan animasi geser kanan→kiri, bukan potongan spinner kecil yang
+        // muncul lalu XP/energi menyusul belakangan.
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 420),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          ),
+          child: isLoading
+              ? NightLoadingPage(
+                  key: const ValueKey('journey-loading'),
+                  title: 'Menyiapkan Petualanganmu…',
+                  subtitle: 'Memuat progres, XP, dan energimu',
+                  showBack: showBack,
+                  onBack: () => context.pop(),
+                )
+              : _JourneyContent(
+                  key: const ValueKey('journey-content'),
+                  showBack: showBack,
+                ),
+        );
+      },
+    );
+  }
+}
+
+/// Konten setelah data siap: header (juz/XP/energi) + peta atau layar error.
+class _JourneyContent extends StatelessWidget {
+  final bool showBack;
+
+  const _JourneyContent({super.key, required this.showBack});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         _Header(showBack: showBack),
@@ -59,14 +106,12 @@ class SurahJourneyView extends StatelessWidget {
           child: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
             builder: (context, state) {
               return switch (state.status) {
-                JourneyStatus.loading => const Center(
-                  child: CircularProgressIndicator(color: Colors.white70),
-                ),
                 JourneyStatus.error => _ErrorView(
                   message: state.errorMessage ?? 'Terjadi kesalahan.',
                   onRetry: () => context.read<SurahJourneyCubit>().load(),
                 ),
                 JourneyStatus.ready => _JourneyMap(state: state),
+                JourneyStatus.loading => const SizedBox.shrink(),
               };
             },
           ),
@@ -78,12 +123,47 @@ class SurahJourneyView extends StatelessWidget {
 
 // ────────────────────────────────────────────────────────────────── Header ──
 
-/// Top bar peta terbagi tiga: kiri pilihan Juz (dropdown; juz 29 masih
-/// terkunci), tengah total XP, kanan energi.
+/// Tombol bulat "kembali" bergaya journey — dipakai header & halaman loading.
+class _BackButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _BackButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.12),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: const Padding(
+          padding: EdgeInsets.all(9),
+          child: Icon(Icons.arrow_back_rounded, color: Colors.white, size: 21),
+        ),
+      ),
+    );
+  }
+}
+
+/// Top bar peta ala Duolingo: kiri pilihan Juz (dropdown; juz 29 masih
+/// terkunci), kanan lencana XP & energi — ikon ber-border putih + angka
+/// (bukan chip). Ketuk XP/energi → halaman detail (naik dari bawah).
 class _Header extends StatelessWidget {
   final bool showBack;
 
   const _Header({this.showBack = true});
+
+  void _openStats(BuildContext context, SurahJourneyState state, String focus) {
+    context.pushNamed(
+      RouteNames.arenaStats,
+      extra: <String, dynamic>{
+        'xp': state.xp,
+        'energy': state.energy,
+        'focus': focus,
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,61 +171,174 @@ class _Header extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(showBack ? 12 : 16, 8, 16, 8),
       child: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
         builder: (context, state) {
+          final energy = state.energy;
           return Row(
             children: [
-              // ── Kiri: kembali (opsional) + dropdown juz ──
-              Expanded(
-                child: Row(
-                  children: [
-                    if (showBack) ...[
-                      Material(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => context.pop(),
-                          child: const Padding(
-                            padding: EdgeInsets.all(9),
-                            child: Icon(
-                              Icons.arrow_back_rounded,
-                              color: Colors.white,
-                              size: 21,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-                    _JuzDropdown(selected: state.selectedJuz),
-                  ],
+              if (showBack) ...[
+                _BackButton(onTap: () => context.pop()),
+                const SizedBox(width: 10),
+              ],
+              _JuzDropdown(selected: state.selectedJuz),
+              const Spacer(),
+              if (state.status == JourneyStatus.ready) ...[
+                // ── XP: bintang biru + angka ──
+                _HeaderStat(
+                  icon: Icons.star_rounded,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4FC3F7), QuizColors.xpBlue],
+                  ),
+                  value: '${state.xp}',
+                  valueColor: QuizColors.xpBlue,
+                  onTap: () => _openStats(context, state, 'xp'),
                 ),
-              ),
-              // ── Tengah: total XP ──
-              if (state.status == JourneyStatus.ready)
-                XpBadge(xp: state.xp)
-              else
-                const SizedBox.shrink(),
-              // ── Kanan: energi ──
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: state.energy != null
-                      ? EnergyBadge(
-                          energy: state.energy!,
-                          dark: true,
-                          onRefillReady: () => context
-                              .read<SurahJourneyCubit>()
-                              .refreshEnergy(),
-                        )
-                      : state.energyLoading
-                      ? const EnergyBadgeSkeleton()
-                      : const SizedBox.shrink(),
-                ),
-              ),
+                const SizedBox(width: 12),
+                // ── Energi: hilal emas + angka ──
+                if (energy != null)
+                  _EnergyHeaderStat(
+                    energy: energy,
+                    onTap: () => _openStats(context, state, 'energy'),
+                    onRefillReady: () =>
+                        context.read<SurahJourneyCubit>().refreshEnergy(),
+                  )
+                else if (state.energyLoading)
+                  const EnergyBadgeSkeleton(),
+              ],
             ],
           );
         },
       ),
+    );
+  }
+}
+
+/// Satu lencana stat ala Duolingo: ikon squircle ber-border putih + angka.
+class _HeaderStat extends StatelessWidget {
+  final IconData icon;
+  final Gradient gradient;
+  final String value;
+  final Color valueColor;
+  final VoidCallback? onTap;
+
+  const _HeaderStat({
+    required this.icon,
+    required this.gradient,
+    required this.value,
+    required this.valueColor,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: gradient,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Icon(icon, color: Colors.white, size: 16),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              value,
+              style: TextStyle(
+                color: valueColor,
+                fontWeight: FontWeight.w900,
+                fontSize: 15.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Lencana energi header: gaya [_HeaderStat] + timer yang memuat ulang energi
+/// saat waktu pengisian tiba (perilaku lama EnergyBadge dipertahankan).
+class _EnergyHeaderStat extends StatefulWidget {
+  final QuizEnergy energy;
+  final VoidCallback? onTap;
+  final VoidCallback? onRefillReady;
+
+  const _EnergyHeaderStat({
+    required this.energy,
+    this.onTap,
+    this.onRefillReady,
+  });
+
+  @override
+  State<_EnergyHeaderStat> createState() => _EnergyHeaderStatState();
+}
+
+class _EnergyHeaderStatState extends State<_EnergyHeaderStat> {
+  Timer? _timer;
+  bool _notified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureTimer();
+  }
+
+  @override
+  void didUpdateWidget(_EnergyHeaderStat oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.energy != widget.energy) {
+      _notified = false;
+      _ensureTimer();
+    }
+  }
+
+  void _ensureTimer() {
+    _timer?.cancel();
+    if (widget.energy.isFull) return;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final t = widget.energy.nextRefillAt;
+      if (!_notified && t != null && DateTime.now().isAfter(t)) {
+        _notified = true;
+        widget.onRefillReady?.call();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final empty = !widget.energy.canPlay;
+    return _HeaderStat(
+      icon: kEnergyIcon,
+      gradient: empty
+          ? const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFE57373), Color(0xFFC62828)],
+            )
+          : const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [QuizColors.gold, QuizColors.goldDark],
+            ),
+      value: '${widget.energy.current}',
+      valueColor: empty ? QuizColors.missingBright : QuizColors.gold,
+      onTap: widget.onTap,
     );
   }
 }
@@ -202,28 +395,38 @@ class _JuzDropdown extends StatelessWidget {
       ],
       // Sementara hanya juz 30 yang bisa dipilih — tak ada aksi lain.
       onSelected: (_) {},
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        ),
+      // Gaya sama dengan lencana XP/energi: ikon squircle ber-border putih +
+      // teks; ketuk tetap membuka dropdown juz.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.auto_stories_rounded,
-              size: 15,
-              color: QuizColors.gold,
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF34D399), Color(0xFF059669)],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: const Icon(
+                Icons.auto_stories_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
             const SizedBox(width: 6),
             Text(
               'Juz $selected',
               style: const TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
               ),
             ),
             const Icon(
@@ -819,12 +1022,13 @@ class _ErrorView extends StatelessWidget {
               style: const TextStyle(color: Colors.white70),
             ),
             const SizedBox(height: 18),
-            FilledButton(
+            QuizButton(
+              label: 'Coba Lagi',
+              icon: Icons.refresh_rounded,
+              color: QuizColors.nightButton,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
               onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.16),
-              ),
-              child: const Text('Coba Lagi'),
             ),
           ],
         ),

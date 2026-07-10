@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Palet & widget bersama bergaya "malam islami" Petualangan Surah — dipakai
@@ -199,7 +200,8 @@ class HighlightedAyahText extends StatelessWidget {
   }
 }
 
-/// Tombol aksi utama emas (gaya journey) selebar layar.
+/// Tombol aksi utama emas (gaya journey) selebar layar — QuizButton ala
+/// Duolingo (bibir 3D + getar saat ditekan).
 class JourneyPrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
@@ -220,43 +222,21 @@ class JourneyPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
+      child: QuizButton(
         onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: QuizColors.goldDark,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            if (showEnergyCost) ...[
-              const SizedBox(width: 8),
-              const EnergyCostChip(),
-            ],
-          ],
-        ),
+        label: label,
+        icon: icon,
+        color: QuizColors.goldDark,
+        borderRadius: 14,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        trailing: showEnergyCost ? const EnergyCostChip() : null,
       ),
     );
   }
 }
 
-/// Tombol sekunder (garis putih transparan) selebar layar — gaya journey.
+/// Tombol sekunder (permukaan gelap) selebar layar — gaya journey, juga
+/// memakai QuizButton agar efek tekan & getarnya seragam.
 class JourneySecondaryButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData? icon;
@@ -273,34 +253,14 @@ class JourneySecondaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton(
+      child: QuizButton(
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.35)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 19),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
+        label: label,
+        icon: icon,
+        color: QuizColors.nightButton,
+        foregroundColor: Colors.white,
+        borderRadius: 14,
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 16),
       ),
     );
   }

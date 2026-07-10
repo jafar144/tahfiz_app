@@ -23,7 +23,7 @@ Future<bool?> _showVoiceTipSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    backgroundColor: QuizColors.nightCard,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -69,7 +69,7 @@ class QuizIntroView extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: QuizColors.nightCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -113,7 +113,7 @@ class QuizIntroView extends StatelessWidget {
       child: QuizButton(
         label: label,
         icon: icon,
-        color: Theme.of(context).colorScheme.primary,
+        color: QuizColors.goldDark,
         onPressed: canPlay ? () => _handleStart(context) : null,
       ),
     );
@@ -183,8 +183,6 @@ class QuizIntroView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
     return SafeArea(
       child: Column(
         children: [
@@ -198,17 +196,15 @@ class QuizIntroView extends StatelessWidget {
                     height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          scheme.primary,
-                          scheme.primary.withValues(alpha: 0.7),
-                        ],
+                        colors: [QuizColors.gold, QuizColors.goldDark],
                       ),
+                      border: Border.all(color: Colors.white, width: 3),
                       boxShadow: [
                         BoxShadow(
-                          color: scheme.primary.withValues(alpha: 0.35),
+                          color: QuizColors.gold.withValues(alpha: 0.45),
                           blurRadius: 24,
                           offset: const Offset(0, 10),
                         ),
@@ -216,21 +212,25 @@ class QuizIntroView extends StatelessWidget {
                     ),
                     child: const Icon(
                       Icons.emoji_events_rounded,
-                      color: QuizColors.gold,
+                      color: Colors.white,
                       size: 48,
                     ),
                   ),
                   const SizedBox(height: 18),
                   const Text(
                     'Kuis Hafalan',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     settings.mode.isChoice
                         ? 'Uji hafalanmu dengan pilihan ganda'
                         : 'Uji hafalanmu dengan suara',
-                    style: const TextStyle(fontSize: 13, color: Colors.black54),
+                    style: const TextStyle(fontSize: 13, color: Colors.white60),
                   ),
                   const SizedBox(height: 24),
 
@@ -258,8 +258,8 @@ class QuizIntroView extends StatelessWidget {
                       flex: 1,
                       child: QuizButton(
                         icon: Icons.settings_rounded,
-                        color: const Color(0xFFEDEDED),
-                        foregroundColor: Colors.black54,
+                        color: QuizColors.nightButton,
+                        foregroundColor: Colors.white70,
                         onPressed: () => _openSettings(context),
                       ),
                     ),
@@ -488,7 +488,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           children: [
             const Text(
               'Pengaturan Kuis',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 18),
             const _SectionLabel(
@@ -525,7 +529,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 Icon(
                   Icons.info_outline_rounded,
                   size: 14,
-                  color: Colors.black45,
+                  color: Colors.white54,
                 ),
                 SizedBox(width: 6),
                 Expanded(
@@ -533,7 +537,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                     'Tiap sesi latihan memakai 1 energi (mode apa pun).',
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Colors.black54,
+                      color: Colors.white60,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -545,7 +549,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             const SizedBox(height: 4),
             const Text(
               'Boleh pilih lebih dari satu.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
+              style: TextStyle(fontSize: 12, color: Colors.white60),
             ),
             const SizedBox(height: 10),
             // Chip ringkas — jauh lebih hemat ruang daripada kartu besar.
@@ -588,7 +592,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               width: double.infinity,
               child: QuizButton(
                 label: 'Selesai',
-                color: Theme.of(context).colorScheme.primary,
+                color: QuizColors.goldDark,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
@@ -607,16 +611,19 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Align(
       alignment: Alignment.centerLeft,
       child: Row(
         children: [
-          Icon(icon, size: 18, color: scheme.primary),
+          Icon(icon, size: 18, color: QuizColors.gold),
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.white,
+            ),
           ),
         ],
       ),
@@ -642,7 +649,6 @@ class _ModeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -651,11 +657,11 @@ class _ModeOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withValues(alpha: 0.08)
-              : Colors.transparent,
+              ? QuizColors.gold.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? scheme.primary : Colors.black12,
+            color: selected ? QuizColors.gold : Colors.white12,
             width: selected ? 1.6 : 1,
           ),
         ),
@@ -667,13 +673,13 @@ class _ModeOption extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: selected ? scheme.primary : Colors.black45,
+                  color: selected ? QuizColors.gold : Colors.white54,
                 ),
                 const Spacer(),
                 Icon(
                   selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                   size: 20,
-                  color: selected ? scheme.primary : Colors.black26,
+                  color: selected ? QuizColors.gold : Colors.white30,
                 ),
               ],
             ),
@@ -683,13 +689,13 @@ class _ModeOption extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: selected ? scheme.primary : Colors.black87,
+                color: selected ? QuizColors.gold : Colors.white,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 11.5, color: Colors.black54),
+              style: const TextStyle(fontSize: 11.5, color: Colors.white54),
             ),
           ],
         ),
@@ -712,7 +718,6 @@ class _JuzChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -721,11 +726,11 @@ class _JuzChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: selected
-              ? scheme.primary.withValues(alpha: 0.10)
-              : Colors.transparent,
+              ? QuizColors.gold.withValues(alpha: 0.14)
+              : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? scheme.primary : Colors.black12,
+            color: selected ? QuizColors.gold : Colors.white12,
             width: selected ? 1.6 : 1,
           ),
         ),
@@ -735,7 +740,7 @@ class _JuzChip extends StatelessWidget {
             Icon(
               selected ? Icons.check_circle_rounded : Icons.circle_outlined,
               size: 18,
-              color: selected ? scheme.primary : Colors.black26,
+              color: selected ? QuizColors.gold : Colors.white30,
             ),
             const SizedBox(width: 7),
             Text(
@@ -743,7 +748,7 @@ class _JuzChip extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14.5,
-                color: selected ? scheme.primary : Colors.black87,
+                color: selected ? QuizColors.gold : Colors.white,
               ),
             ),
           ],
@@ -767,7 +772,6 @@ class _RangeExpander extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onToggle,
       borderRadius: BorderRadius.circular(12),
@@ -775,22 +779,26 @@ class _RangeExpander extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
+          border: Border.all(color: Colors.white12),
         ),
         child: Row(
           children: [
-            Icon(Icons.flag_rounded, size: 18, color: scheme.primary),
+            const Icon(Icons.flag_rounded, size: 18, color: QuizColors.gold),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
                 'Rentang hafalan (opsional)',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
               ),
             ),
             if (!expanded) ...[
               Text(
                 summary,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                style: const TextStyle(fontSize: 12, color: Colors.white54),
               ),
               const SizedBox(width: 4),
             ],
@@ -799,7 +807,7 @@ class _RangeExpander extends StatelessWidget {
               duration: const Duration(milliseconds: 180),
               child: const Icon(
                 Icons.keyboard_arrow_down_rounded,
-                color: Colors.black45,
+                color: Colors.white54,
               ),
             ),
           ],
@@ -824,7 +832,6 @@ class _RangeTargetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final surahs = QuizJuz.surahsOf(juz);
     final lastSurah = QuizJuz.lastSurah(juz);
 
@@ -832,7 +839,7 @@ class _RangeTargetCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: Colors.white12),
       ),
       child: Row(
         children: [
@@ -840,22 +847,22 @@ class _RangeTargetCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.10),
+              color: QuizColors.gold.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               'Juz $juz',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 12.5,
-                color: scheme.primary,
+                color: QuizColors.gold,
               ),
             ),
           ),
           const SizedBox(width: 10),
           const Text(
             'Dari',
-            style: TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: Colors.white54),
           ),
           const SizedBox(width: 6),
           // Surah awal (bisa dipilih).
@@ -865,6 +872,8 @@ class _RangeTargetCard extends StatelessWidget {
                 isExpanded: true,
                 isDense: true,
                 value: startSurah,
+                dropdownColor: QuizColors.nightCard,
+                iconEnabledColor: Colors.white54,
                 borderRadius: BorderRadius.circular(12),
                 items: [
                   for (final s in surahs)
@@ -876,6 +885,7 @@ class _RangeTargetCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -890,7 +900,7 @@ class _RangeTargetCard extends StatelessWidget {
           const Icon(
             Icons.arrow_forward_rounded,
             size: 16,
-            color: Colors.black38,
+            color: Colors.white38,
           ),
           const SizedBox(width: 6),
           // Surah akhir (dikunci ke akhir juz).
@@ -902,7 +912,7 @@ class _RangeTargetCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
-                color: Colors.black54,
+                color: Colors.white54,
               ),
             ),
           ),
@@ -926,7 +936,6 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       top: false,
       child: Padding(
@@ -942,11 +951,11 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
                 height: 68,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: scheme.primary.withValues(alpha: 0.12),
+                  color: QuizColors.gold.withValues(alpha: 0.16),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.graphic_eq_rounded,
-                  color: scheme.primary,
+                  color: QuizColors.gold,
                   size: 34,
                 ),
               ),
@@ -955,7 +964,11 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
             const Center(
               child: Text(
                 'Sebelum merekam',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -965,7 +978,7 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13.5,
-                color: Colors.black54,
+                color: Colors.white70,
                 height: 1.4,
               ),
             ),
@@ -1007,6 +1020,9 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
                         value: _dontShow,
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        activeColor: QuizColors.gold,
+                        checkColor: const Color(0xFF3A2A00),
+                        side: const BorderSide(color: Colors.white54),
                         onChanged: (v) =>
                             setState(() => _dontShow = v ?? false),
                       ),
@@ -1015,7 +1031,7 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
                     const Expanded(
                       child: Text(
                         'Jangan tampilkan lagi selama sesi ini',
-                        style: TextStyle(fontSize: 13, color: Colors.black87),
+                        style: TextStyle(fontSize: 13, color: Colors.white),
                       ),
                     ),
                   ],
@@ -1030,7 +1046,7 @@ class _VoiceTipSheetState extends State<_VoiceTipSheet> {
               child: QuizButton(
                 label: 'Mulai Rekam',
                 icon: Icons.mic_rounded,
-                color: Theme.of(context).colorScheme.primary,
+                color: QuizColors.goldDark,
                 onPressed: () {
                   _voiceTipDismissed = _dontShow;
                   Navigator.of(context).pop(true);
@@ -1058,7 +1074,6 @@ class _VoiceTip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1066,10 +1081,10 @@ class _VoiceTip extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.1),
+            color: QuizColors.gold.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(11),
           ),
-          child: Icon(icon, color: scheme.primary, size: 21),
+          child: Icon(icon, color: QuizColors.gold, size: 21),
         ),
         const SizedBox(width: 13),
         Expanded(
@@ -1081,12 +1096,13 @@ class _VoiceTip extends StatelessWidget {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                style: const TextStyle(fontSize: 12.5, color: Colors.white60),
               ),
             ],
           ),
@@ -1109,7 +1125,6 @@ class _RuleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -1118,10 +1133,13 @@ class _RuleTile extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.1),
+              color: QuizColors.gold.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: QuizColors.gold.withValues(alpha: 0.35),
+              ),
             ),
-            child: Icon(icon, color: scheme.primary, size: 22),
+            child: Icon(icon, color: QuizColors.gold, size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1133,12 +1151,13 @@ class _RuleTile extends StatelessWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                  style: const TextStyle(fontSize: 12.5, color: Colors.white60),
                 ),
               ],
             ),

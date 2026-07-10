@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_state.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Tab Papan Juara ala Duolingo: scroll kelas horizontal di atas, toggle mode
@@ -177,12 +178,16 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: () => context.read<QuizLeaderboardCubit>().load(),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.16),
+                QuizButton(
+                  label: 'Coba Lagi',
+                  icon: Icons.refresh_rounded,
+                  color: const Color(0xFF1C4364),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 24,
                   ),
-                  child: const Text('Coba Lagi'),
+                  onPressed: () => context.read<QuizLeaderboardCubit>().load(),
                 ),
               ],
             ),

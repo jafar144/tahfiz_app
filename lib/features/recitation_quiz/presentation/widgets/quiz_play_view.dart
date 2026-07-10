@@ -152,6 +152,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
+                              color: Colors.white,
                             ),
                           ),
                           const Spacer(),
@@ -186,7 +187,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             _PromptHint(question: q),
                             const SizedBox(height: 12),
                           ],
-                          PromptAyahCard(text: q.prompt.text),
+                          PromptAyahCard(text: q.prompt.text, dark: true),
                         ],
                       ),
                     ),
@@ -236,9 +237,9 @@ class _QuizPlayViewState extends State<QuizPlayView> {
         return Column(
           children: const [
             SizedBox(height: 8),
-            CircularProgressIndicator(),
+            CircularProgressIndicator(color: QuizColors.gold),
             SizedBox(height: 16),
-            Text('Memeriksa bacaan…', style: TextStyle(color: Colors.black54)),
+            Text('Memeriksa bacaan…', style: TextStyle(color: Colors.white70)),
           ],
         );
       case AnswerPhase.revealed:
@@ -295,8 +296,9 @@ class _OfflineSheet extends StatelessWidget {
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color: QuizColors.nightCard,
                 borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -306,58 +308,42 @@ class _OfflineSheet extends StatelessWidget {
                     height: 64,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: QuizColors.missing.withValues(alpha: 0.12),
+                      color: QuizColors.missingBright.withValues(alpha: 0.14),
                     ),
                     child: const Icon(
                       Icons.wifi_off_rounded,
-                      color: QuizColors.missing,
+                      color: QuizColors.missingBright,
                       size: 32,
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'Koneksi Terputus',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
                     'Bacaanmu perlu internet untuk diperiksa. Rekamanmu aman — '
                     'sambungkan kembali lalu kirim ulang.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54, height: 1.4),
+                    style: TextStyle(color: Colors.white70, height: 1.4),
                   ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
-                    child: FilledButton.icon(
+                    child: QuizButton(
+                      label: retrying ? 'Mengirim ulang…' : 'Kirim Ulang',
+                      icon: retrying ? null : Icons.refresh_rounded,
+                      color: QuizColors.goldDark,
                       onPressed: retrying
                           ? null
                           : () => context
                                 .read<RecitationQuizCubit>()
                                 .retryCheck(),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: retrying
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.refresh_rounded),
-                      label: Text(
-                        retrying ? 'Mengirim ulang…' : 'Kirim Ulang',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -369,7 +355,7 @@ class _OfflineSheet extends StatelessWidget {
                         context.read<RecitationQuizCubit>().backToIntro();
                       },
                       style: TextButton.styleFrom(
-                        foregroundColor: Colors.black54,
+                        foregroundColor: Colors.white60,
                       ),
                       child: const Text('Keluar dari kuis'),
                     ),
@@ -687,15 +673,14 @@ class _PromptHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // Kata kerja tetap biru, sedikit lebih tipis dari bagian inti perintah.
+    // Kata biasa putih lembut; inti perintah disorot emas — kontras di malam.
     final base = TextStyle(
       fontWeight: FontWeight.w500,
-      color: scheme.primary.withValues(alpha: 0.85),
+      color: Colors.white.withValues(alpha: 0.85),
     );
-    final strong = TextStyle(
+    const strong = TextStyle(
       fontWeight: FontWeight.w900,
-      color: scheme.primary,
+      color: QuizColors.gold,
     );
 
     final ayahCount = question.answerAyahCount;
@@ -734,16 +719,16 @@ class _PromptHint extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: scheme.primary.withValues(alpha: 0.12),
+        color: QuizColors.gold.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.primary.withValues(alpha: 0.35)),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.40)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: scheme.primary,
+              color: QuizColors.goldDark,
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Text(
@@ -758,7 +743,11 @@ class _PromptHint extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: Text.rich(instruction)),
-          Icon(Icons.arrow_downward_rounded, size: 20, color: scheme.primary),
+          const Icon(
+            Icons.arrow_downward_rounded,
+            size: 20,
+            color: QuizColors.gold,
+          ),
         ],
       ),
     );
@@ -779,8 +768,7 @@ class _RecordButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = recording ? Colors.red : scheme.primary;
+    final color = recording ? const Color(0xFFE53935) : QuizColors.gold;
     return Column(
       children: [
         GestureDetector(
@@ -793,10 +781,18 @@ class _RecordButton extends StatelessWidget {
             height: 96,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color,
+              gradient: recording
+                  ? null
+                  : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [QuizColors.gold, QuizColors.goldDark],
+                    ),
+              color: recording ? color : null,
+              border: Border.all(color: Colors.white, width: 3),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: recording ? 0.5 : 0.3),
+                  color: color.withValues(alpha: recording ? 0.5 : 0.4),
                   blurRadius: recording ? 28 : 16,
                   spreadRadius: recording ? 4 : 0,
                 ),
@@ -813,7 +809,7 @@ class _RecordButton extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            color: Colors.black54,
+            color: Colors.white70,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -844,7 +840,10 @@ class _VoiceResultSheet extends StatelessWidget {
     final hasBonusOffered =
         state.bonus != null && state.bonusStage == BonusStage.offered;
 
-    final Color accent = passed ? QuizColors.correct : QuizColors.missing;
+    // Varian cerah agar kontras di atas kartu malam.
+    final Color accent = passed
+        ? QuizColors.correctBright
+        : QuizColors.missingBright;
     final IconData icon = passed
         ? Icons.check_circle_rounded
         : Icons.cancel_rounded;
@@ -876,14 +875,11 @@ class _VoiceResultSheet extends StatelessWidget {
         color: Colors.transparent,
         child: Container(
           constraints: BoxConstraints(maxHeight: maxHeight),
-          // Datar (tanpa lengkungan) & tanpa shadow. Warna latar sedikit beda
-          // dari latar permainan (5% onSurface) agar sheet tak menyatu, plus
+          // Datar (tanpa lengkungan) & tanpa shadow. Kartu malam yang sedikit
+          // lebih terang dari latar permainan agar sheet tak menyatu, plus
           // garis tipis atas berwarna hasil sebagai pemisah.
           decoration: BoxDecoration(
-            color: Color.alphaBlend(
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
-              Theme.of(context).scaffoldBackgroundColor,
-            ),
+            color: QuizColors.nightCard,
             border: Border(
               top: BorderSide(color: accent.withValues(alpha: 0.55), width: 2),
             ),
@@ -923,7 +919,12 @@ class _VoiceResultSheet extends StatelessWidget {
   ) {
     return Row(
       children: [
-        ScoreRing(percent: pct, size: 74, color: accent),
+        ScoreRing(
+          percent: pct,
+          size: 74,
+          color: accent,
+          captionColor: Colors.white54,
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -951,7 +952,7 @@ class _VoiceResultSheet extends StatelessWidget {
                 subtitle,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Colors.black54,
+                  color: Colors.white70,
                   height: 1.3,
                 ),
               ),
@@ -1014,7 +1015,7 @@ class _VoiceResultSheet extends StatelessWidget {
               const Icon(
                 Icons.hourglass_bottom_rounded,
                 size: 16,
-                color: Colors.black45,
+                color: Colors.white54,
               ),
               const SizedBox(width: 6),
               Text(
@@ -1022,7 +1023,7 @@ class _VoiceResultSheet extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+                  color: Colors.white70,
                 ),
               ),
             ],
@@ -1117,13 +1118,12 @@ class _VoiceTimerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final urgent = secondsLeft <= 10;
-    final color = urgent ? QuizColors.missing : scheme.primary;
+    final color = urgent ? QuizColors.missingBright : QuizColors.gold;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
