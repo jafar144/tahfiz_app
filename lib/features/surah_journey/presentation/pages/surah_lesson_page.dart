@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -141,8 +143,7 @@ class _SurahLessonPageState extends State<SurahLessonPage> {
                               LessonStatus.learning => const LessonLearnView(),
                               LessonStatus.loading => const _Loading(),
                               LessonStatus.testing => const LessonTestView(),
-                              LessonStatus.finished =>
-                                const LessonResultView(),
+                              LessonStatus.finished => const LessonResultView(),
                             },
                           ),
                         ),
@@ -159,21 +160,134 @@ class _SurahLessonPageState extends State<SurahLessonPage> {
   }
 
   Future<bool?> _confirmLeave(BuildContext context) {
-    return showDialog<bool>(
+    return showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Keluar dari test?'),
-        content: const Text('Progres test saat ini tidak akan disimpan.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Keluar'),
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => const _LeaveTestSheet(),
+    );
+  }
+}
+
+class _LeaveTestSheet extends StatelessWidget {
+  const _LeaveTestSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF102A3D),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: QuizColors.missingBright.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.warning_rounded,
+                    color: QuizColors.missingBright,
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Keluar dari test?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: QuizColors.missingBright.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: QuizColors.missingBright.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.assignment_late_rounded,
+                    color: QuizColors.missingBright,
+                    size: 22,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Progres test saat ini tidak akan disimpan.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Lanjutkan test untuk menjaga peluang lulus dan mendapatkan XP.',
+              style: TextStyle(color: Colors.white60, height: 1.35),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: QuizButton(
+                    label: 'Lanjut Test',
+                    icon: Icons.play_arrow_rounded,
+                    color: QuizColors.goldDark,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: QuizButton(
+                    label: 'Keluar',
+                    icon: Icons.logout_rounded,
+                    color: QuizColors.nightButton,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
