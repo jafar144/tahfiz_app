@@ -13,11 +13,12 @@ class ArabicNormalizer {
   static final RegExp _alefMaqsuraDagger = RegExp('ىٰ');
   // Dagger alef berdiri sendiri (mis. هَٰذَا, ٱلرَّحۡمَٰن) — bunyi mad "aa".
   static final RegExp _daggerAlef = RegExp('ٰ');
+  // Tanda huruf kecil Qurani untuk mad "uu"/"ii" (mis. إِۦلَٰفِهِمۡ).
+  static final RegExp _smallWaw = RegExp('ۥ');
+  static final RegExp _smallYeh = RegExp('ۦ');
   // Tanda harakat + tanda anotasi mushaf yang dibuang. Dagger alef (U+0670)
   // sudah ditangani lebih dulu di atas sehingga tak lagi tergantung di sini.
-  static final RegExp _harakat = RegExp(
-    '[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۤۧۨ-ۭ]',
-  );
+  static final RegExp _harakat = RegExp('[ؐ-ًؚ-ٰٟۖ-ۜ۟-۪ۤۧۨ-ۭ]');
   static final RegExp _tatweel = RegExp('ـ');
   // Varian alef (آ أ إ ٱ ٲ ٳ) -> ا (ا)
   static final RegExp _alef = RegExp('[آأإٱٲٳ]');
@@ -42,15 +43,18 @@ class ArabicNormalizer {
   /// Normalisasi satu kata menjadi huruf Arab telanjang tanpa harakat.
   ///
   /// Mad yang ditulis sebagai dagger alef (ٰ) atau alef maqsura+dagger (ىٰ)
-  /// disamakan menjadi ا (fonetik "aa") agar cocok dengan tulisan ASR (Whisper)
-  /// yang mengeja bunyi panjang itu sebagai alef penuh.
+  /// disamakan menjadi ا (fonetik "aa"), sedangkan small waw/yeh Qurani
+  /// disamakan menjadi و/ي, agar cocok dengan tulisan ASR (Whisper) yang
+  /// mengeja bunyi panjang itu sebagai huruf penuh.
   static String normalizeWord(String text) {
     if (text.isEmpty) return '';
     // Tangani mad "aa" (dagger alef & alef maqsura+dagger) SEBELUM harakat
-    // lain dibuang, agar bunyinya tetap terwakili sebagai ا.
+    // lain dibuang, agar bunyinya tetap terwakili sebagai huruf penuh.
     var t = text
         .replaceAll(_alefMaqsuraDagger, 'ا') // ىٰ -> ا (satu mad)
-        .replaceAll(_daggerAlef, 'ا'); // ٰ  -> ا
+        .replaceAll(_daggerAlef, 'ا') // ٰ  -> ا
+        .replaceAll(_smallWaw, 'و') // ۥ  -> و
+        .replaceAll(_smallYeh, 'ي'); // ۦ  -> ي
     t = t.replaceAll(_harakat, '').replaceAll(_tatweel, '');
     t = t
         .replaceAll(_alef, 'ا') // -> ا

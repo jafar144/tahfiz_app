@@ -70,8 +70,10 @@ class RecitationMatcher {
       for (var j = 1; j <= n; j++) {
         final sim = _similarity(ref[i - 1], hyp[j - 1]);
         final sub = score[i - 1][j - 1] + (2 * sim - 1); // sama:+1, beda:-1
-        final del = score[i - 1][j] + _gap; // kata mushaf tak terbaca -> missing
-        final ins = score[i][j - 1] + _gap; // kata terbaca di luar mushaf -> extra
+        final del =
+            score[i - 1][j] + _gap; // kata mushaf tak terbaca -> missing
+        final ins =
+            score[i][j - 1] + _gap; // kata terbaca di luar mushaf -> extra
         var best = math.max(sub, math.max(del, ins));
         // Merge: DUA kata mushaf (i-2, i-1) menyatu jadi SATU kata terbaca
         // (j-1) karena washal. Diterima hanya bila gabungan lebih mirip ke kata
@@ -80,6 +82,13 @@ class RecitationMatcher {
         if (i >= 2 && _mergeFits(ref, refWasl, hyp, i, j)) {
           final sm = _similarity(_mergedRef(ref, refWasl, i - 2), hyp[j - 1]);
           best = math.max(best, score[i - 2][j - 1] + 2 * sm);
+        }
+        // Split ASR: SATU kata mushaf kadang dipecah Whisper menjadi DUA token
+        // (mis. "إيلافهم" -> "إيلا فهم"). Selama gabungannya paling cocok ke
+        // kata mushaf, perlakukan sebagai satu bacaan kata yang benar.
+        if (j >= 2 && _splitFits(ref, hyp, i, j)) {
+          final sm = _similarity(ref[i - 1], hyp[j - 2] + hyp[j - 1]);
+          best = math.max(best, score[i - 1][j - 2] + (2 * sm - 1));
         }
         score[i][j] = best;
       }
@@ -95,14 +104,35 @@ class RecitationMatcher {
         final sim = _similarity(ref[i - 1], hyp[j - 1]);
         if (_closeEnough(score[i][j], score[i - 1][j - 1] + (2 * sim - 1))) {
           final isCorrect = ref[i - 1] == hyp[j - 1] || sim >= _maddTolerance;
-          out.add(WordDiff(
-            status: isCorrect ? WordStatus.correct : WordStatus.wrong,
-            referenceWord: ref[i - 1],
-            referenceWordDisplay: refPairs[i - 1].original,
-            spokenWord: hyp[j - 1],
-          ));
+          out.add(
+            WordDiff(
+              status: isCorrect ? WordStatus.correct : WordStatus.wrong,
+              referenceWord: ref[i - 1],
+              referenceWordDisplay: refPairs[i - 1].original,
+              spokenWord: hyp[j - 1],
+            ),
+          );
           i--;
           j--;
+          continue;
+        }
+      }
+      // Split ASR: satu kata mushaf terpecah menjadi dua token transkripsi.
+      if (i > 0 && j >= 2 && _splitFits(ref, hyp, i, j)) {
+        final mergedHyp = hyp[j - 2] + hyp[j - 1];
+        final sm = _similarity(ref[i - 1], mergedHyp);
+        if (_closeEnough(score[i][j], score[i - 1][j - 2] + (2 * sm - 1))) {
+          final isCorrect = ref[i - 1] == mergedHyp || sm >= _maddTolerance;
+          out.add(
+            WordDiff(
+              status: isCorrect ? WordStatus.correct : WordStatus.wrong,
+              referenceWord: ref[i - 1],
+              referenceWordDisplay: refPairs[i - 1].original,
+              spokenWord: mergedHyp,
+            ),
+          );
+          i--;
+          j -= 2;
           continue;
         }
       }
@@ -111,29 +141,35 @@ class RecitationMatcher {
       if (i >= 2 && j > 0 && _mergeFits(ref, refWasl, hyp, i, j)) {
         final sm = _similarity(_mergedRef(ref, refWasl, i - 2), hyp[j - 1]);
         if (_closeEnough(score[i][j], score[i - 2][j - 1] + 2 * sm)) {
-          out.add(WordDiff(
-            status: WordStatus.correct,
-            referenceWord: ref[i - 1],
-            referenceWordDisplay: refPairs[i - 1].original,
-            spokenWord: hyp[j - 1],
-          ));
-          out.add(WordDiff(
-            status: WordStatus.correct,
-            referenceWord: ref[i - 2],
-            referenceWordDisplay: refPairs[i - 2].original,
-            spokenWord: hyp[j - 1],
-          ));
+          out.add(
+            WordDiff(
+              status: WordStatus.correct,
+              referenceWord: ref[i - 1],
+              referenceWordDisplay: refPairs[i - 1].original,
+              spokenWord: hyp[j - 1],
+            ),
+          );
+          out.add(
+            WordDiff(
+              status: WordStatus.correct,
+              referenceWord: ref[i - 2],
+              referenceWordDisplay: refPairs[i - 2].original,
+              spokenWord: hyp[j - 1],
+            ),
+          );
           i -= 2;
           j--;
           continue;
         }
       }
       if (i > 0 && _closeEnough(score[i][j], score[i - 1][j] + _gap)) {
-        out.add(WordDiff(
-          status: WordStatus.missing,
-          referenceWord: ref[i - 1],
-          referenceWordDisplay: refPairs[i - 1].original,
-        ));
+        out.add(
+          WordDiff(
+            status: WordStatus.missing,
+            referenceWord: ref[i - 1],
+            referenceWordDisplay: refPairs[i - 1].original,
+          ),
+        );
         i--;
         continue;
       }
@@ -142,8 +178,7 @@ class RecitationMatcher {
     }
 
     final diffs = out.reversed.toList();
-    final correct =
-        diffs.where((d) => d.status == WordStatus.correct).length;
+    final correct = diffs.where((d) => d.status == WordStatus.correct).length;
     final accuracy = m == 0 ? 0.0 : correct / m;
 
     return RecitationResult(
@@ -170,6 +205,18 @@ class RecitationMatcher {
     if (merged < _mergeTolerance) return false;
     final single1 = _similarity(ref[i - 1], hyp[j - 1]);
     final single2 = _similarity(ref[i - 2], hyp[j - 1]);
+    return merged > single1 && merged > single2;
+  }
+
+  /// True bila satu kata mushaf (i-1) paling masuk akal sebagai gabungan dua
+  /// token ASR (j-2, j-1). Ini menutup variasi tokenisasi Whisper tanpa
+  /// menganggap kata tambahan biasa sebagai benar.
+  static bool _splitFits(List<String> ref, List<String> hyp, int i, int j) {
+    final mergedHyp = hyp[j - 2] + hyp[j - 1];
+    final merged = _similarity(ref[i - 1], mergedHyp);
+    if (merged < _maddTolerance) return false;
+    final single1 = _similarity(ref[i - 1], hyp[j - 2]);
+    final single2 = _similarity(ref[i - 1], hyp[j - 1]);
     return merged > single1 && merged > single2;
   }
 

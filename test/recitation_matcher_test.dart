@@ -15,16 +15,23 @@ void main() {
   late List<String> fatihah; // ayat[0] = ayat 1, dst.
   late List<String> kafirun; // surah 109
   late List<String> baqarah; // surah 2 (ayat 1 = muqatta'at الٓمٓ)
+  late List<String> quraisy; // surah 106
 
   setUpAll(() async {
     final raw = await rootBundle.loadString('assets/quran/quran.json');
     final data = json.decode(raw) as List<dynamic>;
-    fatihah = ((data.firstWhere((e) => e['id'] == 1))['verses'] as List<dynamic>)
-        .cast<String>();
-    kafirun = ((data.firstWhere((e) => e['id'] == 109))['verses'] as List<dynamic>)
-        .cast<String>();
-    baqarah = ((data.firstWhere((e) => e['id'] == 2))['verses'] as List<dynamic>)
-        .cast<String>();
+    fatihah =
+        ((data.firstWhere((e) => e['id'] == 1))['verses'] as List<dynamic>)
+            .cast<String>();
+    kafirun =
+        ((data.firstWhere((e) => e['id'] == 109))['verses'] as List<dynamic>)
+            .cast<String>();
+    baqarah =
+        ((data.firstWhere((e) => e['id'] == 2))['verses'] as List<dynamic>)
+            .cast<String>();
+    quraisy =
+        ((data.firstWhere((e) => e['id'] == 106))['verses'] as List<dynamic>)
+            .cast<String>();
   });
 
   int countStatus(RecitationResult r, WordStatus s) =>
@@ -99,7 +106,10 @@ void main() {
     test('case 5: skip ayat penuh di tengah -> missing sepanjang ayat itu', () {
       final ref = '${fatihah[0]} ${fatihah[1]} ${fatihah[2]}';
       final spoken = '${fatihah[0]} ${fatihah[2]}';
-      final r = RecitationMatcher.compare(referenceText: ref, spokenText: spoken);
+      final r = RecitationMatcher.compare(
+        referenceText: ref,
+        spokenText: spoken,
+      );
       expect(
         countStatus(r, WordStatus.missing),
         ArabicNormalizer.tokenize(fatihah[1]).length,
@@ -107,22 +117,32 @@ void main() {
       expect(r.accuracy < 1.0, true);
     });
 
-    test('case 6: dagger-alef (عَٰبِدُونَ) vs alef penuh ASR -> tetap benar', () {
-      final ref = kafirun[2]; // mengandung عَٰبِدُونَ (dagger alef U+0670)
-      // Simulasi Whisper menulis alef penuh: ganti U+0670 -> U+0627.
-      final spoken = String.fromCharCodes(
-        ref.runes.map((r) => r == 0x0670 ? 0x0627 : r),
-      );
-      final r = RecitationMatcher.compare(referenceText: ref, spokenText: spoken);
-      expect(r.diffs.any((d) => d.status == WordStatus.wrong), false);
-      expect(r.accuracy, 1.0);
-    });
+    test(
+      'case 6: dagger-alef (عَٰبِدُونَ) vs alef penuh ASR -> tetap benar',
+      () {
+        final ref = kafirun[2]; // mengandung عَٰبِدُونَ (dagger alef U+0670)
+        // Simulasi Whisper menulis alef penuh: ganti U+0670 -> U+0627.
+        final spoken = String.fromCharCodes(
+          ref.runes.map((r) => r == 0x0670 ? 0x0627 : r),
+        );
+        final r = RecitationMatcher.compare(
+          referenceText: ref,
+          spokenText: spoken,
+        );
+        expect(r.diffs.any((d) => d.status == WordStatus.wrong), false);
+        expect(r.accuracy, 1.0);
+      },
+    );
 
     test('case 7: kata pendek beda (قل vs قال) tetap salah', () {
-      final r = RecitationMatcher.compare(referenceText: 'قُلۡ', spokenText: 'قَالَ');
+      final r = RecitationMatcher.compare(
+        referenceText: 'قُلۡ',
+        spokenText: 'قَالَ',
+      );
       expect(
-        r.diffs.any((d) =>
-            d.status == WordStatus.wrong || d.status == WordStatus.missing),
+        r.diffs.any(
+          (d) => d.status == WordStatus.wrong || d.status == WordStatus.missing,
+        ),
         true,
       );
     });
@@ -163,7 +183,8 @@ void main() {
     test('washal: "مَا ٱبۡتَلَىٰهُ" terbaca menyatu (مبتلاه) tetap benar', () {
       // Simulasi transkripsi Whisper seperti pada laporan pengguna: dua kata
       // "مَا ٱبۡتَلَىٰهُ" menyatu jadi satu kata "مبتلاه", أَهَٰنَنِ -> "اهانا".
-      const spoken = 'فأما الإنسان إذا مبتلاه ربه فأكرمه ونعمه فيقول ربي أكرمن '
+      const spoken =
+          'فأما الإنسان إذا مبتلاه ربه فأكرمه ونعمه فيقول ربي أكرمن '
           'وأما إذا مبتلاه فقدر عليه رزقه فيقول ربي أهانا';
       final r = RecitationMatcher.compare(
         referenceText: '$ref15 $ref16',
@@ -178,6 +199,35 @@ void main() {
     test('bacaan sempurna (identik) tetap 100%', () {
       final ref = '$ref15 $ref16';
       final r = RecitationMatcher.compare(referenceText: ref, spokenText: ref);
+      expect(r.accuracy, 1.0);
+    });
+  });
+
+  group('Mad small yeh/waw & split ASR (Quraisy 2)', () {
+    test(
+      'small yeh Qurani pada "إِۦلَٰفِهِمۡ" tidak hilang saat normalisasi',
+      () {
+        expect(ArabicNormalizer.normalizeWord('إِۦلَٰفِهِمۡ'), 'ايلافهم');
+      },
+    );
+
+    test('Whisper memecah "إيلافهم" menjadi dua token tetap dinilai benar', () {
+      final r = RecitationMatcher.compare(
+        referenceText: quraisy[1],
+        spokenText: 'إيلا فهم رحلة الشتاء والصيف',
+      );
+      expect(countStatus(r, WordStatus.wrong), 0);
+      expect(countStatus(r, WordStatus.missing), 0);
+      expect(countStatus(r, WordStatus.extra), 0);
+      expect(r.accuracy, 1.0);
+    });
+
+    test('Whisper menulis "إيلافهم" satu token tetap dinilai benar', () {
+      final r = RecitationMatcher.compare(
+        referenceText: quraisy[1],
+        spokenText: 'إيلافهم رحلة الشتاء والصيف',
+      );
+      expect(r.diffs.every((d) => d.status == WordStatus.correct), true);
       expect(r.accuracy, 1.0);
     });
   });
@@ -208,8 +258,9 @@ void main() {
       );
       // Muqatta'at tetap dinilai benar; kata basmalah jadi "tambahan".
       expect(
-        r.diffs.any((d) =>
-            d.status == WordStatus.correct && d.referenceWord == 'الم'),
+        r.diffs.any(
+          (d) => d.status == WordStatus.correct && d.referenceWord == 'الم',
+        ),
         true,
       );
     });
@@ -218,7 +269,10 @@ void main() {
       // الٓمٓ (2:1) + ذٰلِكَ ٱلۡكِتَٰبُ ... (2:2) dieja huruf lalu lanjut normal.
       final ref = '${baqarah[0]} ${baqarah[1]}';
       final spoken = 'ألف لام ميم ${baqarah[1]}';
-      final r = RecitationMatcher.compare(referenceText: ref, spokenText: spoken);
+      final r = RecitationMatcher.compare(
+        referenceText: ref,
+        spokenText: spoken,
+      );
       expect(r.diffs.any((d) => d.status == WordStatus.wrong), false);
       expect(r.accuracy, 1.0);
     });
@@ -238,8 +292,9 @@ void main() {
       // Tiap ayat: jumlah diff referensi == jumlah token ayat.
       for (final a in targetAyat) {
         final slice = map['${a.surahId}:${a.number}']!;
-        final refCount =
-            slice.where((d) => d.status != WordStatus.extra).length;
+        final refCount = slice
+            .where((d) => d.status != WordStatus.extra)
+            .length;
         expect(refCount, ArabicNormalizer.tokenizeWithOriginal(a.text).length);
       }
       // Gabungan seluruh slice == seluruh diff (tak ada yang hilang/ganda).
