@@ -42,7 +42,7 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
   }
 
   void _chimeCorrect() {
-    _player.play(AssetSource('sounds/correct.wav'), volume: 0.5);
+    _player.play(AssetSource('sounds/correct.wav'), volume: 0.85);
   }
 
   void _chimeWrong() {
@@ -50,7 +50,7 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
   }
 
   void _playTick() {
-    _tickPlayer.play(AssetSource('sounds/tick.wav'), volume: 0.25);
+    _tickPlayer.play(AssetSource('sounds/tick.wav'), volume: 0.4);
   }
 
   @override
@@ -264,9 +264,14 @@ class _ChoiceTriviaScreen extends StatelessWidget {
               child: BonusRewardOverlay(
                 key: ValueKey(state.currentIndex),
                 seconds: state.lastTimeBonus,
-                points: state.answers.isNotEmpty ? state.answers.last.score : 0,
+                points: state.answers.isNotEmpty
+                    ? state.answers.last.score + state.answers.last.bonusScore
+                    : 0,
                 full:
-                    (state.answers.isNotEmpty ? state.answers.last.score : 0) >=
+                    (state.answers.isNotEmpty
+                        ? state.answers.last.score +
+                              state.answers.last.bonusScore
+                        : 0) >=
                     QuizConfig.choiceTriviaPoints,
               ),
             ),

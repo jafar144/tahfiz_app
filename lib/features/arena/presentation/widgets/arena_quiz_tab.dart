@@ -22,8 +22,8 @@ class ArenaQuizTab extends StatelessWidget {
     // KEDUANYA saat kembali dari kuis agar angkanya tidak basi.
     final journey = context.read<SurahJourneyCubit>();
     await context.pushNamed(RouteNames.recitationQuiz);
-    cubit.refresh();
-    journey.refreshEnergy();
+    if (!context.mounted) return;
+    await Future.wait([cubit.refresh(), journey.refresh()]);
   }
 
   Future<void> _openChallengeSheet(
@@ -43,8 +43,8 @@ class ArenaQuizTab extends StatelessWidget {
     );
     if (launch == null || !context.mounted) return;
     await context.pushNamed(RouteNames.recitationQuiz, extra: launch);
-    cubit.refresh();
-    journey.refreshEnergy();
+    if (!context.mounted) return;
+    await Future.wait([cubit.refresh(), journey.refresh()]);
   }
 
   @override
@@ -85,10 +85,7 @@ class ArenaQuizTab extends StatelessWidget {
                     'Pilihan). Hasil tidak dicatat — santai saja!',
                 chips: const [
                   _InfoChip(icon: kEnergyIcon, label: '1 energi / sesi'),
-                  _InfoChip(
-                    icon: Icons.tune_rounded,
-                    label: 'Bebas dikustom',
-                  ),
+                  _InfoChip(icon: Icons.tune_rounded, label: 'Bebas dikustom'),
                 ],
                 buttonLabel: 'Mulai Latihan',
                 onPressed: () => _openPractice(context),

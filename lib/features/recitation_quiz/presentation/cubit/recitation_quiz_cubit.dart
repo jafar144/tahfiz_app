@@ -557,9 +557,10 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
     final answer = QuizAnswer(
       questionIndex: state.currentIndex,
-      score: points,
+      score: trivia == null ? points : 0,
       attempts: 1,
       passed: points > 0,
+      bonusScore: trivia != null ? points : 0,
     );
 
     // Soal Bonus terjawab BENAR → tahap HADIAH: tahan sejenak & animasikan
@@ -736,6 +737,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
           clearSaveError: true,
         ),
       );
+      await _awardResultXp(result);
       return;
     }
 
@@ -754,13 +756,22 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       score: result.leaderboardScore,
       questionScores: result.scores,
       juz: state.settings.sortedJuz,
+      bonusTotal: result.totalBonus,
+      earnedXp: result.earnedXp,
       kelas: _launch?.ownKelas,
       scopeKelas: _launch?.scopeKelas,
     );
+    await _awardResultXp(result);
     save.fold(
       ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
       ifRight: (_) => emit(state.copyWith(saving: false)),
     );
+  }
+
+  Future<void> _awardResultXp(QuizResult result) async {
+    if (result.earnedXp <= 0) return;
+    final award = await repository.awardXp(result.earnedXp);
+    award.fold(ifLeft: (_) {}, ifRight: (_) {});
   }
 
   /// Bersihkan penanda blokir setelah bottom sheet ditampilkan.
@@ -1185,6 +1196,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
             clearSaveError: true,
           ),
         );
+        await _awardResultXp(result);
         await _releaseSession();
         return;
       }
@@ -1205,9 +1217,11 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         questionScores: result.scores,
         juz: state.settings.sortedJuz,
         bonusTotal: result.totalBonus,
+        earnedXp: result.earnedXp,
         kelas: _launch?.ownKelas,
         scopeKelas: _launch?.scopeKelas,
       );
+      await _awardResultXp(result);
       save.fold(
         ifLeft: (f) =>
             emit(state.copyWith(saving: false, saveError: f.message)),

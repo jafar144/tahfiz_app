@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
@@ -8,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_res
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_review_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Layar rekap akhir sesi kuis (mode suara & pilihan).
@@ -42,7 +45,6 @@ class QuizResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isChoice = result.mode.isChoice;
     // Latihan memakai energi di KEDUA mode (suara & pilihan).
     final canPlay = energy?.canPlay ?? true;
 
@@ -53,9 +55,7 @@ class QuizResultView extends StatelessWidget {
           children: [
             const Spacer(),
             Text(
-              isChoice
-                  ? _gradePoints(result.totalPoints)
-                  : _grade(result.averageScore),
+              _gradePoints(result.resultPoints + result.totalBonus),
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -63,32 +63,22 @@ class QuizResultView extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
-              isChoice ? 'Total poinmu' : 'Nilai akhirmu',
+              '${result.mode.label} • XP x${result.xpMultiplier}',
               style: const TextStyle(color: Colors.white60),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
-            if (isChoice) ...[
-              _PointsBadge(points: result.totalPoints),
-              const SizedBox(height: 16),
-              Text(
-                '${result.passedCount} benar dari ${result.questionCount} soal',
-                style: _passedTextStyle,
-              ),
-            ] else
-              // Rekap mode suara dengan koreografi "gaming": cincin terisi skor
-              // bacaan, lalu poin bonus terbang masuk & cincin terisi lagi.
-              _VoiceScoreReveal(
-                reading: result.averageScore,
-                bonus: result.totalBonus,
-                total: result.leaderboardScore,
-                passedCount: result.passedCount,
-                questionCount: result.questionCount,
-              ),
+            _ResultScoreReveal(
+              points: result.resultPoints,
+              bonus: result.totalBonus,
+              xp: result.earnedXp,
+              passedCount: result.passedCount,
+              questionCount: result.questionCount,
+            ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             // Latihan tidak disimpan → status simpan hanya untuk Tantangan.
             if (isChallenge) _saveStatus(context),
             const Spacer(),
@@ -238,76 +228,11 @@ class QuizResultView extends StatelessWidget {
     );
   }
 
-  static String _grade(int total) {
-    if (total > 90) return 'Luar Biasa! 🌟';
-    if (total >= 80) return 'Masyaa Allah!';
-    if (total >= 60) return 'Bagus, terus berlatih!';
-    return 'Ayo semangat berlatih!';
-  }
-
   static String _gradePoints(int points) {
     if (points >= 120) return 'Luar Biasa! 🌟';
     if (points >= 80) return 'Masyaa Allah!';
     if (points >= 40) return 'Bagus, terus berlatih!';
     return 'Ayo semangat berlatih!';
-  }
-}
-
-/// Badge poin besar untuk mode pilihan.
-class _PointsBadge extends StatelessWidget {
-  final int points;
-  const _PointsBadge({required this.points});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 180,
-      height: 180,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [QuizColors.gold, QuizColors.goldDark],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: QuizColors.gold.withValues(alpha: 0.4),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.star_rounded, color: Colors.white, size: 34),
-          const SizedBox(height: 2),
-          TweenAnimationBuilder<int>(
-            tween: IntTween(begin: 0, end: points),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, _) => Text(
-              '$value',
-              style: const TextStyle(
-                fontSize: 52,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                height: 1.0,
-              ),
-            ),
-          ),
-          const Text(
-            'poin',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -317,313 +242,246 @@ const _passedTextStyle = TextStyle(
   color: Colors.white70,
 );
 
-/// Rekap skor mode SUARA dengan koreografi "gaming":
-///  1) cincin terisi dari 0 → nilai bacaan (warna sesuai skor),
-///  2) badge "+bonus" emas terbang naik lalu terserap ke cincin,
-///  3) cincin terisi lagi (bacaan → total) menjadi emas + kilau bila > 100,
-///  4) rincian "Bacaan + Bonus = Total" muncul bertahap.
-/// Bila tak ada bonus: cukup tahap 1 (tanpa badge & tanpa rincian).
-class _VoiceScoreReveal extends StatefulWidget {
-  final int reading;
+/// Rekap hasil bergaya "kota" ala Duolingo: tiga tower muncul dari bawah satu
+/// per satu, angka count-up, lalu tower XP berkilau sebagai penutup.
+class _ResultScoreReveal extends StatefulWidget {
+  final int points;
   final int bonus;
-  final int total;
+  final int xp;
   final int passedCount;
   final int questionCount;
 
-  const _VoiceScoreReveal({
-    required this.reading,
+  const _ResultScoreReveal({
+    required this.points,
     required this.bonus,
-    required this.total,
+    required this.xp,
     required this.passedCount,
     required this.questionCount,
   });
 
   @override
-  State<_VoiceScoreReveal> createState() => _VoiceScoreRevealState();
+  State<_ResultScoreReveal> createState() => _ResultScoreRevealState();
 }
 
-class _VoiceScoreRevealState extends State<_VoiceScoreReveal>
+class _ResultScoreRevealState extends State<_ResultScoreReveal>
     with SingleTickerProviderStateMixin {
-  static const double _ringSize = 180;
-
-  // Penanda waktu koreografi (ms). Tahap 2 (bonus) hanya dipakai bila ada bonus.
-  static const int _fill1End = 1000; // cincin terisi skor bacaan
-  static const int _holdEnd = 1650; // jeda sebelum bonus muncul
-  static const int _flyEnd = 2150; // badge bonus selesai terbang naik
-  static const int _fill2End = 3150; // cincin terisi lagi (→ total)
-
-  late final bool _hasBonus = widget.bonus > 0;
-  late final int _totalMs = _hasBonus ? _fill2End : 1400;
   late final AnimationController _ctl = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: _totalMs),
+    duration: const Duration(milliseconds: 3800),
   );
+  final AudioPlayer _stagePlayer = AudioPlayer();
+  final AudioPlayer _tickPlayer = AudioPlayer();
+  final List<bool> _stageStarted = [false, false, false];
+  final List<int> _lastCounts = [0, 0, 0];
+  DateTime _lastTickAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   void initState() {
     super.initState();
+    unawaited(_stagePlayer.setPlayerMode(PlayerMode.lowLatency));
+    unawaited(_tickPlayer.setPlayerMode(PlayerMode.lowLatency));
+    _ctl.addListener(_handleFeedbackTick);
     _ctl.forward();
   }
 
   @override
   void dispose() {
+    _ctl.removeListener(_handleFeedbackTick);
     _ctl.dispose();
+    unawaited(_stagePlayer.dispose());
+    unawaited(_tickPlayer.dispose());
     super.dispose();
   }
 
   static double _ease(double t) =>
       Curves.easeOutCubic.transform(t.clamp(0.0, 1.0));
 
-  // Cincin diukur dalam satuan PUTARAN: 1 putaran penuh = 100 poin. Skor bacaan
-  // 0..100 → 0..1 putaran; total (bacaan + bonus) bisa > 100 → cincin berputar
-  // lebih dari sekali (lap ke-2, dst).
-  double get _baseFraction => (widget.reading / 100).clamp(0.0, 1.0);
-  double get _totalFraction => widget.total / 100;
+  double _interval(double begin, double end) {
+    final v = _ctl.value;
+    return _ease(((v - begin) / (end - begin)).clamp(0.0, 1.0));
+  }
+
+  void _handleFeedbackTick() {
+    final pointsT = _interval(0.04, 0.42);
+    final bonusT = _interval(0.42, 0.72);
+    final xpT = _interval(0.72, 0.96);
+
+    _syncStageFeedback(0, pointsT, widget.points, 1.00);
+    _syncStageFeedback(1, bonusT, widget.bonus, 1.14);
+    _syncStageFeedback(2, xpT, widget.xp, 1.30);
+  }
+
+  void _syncStageFeedback(int index, double t, int value, double pitch) {
+    if (t <= 0) return;
+    if (!_stageStarted[index]) {
+      _stageStarted[index] = true;
+      QuizHaptics.tap();
+      unawaited(_playStageSound(pitch));
+    }
+
+    final count = (value * t).round();
+    if (count <= _lastCounts[index]) return;
+    final now = DateTime.now();
+    if (now.difference(_lastTickAt).inMilliseconds < 85) return;
+    _lastTickAt = now;
+    _lastCounts[index] = count;
+    QuizHaptics.light();
+    unawaited(_playTickSound(pitch));
+  }
+
+  Future<void> _playStageSound(double pitch) async {
+    try {
+      await _stagePlayer.stop();
+      await _stagePlayer.setPlaybackRate(pitch);
+      await _stagePlayer.play(AssetSource('sounds/correct.wav'), volume: 0.78);
+    } catch (_) {
+      // Audio feedback opsional; jangan sampai menggagalkan layar hasil.
+    }
+  }
+
+  Future<void> _playTickSound(double pitch) async {
+    try {
+      await _tickPlayer.stop();
+      await _tickPlayer.setPlaybackRate(pitch);
+      await _tickPlayer.play(AssetSource('sounds/tick.wav'), volume: 0.46);
+    } catch (_) {
+      // Widget test / device tanpa audio channel tetap aman.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = QuizColors.forScore(widget.reading);
-    final overcharged = widget.total > 100;
-
     return AnimatedBuilder(
       animation: _ctl,
       builder: (context, _) {
-        final e = _ctl.value * _totalMs; // ms berjalan
-
-        // Progres sapuan cincin & angka tengah.
-        final double ringProgress;
-        final double number;
-        if (!_hasBonus) {
-          final t = _ease(e / _fill1End);
-          ringProgress = _baseFraction * t;
-          number = widget.reading * t;
-        } else if (e <= _fill1End) {
-          final t = _ease(e / _fill1End);
-          ringProgress = _baseFraction * t;
-          number = widget.reading * t;
-        } else if (e <= _flyEnd) {
-          ringProgress = _baseFraction;
-          number = widget.reading.toDouble();
-        } else {
-          final t = _ease((e - _flyEnd) / (_fill2End - _flyEnd));
-          ringProgress = _baseFraction + (_totalFraction - _baseFraction) * t;
-          number = widget.reading + (widget.total - widget.reading) * t;
-        }
-
-        // Peralihan warna angka (→ emas) & kilau overcharge saat tahap 2.
-        final double goldT = _hasBonus && e > _flyEnd
-            ? _ease((e - _flyEnd) / (_fill2End - _flyEnd))
-            : 0.0;
-        final glow = overcharged ? goldT : 0.0;
-        final numberColor = Color.lerp(baseColor, QuizColors.gold, goldT)!;
-        final showPoin = _hasBonus && e > _flyEnd;
-
-        // "Pop" kecil saat bonus menyatu ke cincin.
-        final popT = _hasBonus ? ((e - _flyEnd) / 300).clamp(0.0, 1.0) : 0.0;
-        final numberScale = 1 + math.sin(popT * math.pi) * 0.10;
-
-        // Badge bonus: terbang dari bawah cincin, berhenti sejenak di atas
-        // angka, lalu menyelam & mengecil masuk ke tengah (terserap).
-        double badgeOpacity = 0, badgeScale = 0.6, badgeDy = 0;
-        if (_hasBonus) {
-          final flyT = _ease(
-            ((e - _holdEnd) / (_flyEnd - _holdEnd)).clamp(0.0, 1.0),
-          );
-          final absorbT = ((e - _flyEnd) / 300).clamp(0.0, 1.0);
-          badgeOpacity = flyT * (1 - absorbT);
-          badgeScale = (0.6 + 0.4 * flyT) * (1 - 0.5 * absorbT);
-          // +88px (bawah) → -24px (tepat di atas angka) → 0 (menyelam ke tengah).
-          badgeDy = 88 * (1 - flyT) - 24 * flyT + 24 * absorbT;
-        }
-
-        final passedT = _ease(((e - 800) / 400).clamp(0.0, 1.0));
-        final revealBase = _hasBonus ? 2450.0 : 1050.0;
-        final revealSpan = _hasBonus ? 700.0 : 350.0;
-        final reveal = ((e - revealBase) / revealSpan).clamp(0.0, 1.0);
+        final pointsT = _interval(0.04, 0.42);
+        final bonusT = _interval(0.42, 0.72);
+        final xpT = _interval(0.72, 0.96);
+        final textT = _interval(0.88, 1.0);
+        final shownTotal = (widget.points * pointsT + widget.bonus * bonusT)
+            .round();
 
         return Column(
           children: [
-            SizedBox(
-              width: 200,
-              height: 200,
-              child: Stack(
-                alignment: Alignment.center,
-                clipBehavior: Clip.none,
-                children: [
-                  SizedBox(
-                    width: _ringSize,
-                    height: _ringSize,
-                    child: CustomPaint(
-                      painter: _ScoreRingPainter(
-                        progress: ringProgress,
-                        baseFraction: _baseFraction,
-                        baseColor: baseColor,
-                        bonusColor: QuizColors.gold,
-                        glow: glow,
-                      ),
-                    ),
-                  ),
-                  Transform.scale(
-                    scale: numberScale,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${number.round()}',
-                          style: TextStyle(
-                            fontSize: _ringSize * 0.30,
-                            fontWeight: FontWeight.w900,
-                            color: numberColor,
-                            height: 1.0,
-                          ),
-                        ),
-                        Text(
-                          showPoin ? 'poin' : 'nilai',
-                          style: TextStyle(
-                            fontSize: _ringSize * 0.11,
-                            color: Colors.white60,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_hasBonus)
-                    Transform.translate(
-                      offset: Offset(0, badgeDy),
-                      child: Opacity(
-                        opacity: badgeOpacity.clamp(0.0, 1.0),
-                        child: Transform.scale(
-                          scale: badgeScale,
-                          child: _BonusFlyBadge(bonus: widget.bonus),
-                        ),
-                      ),
-                    ),
-                ],
+            Transform.translate(
+              offset: const Offset(0, -10),
+              child: _ResultTotalRing(
+                points: widget.points,
+                bonus: widget.bonus,
+                pointsT: pointsT,
+                bonusT: bonusT,
+                shownTotal: shownTotal,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 52),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final cardWidth = ((width - 24) / 3).clamp(86.0, 112.0);
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _ResultTower(
+                      t: pointsT,
+                      width: cardWidth,
+                      value: widget.points,
+                      label: 'Total Poin',
+                      icon: Icons.star_rounded,
+                      accentColor: const Color(0xFF00D084),
+                    ),
+                    const SizedBox(width: 8),
+                    _ResultTower(
+                      t: bonusT,
+                      width: cardWidth,
+                      value: widget.bonus,
+                      label: 'Total Bonus',
+                      icon: Icons.bolt_rounded,
+                      accentColor: QuizColors.gold,
+                    ),
+                    const SizedBox(width: 8),
+                    _ResultTower(
+                      t: xpT,
+                      width: cardWidth,
+                      value: widget.xp,
+                      label: 'XP Didapat',
+                      icon: Icons.star_rounded,
+                      accentColor: QuizColors.xpBlue,
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 18),
             Opacity(
-              opacity: passedT,
+              opacity: textT,
               child: Text(
                 '${widget.passedCount} dari ${widget.questionCount} soal lolos',
                 style: _passedTextStyle,
               ),
             ),
-            if (_hasBonus) ...[
-              const SizedBox(height: 14),
-              _breakdown(QuizColors.gold, reveal),
-            ],
           ],
         );
       },
     );
   }
-
-  /// Rincian "Bacaan + Bonus = Total" yang muncul bertahap (kiri → kanan).
-  Widget _breakdown(Color primary, double reveal) {
-    double sub(double a, double b) => ((reveal - a) / (b - a)).clamp(0.0, 1.0);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        _stat('Bacaan', widget.reading, Colors.white70, sub(0.0, 0.5)),
-        _op('+', sub(0.15, 0.6)),
-        _stat('Bonus', widget.bonus, QuizColors.gold, sub(0.25, 0.75)),
-        _op('=', sub(0.4, 0.85)),
-        _stat('Total', widget.total, primary, sub(0.5, 1.0), emphasize: true),
-      ],
-    );
-  }
-
-  Widget _op(String s, double t) => Opacity(
-    opacity: t,
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Text(
-        s,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: Colors.white38,
-        ),
-      ),
-    ),
-  );
-
-  Widget _stat(
-    String label,
-    int value,
-    Color color,
-    double t, {
-    bool emphasize = false,
-  }) {
-    return Opacity(
-      opacity: t,
-      child: Transform.translate(
-        offset: Offset(0, (1 - t) * 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$value',
-              style: TextStyle(
-                fontSize: emphasize ? 24 : 19,
-                fontWeight: FontWeight.w900,
-                color: color,
-                height: 1.0,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 11, color: Colors.white54),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
-/// Badge "+N" emas yang terbang masuk ke cincin (koreografi bonus).
-class _BonusFlyBadge extends StatelessWidget {
+class _ResultTotalRing extends StatelessWidget {
+  final int points;
   final int bonus;
+  final double pointsT;
+  final double bonusT;
+  final int shownTotal;
 
-  const _BonusFlyBadge({required this.bonus});
+  const _ResultTotalRing({
+    required this.points,
+    required this.bonus,
+    required this.pointsT,
+    required this.bonusT,
+    required this.shownTotal,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [QuizColors.gold, QuizColors.goldDark],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: QuizColors.gold.withValues(alpha: 0.5),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      width: 154,
+      height: 154,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
-          const SizedBox(width: 2),
-          Text(
-            '+$bonus',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              height: 1.0,
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _ResultRingPainter(
+                points: points,
+                bonus: bonus,
+                pointsT: pointsT,
+                bonusT: bonusT,
+              ),
             ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$shownTotal',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w900,
+                  height: 0.95,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'poin',
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -631,98 +489,168 @@ class _BonusFlyBadge extends StatelessWidget {
   }
 }
 
-/// Pelukis cincin skor "putaran": 1 putaran penuh = 100 poin.
-///  • Putaran pertama: segmen warna dasar (skor bacaan) lalu sambungan emas
-///    (bonus) sampai ujung poin.
-///  • Bila total > 100 poin ([progress] > 1), cincin berputar lagi: putaran
-///    ke-2+ digambar menimpa dengan emas lebih terang + kilau (overcharge).
-class _ScoreRingPainter extends CustomPainter {
-  final double progress; // satuan putaran; 1.0 = 100 poin, bisa > 1
-  final double baseFraction; // batas skor bacaan (0..1) di putaran pertama
-  final Color baseColor;
-  final Color bonusColor; // emas putaran pertama
-  final double glow; // 0..1 intensitas kilau overcharge
+class _ResultRingPainter extends CustomPainter {
+  final int points;
+  final int bonus;
+  final double pointsT;
+  final double bonusT;
 
-  /// Emas putaran ke-2+ (lebih terang agar putaran baru terlihat menimpa).
-  static const Color lapColor = Color(0xFFFFD54F);
-
-  _ScoreRingPainter({
-    required this.progress,
-    required this.baseFraction,
-    required this.baseColor,
-    required this.bonusColor,
-    this.glow = 0,
+  const _ResultRingPainter({
+    required this.points,
+    required this.bonus,
+    required this.pointsT,
+    required this.bonusT,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = size.width * 0.09;
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - stroke) / 2;
-    final rect = Rect.fromCircle(center: center, radius: radius);
     const start = -math.pi / 2;
     const full = 2 * math.pi;
-
-    Paint stroked(Color c, [double widthMul = 1]) => Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke * widthMul
-      ..strokeCap = StrokeCap.round
-      ..color = c;
-
-    // Lintasan (track) samar.
-    canvas.drawArc(
-      rect,
-      0,
-      full,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = baseColor.withValues(alpha: 0.12),
+    final stroke = size.width * 0.10;
+    final rect = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: (size.width - stroke) / 2,
     );
+    Paint paint(Color color, {double alpha = 1}) => Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
+      ..color = color.withValues(alpha: alpha);
 
-    // Kilau overcharge (di belakang sapuan) saat sudah berputar > 1 kali.
-    if (glow > 0) {
-      canvas.drawArc(
-        rect,
-        start,
-        full,
-        false,
-        stroked(lapColor.withValues(alpha: 0.4 * glow), 1.7)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, stroke * 0.9),
-      );
-    }
+    canvas.drawArc(rect, start, full, false, paint(Colors.white, alpha: 0.12));
 
-    // ── Putaran pertama: dasar (bacaan) + emas (bonus) ──────────────────────
-    final firstLap = progress.clamp(0.0, 1.0).toDouble();
-    final baseEnd = firstLap <= baseFraction ? firstLap : baseFraction;
-    if (baseEnd > 0) {
-      canvas.drawArc(rect, start, full * baseEnd, false, stroked(baseColor));
-    }
-    if (firstLap > baseFraction) {
-      canvas.drawArc(
-        rect,
-        start + full * baseFraction,
-        full * (firstLap - baseFraction),
-        false,
-        stroked(bonusColor),
-      );
+    void drawTurns(double turnStart, double turns, Color color) {
+      var remaining = turns;
+      var cursor = turnStart;
+      while (remaining > 0) {
+        final sweep = remaining.clamp(0.0, 1.0).toDouble();
+        canvas.drawArc(
+          rect,
+          start + full * (cursor % 1),
+          full * sweep,
+          false,
+          paint(color),
+        );
+        remaining -= sweep;
+        cursor += sweep;
+      }
     }
 
-    // ── Putaran ke-2+ (menimpa, emas lebih terang) ─────────────────────────
-    var remaining = progress - 1.0;
-    while (remaining > 0) {
-      final sweep = remaining.clamp(0.0, 1.0).toDouble();
-      canvas.drawArc(rect, start, full * sweep, false, stroked(lapColor));
-      remaining -= 1.0;
-    }
+    final pointTurns = (points * pointsT) / 100;
+    final bonusTurns = (bonus * bonusT) / 100;
+    drawTurns(0, pointTurns, QuizColors.correctBright);
+    drawTurns(pointTurns, bonusTurns, QuizColors.gold);
   }
 
   @override
-  bool shouldRepaint(_ScoreRingPainter old) =>
-      old.progress != progress ||
-      old.baseFraction != baseFraction ||
-      old.baseColor != baseColor ||
-      old.bonusColor != bonusColor ||
-      old.glow != glow;
+  bool shouldRepaint(_ResultRingPainter oldDelegate) =>
+      oldDelegate.points != points ||
+      oldDelegate.bonus != bonus ||
+      oldDelegate.pointsT != pointsT ||
+      oldDelegate.bonusT != bonusT;
+}
+
+class _ResultTower extends StatelessWidget {
+  final double t;
+  final double width;
+  final int value;
+  final String label;
+  final IconData icon;
+  final Color accentColor;
+
+  const _ResultTower({
+    required this.t,
+    required this.width,
+    required this.value,
+    required this.label,
+    required this.icon,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pop = Curves.elasticOut.transform(t.clamp(0.0, 1.0));
+    final dy = (1 - t) * 28;
+    final count = (value * t).round();
+    const height = 90.0;
+
+    return Opacity(
+      opacity: t,
+      child: Transform.translate(
+        offset: Offset(0, dy),
+        child: Transform.scale(
+          scale: 0.88 + 0.12 * pop,
+          alignment: Alignment.bottomCenter,
+          child: SizedBox(
+            width: width,
+            height: height,
+            child: Container(
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.30),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.fromLTRB(5, 7, 5, 6),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 18,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label.toUpperCase(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF142531),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10242D),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, color: accentColor, size: 20),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '$count',
+                                style: TextStyle(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 23,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

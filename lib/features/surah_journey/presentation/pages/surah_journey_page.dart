@@ -36,10 +36,7 @@ class SurahJourneyPage extends StatelessWidget {
             colors: [_skyTop, _skyBottom],
           ),
         ),
-        child: const SafeArea(
-          bottom: false,
-          child: SurahJourneyView(),
-        ),
+        child: const SafeArea(bottom: false, child: SurahJourneyView()),
       ),
     );
   }
@@ -60,19 +57,14 @@ class SurahJourneyView extends StatelessWidget {
       builder: (context, state) {
         final isLoading = state.status == JourneyStatus.loading;
         // Halaman loading dedicated ditukar ke konten (header + peta/error)
-        // dengan animasi geser kanan→kiri, bukan potongan spinner kecil yang
-        // muncul lalu XP/energi menyusul belakangan.
+        // dengan fade lembut. Hindari slide horizontal di sini agar tidak
+        // terasa seperti navigasi kedua setelah route/back animation selesai.
         return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 420),
+          duration: const Duration(milliseconds: 220),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) => SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
           child: isLoading
               ? NightLoadingPage(
                   key: const ValueKey('journey-loading'),
@@ -563,8 +555,9 @@ class _JourneyMapState extends State<_JourneyMap> {
     }
     final cubit = context.read<SurahJourneyCubit>();
     await context.pushNamed(RouteNames.surahLesson, extra: node.lesson);
-    // Muat ulang progres saat kembali dari sesi belajar/ujian.
-    cubit.load();
+    // Muat ulang progres saat kembali dari sesi belajar/ujian — senyap
+    // (tanpa halaman loading), peta cukup ter-update di tempat.
+    cubit.refresh();
   }
 }
 

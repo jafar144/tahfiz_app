@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_leaderboard_tab.dart';
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_quiz_tab.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_journey_page.dart';
 
-/// Palet malam Tahfiz Arena — mengikuti gaya Petualangan Surah.
 class ArenaColors {
   ArenaColors._();
 
@@ -15,8 +19,6 @@ class ArenaColors {
   static const navBar = Color(0xFF0A1F35);
 }
 
-/// Shell Tahfiz Arena ala Duolingo: top bar berisi energi, 3 tab lewat bottom
-/// navigation — Petualangan Surah, Kuis (Latihan/Tantangan), Papan Juara.
 class ArenaPage extends StatefulWidget {
   const ArenaPage({super.key});
 
@@ -27,52 +29,177 @@ class ArenaPage extends StatefulWidget {
 class _ArenaPageState extends State<ArenaPage> {
   int _tab = 0;
 
+  Future<void> _handleBack() async {
+    if (_tab != 0) {
+      setState(() => _tab = 0);
+      return;
+    }
+
+    final leave = await _confirmExitArena();
+    if (leave == true && mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  Future<bool?> _confirmExitArena() {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: ArenaColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => const _ExitArenaSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [ArenaColors.skyTop, ArenaColors.skyBottom],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              Expanded(
-                child: IndexedStack(
-                  index: _tab,
-                  children: const [
-                    _JourneyTab(),
-                    ArenaQuizTab(),
-                    ArenaLeaderboardTab(),
-                  ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        await _handleBack();
+      },
+      child: Scaffold(
+        body: BlocBuilder<SurahJourneyCubit, SurahJourneyState>(
+          buildWhen: (p, c) => p.status != c.status,
+          builder: (context, journeyState) {
+            final showJourneyLoading =
+                _tab == 0 && journeyState.status == JourneyStatus.loading;
+
+            return Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [ArenaColors.skyTop, ArenaColors.skyBottom],
+                    ),
+                  ),
+                  child: SafeArea(
+                    bottom: false,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: IndexedStack(
+                            index: _tab,
+                            children: const [
+                              _JourneyTab(),
+                              ArenaQuizTab(),
+                              ArenaLeaderboardTab(),
+                            ],
+                          ),
+                        ),
+                        _BottomNav(
+                          index: _tab,
+                          onChanged: (i) => setState(() => _tab = i),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              _BottomNav(
-                index: _tab,
-                onChanged: (i) => setState(() => _tab = i),
-              ),
-            ],
-          ),
+                if (showJourneyLoading)
+                  const Positioned.fill(
+                    child: NightLoadingPage(
+                      title: 'Menyiapkan Petualanganmu...',
+                      subtitle: 'Memuat progres, XP, dan energimu',
+                      icon: Icons.explore_rounded,
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-/// Tab peta petualangan — bungkus tipis agar IndexedStack tetap const.
+class _ExitArenaSheet extends StatelessWidget {
+  const _ExitArenaSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: QuizColors.gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.explore_rounded,
+                    color: QuizColors.gold,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Keluar dari Arena?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Kamu akan kembali ke halaman sebelumnya. Progres dan XP yang '
+              'sudah tersimpan tetap aman.',
+              style: TextStyle(color: Colors.white70, height: 1.35),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: QuizButton(
+                    label: 'Batal',
+                    icon: Icons.close_rounded,
+                    color: QuizColors.nightButton,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: QuizButton(
+                    label: 'Keluar',
+                    icon: Icons.logout_rounded,
+                    color: QuizColors.goldDark,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _JourneyTab extends StatelessWidget {
   const _JourneyTab();
 
   @override
   Widget build(BuildContext context) => const SurahJourneyView(showBack: false);
 }
-
-// ──────────────────────────────────────────────────────────── Bottom nav ──
 
 class _BottomNav extends StatelessWidget {
   final int index;

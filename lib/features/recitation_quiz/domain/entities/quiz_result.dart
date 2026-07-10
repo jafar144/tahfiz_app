@@ -21,7 +21,7 @@ class QuizAnswer {
   /// Hasil pemeriksaan percobaan terbaik — mode suara saja (untuk koreksi).
   final RecitationResult? bestResult;
 
-  /// Poin bonus tebak-surah (mode suara, hanya soal yang lolos). 0..10.
+  /// Poin bonus soal bonus/trivia yang tidak dicampur ke poin utama.
   final int bonusScore;
 
   const QuizAnswer({
@@ -65,14 +65,26 @@ class QuizResult {
     return (totalPoints / questionCount).round();
   }
 
-  /// Total poin bonus tebak-surah (mode suara).
+  /// Total poin bonus yang dipisah dari poin utama.
   int get totalBonus => answers.fold<int>(0, (acc, a) => acc + a.bonusScore);
+
+  /// Poin utama yang ditampilkan di layar hasil.
+  /// Mode suara memakai nilai rata-rata bacaan; mode pilihan memakai total poin.
+  int get resultPoints => mode.isChoice ? totalPoints : averageScore;
+
+  /// Pengali XP: suara lebih sulit/mahal karena memakai pemeriksaan bacaan.
+  int get xpMultiplier => mode.isVoice ? 2 : 1;
+
+  /// XP yang didapat dari sesi:
+  /// (total poin + total bonus) * pengali mode / 10, dibulatkan.
+  int get earnedXp =>
+      (((resultPoints + totalBonus) * xpMultiplier) / 10).round();
 
   /// Skor yang masuk leaderboard:
   /// - suara  : rata-rata akurasi (0..100) + total poin bonus
-  /// - pilihan: total poin terkumpul
+  /// - pilihan: total poin terkumpul + bonus
   int get leaderboardScore =>
-      mode.isChoice ? totalPoints : averageScore + totalBonus;
+      mode.isChoice ? totalPoints + totalBonus : averageScore + totalBonus;
 
   List<int> get scores => answers.map((a) => a.score).toList();
 

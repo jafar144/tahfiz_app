@@ -41,6 +41,9 @@ class QuizRepositoryImpl implements QuizRepository {
   /// Koleksi HISTORI seluruh sesi (arsip; bisa dipakai analitik kapan saja).
   static const String _collection = 'recitation_quiz_attempts';
 
+  /// Total XP Arena/Journey disimpan bersama progres Surah Journey.
+  static const String _journeyProgressCollection = 'surah_journey_progress';
+
   /// Koleksi papan juara bulanan (best-score, ringan untuk dibaca):
   /// `quiz_leaderboards/{yyyy-MM}/{mode}/{uid}` — satu dokumen per user per
   /// bulan per mode, hanya menyimpan skor TERBAIK. Dipisah per mode karena
@@ -533,6 +536,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required List<int> questionScores,
     required List<int> juz,
     int bonusTotal = 0,
+    int earnedXp = 0,
     String? kelas,
     String? scopeKelas,
   }) async {
@@ -586,6 +590,7 @@ class QuizRepositoryImpl implements QuizRepository {
               'juz': juz,
               'score': score,
               'bonus_score': bonusTotal,
+              'earned_xp': earnedXp,
               'question_scores': questionScores,
               'question_count': questionScores.length,
               'date_key': dateKey,
@@ -621,6 +626,34 @@ class QuizRepositoryImpl implements QuizRepository {
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure('Gagal menyimpan hasil kuis: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> awardXp(int amount) async {
+    if (amount <= 0) return const Right(null);
+    try {
+      final user = auth.currentUser;
+      if (user == null) {
+        return const Left(UnknownFailure('Sesi berakhir. Masuk ulang.'));
+      }
+
+      try {
+        await firestore
+            .collection(_journeyProgressCollection)
+            .doc(user.uid)
+            .set({
+              'xp': FieldValue.increment(amount),
+              'updated_at': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true))
+            .timeout(const Duration(seconds: 6));
+      } on TimeoutException {
+        // Tersimpan di antrean lokal & akan tersinkron otomatis saat online.
+      }
+
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure('Gagal menambahkan XP kuis: $e'));
     }
   }
 
@@ -717,8 +750,7 @@ class QuizRepositoryImpl implements QuizRepository {
           final myData = mySnap.data();
           // Pada papan per kelas, entri user hanya relevan bila kelasnya sama
           // (mis. admin membuka papan kelas lain → tanpa kartu "Kamu").
-          if (myData != null &&
-              (kelas == null || myData['kelas'] == kelas)) {
+          if (myData != null && (kelas == null || myData['kelas'] == kelas)) {
             myEntry = _entryFromDoc(myData);
             // Peringkat = 1 + jumlah user dengan skor lebih tinggi
             // (aggregate count — tidak membaca isi dokumen).

@@ -259,8 +259,11 @@ class RecitationQuizState extends Equatable {
   bool get isRecording => phase == AnswerPhase.recording;
 
   // ── Getter mode pilihan ────────────────────────────────────────────────
-  /// Total poin terkumpul sejauh ini (mode pilihan).
-  int get runningPoints => answers.fold<int>(0, (acc, a) => acc + a.score);
+  /// Total poin berjalan di HUD mode pilihan.
+  /// Poin utama dan bonus digabung saat bermain agar reward bonus terasa naik;
+  /// layar hasil tetap memisahkan keduanya untuk rekap dan animasi.
+  int get runningPoints =>
+      answers.fold<int>(0, (acc, a) => acc + a.score + a.bonusScore);
 
   /// Jumlah soal yang sudah dijawab (mode pilihan tak berbatas soal).
   int get answeredCount => answers.length;

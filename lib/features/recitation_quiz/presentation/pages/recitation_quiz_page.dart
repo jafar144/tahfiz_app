@@ -71,7 +71,10 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
           onPopInvokedWithResult: (didPop, _) async {
             if (didPop) return;
             if (state.status == QuizStatus.playing) {
-              final leave = await _confirmLeave(context, challenge: challenge);
+              final leave = await _confirmLeaveSheet(
+                context,
+                challenge: challenge,
+              );
               if (leave != true) return;
             }
             if (!context.mounted) return;
@@ -183,6 +186,18 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
     );
   }
 
+  Future<bool?> _confirmLeaveSheet(
+    BuildContext context, {
+    bool challenge = false,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _LeaveQuizSheet(challenge: challenge),
+    );
+  }
+
+  // ignore: unused_element
   Future<bool?> _confirmLeave(BuildContext context, {bool challenge = false}) {
     return showDialog<bool>(
       context: context,
@@ -212,6 +227,139 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
 
 /// Bar atas gelap: tombol kembali bulat + judul — gaya sama dengan halaman
 /// belajar surah di Petualangan.
+class _LeaveQuizSheet extends StatelessWidget {
+  final bool challenge;
+
+  const _LeaveQuizSheet({required this.challenge});
+
+  @override
+  Widget build(BuildContext context) {
+    final warning = challenge
+        ? 'Jatah Tantangan hari ini tetap terpakai. Skormu tidak tercatat dan '
+              'kamu tidak bisa mengulang mode ini hari ini.'
+        : 'Energi sudah dipakai saat sesi dimulai. Jika keluar sekarang, kamu '
+              'tetap kehilangan 1 energi dan progres kuis ini tidak disimpan.';
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF102A3D),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: QuizColors.missingBright.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.warning_rounded,
+                    color: QuizColors.missingBright,
+                    size: 27,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Keluar dari kuis?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: QuizColors.missingBright.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: QuizColors.missingBright.withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    challenge ? Icons.event_busy_rounded : kEnergyIcon,
+                    color: QuizColors.missingBright,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      warning,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Lanjutkan kuis untuk menjaga energi dan peluang skormu.',
+              style: TextStyle(color: Colors.white60, height: 1.35),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: QuizButton(
+                    label: 'Lanjut Main',
+                    icon: Icons.play_arrow_rounded,
+                    color: QuizColors.goldDark,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: QuizButton(
+                    label: 'Keluar',
+                    icon: Icons.logout_rounded,
+                    color: QuizColors.nightButton,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TopBar extends StatelessWidget {
   final String title;
 

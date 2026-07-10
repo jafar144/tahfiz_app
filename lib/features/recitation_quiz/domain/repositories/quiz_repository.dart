@@ -36,7 +36,7 @@ abstract class QuizRepository {
   /// (cubit tidak memanggil ini).
   ///
   /// [score] = skor leaderboard (suara: rata-rata 0..100 + bonus; pilihan:
-  /// total poin). [bonusTotal] = total poin bonus tebak surah (mode suara).
+  /// total poin + bonus). [bonusTotal] = total poin bonus terpisah.
   /// [kelas] = kelas leaderboard santri; [scopeKelas] = kelas cakupan soal
   /// yang dipilih (bisa 1 kelas di bawah [kelas]).
   Future<Either<Failure, void>> saveAttempt({
@@ -45,9 +45,14 @@ abstract class QuizRepository {
     required List<int> questionScores,
     required List<int> juz,
     int bonusTotal = 0,
+    int earnedXp = 0,
     String? kelas,
     String? scopeKelas,
   });
+
+  /// Tambahkan XP kuis ke progres Arena/Journey pengguna saat sesi selesai.
+  /// Best-effort; berlaku untuk semua role agar sesi latihan tetap menaikkan XP.
+  Future<Either<Failure, void>> awardXp(int amount);
 
   /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user
   /// + peringkat user saat ini. Leaderboard dipisah per mode; bila [kelas]

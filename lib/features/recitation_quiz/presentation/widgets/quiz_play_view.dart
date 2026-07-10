@@ -33,8 +33,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
   }
 
   void _playChime() {
-    // Efek suara halus saat jawaban benar.
-    _player.play(AssetSource('sounds/correct.wav'), volume: 0.6);
+    _player.play(AssetSource('sounds/correct.wav'), volume: 0.9);
   }
 
   void _playWrong() {

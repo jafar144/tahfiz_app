@@ -39,7 +39,7 @@ class _LessonTestViewState extends State<LessonTestView> {
         final correct = state.answers.isNotEmpty && state.answers.last;
         _player.play(
           AssetSource(correct ? 'sounds/correct.wav' : 'sounds/wrong.wav'),
-          volume: correct ? 0.5 : 0.45,
+          volume: correct ? 0.85 : 0.45,
         );
       },
       builder: (context, state) {

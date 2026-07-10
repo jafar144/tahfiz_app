@@ -50,6 +50,31 @@ class SurahJourneyCubit extends Cubit<SurahJourneyState> {
     );
   }
 
+  /// Muat ulang progres + XP + energi TANPA masuk status loading — dipakai
+  /// saat kembali dari sesi belajar/kuis agar peta ter-update di tempat,
+  /// tanpa halaman loading (dan animasinya) muncul lagi. Gagal memuat →
+  /// pertahankan data lama diam-diam.
+  Future<void> refresh() async {
+    if (state.status != JourneyStatus.ready) return load();
+
+    final progressFuture = repository.getProgress();
+    final energy = await _fetchEnergy();
+    final progressResult = await progressFuture;
+    if (isClosed) return;
+
+    progressResult.fold(
+      ifLeft: (_) => emit(state.copyWith(energy: energy)),
+      ifRight: (progress) => emit(
+        state.copyWith(
+          nodes: _buildNodes(progress),
+          xp: progress.xp,
+          energy: energy,
+          energyLoading: false,
+        ),
+      ),
+    );
+  }
+
   /// Muat ulang energi saja (dipanggil saat pengisian energi tiba/refill).
   Future<void> refreshEnergy() async {
     emit(state.copyWith(energyLoading: true));
@@ -60,7 +85,8 @@ class SurahJourneyCubit extends Cubit<SurahJourneyState> {
 
   /// Admin & master switch mati → tampil penuh (samakan dengan Arena/Kuis).
   Future<QuizEnergy> _fetchEnergy() async {
-    if (!QuizConfig.enforceEnergy || await quizRepository.isCurrentUserAdmin()) {
+    if (!QuizConfig.enforceEnergy ||
+        await quizRepository.isCurrentUserAdmin()) {
       return const QuizEnergy(current: 10, max: 10);
     }
     final res = await quizRepository.getEnergy();

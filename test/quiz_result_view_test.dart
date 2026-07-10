@@ -20,48 +20,84 @@ QuizResult _voiceResult({required int reading, required int bonus}) {
       ),
   ];
   return QuizResult(
-      answers: answers, questionCount: count, mode: QuizMode.voice);
+    answers: answers,
+    questionCount: count,
+    mode: QuizMode.voice,
+  );
+}
+
+QuizResult _choiceResult({required List<int> scores, int bonus = 0}) {
+  final answers = <QuizAnswer>[
+    for (var i = 0; i < scores.length; i++)
+      QuizAnswer(
+        questionIndex: i,
+        score: scores[i],
+        attempts: 1,
+        passed: scores[i] > 0,
+        bonusScore: i == 0 ? bonus : 0,
+      ),
+  ];
+  return QuizResult(
+    answers: answers,
+    questionCount: answers.length,
+    mode: QuizMode.choice,
+  );
 }
 
 Widget _wrap(QuizResult result) => MaterialApp(
-      home: Scaffold(
-        body: QuizResultView(
-          result: result,
-          saving: false,
-          saveError: null,
-          onPlayAgain: () {},
-          onFinish: () {},
-        ),
-      ),
-    );
+  home: Scaffold(
+    body: QuizResultView(
+      result: result,
+      saving: false,
+      saveError: null,
+      onPlayAgain: () {},
+      onFinish: () {},
+    ),
+  ),
+);
 
 void main() {
-  testWidgets('Rekap suara: koreografi skor+bonus berjalan tanpa error (overcharge)',
-      (tester) async {
-    // reading 95 + bonus 35 = total 130 (>100 → memicu kilau overcharge).
-    await tester.pumpWidget(_wrap(_voiceResult(reading: 95, bonus: 35)));
+  testWidgets('Rekap suara: tiga tower skor menghitung poin, bonus, dan XP', (
+    tester,
+  ) async {
+    final result = _voiceResult(reading: 95, bonus: 35);
+    expect(result.earnedXp, 26); // ((95 + 35) * 2 / 10).round()
+    await tester.pumpWidget(_wrap(result));
 
-    // Melangkah menembus seluruh lini masa koreografi.
-    for (final ms in [0, 500, 1000, 1650, 2150, 2450, 3150, 3400]) {
+    // Melangkah menembus seluruh lini masa koreografi tower.
+    for (final ms in [0, 700, 1400, 2200, 3000, 4200]) {
       await tester.pump(Duration(milliseconds: ms));
     }
 
-    // Angka total akhir tampil (130 poin) & rincian muncul.
-    expect(find.text('130'), findsWidgets);
-    expect(find.text('Bacaan'), findsOneWidget);
-    expect(find.text('Total'), findsOneWidget);
+    expect(find.text('TOTAL POIN'), findsOneWidget);
+    expect(find.text('TOTAL BONUS'), findsOneWidget);
+    expect(find.text('XP DIDAPAT'), findsOneWidget);
+    expect(find.text('95'), findsWidgets);
+    expect(find.text('35'), findsWidgets);
+    expect(find.text('26'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Rekap suara tanpa bonus: hanya cincin terisi, tanpa rincian',
-      (tester) async {
-    await tester.pumpWidget(_wrap(_voiceResult(reading: 88, bonus: 0)));
-    for (final ms in [0, 500, 1000, 1400, 1600]) {
+  testWidgets('Rekap pilihan: tower yang sama tampil dengan pengali XP x1', (
+    tester,
+  ) async {
+    final result = _choiceResult(scores: [20, 20, 15, 15, 10, 0], bonus: 6);
+    expect(result.totalPoints, 80);
+    expect(result.totalBonus, 6);
+    expect(result.earnedXp, 9); // ((80 + 6) * 1 / 10).round()
+    await tester.pumpWidget(_wrap(result));
+
+    for (final ms in [0, 700, 1400, 2200, 3000, 4200]) {
       await tester.pump(Duration(milliseconds: ms));
     }
-    // Tanpa bonus tidak ada baris rincian "Bacaan/Bonus/Total".
-    expect(find.text('Bonus'), findsNothing);
-    expect(find.text('88'), findsWidgets);
+
+    expect(find.text('Pilihan • XP x1'), findsOneWidget);
+    expect(find.text('TOTAL POIN'), findsOneWidget);
+    expect(find.text('TOTAL BONUS'), findsOneWidget);
+    expect(find.text('XP DIDAPAT'), findsOneWidget);
+    expect(find.text('80'), findsWidgets);
+    expect(find.text('6'), findsWidgets);
+    expect(find.text('9'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
