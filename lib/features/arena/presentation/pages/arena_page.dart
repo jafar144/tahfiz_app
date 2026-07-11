@@ -50,6 +50,7 @@ class _ArenaPageState extends State<ArenaPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      clipBehavior: Clip.antiAlias,
       builder: (ctx) => const _ExitArenaSheet(),
     );
   }
@@ -132,7 +133,7 @@ class _ExitArenaSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,57 +141,68 @@ class _ExitArenaSheet extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: QuizColors.gold.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.explore_rounded,
                     color: QuizColors.gold,
+                    size: 21,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     'Keluar dari Arena?',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 26),
             const Text(
               'Kamu akan kembali ke halaman sebelumnya. Progres dan XP yang '
               'sudah tersimpan tetap aman.',
-              style: TextStyle(color: Colors.white70, height: 1.35),
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 12.5,
+                height: 1.35,
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 32),
             Row(
               children: [
+                Expanded(
+                  child: QuizButton(
+                    label: 'Keluar',
+                    icon: Icons.logout_rounded,
+                    color: QuizColors.goldDark,
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: QuizButton(
                     label: 'Batal',
                     icon: Icons.close_rounded,
                     color: QuizColors.nightButton,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     onPressed: () => Navigator.of(context).pop(false),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: QuizButton(
-                    label: 'Keluar',
-                    icon: Icons.logout_rounded,
-                    color: QuizColors.goldDark,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    onPressed: () => Navigator.of(context).pop(true),
                   ),
                 ),
               ],

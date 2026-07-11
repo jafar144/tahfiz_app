@@ -162,7 +162,11 @@ class _SurahLessonPageState extends State<SurahLessonPage> {
   Future<bool?> _confirmLeave(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF102A3D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      clipBehavior: Clip.antiAlias,
       builder: (ctx) => const _LeaveTestSheet(),
     );
   }
@@ -175,21 +179,8 @@ class _LeaveTestSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF102A3D),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,38 +188,38 @@ class _LeaveTestSheet extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: QuizColors.missingBright.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.warning_rounded,
                     color: QuizColors.missingBright,
-                    size: 27,
+                    size: 21,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     'Keluar dari test?',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 26),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(13),
+              padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
                 color: QuizColors.missingBright.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(13),
                 border: Border.all(
                   color: QuizColors.missingBright.withValues(alpha: 0.25),
                 ),
@@ -239,16 +230,16 @@ class _LeaveTestSheet extends StatelessWidget {
                   Icon(
                     Icons.assignment_late_rounded,
                     color: QuizColors.missingBright,
-                    size: 22,
+                    size: 18,
                   ),
-                  SizedBox(width: 10),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Progres test saat ini tidak akan disimpan.',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
                         height: 1.35,
                       ),
                     ),
@@ -256,32 +247,33 @@ class _LeaveTestSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Lanjutkan test untuk menjaga peluang lulus dan mendapatkan XP.',
-              style: TextStyle(color: Colors.white60, height: 1.35),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 32),
             Row(
               children: [
-                Expanded(
-                  child: QuizButton(
-                    label: 'Lanjut Test',
-                    icon: Icons.play_arrow_rounded,
-                    color: QuizColors.goldDark,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    onPressed: () => Navigator.of(context).pop(false),
-                  ),
-                ),
-                const SizedBox(width: 10),
                 Expanded(
                   child: QuizButton(
                     label: 'Keluar',
                     icon: Icons.logout_rounded,
                     color: QuizColors.nightButton,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: QuizButton(
+                    label: 'Lanjut',
+                    icon: Icons.play_arrow_rounded,
+                    color: QuizColors.goldDark,
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    onPressed: () => Navigator.of(context).pop(false),
                   ),
                 ),
               ],

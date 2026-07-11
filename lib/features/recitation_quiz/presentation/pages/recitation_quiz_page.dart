@@ -208,7 +208,11 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
   }) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF102A3D),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      clipBehavior: Clip.antiAlias,
       builder: (ctx) => _LeaveQuizSheet(challenge: challenge),
     );
   }
@@ -250,28 +254,13 @@ class _LeaveQuizSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final warning = challenge
-        ? '1 jatah Tantangan mingguanmu tetap terpakai. Skormu tidak tercatat '
-              'bila keluar sekarang.'
-        : 'Energi sudah dipakai saat sesi dimulai. Jika keluar sekarang, kamu '
-              'tetap kehilangan 1 energi dan progres kuis ini tidak disimpan.';
+        ? 'Jatah Tantangan tetap terpakai dan skor sesi ini tidak tercatat.'
+        : '1 energi tetap terpakai dan progres sesi ini tidak disimpan.';
 
     return SafeArea(
       top: false,
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF102A3D),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.35),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,38 +268,38 @@ class _LeaveQuizSheet extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 46,
-                  height: 46,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: QuizColors.missingBright.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.warning_rounded,
                     color: QuizColors.missingBright,
-                    size: 27,
+                    size: 21,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 const Expanded(
                   child: Text(
                     'Keluar dari kuis?',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 26),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(13),
+              padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
                 color: QuizColors.missingBright.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(13),
                 border: Border.all(
                   color: QuizColors.missingBright.withValues(alpha: 0.25),
                 ),
@@ -321,16 +310,16 @@ class _LeaveQuizSheet extends StatelessWidget {
                   Icon(
                     challenge ? Icons.event_busy_rounded : kEnergyIcon,
                     color: QuizColors.missingBright,
-                    size: 22,
+                    size: 18,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       warning,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
                         height: 1.35,
                       ),
                     ),
@@ -338,32 +327,33 @@ class _LeaveQuizSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Lanjutkan kuis untuk menjaga energi dan peluang skormu.',
-              style: TextStyle(color: Colors.white60, height: 1.35),
-            ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 32),
             Row(
               children: [
-                Expanded(
-                  child: QuizButton(
-                    label: 'Lanjut Main',
-                    icon: Icons.play_arrow_rounded,
-                    color: QuizColors.goldDark,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    onPressed: () => Navigator.of(context).pop(false),
-                  ),
-                ),
-                const SizedBox(width: 10),
                 Expanded(
                   child: QuizButton(
                     label: 'Keluar',
                     icon: Icons.logout_rounded,
                     color: QuizColors.nightButton,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     onPressed: () => Navigator.of(context).pop(true),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: QuizButton(
+                    label: 'Lanjut',
+                    icon: Icons.play_arrow_rounded,
+                    color: QuizColors.goldDark,
+                    iconSize: 18,
+                    labelFontSize: 13,
+                    labelLetterSpacing: 0.4,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    onPressed: () => Navigator.of(context).pop(false),
                   ),
                 ),
               ],

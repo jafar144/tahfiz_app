@@ -13,6 +13,8 @@ class QuizButton extends StatefulWidget {
   final String? label;
   final IconData? icon;
   final double iconSize;
+  final double labelFontSize;
+  final double labelLetterSpacing;
 
   /// null → tombol nonaktif (abu-abu, tanpa getar & tanpa efek tekan).
   final VoidCallback? onPressed;
@@ -36,6 +38,8 @@ class QuizButton extends StatefulWidget {
     this.label,
     this.icon,
     this.iconSize = 20,
+    this.labelFontSize = 15,
+    this.labelLetterSpacing = 0.8,
     this.color = const Color(0xFF58CC02),
     this.foregroundColor = Colors.white,
     this.padding = const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
@@ -138,9 +142,9 @@ class _QuizButtonState extends State<QuizButton> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: fg,
-                      fontSize: 15,
+                      fontSize: widget.labelFontSize,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                      letterSpacing: widget.labelLetterSpacing,
                     ),
                   ),
                 ),
