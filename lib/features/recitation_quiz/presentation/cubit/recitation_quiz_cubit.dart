@@ -18,7 +18,9 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_ene
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_rank_reveal.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
@@ -766,18 +768,52 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       return;
     }
 
+    await _finishChallenge(result);
+  }
+
+  /// Selesaikan sesi TANTANGAN: tampilkan halaman "menghitung peringkat"
+  /// (loading), simpan skor di baliknya, lalu — bila peringkat NAIK — putar
+  /// animasi menyusul sebelum layar hasil. Bila tidak naik / data papan gagal
+  /// dimuat, langsung ke layar hasil seperti biasa.
+  ///
+  /// [answers]/[review] hanya dikirim jalur mode SUARA (mode pilihan sudah
+  /// menumpuk keduanya di state per jawaban).
+  Future<void> _finishChallenge(
+    QuizResult result, {
+    List<QuizAnswer>? answers,
+    List<QuizReviewItem>? review,
+  }) async {
     emit(
       state.copyWith(
-        status: QuizStatus.finished,
+        status: QuizStatus.rankReveal,
+        answers: answers,
+        review: review,
         result: result,
         saving: true,
         clearChoiceFeedback: true,
         clearSaveError: true,
+        clearRankReveal: true,
       ),
     );
 
+    final mode = result.mode;
+    final kelas = _launch!.ownKelas;
+    // Jeda minimal agar halaman loading tak sekadar berkedip.
+    final minDelay = Future<void>.delayed(const Duration(milliseconds: 1400));
+
+    // 1) Potret papan SEBELUM skor baru tercatat → peringkat lama.
+    final beforeRes = await repository.getMonthlyLeaderboard(
+      mode,
+      kelas: kelas,
+    );
+    final before = beforeRes.fold(
+      ifLeft: (_) => null,
+      ifRight: (lb) => lb,
+    );
+
+    // 2) Simpan skor (histori + leaderboard bila melampaui best).
     final save = await repository.saveAttempt(
-      mode: QuizMode.choice,
+      mode: mode,
       score: result.leaderboardScore,
       questionScores: result.scores,
       juz: state.settings.sortedJuz,
@@ -787,10 +823,71 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       scopeKelas: _launch?.scopeKelas,
     );
     await _awardResultXp(result);
-    save.fold(
-      ifLeft: (f) => emit(state.copyWith(saving: false, saveError: f.message)),
-      ifRight: (_) => emit(state.copyWith(saving: false)),
+    // Layar berikutnya tak butuh Whisper — lepas lock untuk user lain.
+    if (mode.isVoice) await _releaseSession();
+    final saveError = save.fold(
+      ifLeft: (f) => f.message,
+      ifRight: (_) => null,
     );
+
+    // 3) Potret papan SESUDAH → peringkat baru (hanya bila simpan sukses dan
+    // peringkat lama diketahui; tanpa pembanding animasinya tak bermakna).
+    MonthlyLeaderboard? after;
+    if (saveError == null && before != null) {
+      final afterRes = await repository.getMonthlyLeaderboard(
+        mode,
+        kelas: kelas,
+      );
+      after = afterRes.fold(ifLeft: (_) => null, ifRight: (lb) => lb);
+    }
+
+    await minDelay;
+    if (isClosed) return;
+
+    final reveal = _buildReveal(before, after);
+    if (reveal == null) {
+      // Tak ada kenaikan peringkat / data papan tak lengkap → langsung hasil.
+      emit(
+        state.copyWith(
+          status: QuizStatus.finished,
+          saving: false,
+          saveError: saveError,
+        ),
+      );
+      return;
+    }
+    // Status tetap rankReveal; UI berganti dari loading ke animasi menyusul.
+    emit(state.copyWith(saving: false, rankReveal: reveal));
+  }
+
+  /// Susun data animasi menyusul dari potret papan sebelum/sesudah; null bila
+  /// peringkat tidak naik atau data tak lengkap (→ lewati animasi).
+  QuizRankReveal? _buildReveal(
+    MonthlyLeaderboard? before,
+    MonthlyLeaderboard? after,
+  ) {
+    if (before == null || after == null) return null;
+    final me = after.myEntry;
+    final newRank = after.myRank;
+    if (me == null || newRank == null) return null;
+    final oldRank = before.myRank;
+    // Naik = punya peringkat lebih baik dari sebelumnya, atau baru masuk papan.
+    final improved = oldRank == null || newRank < oldRank;
+    if (!improved) return null;
+    return QuizRankReveal(
+      fromRank: oldRank,
+      toRank: newRank,
+      newBest: me.bestScore,
+      previousBest: before.myEntry?.bestScore,
+      entries: after.entries,
+      myUserId: me.userId,
+    );
+  }
+
+  /// Lanjut dari animasi menyusul ke layar hasil (tombol "Selanjutnya").
+  void continueToResult() {
+    if (state.status != QuizStatus.rankReveal) return;
+    emit(state.copyWith(status: QuizStatus.finished));
   }
 
   Future<void> _awardResultXp(QuizResult result) async {
@@ -1242,34 +1339,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         return;
       }
 
-      emit(
-        state.copyWith(
-          status: QuizStatus.finished,
-          answers: answers,
-          review: review,
-          result: result,
-          saving: true,
-          clearSaveError: true,
-        ),
-      );
-      final save = await repository.saveAttempt(
-        mode: QuizMode.voice,
-        score: result.leaderboardScore,
-        questionScores: result.scores,
-        juz: state.settings.sortedJuz,
-        bonusTotal: result.totalBonus,
-        earnedXp: result.earnedXp,
-        kelas: _launch?.ownKelas,
-        scopeKelas: _launch?.scopeKelas,
-      );
-      await _awardResultXp(result);
-      save.fold(
-        ifLeft: (f) =>
-            emit(state.copyWith(saving: false, saveError: f.message)),
-        ifRight: (_) => emit(state.copyWith(saving: false)),
-      );
-      // Sesi selesai — layar hasil tak butuh Whisper, lepas lock untuk user lain.
-      await _releaseSession();
+      // Lock dilepas di dalam _finishChallenge (layar berikutnya tak butuh
+      // Whisper); animasi menyusul diputar bila peringkat naik.
+      await _finishChallenge(result, answers: answers, review: review);
       return;
     }
 

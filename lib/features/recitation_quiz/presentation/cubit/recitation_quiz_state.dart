@@ -4,12 +4,17 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_blo
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_rank_reveal.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 
 /// Status keseluruhan sesi kuis.
-enum QuizStatus { intro, loading, error, playing, finished }
+///
+/// [QuizStatus.rankReveal] khusus TANTANGAN: setelah soal selesai, tampil
+/// halaman "menghitung peringkat" (skor disimpan di baliknya) lalu animasi
+/// menyusul peringkat — baru setelah itu ke layar hasil ([finished]).
+enum QuizStatus { intro, loading, error, playing, rankReveal, finished }
 
 /// Tahap soal bonus tebak surah (mode suara) setelah bacaan lolos.
 enum BonusStage {
@@ -130,6 +135,11 @@ class RecitationQuizState extends Equatable {
 
   final QuizResult? result;
 
+  /// Data animasi menyusul peringkat (khusus Tantangan). Selama status
+  /// [QuizStatus.rankReveal] dan nilai ini masih null, UI menampilkan halaman
+  /// loading "menghitung peringkat".
+  final QuizRankReveal? rankReveal;
+
   final bool saving;
   final String? saveError;
 
@@ -219,6 +229,7 @@ class RecitationQuizState extends Equatable {
     this.answers = const [],
     this.review = const [],
     this.result,
+    this.rankReveal,
     this.saving = false,
     this.saveError,
     this.connectionLost = false,
@@ -338,6 +349,7 @@ class RecitationQuizState extends Equatable {
     List<QuizAnswer>? answers,
     List<QuizReviewItem>? review,
     QuizResult? result,
+    QuizRankReveal? rankReveal,
     bool? saving,
     String? saveError,
     bool? connectionLost,
@@ -363,6 +375,7 @@ class RecitationQuizState extends Equatable {
     bool clearBestResult = false,
     bool clearPendingAnswer = false,
     bool clearSaveError = false,
+    bool clearRankReveal = false,
     bool clearChoiceFeedback = false,
     bool clearMeaningPick = false,
     bool clearBonus = false,
@@ -398,6 +411,7 @@ class RecitationQuizState extends Equatable {
       answers: answers ?? this.answers,
       review: review ?? this.review,
       result: result ?? this.result,
+      rankReveal: clearRankReveal ? null : (rankReveal ?? this.rankReveal),
       saving: saving ?? this.saving,
       saveError: clearSaveError ? null : (saveError ?? this.saveError),
       connectionLost: connectionLost ?? this.connectionLost,
@@ -453,6 +467,7 @@ class RecitationQuizState extends Equatable {
     answers,
     review,
     result,
+    rankReveal,
     saving,
     saveError,
     connectionLost,

@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_choice_play_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_intro_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_play_view.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_rank_reveal_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -30,7 +31,8 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
     QuizStatus.loading: 1,
     QuizStatus.error: 1,
     QuizStatus.playing: 2,
-    QuizStatus.finished: 3,
+    QuizStatus.rankReveal: 3,
+    QuizStatus.finished: 4,
   };
 
   QuizStatus? _prevStatus;
@@ -62,6 +64,11 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
         final atIntro = status == QuizStatus.intro;
         final isChoice = state.settings.mode.isChoice;
         final challenge = state.challenge;
+        // Bar atas hanya untuk layar yang butuh tombol kembali (intro latihan
+        // & error). Saat bermain, loading, animasi peringkat, dan layar hasil
+        // disembunyikan agar layar terasa lega.
+        final showTopBar =
+            (atIntro && !challenge) || status == QuizStatus.error;
 
         return PopScope(
           // Latihan: hanya layar intro yang boleh langsung keluar; layar lain
@@ -91,8 +98,7 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                 bottom: false,
                 child: Column(
                   children: [
-                    // Bar atas disembunyikan saat bermain agar layar lega.
-                    if (!playing)
+                    if (showTopBar)
                       _TopBar(title: challenge ? 'Tantangan' : 'Latihan Kuis'),
                     Expanded(
                       child: ClipRect(
@@ -156,6 +162,13 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                                 isChoice
                                     ? const QuizChoicePlayView()
                                     : const QuizPlayView(),
+                              // Seremoni pasca-Tantangan: loading "menghitung
+                              // peringkat" → animasi menyusul → tombol
+                              // Selanjutnya → layar hasil.
+                              QuizStatus.rankReveal => QuizRankRevealView(
+                                reveal: state.rankReveal,
+                                onContinue: cubit.continueToResult,
+                              ),
                               QuizStatus.finished => QuizResultView(
                                 result: state.result!,
                                 review: state.review,
