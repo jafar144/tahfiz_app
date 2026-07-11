@@ -3,8 +3,9 @@
 /// Dua macam juz:
 ///  • Juz "surah utuh" (29 & 30): batas juz pas di batas surah → boleh memilih
 ///    rentang target hafalan (surah awal kustom).
-///  • Juz "rentang ayat" (1, 2, 3): batasnya di TENGAH surah (Al-Baqarah
-///    membentang juz 1-3) → didefinisikan sebagai segmen ayat mushaf, tanpa
+///  • Juz "rentang ayat" (1-5): batasnya di TENGAH surah (Al-Baqarah,
+///    Ali 'Imran, dan An-Nisa membentang lintas juz) → didefinisikan sebagai
+///    segmen ayat mushaf, tanpa
 ///    kustomisasi rentang.
 ///
 /// Dipakai bersama oleh repo (menyusun pool ayat), layar intro, dan lembar
@@ -13,7 +14,7 @@ class QuizJuz {
   QuizJuz._();
 
   /// Juz yang didukung, urut menaik.
-  static const List<int> supported = [1, 2, 3, 29, 30];
+  static const List<int> supported = [1, 2, 3, 4, 5, 29, 30];
 
   /// Juz "surah utuh": rentang surah [pertama, terakhir] (id surah mushaf).
   /// Hanya juz ini yang mendukung pemilihan rentang target (surah awal kustom).
@@ -28,6 +29,8 @@ class QuizJuz {
     1: [(1, 1, 7), (2, 1, 141)], // Al-Fatihah utuh + Al-Baqarah 1-141
     2: [(2, 142, 252)], // Al-Baqarah 142-252
     3: [(2, 253, 286), (3, 1, 91)], // Al-Baqarah 253-286 + Ali 'Imran 1-91
+    4: [(3, 92, 200), (4, 1, 23)], // Ali 'Imran 92-200 + An-Nisa 1-23
+    5: [(4, 24, 147)], // An-Nisa 24-147
   };
 
   static bool isSupported(int juz) =>
@@ -54,6 +57,10 @@ class QuizJuz {
         return 'Al-Baqarah 142–252';
       case 3:
         return 'Al-Baqarah 253 — Ali Imran 91';
+      case 4:
+        return "Ali 'Imran 92 — An-Nisa 23";
+      case 5:
+        return 'An-Nisa 24—147';
       default:
         final r = _range[juz];
         return r == null ? 'Juz $juz' : '${nameOf(r.$1)} — ${nameOf(r.$2)}';

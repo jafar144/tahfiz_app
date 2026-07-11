@@ -48,6 +48,124 @@ class SurahLessonSeed {
     ),
   );
 
+  /// Template materi untuk level lanjutan. Data spesifik tiap surah tetap
+  /// diberikan di bawah; template ini menjaga struktur belajar dan tesnya
+  /// konsisten saat perjalanan diperpanjang.
+  static SurahLesson _standardLesson({
+    required int surahId,
+    required int level,
+    required String nameLatin,
+    required String nameArabic,
+    required String meaning,
+    required int ayahCount,
+    required String overview,
+    required String mainMessage,
+    required List<String> facts,
+    required List<VocabItem> vocabulary,
+  }) {
+    final ayahOptions = [
+      '${ayahCount - 2} ayat',
+      '${ayahCount - 1} ayat',
+      '$ayahCount ayat',
+      '${ayahCount + 2} ayat',
+    ];
+    return SurahLesson(
+      surahId: surahId,
+      level: level,
+      nameLatin: nameLatin,
+      nameArabic: nameArabic,
+      meaning: meaning,
+      ayahCount: ayahCount,
+      place: 'Makkiyah',
+      sections: [
+        LessonSection(
+          id: sectionInfo,
+          title: 'Informasi Umum',
+          subtitle: 'Arti, jumlah ayat, pesan utama, dan fakta menariknya',
+          blocks: [
+            ParagraphBlock(
+              title: 'Kenalan Dulu, Yuk!',
+              body:
+                  'Surah $nameLatin adalah surah ke-$surahId, terdiri dari '
+                  '$ayahCount ayat, dan turun di Makkah. $overview',
+            ),
+            ParagraphBlock(title: 'Pesan Utamanya', body: mainMessage),
+            FactListBlock(facts),
+          ],
+          test: SectionTest(
+            questionCount: 3,
+            minCorrect: 2,
+            xpReward: 20,
+            bank: [
+              FactQuestion(
+                question: 'Apa arti nama surah $nameLatin?',
+                options: [meaning, 'Langit', 'Cahaya', 'Waktu'],
+                correctIndex: 0,
+              ),
+              FactQuestion(
+                question: 'Berapa jumlah ayat surah $nameLatin?',
+                options: ayahOptions,
+                correctIndex: 2,
+              ),
+              FactQuestion(
+                question: 'Surah $nameLatin adalah surah ke berapa?',
+                options: [
+                  'Ke-${surahId - 2}',
+                  'Ke-${surahId - 1}',
+                  'Ke-$surahId',
+                  'Ke-${surahId + 1}',
+                ],
+                correctIndex: 2,
+              ),
+              FactQuestion(
+                question: 'Surah $nameLatin tergolong surah apa?',
+                options: [
+                  'Makkiyah',
+                  'Madaniyah',
+                  'Turun setelah hijrah',
+                  'Tidak diketahui',
+                ],
+                correctIndex: 0,
+              ),
+              FactQuestion(
+                question: 'Pesan utama surah $nameLatin adalah ...',
+                options: [
+                  mainMessage,
+                  'Mengumpulkan harta sebanyak-banyaknya',
+                  'Menunda perbuatan baik',
+                  'Mengikuti hawa nafsu tanpa batas',
+                ],
+                correctIndex: 0,
+              ),
+            ],
+          ),
+        ),
+        _readSection(),
+        LessonSection(
+          id: sectionVocab,
+          title: 'Kosa Kata',
+          subtitle: 'Kata-kata penting dalam surah beserta artinya',
+          blocks: [
+            const ParagraphBlock(
+              title: 'Yuk, Pahami Katanya!',
+              body:
+                  'Perhatikan kata yang disorot pada tiap ayat berikut dan '
+                  'ingat artinya. Memahami arti kata membuat hafalan makin '
+                  'kuat dan bermakna.',
+            ),
+            VocabListBlock(vocabulary),
+          ],
+          test: const SectionTest(
+            questionCount: 5,
+            minCorrect: 4,
+            useVocabQuestions: true,
+            xpReward: 30,
+          ),
+        ),
+      ],
+    );
+  }
+
   static final _lessons = <SurahLesson>[
     // ─────────────────────────────────────────────── Level 1 • Al-Lail (92) ──
     SurahLesson(
@@ -735,8 +853,7 @@ class SurahLessonSeed {
                 correctIndex: 2,
               ),
               FactQuestion(
-                question:
-                    'Surah Al-Fajr adalah surah ke berapa di Al-Qur\'an?',
+                question: 'Surah Al-Fajr adalah surah ke berapa di Al-Qur\'an?',
                 options: ['Ke-87', 'Ke-88', 'Ke-89', 'Ke-90'],
                 correctIndex: 2,
               ),
@@ -862,6 +979,493 @@ class SurahLessonSeed {
             useVocabQuestions: true,
             xpReward: 30,
           ),
+        ),
+      ],
+    ),
+
+    // Level 5-15: Al-Ghasyiyah sampai An-Naba'.
+    _standardLesson(
+      surahId: 88,
+      level: 5,
+      nameLatin: 'Al-Ghasyiyah',
+      nameArabic: '\u0627\u0644\u063A\u0627\u0634\u064A\u0629',
+      meaning: 'Hari Kiamat yang Meliputi',
+      ayahCount: 26,
+      overview:
+          'Surah ini menggambarkan dua keadaan manusia pada hari akhir: '
+          'wajah yang terhina dan wajah yang berseri-seri dalam kenikmatan.',
+      mainMessage:
+          'Ingat akhirat, lalu perhatikan tanda kekuasaan Allah di sekeliling kita.',
+      facts: [
+        'Surah ini mengajak manusia memperhatikan unta, langit, gunung, dan bumi.',
+        'Penutupnya menegaskan bahwa Rasul hanya menyampaikan, sedangkan perhitungan kembali kepada Allah.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word:
+              '\u0671\u0644\u06E1\u063A\u064E\u0670\u0634\u0650\u064A\u064E\u0629\u0650',
+          latin: 'al-ghasyiyah',
+          meaning: 'peristiwa yang meliputi',
+        ),
+        VocabItem(
+          ayahNumber: 2,
+          word: '\u062E\u064E\u0670\u0634\u0650\u0639\u064E\u0629\u064C',
+          latin: 'khasyi\'ah',
+          meaning: 'tertunduk hina',
+        ),
+        VocabItem(
+          ayahNumber: 17,
+          word: '\u0671\u0644\u06E1\u0625\u0650\u0628\u0650\u0644\u0650',
+          latin: 'al-ibil',
+          meaning: 'unta-unta',
+        ),
+        VocabItem(
+          ayahNumber: 25,
+          word:
+              '\u0625\u0650\u064A\u064E\u0627\u0628\u064E\u0647\u064F\u0645\u06E1',
+          latin: 'iyabahum',
+          meaning: 'kembalinya mereka',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 87,
+      level: 6,
+      nameLatin: 'Al-A\'la',
+      nameArabic: '\u0627\u0644\u0623\u0639\u0644\u0649',
+      meaning: 'Yang Paling Tinggi',
+      ayahCount: 19,
+      overview:
+          'Surah ini dibuka dengan perintah menyucikan nama Allah Yang Mahatinggi, Pencipta yang menyempurnakan dan memberi petunjuk.',
+      mainMessage:
+          'Sucikan nama Allah, ambil pelajaran dari wahyu, dan utamakan akhirat yang lebih baik serta kekal.',
+      facts: [
+        'Ayat 14-15 mengaitkan keberuntungan dengan menyucikan diri dan mengingat nama Tuhannya lalu salat.',
+        'Penutupnya menyebut ajaran ini juga terdapat dalam suhuf Nabi Ibrahim dan Nabi Musa.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word:
+              '\u0671\u0644\u06E1\u0623\u064E\u0639\u06E1\u0644\u064E\u0649\u0670',
+          latin: 'al-a\'la',
+          meaning: 'Yang Mahatinggi',
+        ),
+        VocabItem(
+          ayahNumber: 3,
+          word: '\u0642\u064E\u062F\u0651\u064E\u0631\u064E',
+          latin: 'qaddara',
+          meaning: 'menentukan ukuran',
+        ),
+        VocabItem(
+          ayahNumber: 9,
+          word:
+              '\u0671\u0644\u0630\u0651\u0650\u0643\u06E1\u0631\u064E\u0649\u0670',
+          latin: 'adz-dzikra',
+          meaning: 'peringatan',
+        ),
+        VocabItem(
+          ayahNumber: 17,
+          word:
+              '\u0671\u0644\u06E1\u0623\u0653\u062E\u0650\u0631\u064E\u0629\u064F',
+          latin: 'al-akhirah',
+          meaning: 'akhirat',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 86,
+      level: 7,
+      nameLatin: 'At-Tariq',
+      nameArabic: '\u0627\u0644\u0637\u0627\u0631\u0642',
+      meaning: 'Yang Datang di Malam Hari',
+      ayahCount: 17,
+      overview:
+          'Surah ini bersumpah demi langit dan bintang yang menembus, lalu mengingatkan manusia tentang asal penciptaannya dan hari dibukanya semua rahasia.',
+      mainMessage:
+          'Yakinlah bahwa Allah mengetahui rahasia manusia dan kuasa membangkitkannya kembali.',
+      facts: [
+        'At-tariq dijelaskan sebagai bintang yang cahayanya menembus kegelapan.',
+        'Surah ini menegaskan Al-Qur\'an adalah firman yang memisahkan kebenaran dan kebatilan, bukan senda gurau.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0671\u0644\u0637\u0651\u064E\u0627\u0631\u0650\u0642\u0650',
+          latin: 'ath-thariq',
+          meaning: 'yang datang pada malam hari',
+        ),
+        VocabItem(
+          ayahNumber: 3,
+          word:
+              '\u0671\u0644\u0646\u0651\u064E\u062C\u06E1\u0645\u064F\u0020\u0671\u0644\u062B\u0651\u064E\u0627\u0642\u0650\u0628\u064F',
+          latin: 'an-najm ats-tsaqib',
+          meaning: 'bintang yang cahayanya menembus',
+        ),
+        VocabItem(
+          ayahNumber: 9,
+          word:
+              '\u0671\u0644\u0633\u0651\u064E\u0631\u064E\u0627\u0653\u0626\u0650\u0631\u064F',
+          latin: 'as-sara\'ir',
+          meaning: 'rahasia-rahasia',
+        ),
+        VocabItem(
+          ayahNumber: 15,
+          word: '\u064A\u064E\u0643\u0650\u064A\u062F\u064F\u0648\u0646\u064E',
+          latin: 'yakidun',
+          meaning: 'mereka membuat tipu daya',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 85,
+      level: 8,
+      nameLatin: 'Al-Buruj',
+      nameArabic: '\u0627\u0644\u0628\u0631\u0648\u062C',
+      meaning: 'Gugusan Bintang',
+      ayahCount: 22,
+      overview:
+          'Surah ini mengisahkan para pembuat parit yang menyiksa orang-orang beriman karena iman mereka kepada Allah Yang Mahaperkasa dan Maha Terpuji.',
+      mainMessage:
+          'Tetap teguh dalam iman, karena Allah menyaksikan setiap kezaliman dan memberi balasan yang adil.',
+      facts: [
+        'Kisah Ashabul Ukhdud menjadi teladan keteguhan orang beriman saat diuji.',
+        'Surah ini menutup dengan penegasan bahwa Al-Qur\'an terpelihara pada Lauh Mahfuz.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0671\u0644\u06E1\u0628\u064F\u0631\u064F\u0648\u062C\u0650',
+          latin: 'al-buruj',
+          meaning: 'gugusan bintang',
+        ),
+        VocabItem(
+          ayahNumber: 4,
+          word:
+              '\u0623\u064E\u0635\u06E1\u062D\u064E\u0670\u0628\u064F\u0020\u0671\u0644\u06E1\u0623\u064F\u062E\u06E1\u062F\u064F\u0648\u062F\u0650',
+          latin: 'ashabul-ukhdud',
+          meaning: 'orang-orang yang membuat parit',
+        ),
+        VocabItem(
+          ayahNumber: 14,
+          word: '\u0671\u0644\u06E1\u0648\u064E\u062F\u064F\u0648\u062F\u064F',
+          latin: 'al-wadud',
+          meaning: 'Yang Maha Mencintai',
+        ),
+        VocabItem(
+          ayahNumber: 20,
+          word: '\u0645\u0651\u064F\u062D\u0650\u064A\u0637\u064F\u06E2',
+          latin: 'muhith',
+          meaning: 'meliputi',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 84,
+      level: 9,
+      nameLatin: 'Al-Insyiqaq',
+      nameArabic: '\u0627\u0644\u0627\u0646\u0634\u0642\u0627\u0642',
+      meaning: 'Terbelah',
+      ayahCount: 25,
+      overview:
+          'Surah ini menggambarkan langit yang terbelah dan bumi yang mengeluarkan isinya ketika hari kiamat datang.',
+      mainMessage:
+          'Setiap manusia sedang bersungguh-sungguh menuju Tuhannya dan akan menemui hasil amalnya.',
+      facts: [
+        'Surah ini menyebut dua cara menerima catatan amal: dari kanan sebagai kabar gembira, atau dari belakang sebagai penyesalan.',
+        'Ayat terakhir menjanjikan pahala yang tidak putus bagi orang beriman dan beramal saleh.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0671\u0646\u0634\u064E\u0642\u0651\u064E\u062A\u06E1',
+          latin: 'insyaqqat',
+          meaning: 'terbelah',
+        ),
+        VocabItem(
+          ayahNumber: 6,
+          word: '\u0643\u064E\u0627\u062F\u0650\u062D\u064C',
+          latin: 'kadih',
+          meaning: 'bersungguh-sungguh berusaha',
+        ),
+        VocabItem(
+          ayahNumber: 12,
+          word: '\u0633\u064E\u0639\u0650\u064A\u0631\u064B\u0627',
+          latin: 'sa\'ir',
+          meaning: 'api yang menyala-nyala',
+        ),
+        VocabItem(
+          ayahNumber: 19,
+          word:
+              '\u0637\u064E\u0628\u064E\u0642\u064B\u0627\u0020\u0639\u064E\u0646\u0020\u0637\u064E\u0628\u064E\u0642\u0656',
+          latin: 'thabaqan \'an thabaq',
+          meaning: 'tingkat demi tingkat',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 83,
+      level: 10,
+      nameLatin: 'Al-Muthaffifin',
+      nameArabic: '\u0627\u0644\u0645\u0637\u0641\u0641\u064A\u0646',
+      meaning: 'Orang-orang yang Curang',
+      ayahCount: 36,
+      overview:
+          'Surah ini mengecam keras orang yang meminta takaran penuh tetapi mengurangi saat menakar atau menimbang untuk orang lain.',
+      mainMessage:
+          'Jujurlah dalam setiap hak manusia, karena semua amal akan dicatat dan dibalas pada hari pembalasan.',
+      facts: [
+        'Catatan orang durhaka disebut Sijjin, sedangkan catatan orang baik disebut Illiyyin.',
+        'Surah ini menggambarkan kenikmatan orang bertakwa yang saling memandang di atas dipan-dipan.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word:
+              '\u0644\u0651\u0650\u0644\u06E1\u0645\u064F\u0637\u064E\u0641\u0651\u0650\u0641\u0650\u064A\u0646\u064E',
+          latin: 'lil-muthaffifin',
+          meaning: 'bagi orang-orang yang curang',
+        ),
+        VocabItem(
+          ayahNumber: 2,
+          word:
+              '\u064A\u064E\u0633\u06E1\u062A\u064E\u0648\u06E1\u0641\u064F\u0648\u0646\u064E',
+          latin: 'yastaufun',
+          meaning: 'mereka minta dipenuhi',
+        ),
+        VocabItem(
+          ayahNumber: 7,
+          word: '\u0633\u0650\u062C\u0651\u0650\u064A\u0646\u0656',
+          latin: 'sijjin',
+          meaning: 'catatan atau tempat yang sempit bagi orang durhaka',
+        ),
+        VocabItem(
+          ayahNumber: 18,
+          word:
+              '\u0639\u0650\u0644\u0651\u0650\u064A\u0651\u0650\u064A\u0646\u064E',
+          latin: '\'illiyyin',
+          meaning: 'catatan atau tempat yang tinggi bagi orang baik',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 82,
+      level: 11,
+      nameLatin: 'Al-Infitar',
+      nameArabic: '\u0627\u0644\u0627\u0646\u0641\u0637\u0627\u0631',
+      meaning: 'Terbelah',
+      ayahCount: 19,
+      overview:
+          'Surah ini melukiskan perubahan besar alam pada hari kiamat: langit terbelah, bintang-bintang berjatuhan, dan kubur-kubur dibongkar.',
+      mainMessage:
+          'Jangan tertipu oleh kelapangan hidup; ingat bahwa setiap amal diawasi dan hari pembalasan pasti datang.',
+      facts: [
+        'Malaikat pencatat disebut sebagai penjaga yang mulia dan mengetahui apa yang manusia kerjakan.',
+        'Surah ini membedakan tempat orang baik dalam kenikmatan dan orang durhaka dalam neraka.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0671\u0646\u0641\u064E\u0637\u064E\u0631\u064E\u062A\u06E1',
+          latin: 'infatharat',
+          meaning: 'terbelah',
+        ),
+        VocabItem(
+          ayahNumber: 4,
+          word: '\u0628\u064F\u0639\u06E1\u062B\u0650\u0631\u064E\u062A\u06E1',
+          latin: 'bu\'tsirat',
+          meaning: 'dibongkar dan dikeluarkan isinya',
+        ),
+        VocabItem(
+          ayahNumber: 10,
+          word:
+              '\u0644\u064E\u062D\u064E\u0670\u0641\u0650\u0638\u0650\u064A\u0646\u064E',
+          latin: 'lahafizhin',
+          meaning: 'para penjaga',
+        ),
+        VocabItem(
+          ayahNumber: 17,
+          word:
+              '\u064A\u064E\u0648\u06E1\u0645\u064F\u0020\u0671\u0644\u062F\u0651\u0650\u064A\u0646\u0650',
+          latin: 'yaumud-din',
+          meaning: 'hari pembalasan',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 81,
+      level: 12,
+      nameLatin: 'At-Takwir',
+      nameArabic: '\u0627\u0644\u062A\u0643\u0648\u064A\u0631',
+      meaning: 'Penggulungan',
+      ayahCount: 29,
+      overview:
+          'Surah ini membuka gambaran hari kiamat dengan matahari digulung, bintang-bintang redup, gunung dihancurkan, dan catatan amal dibuka.',
+      mainMessage:
+          'Persiapkan amal untuk hari ketika setiap jiwa mengetahui apa yang telah dibawanya.',
+      facts: [
+        'Surah ini mengecam penguburan bayi perempuan hidup-hidup dan menegaskan mereka akan ditanya atas dosa apa dibunuh.',
+        'Ayat 19-21 menerangkan bahwa Al-Qur\'an dibawa oleh utusan yang mulia, Jibril.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0643\u064F\u0648\u0651\u0650\u0631\u064E\u062A\u06E1',
+          latin: 'kuwwirat',
+          meaning: 'digulung',
+        ),
+        VocabItem(
+          ayahNumber: 2,
+          word: '\u0671\u0646\u0643\u064E\u062F\u064E\u0631\u064E\u062A\u06E1',
+          latin: 'inkadarat',
+          meaning: 'berjatuhan dan redup',
+        ),
+        VocabItem(
+          ayahNumber: 8,
+          word:
+              '\u0671\u0644\u06E1\u0645\u064E\u0648\u06E1\u0621\u064F\u06E5\u062F\u064E\u0629\u064F',
+          latin: 'al-mau\'udah',
+          meaning: 'bayi perempuan yang dikubur hidup-hidup',
+        ),
+        VocabItem(
+          ayahNumber: 14,
+          word: '\u0623\u064E\u062D\u06E1\u0636\u064E\u0631\u064E\u062A\u06E1',
+          latin: 'ahdharat',
+          meaning: 'yang telah dibawanya',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 80,
+      level: 13,
+      nameLatin: 'Abasa',
+      nameArabic: '\u0639\u0628\u0633',
+      meaning: 'Ia Bermuka Masam',
+      ayahCount: 42,
+      overview:
+          'Surah ini mengajarkan agar tidak mengabaikan pencari ilmu yang tulus, lalu mengingatkan manusia tentang penciptaan, rezeki, dan hari yang memekakkan telinga.',
+      mainMessage:
+          'Muliakan orang yang sungguh-sungguh mencari petunjuk dan bersyukurlah atas nikmat Allah.',
+      facts: [
+        'Awal surah berkaitan dengan teguran agar perhatian tidak hanya diberikan kepada tokoh yang merasa cukup.',
+        'Surah ini menyebut makanan manusia sebagai tanda rezeki Allah: air diturunkan, bumi dibelah, lalu tanaman ditumbuhkan.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word: '\u0639\u064E\u0628\u064E\u0633\u064E',
+          latin: '\'abasa',
+          meaning: 'ia bermuka masam',
+        ),
+        VocabItem(
+          ayahNumber: 3,
+          word:
+              '\u064A\u064E\u0632\u0651\u064E\u0643\u0651\u064E\u0649\u0670\u0653',
+          latin: 'yazzakka',
+          meaning: 'menyucikan diri',
+        ),
+        VocabItem(
+          ayahNumber: 20,
+          word: '\u0671\u0644\u0633\u0651\u064E\u0628\u0650\u064A\u0644\u064E',
+          latin: 'as-sabil',
+          meaning: 'jalan',
+        ),
+        VocabItem(
+          ayahNumber: 33,
+          word:
+              '\u0671\u0644\u0635\u0651\u064E\u0627\u0653\u062E\u0651\u064E\u0629\u064F',
+          latin: 'ash-shakhkhah',
+          meaning: 'suara yang memekakkan telinga',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 79,
+      level: 14,
+      nameLatin: 'An-Nazi\'at',
+      nameArabic: '\u0627\u0644\u0646\u0627\u0632\u0639\u0627\u062A',
+      meaning: 'Malaikat-malaikat yang Mencabut',
+      ayahCount: 46,
+      overview:
+          'Surah ini menegaskan kepastian kebangkitan, mengisahkan Nabi Musa saat diutus kepada Fir\'aun, lalu membandingkan orang yang melampaui batas dengan orang yang takut kepada Tuhannya.',
+      mainMessage:
+          'Takutlah kepada perjumpaan dengan Allah dan tahan diri dari hawa nafsu.',
+      facts: [
+        'Kisah Nabi Musa mengingatkan bahwa Fir\'aun telah melampaui batas dan akhirnya mendapat azab.',
+        'Surah ini menyebut neraka sebagai tempat bagi orang yang melampaui batas, sedangkan surga bagi yang menahan hawa nafsu.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 1,
+          word:
+              '\u0671\u0644\u0646\u0651\u064E\u0670\u0632\u0650\u0639\u064E\u0670\u062A\u0650',
+          latin: 'an-nazi\'at',
+          meaning: 'para pencabut',
+        ),
+        VocabItem(
+          ayahNumber: 2,
+          word:
+              '\u0671\u0644\u0646\u0651\u064E\u0670\u0634\u0650\u0637\u064E\u0670\u062A\u0650',
+          latin: 'an-nasyithat',
+          meaning: 'para pencabut dengan lemah lembut',
+        ),
+        VocabItem(
+          ayahNumber: 34,
+          word:
+              '\u0671\u0644\u0637\u0651\u064E\u0627\u0653\u0645\u0651\u064E\u0629\u064F\u0020\u0671\u0644\u06E1\u0643\u064F\u0628\u06E1\u0631\u064E\u0649\u0670',
+          latin: 'ath-thammatul-kubra',
+          meaning: 'bencana yang sangat besar',
+        ),
+        VocabItem(
+          ayahNumber: 40,
+          word: '\u0671\u0644\u06E1\u0647\u064E\u0648\u064E\u0649\u0670',
+          latin: 'al-hawa',
+          meaning: 'hawa nafsu',
+        ),
+      ],
+    ),
+    _standardLesson(
+      surahId: 78,
+      level: 15,
+      nameLatin: 'An-Naba\'',
+      nameArabic: '\u0627\u0644\u0646\u0628\u0623',
+      meaning: 'Berita Besar',
+      ayahCount: 40,
+      overview:
+          'Surah ini membuka Juz 30 dengan pertanyaan tentang berita besar, yaitu hari kebangkitan yang dahulu diperselisihkan oleh orang-orang musyrik.',
+      mainMessage:
+          'Percayalah pada kebangkitan dan siapkan amal sebelum datangnya hari keputusan.',
+      facts: [
+        'Surah ini menyebut banyak tanda kekuasaan Allah: bumi sebagai hamparan, gunung sebagai pasak, tidur untuk istirahat, serta matahari sebagai pelita.',
+        'Hari keputusan digambarkan sebagai waktu sangkakala ditiup dan manusia datang berkelompok-kelompok.',
+      ],
+      vocabulary: const [
+        VocabItem(
+          ayahNumber: 2,
+          word:
+              '\u0671\u0644\u0646\u0651\u064E\u0628\u064E\u0625\u0650\u0020\u0671\u0644\u06E1\u0639\u064E\u0638\u0650\u064A\u0645\u0650',
+          latin: 'an-naba\' al-\'azhim',
+          meaning: 'berita yang besar',
+        ),
+        VocabItem(
+          ayahNumber: 6,
+          word: '\u0645\u0650\u0647\u064E\u0670\u062F\u0657\u0627',
+          latin: 'mihad',
+          meaning: 'hamparan',
+        ),
+        VocabItem(
+          ayahNumber: 13,
+          word:
+              '\u0633\u0650\u0631\u064E\u0627\u062C\u0657\u0627\u0020\u0648\u064E\u0647\u0651\u064E\u0627\u062C\u0657\u0627',
+          latin: 'sirajan wahhajan',
+          meaning: 'pelita yang amat terang',
+        ),
+        VocabItem(
+          ayahNumber: 31,
+          word: '\u0645\u064E\u0641\u064E\u0627\u0632\u064B\u0627',
+          latin: 'mafazan',
+          meaning: 'kemenangan atau tempat keberuntungan',
         ),
       ],
     ),

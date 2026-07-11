@@ -31,7 +31,7 @@ class QuizCurriculum {
   /// memuat materi kelas bawahnya).
   ///
   /// Catatan Takhossus: kurikulum aslinya Juz 1–30, tapi soal kuis baru
-  /// tersedia untuk Juz 1–3 (plus 29–30 warisan kelas bawah). Bila bank soal
+  /// tersedia untuk Juz 1–5 (plus 29–30 warisan kelas bawah). Bila bank soal
   /// juz lain sudah siap, tambahkan nomor juznya di sini.
   static const Map<String, ChallengeScope> _scopes = {
     'Mutawassith': ChallengeScope(juz: [30]),
@@ -40,12 +40,12 @@ class QuizCurriculum {
       extraSurahs: _praTakhossusAwalSurahs,
     ),
     'Pra Takhossus Akhir': ChallengeScope(juz: [29, 30]),
-    'Takhossus Awal': ChallengeScope(juz: [1, 2, 3, 29, 30]),
-    'Takhossus Tsani': ChallengeScope(juz: [1, 2, 3, 29, 30]),
-    'Takhossus Tsalits': ChallengeScope(juz: [1, 2, 3, 29, 30]),
-    'Takhossus Robi': ChallengeScope(juz: [1, 2, 3, 29, 30]),
-    'Takhossus Khomis': ChallengeScope(juz: [1, 2, 3, 29, 30]),
-    'Takhossus Akhir': ChallengeScope(juz: [1, 2, 3, 29, 30]),
+    'Takhossus Awal': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
+    'Takhossus Tsani': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
+    'Takhossus Tsalits': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
+    'Takhossus Robi': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
+    'Takhossus Khomis': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
+    'Takhossus Akhir': ChallengeScope(juz: [1, 2, 3, 4, 5, 29, 30]),
   };
 
   /// Cakupan soal untuk [kelas]; `null` bila kelas tidak punya paket Tantangan

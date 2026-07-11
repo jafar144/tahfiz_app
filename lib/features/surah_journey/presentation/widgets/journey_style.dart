@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/arabic_highlight_matcher.dart';
 
 /// Palet & widget bersama bergaya "malam islami" Petualangan Surah — dipakai
 /// peta journey, halaman surah, layar belajar/test/hasil agar senada.
@@ -37,9 +38,7 @@ class JourneyBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          const Positioned.fill(
-            child: CustomPaint(painter: _StarsPainter()),
-          ),
+          const Positioned.fill(child: CustomPaint(painter: _StarsPainter())),
           child,
         ],
       ),
@@ -151,8 +150,8 @@ class EnergyCostChip extends StatelessWidget {
 }
 
 /// Teks Arab (font mushaf) dengan bagian [highlight] disorot emas; dipakai
-/// kartu kosa kata & soal arti kata. Bila [highlight] tidak ditemukan pada
-/// [text], seluruh ayat tampil tanpa sorotan (fallback aman).
+/// kartu kosa kata & soal arti kata. Pencarian mengabaikan variasi rasm dan
+/// harakat agar kosa kata dari sumber yang setara tetap terlihat tersorot.
 class HighlightedAyahText extends StatelessWidget {
   final String text;
   final String? highlight;
@@ -174,24 +173,26 @@ class HighlightedAyahText extends StatelessWidget {
       color: Colors.white,
     );
     final word = highlight;
-    final idx = (word == null || word.isEmpty) ? -1 : text.indexOf(word);
+    final range = word == null || word.isEmpty
+        ? null
+        : ArabicHighlightMatcher.find(text: text, highlight: word);
 
     return Text.rich(
-      idx < 0
+      range == null
           ? TextSpan(text: text, style: base)
           : TextSpan(
               style: base,
               children: [
-                TextSpan(text: text.substring(0, idx)),
+                TextSpan(text: text.substring(0, range.start)),
                 TextSpan(
-                  text: word,
+                  text: text.substring(range.start, range.end),
                   style: TextStyle(
                     color: QuizColors.gold,
                     fontWeight: FontWeight.bold,
                     backgroundColor: QuizColors.gold.withValues(alpha: 0.14),
                   ),
                 ),
-                TextSpan(text: text.substring(idx + word!.length)),
+                TextSpan(text: text.substring(range.end)),
               ],
             ),
       textAlign: TextAlign.center,
