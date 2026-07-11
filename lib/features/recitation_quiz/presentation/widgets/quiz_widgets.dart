@@ -435,12 +435,15 @@ class _LegendDot extends StatelessWidget {
 /// Ikon satu unit energi: bulan sabit (hilal) — nuansa game tapi islami.
 const IconData kEnergyIcon = Icons.nightlight_round;
 
-/// Format sisa waktu pengisian energi jadi ringkas: "2j 15m", "40m", "segera".
+/// Format sisa waktu menuju reset kuota jadi ringkas: "3hr 4j", "2j 15m",
+/// "40m", "segera".
 String formatRefill(Duration d) {
   if (d.inSeconds <= 0) return 'segera';
-  final h = d.inHours;
+  final days = d.inDays;
+  final h = d.inHours % 24;
   final m = d.inMinutes % 60;
-  if (h > 0) return '${h}j ${m}m';
+  if (days > 0) return '${days}hr ${h}j';
+  if (d.inHours > 0) return '${d.inHours}j ${m}m';
   if (m > 0) return '${m}m';
   return '${d.inSeconds}d';
 }
@@ -468,16 +471,18 @@ Future<void> showQuizBlockSheet(BuildContext context, QuizBlockReason reason) {
     QuizBlockReason.noEnergy => (
       icon: kEnergyIcon,
       color: QuizColors.missing,
-      title: 'Energi habis',
-      message: 'Tunggu energi terisi kembali untuk bermain lagi.',
+      title: 'Energi minggu ini habis',
+      message:
+          'Energi direset tiap awal pekan. Kamu juga bisa meminta energi '
+          'tambahan ke ustadz/admin.',
     ),
-    QuizBlockReason.dailyLimit => (
+    QuizBlockReason.challengeLimit => (
       icon: Icons.event_repeat_rounded,
       color: QuizColors.gold,
-      title: 'Jatah hari ini terpakai',
+      title: 'Jatah Tantangan habis',
       message:
-          'Tantangan hanya bisa dimainkan 1x sehari untuk tiap mode. '
-          'Kembali lagi besok, ya!',
+          'Kuota Tantangan mode ini untuk minggu ini sudah terpakai semua. '
+          'Kembali lagi pekan depan, ya!',
     ),
     QuizBlockReason.unknown => (
       icon: Icons.error_outline_rounded,
@@ -624,7 +629,7 @@ class _EnergyBadgeState extends State<EnergyBadge> {
     if (widget.energy.isFull) return;
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
-      final t = widget.energy.nextRefillAt;
+      final t = widget.energy.resetAt;
       if (!_notified && t != null && DateTime.now().isAfter(t)) {
         _notified = true;
         widget.onRefillReady?.call();
@@ -660,8 +665,8 @@ class _EnergyBadgeState extends State<EnergyBadge> {
       info = 'Energi penuh';
     } else {
       final remaining =
-          e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
-      final label = e.canPlay ? '+1 energi dalam' : 'Bisa main lagi dalam';
+          e.resetAt?.difference(DateTime.now()) ?? Duration.zero;
+      final label = e.canPlay ? 'reset mingguan dalam' : 'Bisa main lagi dalam';
       info = '$label ${formatRefill(remaining)}';
     }
 
@@ -773,7 +778,7 @@ class _EnergyHintState extends State<EnergyHint> {
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
       setState(() {
-        final t = widget.energy.nextRefillAt;
+        final t = widget.energy.resetAt;
         if (!_notified && t != null && DateTime.now().isAfter(t)) {
           _notified = true;
           widget.onRefillReady?.call();
@@ -793,9 +798,8 @@ class _EnergyHintState extends State<EnergyHint> {
     final e = widget.energy;
     if (e.isFull) return const SizedBox.shrink();
     final empty = !e.canPlay;
-    final remaining =
-        e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
-    final label = empty ? 'Bisa main lagi dalam' : '+1 energi dalam';
+    final remaining = e.resetAt?.difference(DateTime.now()) ?? Duration.zero;
+    final label = empty ? 'Bisa main lagi dalam' : 'Energi reset dalam';
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

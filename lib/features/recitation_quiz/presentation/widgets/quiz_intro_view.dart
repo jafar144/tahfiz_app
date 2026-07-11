@@ -330,7 +330,7 @@ class _EnergyTooltipState extends State<_EnergyTooltip> {
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
       setState(() {
-        final t = widget.energy.nextRefillAt;
+        final t = widget.energy.resetAt;
         if (!_notified && t != null && DateTime.now().isAfter(t)) {
           _notified = true;
           widget.onRefillReady?.call();
@@ -351,8 +351,7 @@ class _EnergyTooltipState extends State<_EnergyTooltip> {
     final empty = !e.canPlay;
     final baseColor = empty ? QuizColors.missing : QuizColors.gold;
     final deepColor = empty ? const Color(0xFF8E1B1B) : QuizColors.goldDark;
-    final remaining =
-        e.nextRefillAt?.difference(DateTime.now()) ?? Duration.zero;
+    final remaining = e.resetAt?.difference(DateTime.now()) ?? Duration.zero;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -396,9 +395,7 @@ class _EnergyTooltipState extends State<_EnergyTooltip> {
                 ),
                 const SizedBox(width: 7),
                 Text(
-                  empty
-                      ? 'siap ${formatRefill(remaining)}'
-                      : '+1 ${formatRefill(remaining)}',
+                  'reset ${formatRefill(remaining)}',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w600,

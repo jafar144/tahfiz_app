@@ -8,11 +8,11 @@ enum QuizBlockReason {
   /// Kuota transkripsi Whisper sedang penuh (429) — jeda sejenak.
   whisperLimit,
 
-  /// Energi pengguna habis.
+  /// Energi latihan minggu ini habis.
   noEnergy,
 
-  /// Jatah Tantangan hari ini (mode terkait) sudah terpakai.
-  dailyLimit,
+  /// Kuota Tantangan minggu ini (mode terkait) sudah habis.
+  challengeLimit,
 
   /// Sebab lain (jaringan/server).
   unknown,

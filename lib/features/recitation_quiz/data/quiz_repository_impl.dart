@@ -883,8 +883,10 @@ class QuizRepositoryImpl implements QuizRepository {
         return QuizBlockReason.whisperLimit;
       case 'no_energy':
         return QuizBlockReason.noEnergy;
+      // 'daily_limit' = nama lama (kompatibilitas saat fase deploy).
+      case 'challenge_limit':
       case 'daily_limit':
-        return QuizBlockReason.dailyLimit;
+        return QuizBlockReason.challengeLimit;
     }
     // Fallback berdasarkan kode HttpsError bila details tak ada.
     switch (e.code) {

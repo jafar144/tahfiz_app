@@ -84,7 +84,7 @@ class QuizResultView extends StatelessWidget {
             const Spacer(),
 
             if (isChallenge) ...[
-              // Tantangan: jatah hari ini terpakai — ajak kembali besok.
+              // Tantangan: 1 jatah mingguan terpakai.
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -96,7 +96,8 @@ class QuizResultView extends StatelessWidget {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      'Tantangan hari ini selesai — kembali lagi besok, ya!',
+                      'Tantangan selesai — skor terbaikmu masuk papan juara '
+                      'kelas!',
                       style: const TextStyle(
                         fontSize: 12.5,
                         color: Colors.white70,

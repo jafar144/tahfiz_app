@@ -51,9 +51,9 @@ class ArenaCubit extends Cubit<ArenaState> {
 
       emit(state.copyWith(status: ArenaStatus.ready, role: role, kelas: kelas));
 
-      // Energi & status Tantangan dimuat menyusul (top bar menampilkan
-      // skeleton sementara).
-      await Future.wait([refreshEnergy(), refreshChallengeStatus()]);
+      // Energi (termasuk kuota Tantangan mingguan) dimuat menyusul — top bar
+      // menampilkan skeleton sementara.
+      await refreshEnergy();
     } catch (e) {
       emit(
         state.copyWith(
@@ -64,12 +64,20 @@ class ArenaCubit extends Cubit<ArenaState> {
     }
   }
 
-  /// Muat ulang energi (dipanggil saat kembali dari kuis / pengisian tiba).
+  /// Muat ulang energi + kuota Tantangan mingguan (dipanggil saat kembali
+  /// dari kuis / waktu reset tiba).
   Future<void> refreshEnergy() async {
     if (_skipEnergy) {
       emit(
         state.copyWith(
-          energy: const QuizEnergy(current: 10, max: 10),
+          energy: const QuizEnergy(
+            current: 15,
+            max: 15,
+            challengeVoiceLeft: 2,
+            challengeVoiceMax: 2,
+            challengeChoiceLeft: 2,
+            challengeChoiceMax: 2,
+          ),
           energyLoading: false,
         ),
       );
@@ -83,30 +91,6 @@ class ArenaCubit extends Cubit<ArenaState> {
     );
   }
 
-  /// Muat ulang penanda jatah Tantangan harian (untuk label kartu; server
-  /// tetap penegak aturannya). Gagal baca → biarkan (kartu tetap aktif).
-  Future<void> refreshChallengeStatus() async {
-    final uid = auth.currentUser?.uid;
-    if (uid == null || !state.canChallenge) return;
-    try {
-      final doc = await firestore
-          .collection('quiz_challenge_days')
-          .doc(uid)
-          .get();
-      final data = doc.data() ?? const {};
-      emit(
-        state.copyWith(
-          voicePlayedDate: (data['voice'] as String?) ?? '',
-          choicePlayedDate: (data['choice'] as String?) ?? '',
-        ),
-      );
-    } catch (_) {
-      // Rules menutup akses / offline → abaikan; server tetap menegakkan.
-    }
-  }
-
   /// Segarkan semuanya saat kembali dari sesi kuis.
-  Future<void> refresh() async {
-    await Future.wait([refreshEnergy(), refreshChallengeStatus()]);
-  }
+  Future<void> refresh() => refreshEnergy();
 }

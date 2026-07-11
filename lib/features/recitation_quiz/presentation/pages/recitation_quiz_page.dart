@@ -221,9 +221,8 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
         title: const Text('Keluar dari kuis?'),
         content: Text(
           challenge
-              ? 'Jatah Tantangan hari ini sudah terpakai — bila keluar '
-                    'sekarang, skormu tidak tercatat dan tidak bisa diulang '
-                    'hari ini.'
+              ? '1 jatah Tantangan mingguanmu sudah terpakai — bila keluar '
+                    'sekarang, skormu tidak tercatat.'
               : 'Progres kuis saat ini tidak akan disimpan.',
         ),
         actions: [
@@ -251,8 +250,8 @@ class _LeaveQuizSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final warning = challenge
-        ? 'Jatah Tantangan hari ini tetap terpakai. Skormu tidak tercatat dan '
-              'kamu tidak bisa mengulang mode ini hari ini.'
+        ? '1 jatah Tantangan mingguanmu tetap terpakai. Skormu tidak tercatat '
+              'bila keluar sekarang.'
         : 'Energi sudah dipakai saat sesi dimulai. Jika keluar sekarang, kamu '
               'tetap kehilangan 1 energi dan progres kuis ini tidak disimpan.';
 

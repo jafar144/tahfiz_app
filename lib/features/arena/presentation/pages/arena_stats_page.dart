@@ -130,8 +130,8 @@ class _EnergyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final e = energy;
     final current = e?.current ?? 0;
-    final max = e?.max ?? 10;
-    final remaining = e?.nextRefillAt?.difference(DateTime.now());
+    final max = e?.max ?? 15;
+    final remaining = e?.resetAt?.difference(DateTime.now());
 
     final String info;
     if (e == null) {
@@ -139,7 +139,7 @@ class _EnergyCard extends StatelessWidget {
     } else if (e.isFull) {
       info = 'Energi penuh — siap bertualang!';
     } else if (e.canPlay) {
-      info = '+1 energi dalam ${formatRefill(remaining ?? Duration.zero)}';
+      info = 'Reset mingguan dalam ${formatRefill(remaining ?? Duration.zero)}';
     } else {
       info = 'Bisa main lagi dalam ${formatRefill(remaining ?? Duration.zero)}';
     }

@@ -3,100 +3,96 @@ const { admin, db } = require("../lib/firebase");
 const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 
 // Sistem energi & sesi Kuis Hafalan (Tahfiz Arena) — dihitung SISI SERVER
-// (waktu server) agar tidak bisa diakali dengan mengubah jam HP. Tiap pengguna
-// (admin/asatidz/santri) punya energi sendiri: dokumen quiz_energy/{uid}.
+// (waktu server) agar tidak bisa diakali dengan mengubah jam HP.
 //
-// Aturan:
-//  • Energi: maksimum 10, terisi +1 tiap 4 jam.
-//  • LATIHAN (practice): 1 sesi = 1 energi (mode suara & pilihan).
-//  • TANTANGAN (challenge): tanpa energi, tapi hanya 1x per HARI per mode
-//    (hari mengikuti zona WIB) — dicatat di quiz_challenge_days/{uid}.
+// Model KUOTA MINGGUAN (tanpa cron/scheduler): pemakaian dicatat pada dokumen
+// per-minggu `quiz_energy_weeks/{uid}_{tanggalSenin}`. Minggu baru → dokumen
+// baru yang belum ada → kuota otomatis penuh kembali. Reset tiap SENIN 00:00 WIB.
+//
+// Aturan (Lembaga A):
+//  • LATIHAN (practice): 15 energi / minggu; 1 sesi = 1 energi (kedua mode).
+//  • TANTANGAN (challenge): 2 energi / minggu PER MODE (suara & pilihan).
+//  • Admin/asatidz dapat memberi energi TAMBAHAN ke santri (grantQuizEnergy);
+//    tambahan berlaku untuk minggu berjalan saja (hangus saat reset).
 //  • Lock 1-user & cooldown Whisper hanya berlaku untuk mode SUARA.
 
 const OPTIONS = { region: "asia-southeast2" };
-const COLLECTION = "quiz_energy";
-const CHALLENGE_COLLECTION = "quiz_challenge_days";
-const MAX_ENERGY = 10;
-const REFILL_MS = 4 * 60 * 60 * 1000; // 4 jam
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7
+const COLLECTION = "quiz_energy_weeks";
+const WEEKLY_PRACTICE = 15;
+const WEEKLY_CHALLENGE_PER_MODE = 2;
+// Default pemberian energi tambahan oleh admin/asatidz.
+const GRANT_DEFAULT_PRACTICE = 15;
+const GRANT_DEFAULT_CHALLENGE = 2;
+// Pagar wajar agar salah ketik tak memberi kuota tak terbatas.
+const GRANT_MAX_PER_CALL = 100;
 
-/** Kunci tanggal "yyyy-mm-dd" menurut zona WIB dari epoch millis server. */
-function wibDateKey(nowMs) {
-  return new Date(nowMs + WIB_OFFSET_MS).toISOString().slice(0, 10);
-}
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Hitung energi terkini dari nilai tersimpan pada [updatedAtMs].
- * Mengembalikan energi baru + jangkar waktu (anchor) untuk timer berikutnya.
+ * Info minggu berjalan menurut WIB (minggu dimulai SENIN 00:00 WIB):
+ * `key` = tanggal Senin (yyyy-mm-dd) sebagai kunci dokumen, `resetAtMs` =
+ * epoch millis Senin berikutnya (saat kuota kembali penuh).
  */
-function regen(stored, updatedAtMs, nowMs) {
-  if (stored >= MAX_ENERGY) return { current: MAX_ENERGY, anchorMs: nowMs };
-  const clamped = stored < 0 ? 0 : stored;
-  const elapsed = nowMs - updatedAtMs;
-  if (elapsed < REFILL_MS) return { current: clamped, anchorMs: updatedAtMs };
-
-  const gained = Math.floor(elapsed / REFILL_MS);
-  const next = clamped + gained;
-  if (next >= MAX_ENERGY) return { current: MAX_ENERGY, anchorMs: nowMs };
-  return { current: next, anchorMs: updatedAtMs + gained * REFILL_MS };
+function weekInfo(nowMs) {
+  const epochDays = Math.floor((nowMs + WIB_OFFSET_MS) / DAY_MS);
+  // Epoch day 0 = Kamis 1 Jan 1970 → geser agar Senin berindeks 0.
+  const mondayIndex = (epochDays + 3) % 7;
+  const mondayEpochDay = epochDays - mondayIndex;
+  const key = new Date(mondayEpochDay * DAY_MS).toISOString().slice(0, 10);
+  const resetAtMs = (mondayEpochDay + 7) * DAY_MS - WIB_OFFSET_MS;
+  return { key, resetAtMs };
 }
 
-/** Bentuk respons untuk klien; sisa pengisian dihitung relatif waktu server. */
-function toResponse(current, anchorMs, nowMs) {
-  const full = current >= MAX_ENERGY;
-  const nextRefillInSeconds = full
-    ? null
-    : Math.max(0, Math.round((anchorMs + REFILL_MS - nowMs) / 1000));
-  return { current, max: MAX_ENERGY, nextRefillInSeconds };
+function weekRef(uid, weekKey) {
+  return db.collection(COLLECTION).doc(`${uid}_${weekKey}`);
 }
 
-/** Baca dokumen energi; dokumen belum ada → pengguna baru (energi penuh). */
-function readDoc(snap, nowMs) {
-  if (!snap.exists) {
-    return { stored: MAX_ENERGY, updatedAtMs: nowMs, isNew: true };
-  }
-  const data = snap.data() || {};
-  const stored = typeof data.energy === "number" ? data.energy : MAX_ENERGY;
-  const ts = data.updated_at;
-  const updatedAtMs =
-    ts && typeof ts.toMillis === "function" ? ts.toMillis() : nowMs;
-  return { stored, updatedAtMs, isNew: false };
+const asInt = (v) => (typeof v === "number" && isFinite(v) ? Math.trunc(v) : 0);
+
+/** Baca pemakaian + bonus minggu ini dari snapshot (dokumen boleh belum ada). */
+function readWeek(snap) {
+  const d = snap.exists ? snap.data() || {} : {};
+  return {
+    practiceUsed: asInt(d.practice_used),
+    voiceUsed: asInt(d.challenge_voice_used),
+    choiceUsed: asInt(d.challenge_choice_used),
+    bonusPractice: asInt(d.bonus_practice),
+    bonusVoice: asInt(d.bonus_challenge_voice),
+    bonusChoice: asInt(d.bonus_challenge_choice),
+  };
 }
 
-// Ambil energi terkini (sekaligus persist hasil regen bila bertambah).
+/** Bentuk respons energi untuk klien dari data minggu berjalan. */
+function toResponse(week, resetAtMs, nowMs) {
+  const practiceMax = WEEKLY_PRACTICE + week.bonusPractice;
+  const voiceMax = WEEKLY_CHALLENGE_PER_MODE + week.bonusVoice;
+  const choiceMax = WEEKLY_CHALLENGE_PER_MODE + week.bonusChoice;
+  const left = (max, used) => Math.max(0, max - used);
+  return {
+    current: left(practiceMax, week.practiceUsed),
+    max: practiceMax,
+    resetInSeconds: Math.max(0, Math.round((resetAtMs - nowMs) / 1000)),
+    challenge: {
+      voice: { left: left(voiceMax, week.voiceUsed), max: voiceMax },
+      choice: { left: left(choiceMax, week.choiceUsed), max: choiceMax },
+    },
+  };
+}
+
+// Ambil energi minggu berjalan (read-only; dokumen belum ada = kuota penuh).
 exports.getQuizEnergy = onCall(OPTIONS, async (request) => {
   if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
 
-  const ref = db.collection(COLLECTION).doc(request.auth.uid);
   const nowMs = Date.now();
-  const snap = await ref.get();
-  const { stored, updatedAtMs, isNew } = readDoc(snap, nowMs);
-
-  if (isNew) {
-    await ref.set({
-      energy: MAX_ENERGY,
-      updated_at: admin.firestore.Timestamp.fromMillis(nowMs),
-    });
-    return toResponse(MAX_ENERGY, nowMs, nowMs);
-  }
-
-  const { current, anchorMs } = regen(stored, updatedAtMs, nowMs);
-  if (current !== stored) {
-    await ref.set(
-      {
-        energy: current,
-        updated_at: admin.firestore.Timestamp.fromMillis(anchorMs),
-      },
-      { merge: true }
-    );
-  }
-  return toResponse(current, anchorMs, nowMs);
+  const { key, resetAtMs } = weekInfo(nowMs);
+  const snap = await weekRef(request.auth.uid, key).get();
+  return toResponse(readWeek(snap), resetAtMs, nowMs);
 });
 
 // Mulai sesi kuis. Aturan menurut parameter dari klien:
-//  • kind:  "practice" (default) → potong 1 energi;
-//           "challenge"          → tanpa energi, cek & tandai jatah 1x/hari
-//                                  per mode (quiz_challenge_days/{uid}).
+//  • kind:  "practice" (default) → potong 1 energi latihan mingguan;
+//           "challenge"          → potong 1 kuota Tantangan mingguan mode ybs.
 //  • mode:  "voice" (default) → cek cooldown Whisper + ambil lock 1-user;
 //           "choice"          → tanpa lock (tak memakai Whisper).
 // Semua dalam satu transaksi agar konsisten.
@@ -112,15 +108,15 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
   const mode = data.mode === "choice" ? "choice" : "voice";
   const needsLock = mode === "voice";
 
-  const energyRef = db.collection(COLLECTION).doc(uid);
-  const challengeRef = db.collection(CHALLENGE_COLLECTION).doc(uid);
   const lock = lockRef();
 
   const outcome = await db.runTransaction(async (tx) => {
     const nowMs = Date.now();
+    const { key, resetAtMs } = weekInfo(nowMs);
+    const ref = weekRef(uid, key);
+
     const lockSnap = await tx.get(lock);
-    const energySnap = await tx.get(energyRef);
-    const challengeSnap = isChallenge ? await tx.get(challengeRef) : null;
+    const weekSnap = await tx.get(ref);
     const lockData = lockSnap.exists ? lockSnap.data() || {} : {};
 
     if (needsLock) {
@@ -137,47 +133,35 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
       }
     }
 
-    // 3) Energi terkini (selalu dihitung untuk dikembalikan ke klien).
-    const { stored, updatedAtMs } = readDoc(energySnap, nowMs);
-    const { current, anchorMs } = regen(stored, updatedAtMs, nowMs);
+    const week = readWeek(weekSnap);
 
-    let newCurrent = current;
-    let newAnchorMs = anchorMs;
-
+    let usedField;
     if (isChallenge) {
-      // Tantangan: jatah 1x per hari (WIB) per mode; energi tidak dipotong.
-      const todayKey = wibDateKey(nowMs);
-      const days = challengeSnap && challengeSnap.exists
-        ? challengeSnap.data() || {}
-        : {};
-      if (days[mode] === todayKey) {
-        return { block: "daily_limit" };
-      }
-      tx.set(
-        challengeRef,
-        {
-          [mode]: todayKey,
-          updated_at: admin.firestore.Timestamp.fromMillis(nowMs),
-        },
-        { merge: true }
-      );
+      const max =
+        WEEKLY_CHALLENGE_PER_MODE +
+        (mode === "voice" ? week.bonusVoice : week.bonusChoice);
+      const used = mode === "voice" ? week.voiceUsed : week.choiceUsed;
+      if (used >= max) return { block: "challenge_limit" };
+      usedField = `challenge_${mode}_used`;
+      if (mode === "voice") week.voiceUsed += 1;
+      else week.choiceUsed += 1;
     } else {
-      // Latihan: butuh energi (mode suara maupun pilihan).
-      if (current <= 0) {
-        return { block: "no_energy" };
-      }
-      const wasFull = current >= MAX_ENERGY;
-      newCurrent = current - 1;
-      newAnchorMs = wasFull ? nowMs : anchorMs;
-      tx.set(
-        energyRef,
-        {
-          energy: newCurrent,
-          updated_at: admin.firestore.Timestamp.fromMillis(newAnchorMs),
-        },
-        { merge: true }
-      );
+      const max = WEEKLY_PRACTICE + week.bonusPractice;
+      if (week.practiceUsed >= max) return { block: "no_energy" };
+      usedField = "practice_used";
+      week.practiceUsed += 1;
     }
+
+    tx.set(
+      ref,
+      {
+        user_id: uid,
+        week_key: key,
+        [usedField]: admin.firestore.FieldValue.increment(1),
+        updated_at: admin.firestore.Timestamp.fromMillis(nowMs),
+      },
+      { merge: true }
+    );
 
     if (needsLock) {
       tx.set(
@@ -193,7 +177,7 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
         { merge: true }
       );
     }
-    return { ok: true, energy: toResponse(newCurrent, newAnchorMs, nowMs) };
+    return { ok: true, energy: toResponse(week, resetAtMs, nowMs) };
   });
 
   if (outcome.block === "whisper") {
@@ -211,18 +195,98 @@ exports.startQuizSession = onCall(OPTIONS, async (request) => {
     );
   }
   if (outcome.block === "no_energy") {
-    throw new HttpsError("failed-precondition", "Energi habis.", {
+    throw new HttpsError("failed-precondition", "Energi minggu ini habis.", {
       reason: "no_energy",
     });
   }
-  if (outcome.block === "daily_limit") {
+  if (outcome.block === "challenge_limit") {
     throw new HttpsError(
       "failed-precondition",
-      "Jatah Tantangan hari ini sudah terpakai. Kembali lagi besok, ya!",
-      { reason: "daily_limit" }
+      "Jatah Tantangan mode ini minggu ini sudah habis. Kembali lagi pekan depan, ya!",
+      { reason: "challenge_limit" }
     );
   }
   return outcome.energy;
+});
+
+// Beri energi TAMBAHAN untuk minggu berjalan kepada seorang santri (khusus
+// admin/asatidz). Tambahan disimpan sebagai bonus_* pada dokumen minggu ini
+// sehingga otomatis hangus saat reset Senin berikutnya.
+exports.grantQuizEnergy = onCall(OPTIONS, async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
+
+  const callerUid = request.auth.uid;
+  const callerDoc = await db.collection("users").doc(callerUid).get();
+  const callerRole = (callerDoc.data() || {}).role || "";
+  if (callerRole !== "admin" && callerRole !== "asatidz") {
+    throw new HttpsError(
+      "permission-denied",
+      "Hanya admin/asatidz yang bisa memberi energi."
+    );
+  }
+
+  const data = request.data || {};
+  const targetUid = typeof data.uid === "string" ? data.uid.trim() : "";
+  if (!targetUid) {
+    throw new HttpsError("invalid-argument", "Santri belum dipilih.");
+  }
+
+  const clampGrant = (v, fallback) => {
+    const n = v === undefined || v === null ? fallback : asInt(v);
+    if (n < 0 || n > GRANT_MAX_PER_CALL) {
+      throw new HttpsError(
+        "invalid-argument",
+        `Jumlah energi harus 0-${GRANT_MAX_PER_CALL}.`
+      );
+    }
+    return n;
+  };
+  const practice = clampGrant(data.practice, GRANT_DEFAULT_PRACTICE);
+  const challengeVoice = clampGrant(
+    data.challengeVoice,
+    GRANT_DEFAULT_CHALLENGE
+  );
+  const challengeChoice = clampGrant(
+    data.challengeChoice,
+    GRANT_DEFAULT_CHALLENGE
+  );
+  if (practice + challengeVoice + challengeChoice <= 0) {
+    throw new HttpsError("invalid-argument", "Tidak ada energi yang diberikan.");
+  }
+
+  const nowMs = Date.now();
+  const { key, resetAtMs } = weekInfo(nowMs);
+  const ref = weekRef(targetUid, key);
+
+  const week = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const w = readWeek(snap);
+    w.bonusPractice += practice;
+    w.bonusVoice += challengeVoice;
+    w.bonusChoice += challengeChoice;
+    tx.set(
+      ref,
+      {
+        user_id: targetUid,
+        week_key: key,
+        bonus_practice: admin.firestore.FieldValue.increment(practice),
+        bonus_challenge_voice:
+          admin.firestore.FieldValue.increment(challengeVoice),
+        bonus_challenge_choice:
+          admin.firestore.FieldValue.increment(challengeChoice),
+        last_grant_by: callerUid,
+        last_grant_at: admin.firestore.Timestamp.fromMillis(nowMs),
+        updated_at: admin.firestore.Timestamp.fromMillis(nowMs),
+      },
+      { merge: true }
+    );
+    return w;
+  });
+
+  return {
+    granted: { practice, challengeVoice, challengeChoice },
+    energy: toResponse(week, resetAtMs, nowMs),
+  };
 });
 
 // Perpanjang lock selama masih bermain (dipanggil berkala oleh app).

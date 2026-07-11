@@ -201,11 +201,18 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Muat energi terkini untuk ditampilkan di layar intro.
   Future<void> loadEnergy() async {
     await _ensureRoleResolved();
-    // Testing / admin: tampilkan energi penuh & jangan panggil server.
+    // Testing / admin: tampilkan kuota penuh & jangan panggil server.
     if (!_serverGated) {
       emit(
         state.copyWith(
-          energy: const QuizEnergy(current: 10, max: 10),
+          energy: const QuizEnergy(
+            current: 15,
+            max: 15,
+            challengeVoiceLeft: 2,
+            challengeVoiceMax: 2,
+            challengeChoiceLeft: 2,
+            challengeChoiceMax: 2,
+          ),
           energyLoading: false,
         ),
       );

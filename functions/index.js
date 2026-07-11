@@ -24,6 +24,7 @@ const {
   startQuizSession,
   heartbeatQuizSession,
   endQuizSession,
+  grantQuizEnergy,
 } = require("./handlers/quizEnergy");
 
 exports.compareSantri = compareSantri;
@@ -57,9 +58,12 @@ exports.guestLookup = guestLookup;
 exports.transcribeRecitation = transcribeRecitation;
 
 // Energi Kuis Hafalan (server-side, anti ubah-jam). onCall, butuh login.
-// Tiap pengguna punya energi sendiri (quiz_energy/{uid}).
+// KUOTA MINGGUAN tanpa cron: dokumen per-minggu quiz_energy_weeks/{uid}_{senin};
+// minggu baru = dokumen baru = kuota penuh kembali (reset Senin 00:00 WIB).
 exports.getQuizEnergy = getQuizEnergy;
-// Sesi kuis 1-user-pada-satu-waktu (lock + lease/heartbeat) + potong energi.
+// Sesi kuis 1-user-pada-satu-waktu (lock + lease/heartbeat) + potong kuota.
 exports.startQuizSession = startQuizSession;
 exports.heartbeatQuizSession = heartbeatQuizSession;
 exports.endQuizSession = endQuizSession;
+// Admin/asatidz memberi energi tambahan minggu berjalan ke santri.
+exports.grantQuizEnergy = grantQuizEnergy;

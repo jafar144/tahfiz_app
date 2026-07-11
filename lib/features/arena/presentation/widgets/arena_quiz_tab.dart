@@ -115,7 +115,7 @@ class ArenaQuizTab extends StatelessWidget {
         icon: Icons.local_fire_department_rounded,
         title: 'Tantangan',
         subtitle:
-            'Soal sesuai kurikulum kelasmu, 1x per hari per mode — skor '
+            'Soal sesuai kurikulum kelasmu, jatah terbatas tiap pekan — skor '
             'terbaik masuk papan juara kelas.',
         chips: [],
         buttonLabel: 'Memuat…',
@@ -130,8 +130,8 @@ class ArenaQuizTab extends StatelessWidget {
         icon: Icons.local_fire_department_rounded,
         title: 'Tantangan',
         subtitle:
-            'Khusus santri: soal sesuai kurikulum kelas, 1x per hari, '
-            'hasilnya masuk papan juara kelas.',
+            'Khusus santri: soal sesuai kurikulum kelas, jatah terbatas tiap '
+            'pekan, hasilnya masuk papan juara kelas.',
         chips: const [
           _InfoChip(icon: Icons.lock_rounded, label: 'Khusus santri'),
         ],
@@ -160,32 +160,38 @@ class ArenaQuizTab extends StatelessWidget {
       );
     }
 
-    final bothDone = state.voiceDoneToday && state.choiceDoneToday;
+    final bothEmpty = state.voiceQuotaEmpty && state.choiceQuotaEmpty;
+    // Label sisa jatah per mode: "sisa Nx" / "habis ✓"; belum termuat → "…".
+    String quotaLabel(String name, int? left) {
+      if (left == null) return '$name …';
+      return left > 0 ? '$name sisa ${left}x' : '$name habis ✓';
+    }
+
     return _ModeCard(
       gradient: gradient,
       icon: Icons.local_fire_department_rounded,
       title: 'Tantangan',
       subtitle:
           'Soal mengikuti kurikulum kelasmu${state.kelas != null ? ' (${state.kelas})' : ''}. '
-          'Sekali sehari tiap mode — skor terbaikmu masuk papan juara kelas!',
+          'Jatah terbatas tiap pekan — skor terbaikmu masuk papan juara kelas!',
       chips: [
         _InfoChip(
-          icon: state.voiceDoneToday
+          icon: state.voiceQuotaEmpty
               ? Icons.check_circle_rounded
               : Icons.mic_rounded,
-          label: state.voiceDoneToday ? 'Suara ✓ hari ini' : 'Suara 1x/hari',
+          label: quotaLabel('Suara', state.voiceChallengeLeft),
         ),
         _InfoChip(
-          icon: state.choiceDoneToday
+          icon: state.choiceQuotaEmpty
               ? Icons.check_circle_rounded
               : Icons.grid_view_rounded,
-          label: state.choiceDoneToday
-              ? 'Pilihan ✓ hari ini'
-              : 'Pilihan 1x/hari',
+          label: quotaLabel('Pilihan', state.choiceChallengeLeft),
         ),
       ],
-      buttonLabel: bothDone ? 'Selesai — kembali besok!' : 'Mulai Tantangan',
-      onPressed: bothDone ? null : () => _openChallengeSheet(context, state),
+      buttonLabel: bothEmpty
+          ? 'Jatah pekan ini habis — pekan depan lagi!'
+          : 'Mulai Tantangan',
+      onPressed: bothEmpty ? null : () => _openChallengeSheet(context, state),
     );
   }
 }
@@ -330,7 +336,7 @@ class _ChallengeSheet extends StatefulWidget {
 }
 
 class _ChallengeSheetState extends State<_ChallengeSheet> {
-  late QuizMode _mode = widget.state.voiceDoneToday
+  late QuizMode _mode = widget.state.voiceQuotaEmpty
       ? QuizMode.choice
       : QuizMode.voice;
 
@@ -341,13 +347,24 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
 
   String? get _belowKelas => QuizCurriculum.classBelow(_ownKelas);
 
-  bool _doneToday(QuizMode m) =>
-      m.isVoice ? widget.state.voiceDoneToday : widget.state.choiceDoneToday;
+  bool _quotaEmpty(QuizMode m) =>
+      m.isVoice ? widget.state.voiceQuotaEmpty : widget.state.choiceQuotaEmpty;
+
+  int? _quotaLeft(QuizMode m) => m.isVoice
+      ? widget.state.voiceChallengeLeft
+      : widget.state.choiceChallengeLeft;
+
+  /// Subtitle opsi mode: sisa jatah pekan ini, atau keterangan default.
+  String _modeSubtitle(QuizMode m, String fallback) {
+    if (_quotaEmpty(m)) return 'Jatah pekan ini habis';
+    final left = _quotaLeft(m);
+    return left == null ? fallback : '$fallback • sisa ${left}x';
+  }
 
   @override
   Widget build(BuildContext context) {
     final below = _belowKelas;
-    final canStart = !_doneToday(_mode);
+    final canStart = !_quotaEmpty(_mode);
 
     return SafeArea(
       top: false,
@@ -382,7 +399,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                 ),
                 SizedBox(width: 8),
                 Text(
-                  'Tantangan Harian',
+                  'Tantangan Mingguan',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,
@@ -393,8 +410,8 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Sekali sehari tiap mode. Skor terbaik bulan ini tampil di '
-              'papan juara kelasmu.',
+              'Jatah terbatas tiap pekan untuk tiap mode. Skor terbaik bulan '
+              'ini tampil di papan juara kelasmu.',
               style: TextStyle(color: Colors.white60, fontSize: 12),
             ),
             const SizedBox(height: 18),
@@ -407,11 +424,12 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                   child: _SheetOption(
                     icon: Icons.mic_rounded,
                     title: 'Suara',
-                    subtitle: _doneToday(QuizMode.voice)
-                        ? 'Sudah main hari ini'
-                        : 'Bacakan jawabannya',
+                    subtitle: _modeSubtitle(
+                      QuizMode.voice,
+                      'Bacakan jawabannya',
+                    ),
                     selected: _mode.isVoice,
-                    disabled: _doneToday(QuizMode.voice),
+                    disabled: _quotaEmpty(QuizMode.voice),
                     onTap: () => setState(() => _mode = QuizMode.voice),
                   ),
                 ),
@@ -420,11 +438,12 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                   child: _SheetOption(
                     icon: Icons.grid_view_rounded,
                     title: 'Pilihan',
-                    subtitle: _doneToday(QuizMode.choice)
-                        ? 'Sudah main hari ini'
-                        : '6 opsi · 60 detik',
+                    subtitle: _modeSubtitle(
+                      QuizMode.choice,
+                      '6 opsi · 60 detik',
+                    ),
                     selected: _mode.isChoice,
-                    disabled: _doneToday(QuizMode.choice),
+                    disabled: _quotaEmpty(QuizMode.choice),
                     onTap: () => setState(() => _mode = QuizMode.choice),
                   ),
                 ),

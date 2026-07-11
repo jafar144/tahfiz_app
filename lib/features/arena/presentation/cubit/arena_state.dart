@@ -23,12 +23,6 @@ class ArenaState extends Equatable {
   /// True selama energi sedang dimuat (tampilkan skeleton di top bar).
   final bool energyLoading;
 
-  /// Kunci tanggal (yyyy-mm-dd, WIB) terakhir Tantangan dimainkan per mode;
-  /// null bila belum pernah. Hanya untuk TAMPILAN kartu (server yang benar-
-  /// benar menegakkan jatah harian).
-  final String? voicePlayedDate;
-  final String? choicePlayedDate;
-
   const ArenaState({
     this.status = ArenaStatus.loading,
     this.errorMessage,
@@ -36,8 +30,6 @@ class ArenaState extends Equatable {
     this.kelas,
     this.energy,
     this.energyLoading = false,
-    this.voicePlayedDate,
-    this.choicePlayedDate,
   });
 
   bool get isSantri => role == 'santri';
@@ -46,15 +38,14 @@ class ArenaState extends Equatable {
   /// (kelas Tahsin & admin/asatidz tidak).
   bool get canChallenge => isSantri && QuizCurriculum.canChallenge(kelas);
 
-  /// Kunci tanggal hari ini menurut WIB (untuk membandingkan jatah harian).
-  static String todayKeyWib() {
-    final wib = DateTime.now().toUtc().add(const Duration(hours: 7));
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${wib.year}-${two(wib.month)}-${two(wib.day)}';
-  }
+  /// Sisa kuota Tantangan minggu ini per mode; null bila energi belum termuat.
+  int? get voiceChallengeLeft => energy?.challengeVoiceLeft;
+  int? get choiceChallengeLeft => energy?.challengeChoiceLeft;
 
-  bool get voiceDoneToday => voicePlayedDate == todayKeyWib();
-  bool get choiceDoneToday => choicePlayedDate == todayKeyWib();
+  /// True bila kuota mode tsb PASTI habis (energi termuat & sisa 0). Selama
+  /// energi belum termuat, kartu tetap bisa diketuk — server penegak aslinya.
+  bool get voiceQuotaEmpty => (energy?.challengeVoiceLeft ?? 1) <= 0;
+  bool get choiceQuotaEmpty => (energy?.challengeChoiceLeft ?? 1) <= 0;
 
   ArenaState copyWith({
     ArenaStatus? status,
@@ -63,8 +54,6 @@ class ArenaState extends Equatable {
     String? kelas,
     QuizEnergy? energy,
     bool? energyLoading,
-    String? voicePlayedDate,
-    String? choicePlayedDate,
   }) {
     return ArenaState(
       status: status ?? this.status,
@@ -73,8 +62,6 @@ class ArenaState extends Equatable {
       kelas: kelas ?? this.kelas,
       energy: energy ?? this.energy,
       energyLoading: energyLoading ?? this.energyLoading,
-      voicePlayedDate: voicePlayedDate ?? this.voicePlayedDate,
-      choicePlayedDate: choicePlayedDate ?? this.choicePlayedDate,
     );
   }
 
@@ -86,7 +73,5 @@ class ArenaState extends Equatable {
     kelas,
     energy,
     energyLoading,
-    voicePlayedDate,
-    choicePlayedDate,
   ];
 }

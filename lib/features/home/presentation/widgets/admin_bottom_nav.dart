@@ -30,6 +30,10 @@ class AdminBottomNav extends StatelessWidget {
           label: 'Asatidz',
         ),
         BottomNavigationBarItem(
+          icon: Icon(Icons.bolt_rounded),
+          label: 'Energi',
+        ),
+        BottomNavigationBarItem(
           icon: Icon(Icons.person_rounded),
           label: 'Profile',
         ),

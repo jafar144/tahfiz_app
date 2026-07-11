@@ -298,7 +298,7 @@ class _EnergyHeaderStatState extends State<_EnergyHeaderStat> {
     if (widget.energy.isFull) return;
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (!mounted) return;
-      final t = widget.energy.nextRefillAt;
+      final t = widget.energy.resetAt;
       if (!_notified && t != null && DateTime.now().isAfter(t)) {
         _notified = true;
         widget.onRefillReady?.call();
