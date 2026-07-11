@@ -103,7 +103,12 @@ class RecitationMatcher {
       if (i > 0 && j > 0) {
         final sim = _similarity(ref[i - 1], hyp[j - 1]);
         if (_closeEnough(score[i][j], score[i - 1][j - 1] + (2 * sim - 1))) {
-          final isCorrect = ref[i - 1] == hyp[j - 1] || sim >= _maddTolerance;
+          final isCorrect = _isCorrectWord(
+            referenceOriginal: refPairs[i - 1].original,
+            reference: ref[i - 1],
+            spoken: hyp[j - 1],
+            similarity: sim,
+          );
           out.add(
             WordDiff(
               status: isCorrect ? WordStatus.correct : WordStatus.wrong,
@@ -122,7 +127,12 @@ class RecitationMatcher {
         final mergedHyp = hyp[j - 2] + hyp[j - 1];
         final sm = _similarity(ref[i - 1], mergedHyp);
         if (_closeEnough(score[i][j], score[i - 1][j - 2] + (2 * sm - 1))) {
-          final isCorrect = ref[i - 1] == mergedHyp || sm >= _maddTolerance;
+          final isCorrect = _isCorrectWord(
+            referenceOriginal: refPairs[i - 1].original,
+            reference: ref[i - 1],
+            spoken: mergedHyp,
+            similarity: sm,
+          );
           out.add(
             WordDiff(
               status: isCorrect ? WordStatus.correct : WordStatus.wrong,
@@ -187,6 +197,70 @@ class RecitationMatcher {
       referenceWordCount: m,
       transcription: transcription,
     );
+  }
+
+  static bool _isCorrectWord({
+    required String referenceOriginal,
+    required String reference,
+    required String spoken,
+    required double similarity,
+  }) {
+    if (reference == spoken || similarity >= _maddTolerance) return true;
+    return _matchesWeakGeminatedTaaMarbuta(
+      referenceOriginal: referenceOriginal,
+      reference: reference,
+      spoken: spoken,
+    );
+  }
+
+  /// ASR can collapse words ending in geminated taa marbuta (`...\u0651\u0629`)
+  /// to a common shorter spelling. A real example is Al-Haqqah:
+  /// `\u0627\u0644\u062d\u0627\u0642\u0647` may be transcribed as
+  /// `\u0627\u0644\u062d\u0642`.
+  ///
+  /// Keep this narrow: only raw mushaf words with shadda right before taa
+  /// marbuta get this fallback, so ordinary short-word substitutions remain
+  /// wrong.
+  static bool _matchesWeakGeminatedTaaMarbuta({
+    required String referenceOriginal,
+    required String reference,
+    required String spoken,
+  }) {
+    if (!_hasShaddaBeforeTaaMarbuta(referenceOriginal)) return false;
+    if (!reference.endsWith('\u0647')) return false;
+    if (spoken.endsWith('\u0647')) return false;
+
+    final withoutFinalHa = reference.substring(0, reference.length - 1);
+    final withoutMadd = _dropLastMaddLetter(withoutFinalHa);
+    return withoutMadd != withoutFinalHa && spoken == withoutMadd;
+  }
+
+  static bool _hasShaddaBeforeTaaMarbuta(String rawWord) {
+    final taaIndex = rawWord.lastIndexOf('\u0629');
+    if (taaIndex <= 0) return false;
+    for (var i = taaIndex - 1; i >= 0; i--) {
+      final code = rawWord.codeUnitAt(i);
+      if (code == 0x0651) return true;
+      if (_isArabicMark(code) || code == 0x0640) continue;
+      return false;
+    }
+    return false;
+  }
+
+  static bool _isArabicMark(int code) =>
+      (code >= 0x0610 && code <= 0x061A) ||
+      (code >= 0x064B && code <= 0x065F) ||
+      code == 0x0670 ||
+      (code >= 0x06D6 && code <= 0x06ED);
+
+  static String _dropLastMaddLetter(String text) {
+    for (var i = text.length - 2; i >= 1; i--) {
+      final code = text.codeUnitAt(i);
+      if (code == 0x0627 || code == 0x0648 || code == 0x064A) {
+        return text.substring(0, i) + text.substring(i + 1);
+      }
+    }
+    return text;
   }
 
   /// True bila menggabung dua kata mushaf (i-2, i-1) menjadi satu kata terbaca

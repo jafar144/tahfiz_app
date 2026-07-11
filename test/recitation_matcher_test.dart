@@ -16,6 +16,8 @@ void main() {
   late List<String> kafirun; // surah 109
   late List<String> baqarah; // surah 2 (ayat 1 = muqatta'at الٓمٓ)
   late List<String> quraisy; // surah 106
+  late List<String> haqqah; // surah 69
+  late List<String> qariah; // surah 101
 
   setUpAll(() async {
     final raw = await rootBundle.loadString('assets/quran/quran.json');
@@ -31,6 +33,12 @@ void main() {
             .cast<String>();
     quraisy =
         ((data.firstWhere((e) => e['id'] == 106))['verses'] as List<dynamic>)
+            .cast<String>();
+    haqqah =
+        ((data.firstWhere((e) => e['id'] == 69))['verses'] as List<dynamic>)
+            .cast<String>();
+    qariah =
+        ((data.firstWhere((e) => e['id'] == 101))['verses'] as List<dynamic>)
             .cast<String>();
   });
 
@@ -229,6 +237,45 @@ void main() {
       );
       expect(r.diffs.every((d) => d.status == WordStatus.correct), true);
       expect(r.accuracy, 1.0);
+    });
+  });
+
+  group('Weak taa marbuta ASR (Al-Haqqah)', () {
+    test('Al-Haqqah 1-3: ASR "\u0627\u0644\u062d\u0642" tetap benar', () {
+      final ref = '${haqqah[0]} ${haqqah[1]} ${haqqah[2]}';
+      const spoken =
+          '\u0627\u0644\u062d\u0642 \u0645\u0627 \u0627\u0644\u062d\u0642 '
+          '\u0648\u0645\u0627 \u0627\u062f\u0631\u0627\u0643 '
+          '\u0645\u0627 \u0627\u0644\u062d\u0642';
+      final r = RecitationMatcher.compare(
+        referenceText: ref,
+        spokenText: spoken,
+      );
+
+      expect(countStatus(r, WordStatus.wrong), 0);
+      expect(countStatus(r, WordStatus.missing), 0);
+      expect(countStatus(r, WordStatus.extra), 0);
+      expect(r.accuracy, 1.0);
+    });
+
+    test('kata non-tasydid seperti Al-Qariah tidak ikut dilonggarkan', () {
+      final r = RecitationMatcher.compare(
+        referenceText: qariah[0],
+        spokenText: '\u0627\u0644\u0642\u0631\u0639',
+      );
+
+      expect(countStatus(r, WordStatus.wrong), 1);
+      expect(r.accuracy, 0);
+    });
+
+    test('kata pendek tanpa mad tidak ikut dilonggarkan', () {
+      final r = RecitationMatcher.compare(
+        referenceText: '\u062c\u064e\u0646\u0651\u064e\u0629',
+        spokenText: '\u062c\u0646',
+      );
+
+      expect(countStatus(r, WordStatus.wrong), 1);
+      expect(r.accuracy, 0);
     });
   });
 
