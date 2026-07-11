@@ -314,6 +314,20 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
     });
   }
 
+  /// Papan pencocokan sudah tuntas. Salah pilih tetap dapat diperbaiki di
+  /// papan, tetapi hanya permainan tanpa salah yang bernilai benar penuh.
+  void completeMatch(bool perfect) {
+    final q = state.currentQuestion;
+    if (q == null || !q.isMatch) return;
+    emit(state.copyWith(answers: [...state.answers, perfect]));
+
+    final ticket = ++_feedbackTicket;
+    Future.delayed(LessonConfig.choiceFeedbackDelay, () {
+      if (isClosed || ticket != _feedbackTicket) return;
+      next();
+    });
+  }
+
   // ─────────────────────────────────────────────────────────── Lanjut soal ──
 
   /// Lanjut ke soal berikutnya, atau selesaikan test di soal terakhir.

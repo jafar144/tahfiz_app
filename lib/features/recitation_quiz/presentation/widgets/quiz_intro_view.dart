@@ -270,7 +270,6 @@ class QuizIntroView extends StatelessWidget {
                         clipBehavior: Clip.none,
                         alignment: Alignment.topCenter,
                         children: [
-
                           _buildStartButton(context),
 
                           if (energy != null)
@@ -545,6 +544,28 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ],
             ),
             const SizedBox(height: 20),
+            const _SectionLabel(icon: Icons.tune_rounded, text: 'Jenis Soal'),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              value: _s.ayatOnly,
+              onChanged: (value) => _update(_s.copyWith(ayatOnly: value)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+              activeThumbColor: QuizColors.gold,
+              title: const Text(
+                'Ayat saja',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              subtitle: Text(
+                _s.ayatOnly
+                    ? 'Hanya sambung ayat seperti kuis klasik.'
+                    : 'Campur arti kata, fakta surah, dan soal bonus pencocokan.',
+                style: const TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
             const _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
             const SizedBox(height: 4),
             const Text(

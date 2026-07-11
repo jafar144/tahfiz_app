@@ -459,14 +459,14 @@ class _JourneyMapState extends State<_JourneyMap> {
 
   /// Posisi horizontal node ke-[i] (0 = level 1 paling bawah) — pola zigzag.
   double _xFrac(int i, int count) {
-    if (i == 0 || i == count - 1) return 0.5; // awal & "segera hadir" di tengah
+    if (i == 0 || i == count - 1) return 0.5; // awal & level puncak di tengah
     return i.isOdd ? 0.27 : 0.73;
   }
 
   @override
   Widget build(BuildContext context) {
     final nodes = widget.state.nodes;
-    final count = nodes.length + 1; // + node "Segera Hadir"
+    final count = nodes.length;
     final mapHeight = _topPad + _bottomPad + _spacing * (count - 1);
 
     return LayoutBuilder(
@@ -513,11 +513,6 @@ class _JourneyMapState extends State<_JourneyMap> {
                       onTap: () => _onNodeTap(context, i),
                     ),
                   ),
-                // Node "Segera Hadir".
-                _positionNode(
-                  center: centers[count - 1],
-                  child: const _ComingSoonNode(),
-                ),
               ],
             ),
           ),
@@ -827,38 +822,6 @@ class _FloatBobState extends State<_FloatBob>
 }
 
 /// Node "level berikutnya segera hadir".
-class _ComingSoonNode extends StatelessWidget {
-  const _ComingSoonNode();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.06),
-            border: Border.all(color: Colors.white24, width: 2),
-          ),
-          child: const Icon(
-            Icons.more_horiz_rounded,
-            color: Colors.white38,
-            size: 28,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Segera Hadir',
-          style: TextStyle(color: Colors.white38, fontSize: 11.5),
-        ),
-      ],
-    );
-  }
-}
-
 // ─────────────────────────────────────────────────────────────── Painters ──
 
 /// Latar peta: bintang berkelip statis, bulan sabit, bukit di kaki peta.
@@ -912,6 +875,49 @@ class _SkyPainter extends CustomPainter {
       moon,
       Paint()..color = const Color(0xFFFFE9A8).withValues(alpha: 0.9),
     );
+
+    // Dua aksen langit agar perjalanan panjang tetap terasa hidup: satu
+    // bintang jatuh dan satu rasi kecil, keduanya tipis agar jalur level
+    // tetap menjadi fokus utama.
+    final shootingStar = Paint()
+      ..color = const Color(0xFFB8E8FF).withValues(alpha: 0.62)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      Offset(size.width * 0.08, 118),
+      Offset(size.width * 0.24, 145),
+      shootingStar,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.24, 145),
+      2.4,
+      Paint()..color = const Color(0xFFFFE9A8),
+    );
+
+    final constellation = Paint()
+      ..color = const Color(0xFF8DCEFF).withValues(alpha: 0.30)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final stars = [
+      Offset(size.width * 0.17, 248),
+      Offset(size.width * 0.29, 224),
+      Offset(size.width * 0.36, 274),
+      Offset(size.width * 0.23, 302),
+    ];
+    final constellationPath = Path()
+      ..moveTo(stars[0].dx, stars[0].dy)
+      ..lineTo(stars[1].dx, stars[1].dy)
+      ..lineTo(stars[2].dx, stars[2].dy)
+      ..lineTo(stars[3].dx, stars[3].dy)
+      ..close();
+    canvas.drawPath(constellationPath, constellation);
+    for (final starCenter in stars) {
+      canvas.drawCircle(
+        starCenter,
+        2.6,
+        Paint()..color = const Color(0xFFFFE9A8).withValues(alpha: 0.86),
+      );
+    }
 
     // Bukit dua lapis di kaki peta.
     final hillBack = Paint()..color = SurahJourneyPage._hillDark;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/vocab_match_board.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
@@ -88,6 +89,8 @@ class _LessonTestViewState extends State<LessonTestView> {
                   index: state.currentIndex,
                   child: q.isVoice
                       ? _VoiceQuestion(state: state, cubit: cubit)
+                      : q.isMatch
+                      ? _MatchQuestion(state: state, cubit: cubit)
                       : _ChoiceQuestion(state: state, cubit: cubit),
                 ),
               ),
@@ -109,6 +112,8 @@ class _TypeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final (icon, label) = question.isVoice
         ? (Icons.mic_rounded, 'Soal Suara')
+        : question.isMatch
+        ? (Icons.hub_rounded, 'Cocokkan Kata')
         : (Icons.touch_app_rounded, 'Pilihan');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -395,6 +400,25 @@ class _VoiceResult extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────── Soal pilihan ──
+
+class _MatchQuestion extends StatelessWidget {
+  final SurahLessonState state;
+  final SurahLessonCubit cubit;
+
+  const _MatchQuestion({required this.state, required this.cubit});
+
+  @override
+  Widget build(BuildContext context) {
+    final question = state.currentQuestion!.vocabMatch!;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: VocabMatchBoard(
+        question: question,
+        onCompleted: cubit.completeMatch,
+      ),
+    );
+  }
+}
 
 class _ChoiceQuestion extends StatelessWidget {
   final SurahLessonState state;

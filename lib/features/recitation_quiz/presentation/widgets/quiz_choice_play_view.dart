@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/vocab_match_board.dart';
 
 /// Pola nomor ayat di akhir teks Uthmani: spasi-tak-putus + angka Arab-Hindi.
 final _ayahNumberTail = RegExp(r'[٠-٩ \s]+$');
@@ -106,6 +107,8 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
           if (q.isTrivia) {
             // Soal BONUS (trivia): layar khusus bernuansa emas + gelombang tepi.
             screen = _ChoiceTriviaScreen(state: state, cubit: cubit);
+          } else if (q.isKnowledge) {
+            screen = _KnowledgeChoiceScreen(state: state, cubit: cubit);
           } else {
             final required = q.answerAyahCount;
             final locked = state.choiceLocked;
@@ -205,6 +208,159 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
 
 /// Layar Soal Bonus mode pilihan: latar krem + gelombang emas di tepi, timer
 /// sesi utama tampil "dijeda", hitung mundur sendiri, dan soal trivia surah.
+class _KnowledgeChoiceScreen extends StatelessWidget {
+  final RecitationQuizState state;
+  final RecitationQuizCubit cubit;
+
+  const _KnowledgeChoiceScreen({required this.state, required this.cubit});
+
+  @override
+  Widget build(BuildContext context) {
+    final fact = state.currentQuestion!.knowledge!;
+    final locked = state.choiceLocked;
+    return SafeArea(
+      child: Column(
+        children: [
+          _Header(
+            secondsLeft: state.secondsLeft,
+            points: state.runningPoints,
+            answered: state.answeredCount,
+            showTimeBonus: state.choiceCorrect == true,
+            timeBonus: state.lastTimeBonus,
+            bonusTick: state.timeBonusTick,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  fact.question,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (fact.arabicText != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    fact.arabicText!,
+                    textDirection: TextDirection.rtl,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'QuranHafs',
+                      color: QuizColors.gold,
+                      fontSize: 27,
+                      height: 1.8,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                for (var i = 0; i < fact.options.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _KnowledgeOption(
+                      text: fact.options[i],
+                      selected: state.picks.contains(i),
+                      result: !locked
+                          ? null
+                          : i == fact.correctIndex
+                          ? true
+                          : state.picks.contains(i)
+                          ? false
+                          : null,
+                      onTap: locked ? null : () => cubit.pickOption(i),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KnowledgeOption extends StatelessWidget {
+  final String text;
+  final bool selected;
+  final bool? result;
+  final VoidCallback? onTap;
+
+  const _KnowledgeOption({
+    required this.text,
+    required this.selected,
+    required this.result,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = result == true
+        ? QuizColors.correctBright
+        : result == false
+        ? QuizColors.missingBright
+        : selected
+        ? QuizColors.gold
+        : Colors.white24;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: color.withValues(
+            alpha: selected || result != null ? 0.15 : 0.05,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: color,
+            width: selected || result != null ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceVocabMatchContent extends StatelessWidget {
+  final RecitationQuizState state;
+  final RecitationQuizCubit cubit;
+
+  const _ChoiceVocabMatchContent({required this.state, required this.cubit});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Column(
+        children: [
+          _GoldCountdown(
+            secondsLeft: state.choiceBonusSecondsLeft,
+            total: QuizConfig.choiceTriviaSeconds,
+          ),
+          const SizedBox(height: 14),
+          VocabMatchBoard(
+            question: state.currentQuestion!.vocabMatch!,
+            light: true,
+            onCompleted: cubit.completeVocabMatch,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ChoiceTriviaScreen extends StatelessWidget {
   final RecitationQuizState state;
   final RecitationQuizCubit cubit;
@@ -213,7 +369,8 @@ class _ChoiceTriviaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = state.currentQuestion!.trivia!;
+    final q = state.currentQuestion!;
+    final t = q.trivia;
     final intro = state.choiceBonusIntro;
     return Stack(
       children: [
@@ -243,11 +400,15 @@ class _ChoiceTriviaScreen extends StatelessWidget {
                       ? const BonusIntroSplash(
                           subtitle: 'Waktu permainan dijeda • poin lebih besar',
                         )
+                      : q.isVocabMatch
+                      ? _ChoiceVocabMatchContent(state: state, cubit: cubit)
                       : _TriviaContent(state: state, cubit: cubit),
                 ),
               ),
               // Tombol "Jawab" untuk soal nama+arti (dua bagian).
-              if (!intro && t.needsSubmit && !state.choiceBonusRewardStage)
+              if (!intro &&
+                  t?.needsSubmit == true &&
+                  !state.choiceBonusRewardStage)
                 _GoldSubmitBar(
                   enabled: state.choiceComplete && !state.choiceLocked,
                   onSubmit: cubit.submitChoice,

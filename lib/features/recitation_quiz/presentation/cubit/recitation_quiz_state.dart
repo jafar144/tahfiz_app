@@ -289,6 +289,8 @@ class RecitationQuizState extends Equatable {
   bool get choiceComplete {
     final q = currentQuestion;
     if (q == null) return false;
+    if (q.isKnowledge) return picks.isNotEmpty;
+    if (q.isVocabMatch) return false;
     final t = q.trivia;
     if (t != null) {
       if (t.isNameMeaning) return picks.isNotEmpty && meaningPick != null;

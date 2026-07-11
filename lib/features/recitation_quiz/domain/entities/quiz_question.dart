@@ -1,5 +1,7 @@
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 
 /// Tugas soal INTI mode suara — apa yang harus dibaca santri dari ayat prompt.
 enum QuizVoiceTask {
@@ -45,16 +47,28 @@ class QuizQuestion {
   /// soal biasa (lanjutan ayat).
   final QuizBonusQuestion? trivia;
 
+  /// Soal fakta atau arti kata (pilihan tunggal).
+  final FactQuestion? knowledge;
+
+  /// Soal bonus mencocokkan kosa kata.
+  final VocabMatchQuestion? vocabMatch;
+
   const QuizQuestion({
     required this.prompt,
     required this.answer,
     this.options = const [],
     this.task = QuizVoiceTask.continueAyah,
     this.trivia,
+    this.knowledge,
+    this.vocabMatch,
   });
 
   /// True bila soal ini soal trivia surah (mode pilihan).
-  bool get isTrivia => trivia != null;
+  bool get isTrivia => trivia != null || vocabMatch != null;
+
+  bool get isKnowledge => knowledge != null;
+
+  bool get isVocabMatch => vocabMatch != null;
 
   /// Nomor ayat yang diminta pada tugas [QuizVoiceTask.specificAyah]
   /// (diambil dari ayat jawaban pertama).

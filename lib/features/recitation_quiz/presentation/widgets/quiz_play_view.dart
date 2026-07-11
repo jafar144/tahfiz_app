@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/vocab_match_board.dart';
 
 /// Layar mengerjakan soal: kartu ayat prompt + tombol rekam + hasil per soal.
 class QuizPlayView extends StatefulWidget {
@@ -490,7 +491,13 @@ class _VoiceBonusContent extends StatelessWidget {
             hint: b.hintText,
           ),
           const SizedBox(height: 16),
-          if (b.isNameMeaning) ...[
+          if (b.isVocabMatch)
+            VocabMatchBoard(
+              question: b.vocabMatch!,
+              light: true,
+              onCompleted: cubit.completeBonusMatch,
+            )
+          else if (b.isNameMeaning) ...[
             TriviaSection(
               label: 'Nama Surah',
               icon: Icons.menu_book_rounded,

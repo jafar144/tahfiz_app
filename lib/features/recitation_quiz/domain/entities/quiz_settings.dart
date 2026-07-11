@@ -25,11 +25,15 @@ class QuizSettings extends Equatable {
   /// ayat; lompatan antar kelompok tidak pernah disambung.
   final Set<int> extraSurahs;
 
+  /// True = hanya soal ayat seperti versi klasik; false = campur materi Journey.
+  final bool ayatOnly;
+
   const QuizSettings({
     this.mode = QuizMode.voice,
     this.juz = const {29, 30},
     this.rangeStart = const {},
     this.extraSurahs = const {},
+    this.ayatOnly = false,
   });
 
   /// Daftar juz terurut menaik (untuk penyimpanan & tampilan).
@@ -53,11 +57,13 @@ class QuizSettings extends Equatable {
     Set<int>? juz,
     Map<int, int>? rangeStart,
     Set<int>? extraSurahs,
+    bool? ayatOnly,
   }) => QuizSettings(
     mode: mode ?? this.mode,
     juz: juz ?? this.juz,
     rangeStart: rangeStart ?? this.rangeStart,
     extraSurahs: extraSurahs ?? this.extraSurahs,
+    ayatOnly: ayatOnly ?? this.ayatOnly,
   );
 
   /// Setel surah awal rentang target untuk juz [j].
@@ -71,6 +77,7 @@ class QuizSettings extends Equatable {
     'mode': mode.key,
     'juz': sortedJuz,
     'range_start': rangeStart.map((k, v) => MapEntry(k.toString(), v)),
+    'ayat_only': ayatOnly,
   };
 
   factory QuizSettings.fromJson(Map<String, dynamic> json) {
@@ -95,9 +102,10 @@ class QuizSettings extends Equatable {
       mode: QuizModeX.fromKey(json['mode'] as String?),
       juz: juz.isEmpty ? const {29, 30} : juz,
       rangeStart: rangeStart,
+      ayatOnly: json['ayat_only'] as bool? ?? false,
     );
   }
 
   @override
-  List<Object?> get props => [mode, juz, rangeStart, extraSurahs];
+  List<Object?> get props => [mode, juz, rangeStart, extraSurahs, ayatOnly];
 }

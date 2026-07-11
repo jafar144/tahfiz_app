@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_surah_facts.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 
@@ -58,6 +59,7 @@ class QuizBonusQuestion {
 
   /// Untuk [neighbor]: true = sesudah, false = sebelum.
   final bool after;
+  final VocabMatchQuestion? vocabMatch;
 
   const QuizBonusQuestion({
     required this.type,
@@ -68,7 +70,21 @@ class QuizBonusQuestion {
     this.referenceSurah = 0,
     this.offset = 0,
     this.after = true,
+    this.vocabMatch,
   });
+
+  const QuizBonusQuestion.vocabularyMatch(VocabMatchQuestion match)
+    : type = QuizBonusType.identify,
+      answerSurahs = const [],
+      options = const [],
+      meaningOptions = const [],
+      numberOptions = const [],
+      referenceSurah = 0,
+      offset = 0,
+      after = true,
+      vocabMatch = match;
+
+  bool get isVocabMatch => vocabMatch != null;
 
   /// Jawaban lebih dari satu surah (identify multi).
   bool get isMulti => answerSurahs.length > 1;
@@ -143,6 +159,7 @@ class QuizBonusQuestion {
 
   /// Teks jawaban benar siap tampil (saat salah/waktu habis).
   String get answerLabel => switch (type) {
+    _ when isVocabMatch => 'Kosa kata selesai dicocokkan',
     QuizBonusType.nameMeaning =>
       '${QuizJuz.nameOf(answerSurahs.first)} — $answerMeaning',
     QuizBonusType.orderNumber =>
@@ -157,6 +174,7 @@ class QuizBonusQuestion {
   /// [orderNumber], surah target SENGAJA tidak disebut namanya — santri harus
   /// mengenali sendiri surahnya dari ayat.
   String questionTextWith(String subject) => switch (type) {
+    _ when isVocabMatch => 'Cocokkan kosa kata Arab dengan artinya',
     QuizBonusType.neighbor =>
       '$offset surah ${after ? 'setelah' : 'sebelum'} surah dari '
           '$subject, surahnya apa?',

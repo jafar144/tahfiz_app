@@ -1,4 +1,5 @@
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 
 /// Jenis soal ujian Petualangan Surah.
@@ -11,6 +12,9 @@ enum LessonTaskType {
 
   /// PILIHAN: soal materi/fakta surah dari halaman belajar.
   choiceFact,
+
+  /// Mencocokkan empat kosa kata Arab dengan artinya.
+  vocabMatch,
 }
 
 /// Satu soal ujian surah — soal suara membawa ayat prompt+jawaban; soal
@@ -27,11 +31,15 @@ class LessonQuestion {
   /// Soal pilihan ganda materi (tipe [LessonTaskType.choiceFact]).
   final FactQuestion? fact;
 
+  /// Pasangan kosa kata (tipe [LessonTaskType.vocabMatch]).
+  final VocabMatchQuestion? vocabMatch;
+
   const LessonQuestion._({
     required this.type,
     this.prompt,
     this.answer = const [],
     this.fact,
+    this.vocabMatch,
   });
 
   const LessonQuestion.voice({
@@ -43,5 +51,12 @@ class LessonQuestion {
   const LessonQuestion.choice(FactQuestion fact)
     : this._(type: LessonTaskType.choiceFact, fact: fact);
 
-  bool get isVoice => type != LessonTaskType.choiceFact;
+  const LessonQuestion.match(VocabMatchQuestion vocabMatch)
+    : this._(type: LessonTaskType.vocabMatch, vocabMatch: vocabMatch);
+
+  bool get isVoice =>
+      type == LessonTaskType.voiceContinue ||
+      type == LessonTaskType.voiceLastAyah;
+
+  bool get isMatch => type == LessonTaskType.vocabMatch;
 }

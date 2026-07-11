@@ -21,6 +21,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 
 class QuizRepositoryImpl implements QuizRepository {
@@ -190,6 +191,7 @@ class QuizRepositoryImpl implements QuizRepository {
           segmentEnds: segmentEnds,
           allowed: allowedSurahs,
           count: count,
+          includeKnowledge: !settings.ayatOnly,
           rng: rng,
         );
         if (choiceQuestions.isEmpty) {
@@ -294,6 +296,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required Set<int> segmentEnds,
     required Set<int> allowed,
     required int count,
+    required bool includeKnowledge,
     required Random rng,
   }) {
     final questions = <QuizQuestion>[];
@@ -325,6 +328,22 @@ class QuizRepositoryImpl implements QuizRepository {
       final wantTrivia = pos % QuizConfig.choiceTriviaInterval == 0;
 
       if (wantTrivia) {
+        if (includeKnowledge && rng.nextBool()) {
+          final match = QuizKnowledgeBank.vocabularyMatch(
+            allowedSurahs: allowed,
+            rng: rng,
+          );
+          if (match != null) {
+            questions.add(
+              QuizQuestion(
+                prompt: pool[candidates[cursor % candidates.length]],
+                answer: const [],
+                vocabMatch: match,
+              ),
+            );
+            continue;
+          }
+        }
         final type = triviaTypes[triviaCount % triviaTypes.length];
         QuizQuestion? built;
         // Cari surah (dari kandidat mana pun yang belum terpakai) yang bisa
@@ -357,6 +376,22 @@ class QuizRepositoryImpl implements QuizRepository {
       if (i == null) break; // kandidat habis
       final prompt = pool[i];
       usedPrompts.add(keyOf(prompt));
+      if (includeKnowledge && questions.length % 4 == 2) {
+        final knowledge = QuizKnowledgeBank.vocabularyMeaning(
+          allowedSurahs: allowed,
+          rng: rng,
+        );
+        if (knowledge != null) {
+          questions.add(
+            QuizQuestion(
+              prompt: prompt,
+              answer: const [],
+              knowledge: knowledge,
+            ),
+          );
+          continue;
+        }
+      }
       final maxLen = _availableAnswerLen(pool, i, segmentEnds);
       final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
       final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];

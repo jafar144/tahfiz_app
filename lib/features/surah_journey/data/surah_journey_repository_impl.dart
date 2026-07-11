@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_check/data/quran_local_dataso
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/repositories/recitation_repository.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_progress.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
@@ -59,10 +60,7 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
         }
       });
       return Right(
-        JourneyProgress(
-          surahs: surahs,
-          xp: (data['xp'] as num?)?.toInt() ?? 0,
-        ),
+        JourneyProgress(surahs: surahs, xp: (data['xp'] as num?)?.toInt() ?? 0),
       );
     } catch (e) {
       return Left(ServerFailure('Gagal memuat progres: $e'));
@@ -184,6 +182,9 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
         if (section.test.useVocabQuestions)
           ..._vocabQuestions(section.vocabItems, ayat, rng),
       ],
+      matchBuilder: section.test.useVocabQuestions
+          ? (rng) => _vocabMatchQuestion(section.vocabItems, rng)
+          : null,
     );
   }
 
@@ -205,6 +206,9 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
           rng,
         ),
       ],
+      matchBuilder: (rng) => _vocabMatchQuestion([
+        for (final section in lesson.sections) ...section.vocabItems,
+      ], rng),
     );
   }
 
@@ -217,6 +221,7 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
     required int voiceLastAyahCount,
     required List<FactQuestion> Function(List<Ayah> ayat, Random rng)
     choicePool,
+    LessonQuestion? Function(Random rng)? matchBuilder,
   }) async {
     try {
       final ayatRes = await getSurahAyat(lesson.surahId);
@@ -232,6 +237,7 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
 
       final rng = Random();
       final questions = <LessonQuestion>[];
+      final match = matchBuilder?.call(rng);
 
       // ── Soal SUARA ──────────────────────────────────────────────────────
       // 1) "Baca ayat terakhir": ayat tampil diundi dari selain ayat terakhir.
@@ -260,7 +266,10 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
         if (questions.length >= voiceTarget) break;
         final prompt = ayat[i];
         if (!usedPromptNumbers.add(prompt.number)) continue;
-        final available = min(LessonConfig.maxContinueAyah, ayat.length - 1 - i);
+        final available = min(
+          LessonConfig.maxContinueAyah,
+          ayat.length - 1 - i,
+        );
         final len = 1 + rng.nextInt(available);
         questions.add(
           LessonQuestion.voice(
@@ -278,6 +287,13 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
       for (final fact in pool) {
         if (questions.length >= questionCount) break;
         questions.add(LessonQuestion.choice(fact));
+      }
+
+      if (match != null) {
+        final matchIndex = questions.indexWhere(
+          (question) => !question.isVoice,
+        );
+        if (matchIndex >= 0) questions[matchIndex] = match;
       }
 
       if (questions.length < questionCount) {
@@ -333,6 +349,19 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
       );
     }
     return questions;
+  }
+
+  LessonQuestion? _vocabMatchQuestion(List<VocabItem> items, Random rng) {
+    if (items.length < 4) return null;
+    final selected = [...items]..shuffle(rng);
+    return LessonQuestion.match(
+      VocabMatchQuestion(
+        pairs: [
+          for (final item in selected.take(4))
+            VocabMatchPair(arabic: item.word, meaning: item.meaning),
+        ],
+      ),
+    );
   }
 
   @override

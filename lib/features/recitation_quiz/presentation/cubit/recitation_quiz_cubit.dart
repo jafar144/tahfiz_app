@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
@@ -476,6 +477,15 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
     final trivia = q.trivia;
 
+    if (q.isKnowledge) {
+      if (state.picks.contains(optionIndex)) {
+        emit(state.copyWith(picks: const []));
+        return;
+      }
+      _evaluateChoice([optionIndex]);
+      return;
+    }
+
     // Soal trivia: pilihan tunggal — ketuk lagi melepas, ketuk lain memindah.
     if (trivia != null) {
       if (state.picks.contains(optionIndex)) {
@@ -523,14 +533,23 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _evaluateChoice(state.picks);
   }
 
-  void _evaluateChoice(List<int> picks) {
+  void _evaluateChoice(List<int> picks, {bool? matchPerfect}) {
     final q = state.currentQuestion!;
     final trivia = q.trivia;
 
     final bool correct; // dapat poin (untuk umpan balik & sound)
     final int points;
     final int timeBonus;
-    if (trivia != null) {
+    if (q.isVocabMatch) {
+      _choiceBonusTimer?.cancel();
+      correct = matchPerfect == true;
+      points = correct ? QuizConfig.choiceTriviaPoints : 0;
+      timeBonus = correct ? QuizConfig.choiceTriviaTimeBonus : 0;
+    } else if (q.isKnowledge) {
+      correct = picks.isNotEmpty && picks.first == q.knowledge!.correctIndex;
+      points = correct ? QuizConfig.choicePointsFor(1) : 0;
+      timeBonus = correct ? QuizConfig.choiceTimeBonusFor(1) : 0;
+    } else if (trivia != null) {
       // Soal BONUS: hitung mundur sendiri berhenti; benar → +poin & +waktu
       // TETAP ke sesi utama (nama+arti benar sebagian → setengahnya).
       _choiceBonusTimer?.cancel();
@@ -557,16 +576,16 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
 
     final answer = QuizAnswer(
       questionIndex: state.currentIndex,
-      score: trivia == null ? points : 0,
+      score: trivia == null && !q.isVocabMatch ? points : 0,
       attempts: 1,
       passed: points > 0,
-      bonusScore: trivia != null ? points : 0,
+      bonusScore: trivia != null || q.isVocabMatch ? points : 0,
     );
 
     // Soal Bonus terjawab BENAR → tahap HADIAH: tahan sejenak & animasikan
     // poin/waktu gratis ke HUD sebelum lanjut. Selain itu (soal biasa, atau
     // bonus salah/habis) → umpan balik singkat biasa.
-    final bonusReward = trivia != null && points > 0;
+    final bonusReward = q.isTrivia && points > 0;
 
     final reviewItem = _choiceReview(
       q,
@@ -587,9 +606,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
             : state.timeBonusTick,
         choiceBonusStage: bonusReward
             ? ChoiceBonusStage.reward
-            : (trivia != null
-                  ? ChoiceBonusStage.running
-                  : state.choiceBonusStage),
+            : (q.isTrivia ? ChoiceBonusStage.running : state.choiceBonusStage),
       ),
     );
     // Bonus waktu → geser deadline sesi utama agar tambahan waktu ikut terhitung
@@ -605,6 +622,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
           : QuizConfig.choiceFeedbackDelay,
       _advanceChoice,
     );
+  }
+
+  /// Selesai memasangkan kosa kata pada soal bonus mode pilihan.
+  void completeVocabMatch(bool perfect) {
+    if (state.currentQuestion?.isVocabMatch != true || state.choiceLocked) {
+      return;
+    }
+    _evaluateChoice(const [], matchPerfect: perfect);
   }
 
   void _advanceChoice() {
@@ -925,14 +950,20 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
         _bonusesOffered < QuizConfig.voiceBonusMaxPerSession &&
         (state.currentIndex - _lastBonusIndex) >=
             QuizConfig.voiceBonusEveryNQuestions;
+    final allowed = _allowedSurahs(state.settings);
+    final match = bonusSlot && !state.settings.ayatOnly
+        ? QuizKnowledgeBank.vocabularyMatch(allowedSurahs: allowed, rng: _rng)
+        : null;
     final bonus = bonusSlot
-        ? QuizBonusQuestion.generate(
-            readSurahs: state.currentQuestion!.answerAyat
-                .map((a) => a.surahId)
-                .toList(),
-            allowed: _allowedSurahs(state.settings),
-            rng: _rng,
-          )
+        ? (match != null && _rng.nextBool()
+              ? QuizBonusQuestion.vocabularyMatch(match)
+              : QuizBonusQuestion.generate(
+                  readSurahs: state.currentQuestion!.answerAyat
+                      .map((a) => a.surahId)
+                      .toList(),
+                  allowed: allowed,
+                  rng: _rng,
+                ))
         : null;
     if (bonus != null) {
       _bonusesOffered++;
@@ -1112,17 +1143,27 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     _finishBonus();
   }
 
+  void completeBonusMatch(bool perfect) {
+    if (state.bonus?.isVocabMatch != true ||
+        state.bonusStage != BonusStage.running) {
+      return;
+    }
+    _finishBonus(matchPerfect: perfect);
+  }
+
   /// Nilai soal bonus: benar → poin PENUH menurut kesulitan ([b.fullPoints]);
   /// nama+arti benar satu bagian → setengahnya; salah / waktu habis → 0. Poin
   /// disisipkan ke [pendingAnswer].
-  void _finishBonus({bool timedOut = false}) {
+  void _finishBonus({bool timedOut = false, bool? matchPerfect}) {
     _bonusTimer?.cancel();
     final b = state.bonus;
     if (b == null || state.bonusStage != BonusStage.running) return;
 
     // Fraksi kebenaran: 1 = penuh; 0.5 = nama+arti benar satu bagian; 0 = salah.
     double fraction = 0;
-    if (!timedOut) {
+    if (!timedOut && b.isVocabMatch) {
+      fraction = matchPerfect == true ? 1 : 0;
+    } else if (!timedOut) {
       if (b.isNameMeaning) {
         final name = b.nameCorrect(
           state.bonusPicks.isNotEmpty ? state.bonusPicks.first : null,
