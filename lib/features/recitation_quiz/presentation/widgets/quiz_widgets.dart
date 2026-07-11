@@ -40,6 +40,18 @@ class QuizColors {
   }
 }
 
+/// Bungkus anak layout AnimatedSwitcher dengan [Positioned.fill] TANPA
+/// menghilangkan identitasnya: key Positioned diturunkan dari key anak
+/// (KeyedSubtree unik buatan AnimatedSwitcher). Tanpa ini, saat transisi
+/// selesai dan layar lama dibuang, Stack mencocokkan ulang berdasarkan INDEKS
+/// → subtree layar baru ikut dibongkar-pasang dan seluruh State-nya (mis.
+/// AnimationController layar hasil) tereset — animasi tampak "tersendat lalu
+/// mengulang".
+Positioned keyedFill(Widget child) => Positioned.fill(
+  key: child.key == null ? null : ValueKey(child.key),
+  child: child,
+);
+
 /// Pergantian soal ala Duolingo: soal & jawaban lama menggeser keluar ke kiri
 /// sementara soal baru masuk dari kanan. Hanya membungkus area soal+jawaban —
 /// timer/poin di luar tetap diam. [index] harus berubah tiap ganti soal agar
@@ -79,8 +91,8 @@ class QuestionSlideSwitcher extends StatelessWidget {
         // opsi yang mengisi sisa layar) tetap punya tinggi terikat saat digeser.
         layoutBuilder: (currentChild, previousChildren) => Stack(
           children: [
-            for (final c in previousChildren) Positioned.fill(child: c),
-            if (currentChild != null) Positioned.fill(child: currentChild),
+            for (final c in previousChildren) keyedFill(c),
+            if (currentChild != null) keyedFill(currentChild),
           ],
         ),
         child: KeyedSubtree(key: ValueKey(index), child: child),
@@ -129,12 +141,10 @@ class BonusCoverSwitcher extends StatelessWidget {
         // Lapisan bonus wajib selalu di ATAS agar terlihat menimpa (saat masuk)
         // dan menyingkap (saat keluar). Saat masuk, bonus = layar baru
         // (current); saat keluar, bonus = layar lama (previous).
-        final prev = [
-          for (final c in previousChildren) Positioned.fill(child: c),
-        ];
+        final prev = [for (final c in previousChildren) keyedFill(c)];
         final curr = currentChild == null
             ? const <Widget>[]
-            : [Positioned.fill(child: currentChild)];
+            : [keyedFill(currentChild)];
         return Stack(
           children: showBonus ? [...prev, ...curr] : [...curr, ...prev],
         );

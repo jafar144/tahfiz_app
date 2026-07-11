@@ -102,17 +102,13 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
           if (q == null) return const SizedBox.shrink();
 
           // Layar bonus "menimpa" layar soal biasa saat masuk/keluar; soal
-          // biasa ke soal biasa memakai geser horizontal di dalamnya.
+          // biasa ↔ kosa kata memakai geser horizontal di dalam satu
+          // QuestionSlideSwitcher bersama (header timer/poin tetap diam).
           final Widget screen;
           if (q.isTrivia) {
             // Soal BONUS (trivia): layar khusus bernuansa emas + gelombang tepi.
             screen = _ChoiceTriviaScreen(state: state, cubit: cubit);
-          } else if (q.isKnowledge) {
-            screen = _KnowledgeChoiceScreen(state: state, cubit: cubit);
           } else {
-            final required = q.answerAyahCount;
-            final locked = state.choiceLocked;
-
             screen = SafeArea(
               child: Column(
                 children: [
@@ -129,67 +125,9 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
                   Expanded(
                     child: QuestionSlideSwitcher(
                       index: state.currentIndex,
-                      child: Column(
-                        children: [
-                          // Petunjuk soal (selalu terlihat).
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                            child: Column(
-                              children: [
-                                PromptAyahCard(text: q.prompt.text, dark: true),
-                                const SizedBox(height: 10),
-                                _ChoiceHint(required: required),
-                                if (required > 1) ...[
-                                  const SizedBox(height: 10),
-                                  _OrderStrip(
-                                    question: q,
-                                    picks: state.picks,
-                                    locked: locked,
-                                    onRemove: cubit.pickOption,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Daftar opsi ayat (bergulir bila panjang).
-                          Expanded(
-                            child: ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                              itemCount: q.options.length,
-                              separatorBuilder: (_, _) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, i) {
-                                final order = state.picks.indexOf(i);
-                                return _OptionCard(
-                                  ayah: q.options[i],
-                                  orderLabel: order >= 0
-                                      ? '${order + 1}'
-                                      : null,
-                                  selected: order >= 0,
-                                  // Warnai hanya opsi yang DIPILIH saat terkunci
-                                  // (tanpa membocorkan jawaban benar).
-                                  lockedCorrect: locked && order >= 0
-                                      ? state.choiceCorrect
-                                      : null,
-                                  onTap: locked
-                                      ? null
-                                      : () {
-                                          QuizHaptics.select();
-                                          cubit.pickOption(i);
-                                        },
-                                );
-                              },
-                            ),
-                          ),
-                          // Tombol "Jawab" untuk soal multi-ayat.
-                          if (required > 1)
-                            _SubmitBar(
-                              enabled: state.choiceComplete && !locked,
-                              onSubmit: cubit.submitChoice,
-                            ),
-                        ],
-                      ),
+                      child: q.isKnowledge
+                          ? _KnowledgeContent(state: state, cubit: cubit)
+                          : _AyahChoiceContent(state: state, cubit: cubit),
                     ),
                   ),
                 ],
@@ -204,80 +142,138 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
   }
 }
 
-// ───────────────────────────────────────────── Layar Soal Bonus (trivia) ──
+// ─────────────────────────────────────── Konten soal (dalam slide switcher) ──
 
-/// Layar Soal Bonus mode pilihan: latar krem + gelombang emas di tepi, timer
-/// sesi utama tampil "dijeda", hitung mundur sendiri, dan soal trivia surah.
-class _KnowledgeChoiceScreen extends StatelessWidget {
+/// Isi soal lanjutan ayat (petunjuk + opsi + tombol Jawab) — dirender di dalam
+/// [QuestionSlideSwitcher] agar ikut geser saat pindah soal.
+class _AyahChoiceContent extends StatelessWidget {
   final RecitationQuizState state;
   final RecitationQuizCubit cubit;
 
-  const _KnowledgeChoiceScreen({required this.state, required this.cubit});
+  const _AyahChoiceContent({required this.state, required this.cubit});
+
+  @override
+  Widget build(BuildContext context) {
+    final q = state.currentQuestion!;
+    final required = q.answerAyahCount;
+    final locked = state.choiceLocked;
+
+    return Column(
+      children: [
+        // Petunjuk soal (selalu terlihat).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(
+            children: [
+              PromptAyahCard(text: q.prompt.text, dark: true),
+              const SizedBox(height: 10),
+              _ChoiceHint(required: required),
+              if (required > 1) ...[
+                const SizedBox(height: 10),
+                _OrderStrip(
+                  question: q,
+                  picks: state.picks,
+                  locked: locked,
+                  onRemove: cubit.pickOption,
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Daftar opsi ayat (bergulir bila panjang).
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            itemCount: q.options.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, i) {
+              final order = state.picks.indexOf(i);
+              return _OptionCard(
+                ayah: q.options[i],
+                orderLabel: order >= 0 ? '${order + 1}' : null,
+                selected: order >= 0,
+                // Warnai hanya opsi yang DIPILIH saat terkunci
+                // (tanpa membocorkan jawaban benar).
+                lockedCorrect: locked && order >= 0
+                    ? state.choiceCorrect
+                    : null,
+                onTap: locked
+                    ? null
+                    : () {
+                        QuizHaptics.select();
+                        cubit.pickOption(i);
+                      },
+              );
+            },
+          ),
+        ),
+        // Tombol "Jawab" untuk soal multi-ayat.
+        if (required > 1)
+          _SubmitBar(
+            enabled: state.choiceComplete && !locked,
+            onSubmit: cubit.submitChoice,
+          ),
+      ],
+    );
+  }
+}
+
+/// Isi soal kosa kata (arti bahasa Arab) — juga di dalam
+/// [QuestionSlideSwitcher] agar animasi geser masuk/keluar berjalan.
+class _KnowledgeContent extends StatelessWidget {
+  final RecitationQuizState state;
+  final RecitationQuizCubit cubit;
+
+  const _KnowledgeContent({required this.state, required this.cubit});
 
   @override
   Widget build(BuildContext context) {
     final fact = state.currentQuestion!.knowledge!;
     final locked = state.choiceLocked;
-    return SafeArea(
-      child: Column(
-        children: [
-          _Header(
-            secondsLeft: state.secondsLeft,
-            points: state.runningPoints,
-            answered: state.answeredCount,
-            showTimeBonus: state.choiceCorrect == true,
-            timeBonus: state.lastTimeBonus,
-            bonusTick: state.timeBonusTick,
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          fact.question,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
           ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  fact.question,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                if (fact.arabicText != null) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    fact.arabicText!,
-                    textDirection: TextDirection.rtl,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'QuranHafs',
-                      color: QuizColors.gold,
-                      fontSize: 27,
-                      height: 1.8,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                for (var i = 0; i < fact.options.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _KnowledgeOption(
-                      text: fact.options[i],
-                      selected: state.picks.contains(i),
-                      result: !locked
-                          ? null
-                          : i == fact.correctIndex
-                          ? true
-                          : state.picks.contains(i)
-                          ? false
-                          : null,
-                      onTap: locked ? null : () => cubit.pickOption(i),
-                    ),
-                  ),
-              ],
+        ),
+        if (fact.arabicText != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            fact.arabicText!,
+            textDirection: TextDirection.rtl,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: 'QuranHafs',
+              color: QuizColors.gold,
+              fontSize: 27,
+              height: 1.8,
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 20),
+        for (var i = 0; i < fact.options.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _KnowledgeOption(
+              text: fact.options[i],
+              selected: state.picks.contains(i),
+              // Kuis (Latihan/Tantangan): warnai hanya opsi yang DIPILIH —
+              // salah → merah, TANPA menyingkap jawaban benar (beda dengan
+              // mode belajar di Petualangan Surah).
+              result: locked && state.picks.contains(i)
+                  ? i == fact.correctIndex
+                  : null,
+              onTap: locked ? null : () => cubit.pickOption(i),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -917,7 +913,7 @@ class _OrderStrip extends StatelessWidget {
         final filled = slot < picks.length;
         final optionIndex = filled ? picks[slot] : -1;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: GestureDetector(
             onTap: (filled && !locked)
                 ? () {
@@ -927,13 +923,13 @@ class _OrderStrip extends StatelessWidget {
                 : null,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
-              width: 54,
-              height: 44,
+              width: 42,
+              height: 32,
               decoration: BoxDecoration(
                 color: filled
                     ? QuizColors.gold.withValues(alpha: 0.16)
                     : Colors.white.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: filled ? QuizColors.gold : Colors.white12,
                   width: filled ? 1.5 : 1,
@@ -947,6 +943,7 @@ class _OrderStrip extends StatelessWidget {
                           Text(
                             '${slot + 1}',
                             style: const TextStyle(
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w900,
                               color: QuizColors.gold,
                             ),
@@ -954,7 +951,7 @@ class _OrderStrip extends StatelessWidget {
                           if (!locked)
                             Icon(
                               Icons.close_rounded,
-                              size: 14,
+                              size: 12,
                               color: QuizColors.gold.withValues(alpha: 0.7),
                             ),
                         ],
@@ -962,6 +959,7 @@ class _OrderStrip extends StatelessWidget {
                     : Text(
                         '${slot + 1}',
                         style: const TextStyle(
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white30,
                         ),

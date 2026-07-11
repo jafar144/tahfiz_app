@@ -127,13 +127,16 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                               child: child,
                             );
                           },
+                          // keyedFill menjaga identitas layar saat layar lama
+                          // dibuang di akhir transisi — tanpanya State layar
+                          // baru (mis. animasi ring hasil) tereset & mengulang.
                           layoutBuilder: (currentChild, previousChildren) =>
                               Stack(
                                 children: [
                                   for (final c in previousChildren)
-                                    Positioned.fill(child: c),
+                                    keyedFill(c),
                                   if (currentChild != null)
-                                    Positioned.fill(child: currentChild),
+                                    keyedFill(currentChild),
                                 ],
                               ),
                           child: KeyedSubtree(

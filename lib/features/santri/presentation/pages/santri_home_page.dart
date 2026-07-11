@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -46,54 +45,67 @@ class _SantriHomePageState extends State<SantriHomePage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: BlocBuilder<SantriHomeCubit, SantriHomeState>(
-        builder: (context, state) {
-          if (state.status == SantriHomeStatus.loading || state.status == SantriHomeStatus.initial) {
-            return _buildLoading();
-          }
+          builder: (context, state) {
+            if (state.status == SantriHomeStatus.loading ||
+                state.status == SantriHomeStatus.initial) {
+              return _buildLoading();
+            }
 
-          if (state.status == SantriHomeStatus.failure) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  Text('Gagal memuat data:\n${state.message}', textAlign: TextAlign.center),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadData,
-                    child: const Text('Coba Lagi'),
-                  ),
-                ],
+            if (state.status == SantriHomeStatus.failure) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Gagal memuat data:\n${state.message}',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadData,
+                      child: const Text('Coba Lagi'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async => _loadData(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(state),
+                    _buildJourneySection(state),
+                    _buildArenaCard(),
+                    const KelulusanCarousel(),
+                    _buildPaymentStatus(state),
+                    // _buildMenuSection(context),
+                    // if (state.latestSetoran != null) _buildLatestSetoran(state),
+                    if (state.latestReport != null) _buildLatestReport(state),
+                    if (state.pembimbingName != null)
+                      _buildPembimbingSection(state),
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             );
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => _loadData(),
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(state),
-                  _buildJourneySection(state),
-                  // _buildArenaCard(),
-                  const KelulusanCarousel(),
-                  _buildPaymentStatus(state),
-                  // _buildMenuSection(context),
-                  // if (state.latestSetoran != null) _buildLatestSetoran(state),
-                  if (state.latestReport != null) _buildLatestReport(state),
-                  if (state.pembimbingName != null) _buildPembimbingSection(state),
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          );
-        },
+          },
+        ),
       ),
-    ));
+    );
   }
 
   Widget _buildLoading() {
@@ -156,10 +168,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Assalamua\'laikum',
-                style: AppTextStyles.infoGrey,
-              ),
+              const Text('Assalamua\'laikum', style: AppTextStyles.infoGrey),
               const SizedBox(height: 2),
               Text(
                 santri?.name ?? 'Santri',
@@ -190,11 +199,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
         onTap: _showSwitchAccountSheet,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Icon(
-            Icons.swap_horiz_rounded,
-            color: primary,
-            size: 22,
-          ),
+          child: Icon(Icons.swap_horiz_rounded, color: primary, size: 22),
         ),
       ),
     );
@@ -205,7 +210,8 @@ class _SantriHomePageState extends State<SantriHomePage> {
     return CircleAvatar(
       radius: 22,
       backgroundColor: primary.withOpacity(0.1),
-      backgroundImage: (santri?.photoUrl != null && santri!.photoUrl!.isNotEmpty)
+      backgroundImage:
+          (santri?.photoUrl != null && santri!.photoUrl!.isNotEmpty)
           ? NetworkImage(santri.photoUrl!)
           : null,
       child: (santri?.photoUrl == null || santri!.photoUrl!.isEmpty)
@@ -252,15 +258,18 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 final isMale = member.jenisKelamin == 'L';
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor:
-                        isMale ? Colors.blue.shade50 : Colors.pink.shade50,
+                    backgroundColor: isMale
+                        ? Colors.blue.shade50
+                        : Colors.pink.shade50,
                     child: Text(
                       member.name.isNotEmpty
                           ? member.name[0].toUpperCase()
                           : '?',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isMale ? Colors.blue.shade700 : Colors.pink.shade700,
+                        color: isMale
+                            ? Colors.blue.shade700
+                            : Colors.pink.shade700,
                       ),
                     ),
                   ),
@@ -272,7 +281,10 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     'NIS: ${member.nis} • ${member.kelas}',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                   ),
-                  trailing: Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: Colors.grey.shade400,
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     context.read<AuthCubit>().switchSantri(member.id);
@@ -455,11 +467,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                           ),
                         ],
                       ),
-                      child: Icon(
-                        statusIcon,
-                        color: Colors.white,
-                        size: 22,
-                      ),
+                      child: Icon(statusIcon, color: Colors.white, size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -499,20 +507,27 @@ class _SantriHomePageState extends State<SantriHomePage> {
                               tanggalMasuk: state.santri!.tanggalMasuk,
                             )
                           : null;
-                      final currentSantriId =
-                          context.read<SantriHomeCubit>().currentSantriId;
-                      context.pushNamed(RouteNames.santriPayment, extra: {
-                        'startDate': startDate,
-                        'santriId': currentSantriId,
-                      });
+                      final currentSantriId = context
+                          .read<SantriHomeCubit>()
+                          .currentSantriId;
+                      context.pushNamed(
+                        RouteNames.santriPayment,
+                        extra: {
+                          'startDate': startDate,
+                          'santriId': currentSantriId,
+                        },
+                      );
                     },
                     borderRadius: BorderRadius.circular(10),
                     child: Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Row(
                         children: [
-                          Icon(Icons.receipt_long_rounded,
-                              size: 16, color: primary),
+                          Icon(
+                            Icons.receipt_long_rounded,
+                            size: 16,
+                            color: primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -524,8 +539,11 @@ class _SantriHomePageState extends State<SantriHomePage> {
                               ),
                             ),
                           ),
-                          Icon(Icons.chevron_right_rounded,
-                              size: 16, color: primary),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 16,
+                            color: primary,
+                          ),
                         ],
                       ),
                     ),
@@ -620,11 +638,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 28,
-              ),
+              child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(height: 12),
             Text(
@@ -668,7 +682,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
       ),
     );
   }
-  
+
   Widget _buildLatestReport(SantriHomeState state) {
     return Padding(
       padding: const EdgeInsets.only(top: 28),
@@ -789,7 +803,9 @@ class _SantriHomePageState extends State<SantriHomePage> {
                       label: const Text(
                         'Hubungi via WhatsApp',
                         style: TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF25D366),
@@ -825,9 +841,9 @@ class _SantriHomePageState extends State<SantriHomePage> {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal membuka WhatsApp')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Gagal membuka WhatsApp')));
       }
     }
   }
