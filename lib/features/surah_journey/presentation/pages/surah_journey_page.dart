@@ -535,17 +535,6 @@ class _JourneyMapState extends State<_JourneyMap> {
   Future<void> _onNodeTap(BuildContext context, int index) async {
     final node = widget.state.nodes[index];
     if (!node.unlocked) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Selesaikan ${widget.state.nodes[index - 1].lesson.nameLatin} '
-              'dulu untuk membuka level ini, ya!',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       return;
     }
     final cubit = context.read<SurahJourneyCubit>();

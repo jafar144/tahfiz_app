@@ -166,20 +166,7 @@ class _SectionCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: unlocked
-            ? onTap
-            : () {
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Selesaikan bagian sebelumnya dulu, ya!',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-              },
+        onTap: unlocked ? onTap : null,
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.all(14),
@@ -293,20 +280,7 @@ class _ExamCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: unlocked
-            ? onTap
-            : () {
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Lulusi semua bagian dulu untuk membuka Ujian Akhir!',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-              },
+        onTap: unlocked ? onTap : null,
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -345,9 +319,7 @@ class _ExamCard extends StatelessWidget {
                         )
                       : null,
                   color: unlocked ? null : Colors.white.withValues(alpha: 0.06),
-                  border: unlocked
-                      ? null
-                      : Border.all(color: Colors.white24),
+                  border: unlocked ? null : Border.all(color: Colors.white24),
                 ),
                 child: Icon(
                   passed
