@@ -6,10 +6,9 @@ import 'package:khoirunnasyien/features/home/presentation/widgets/admin_bottom_n
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/admin_santri_page.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/admin_asatidz_page.dart';
 import 'package:khoirunnasyien/features/profile/presentation/pages/admin_profile_page.dart';
-import 'package:khoirunnasyien/features/quiz_energy_admin/presentation/pages/admin_energy_page.dart';
 
 class AdminShellPage extends StatefulWidget {
-  const AdminShellPage({super.key});  
+  const AdminShellPage({super.key});
 
   @override
   State<AdminShellPage> createState() => _AdminShellPageState();
@@ -22,17 +21,13 @@ class _AdminShellPageState extends State<AdminShellPage> {
     AdminHomePage(),
     AdminSantriPage(),
     AdminAsatidzPage(),
-    AdminEnergyPage(),
     AdminProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: AdminBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {

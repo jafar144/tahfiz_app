@@ -309,8 +309,8 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
     }
   }
 
-  /// Susun soal pilihan dari daftar kosa kata: bergantian menanyakan ARTI
-  /// kata yang disorot pada ayatnya, dan sebaliknya (arti → kata Arab).
+  /// Susun soal arti kosa kata dari ayat sumber. Kata tidak ditampilkan
+  /// sendirian: santri selalu melihat konteks ayat dengan target disorot.
   /// Opsi pengecoh diambil dari kosa kata lain di surah yang sama.
   List<FactQuestion> _vocabQuestions(
     List<VocabItem> items,
@@ -326,25 +326,21 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
       final item = shuffled[i];
       final others = [...shuffled]..remove(item);
       others.shuffle(rng);
-      final askMeaning = i.isEven;
-
       // Opsi: jawaban benar + 3 pengecoh, lalu diacak posisinya.
-      final options = askMeaning
-          ? [item.meaning, ...others.take(3).map((o) => o.meaning)]
-          : [item.word, ...others.take(3).map((o) => o.word)];
+      final options = [
+        item.displayMeaning,
+        ...others.take(3).map((o) => o.displayMeaning),
+      ];
       final correct = options.first;
       options.shuffle(rng);
 
       questions.add(
         FactQuestion(
-          question: askMeaning
-              ? 'Apa arti kata yang disorot pada ayat berikut?'
-              : 'Manakah kata yang artinya "${item.meaning}"?',
+          question: 'Apa arti kata yang disorot pada ayat berikut?',
           options: options,
           correctIndex: options.indexOf(correct),
-          arabicText: askMeaning ? textOf[item.ayahNumber] : null,
-          highlightWord: askMeaning ? item.word : null,
-          arabicOptions: !askMeaning,
+          arabicText: textOf[item.ayahNumber],
+          highlightWord: item.word,
         ),
       );
     }
@@ -358,7 +354,7 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
       VocabMatchQuestion(
         pairs: [
           for (final item in selected.take(4))
-            VocabMatchPair(arabic: item.word, meaning: item.meaning),
+            VocabMatchPair(arabic: item.word, meaning: item.displayMeaning),
         ],
       ),
     );

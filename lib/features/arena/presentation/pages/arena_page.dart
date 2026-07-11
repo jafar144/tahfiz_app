@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_leaderboard_tab.dart';
 import 'package:khoirunnasyien/features/arena/presentation/widgets/arena_quiz_tab.dart';
+import 'package:khoirunnasyien/features/quiz_energy_admin/presentation/pages/admin_energy_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/night_loading_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -54,6 +56,9 @@ class _ArenaPageState extends State<ArenaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = context.select(
+      (ArenaCubit cubit) => cubit.state.role == 'admin',
+    );
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -84,15 +89,18 @@ class _ArenaPageState extends State<ArenaPage> {
                         Expanded(
                           child: IndexedStack(
                             index: _tab,
-                            children: const [
-                              _JourneyTab(),
-                              ArenaQuizTab(),
-                              ArenaLeaderboardTab(),
+                            children: [
+                              const _JourneyTab(),
+                              const ArenaQuizTab(),
+                              const ArenaLeaderboardTab(),
+                              if (isAdmin)
+                                const AdminEnergyPage(embedded: true),
                             ],
                           ),
                         ),
                         _BottomNav(
                           index: _tab,
+                          showAdminEnergy: isAdmin,
                           onChanged: (i) => setState(() => _tab = i),
                         ),
                       ],
@@ -203,9 +211,14 @@ class _JourneyTab extends StatelessWidget {
 
 class _BottomNav extends StatelessWidget {
   final int index;
+  final bool showAdminEnergy;
   final ValueChanged<int> onChanged;
 
-  const _BottomNav({required this.index, required this.onChanged});
+  const _BottomNav({
+    required this.index,
+    required this.showAdminEnergy,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -240,6 +253,13 @@ class _BottomNav extends StatelessWidget {
                 selected: index == 2,
                 onTap: () => onChanged(2),
               ),
+              if (showAdminEnergy)
+                _NavItem(
+                  icon: Icons.bolt_rounded,
+                  label: 'Energi Santri',
+                  selected: index == 3,
+                  onTap: () => onChanged(3),
+                ),
             ],
           ),
         ),

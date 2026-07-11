@@ -61,6 +61,12 @@ class VocabItem {
     required this.meaning,
     this.note,
   });
+
+  /// Arti siap tampil. Data seed tetap boleh ditulis natural dengan huruf
+  /// kecil, tetapi seluruh UI/soal selalu mengawali terjemahan dengan kapital.
+  String get displayMeaning => meaning.isEmpty
+      ? meaning
+      : meaning[0].toUpperCase() + meaning.substring(1);
 }
 
 /// Aturan ujian sebuah bagian.

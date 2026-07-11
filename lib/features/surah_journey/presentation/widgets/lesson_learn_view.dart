@@ -373,7 +373,7 @@ class _VocabPage extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '= ${item.meaning}',
+                        '= ${item.displayMeaning}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13.5,

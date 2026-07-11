@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/arabic_highlight_matcher.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/surah_lesson_seed.dart';
 
@@ -65,6 +68,44 @@ void main() {
               );
             }
           }
+        }
+      },
+    );
+
+    test(
+      'quiz vocabulary shows its source ayah and capitalized meanings',
+      () async {
+        final raw = await rootBundle.loadString('assets/quran/hafs_v18.json');
+        final rows = json.decode(raw) as List<dynamic>;
+        final ayat = [
+          for (final row in rows)
+            if (row['sora'] == 92)
+              Ayah(
+                surahId: row['sora'] as int,
+                number: row['aya_no'] as int,
+                text: row['aya_text'] as String,
+              ),
+        ];
+
+        final question = QuizKnowledgeBank.vocabularyMeaning(
+          allowedSurahs: const {92},
+          ayat: ayat,
+          rng: Random(7),
+        );
+
+        expect(question, isNotNull);
+        expect(question!.arabicText, isNotNull);
+        expect(question.highlightWord, isNotNull);
+        expect(question.arabicText, isNot(question.highlightWord));
+        expect(
+          ArabicHighlightMatcher.find(
+            text: question.arabicText!,
+            highlight: question.highlightWord!,
+          ),
+          isNotNull,
+        );
+        for (final meaning in question.options) {
+          expect(meaning[0], meaning[0].toUpperCase());
         }
       },
     );

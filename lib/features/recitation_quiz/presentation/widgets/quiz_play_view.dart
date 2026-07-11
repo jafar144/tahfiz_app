@@ -469,6 +469,29 @@ class _VoiceBonusContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = state.bonus!;
+    if (b.isVocabMatch) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          children: [
+            _VoiceGoldRing(
+              secondsLeft: state.bonusSecondsLeft,
+              total: b.durationSeconds,
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: VocabMatchBoard(
+                question: b.vocabMatch!,
+                light: true,
+                pinCheckButton: true,
+                onCompleted: cubit.completeBonusMatch,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final q = state.currentQuestion!;
     final namePick = state.bonusPicks.isNotEmpty
         ? state.bonusPicks.first
@@ -491,13 +514,7 @@ class _VoiceBonusContent extends StatelessWidget {
             hint: b.hintText,
           ),
           const SizedBox(height: 16),
-          if (b.isVocabMatch)
-            VocabMatchBoard(
-              question: b.vocabMatch!,
-              light: true,
-              onCompleted: cubit.completeBonusMatch,
-            )
-          else if (b.isNameMeaning) ...[
+          if (b.isNameMeaning) ...[
             TriviaSection(
               label: 'Nama Surah',
               icon: Icons.menu_book_rounded,

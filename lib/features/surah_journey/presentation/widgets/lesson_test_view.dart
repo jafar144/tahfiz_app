@@ -410,10 +410,11 @@ class _MatchQuestion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final question = state.currentQuestion!.vocabMatch!;
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: VocabMatchBoard(
         question: question,
+        pinCheckButton: true,
         onCompleted: cubit.completeMatch,
       ),
     );

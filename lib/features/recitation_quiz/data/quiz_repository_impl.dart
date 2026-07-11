@@ -379,6 +379,7 @@ class QuizRepositoryImpl implements QuizRepository {
       if (includeKnowledge && questions.length % 4 == 2) {
         final knowledge = QuizKnowledgeBank.vocabularyMeaning(
           allowedSurahs: allowed,
+          ayat: pool,
           rng: rng,
         );
         if (knowledge != null) {

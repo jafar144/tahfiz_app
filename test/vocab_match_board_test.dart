@@ -44,6 +44,29 @@ void main() {
     expect(button, findsOneWidget);
     expect(find.descendant(of: panel, matching: button), findsNothing);
   });
+
+  testWidgets('tombol Periksa dapat dipasang di dasar layar', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 640);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: VocabMatchBoard(
+            question: question,
+            pinCheckButton: true,
+            onCompleted: _ignoreResult,
+          ),
+        ),
+      ),
+    );
+
+    final button = find.byKey(const ValueKey('vocab-match-check-button'));
+    expect(tester.getBottomRight(button).dy, closeTo(640, 1));
+    expect(tester.takeException(), isNull);
+  });
 }
 
 void _ignoreResult(bool _) {}

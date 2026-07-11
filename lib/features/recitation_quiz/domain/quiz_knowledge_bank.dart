@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
@@ -11,21 +12,36 @@ class QuizKnowledgeBank {
 
   static FactQuestion? vocabularyMeaning({
     required Set<int> allowedSurahs,
+    required List<Ayah> ayat,
     required Random rng,
   }) {
     final items = _itemsFor(allowedSurahs);
     if (items.length < 4) return null;
     items.shuffle(rng);
-    final item = items.first;
+    final sourceByKey = {
+      for (final source in ayat) '${source.surahId}:${source.number}': source,
+    };
+    final available = items
+        .where(
+          (entry) => sourceByKey.containsKey(
+            '${entry.surahId}:${entry.item.ayahNumber}',
+          ),
+        )
+        .toList();
+    if (available.isEmpty) return null;
+    final entry = available.first;
+    final item = entry.item;
+    final distractors = items.where((other) => other != entry).toList()
+      ..shuffle(rng);
     final options = [
-      item.meaning,
-      ...items.skip(1).take(3).map((e) => e.meaning),
+      item.displayMeaning,
+      ...distractors.take(3).map((e) => e.item.displayMeaning),
     ]..shuffle(rng);
     return FactQuestion(
-      question: 'Apa arti kata Arab berikut?',
+      question: 'Apa arti kata yang disorot pada ayat berikut?',
       options: options,
-      correctIndex: options.indexOf(item.meaning),
-      arabicText: item.word,
+      correctIndex: options.indexOf(item.displayMeaning),
+      arabicText: sourceByKey['${entry.surahId}:${item.ayahNumber}']?.text,
       highlightWord: item.word,
     );
   }
@@ -59,14 +75,18 @@ class QuizKnowledgeBank {
     return VocabMatchQuestion(
       pairs: [
         for (final item in items.take(4))
-          VocabMatchPair(arabic: item.word, meaning: item.meaning),
+          VocabMatchPair(arabic: item.word, meaning: item.displayMeaning),
       ],
     );
   }
 
-  static List<VocabItem> _itemsFor(Set<int> allowedSurahs) => [
+  static List<({int surahId, VocabItem item})> _itemsFor(
+    Set<int> allowedSurahs,
+  ) => [
     for (final lesson in SurahLessonSeed.lessons)
-      if (allowedSurahs.contains(lesson.surahId)) ..._vocabularyOf(lesson),
+      if (allowedSurahs.contains(lesson.surahId))
+        for (final item in _vocabularyOf(lesson))
+          (surahId: lesson.surahId, item: item),
   ];
 
   static List<VocabItem> _vocabularyOf(SurahLesson lesson) => [

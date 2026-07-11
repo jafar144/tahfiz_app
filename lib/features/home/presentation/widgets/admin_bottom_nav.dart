@@ -17,10 +17,7 @@ class AdminBottomNav extends StatelessWidget {
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_rounded),
-          label: 'Home',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
         BottomNavigationBarItem(
           icon: Icon(Icons.groups_rounded),
           label: 'Santri',
@@ -28,10 +25,6 @@ class AdminBottomNav extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.school_rounded),
           label: 'Asatidz',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bolt_rounded),
-          label: 'Energi',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person_rounded),

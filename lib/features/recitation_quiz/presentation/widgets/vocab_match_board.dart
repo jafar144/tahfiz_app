@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 class VocabMatchBoard extends StatefulWidget {
   final VocabMatchQuestion question;
   final bool light;
+  final bool pinCheckButton;
   final ValueChanged<bool> onCompleted;
 
   const VocabMatchBoard({
@@ -19,6 +20,7 @@ class VocabMatchBoard extends StatefulWidget {
     required this.question,
     required this.onCompleted,
     this.light = false,
+    this.pinCheckButton = false,
   });
 
   @override
@@ -162,106 +164,113 @@ class _VocabMatchBoardState extends State<VocabMatchBoard> {
         ? 'Periksa'
         : 'Periksa lagi ($remainingAttempts/2)';
 
-    return Column(
-      children: [
-        Container(
-          key: const ValueKey('vocab-match-panel'),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: widget.light ? Colors.white : QuizColors.nightCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border),
+    final panel = Container(
+      key: const ValueKey('vocab-match-panel'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: widget.light ? Colors.white : QuizColors.nightCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Ketuk pasangan yang cocok',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
-          child: Column(
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Ketuk pasangan yang cocok',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: foreground,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
+              Expanded(
+                child: Column(
+                  children: [
+                    for (var i = 0; i < total; i++)
+                      _MatchTile(
+                        key: ValueKey('arabic-$i'),
+                        text: widget.question.pairs[i].arabic,
+                        arabic: true,
+                        pairNumber: _matches.containsKey(i) ? i + 1 : null,
+                        selected: _leftPick == i || _matches.containsKey(i),
+                        confirmed: _confirmed.contains(i),
+                        wrong: _wrongLeft.contains(i),
+                        shakeTick: _shakeTick,
+                        foreground: foreground,
+                        background: neutral,
+                        border: border,
+                        onTap: () => _pickArabic(i),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < total; i++)
-                          _MatchTile(
-                            key: ValueKey('arabic-$i'),
-                            text: widget.question.pairs[i].arabic,
-                            arabic: true,
-                            pairNumber: _matches.containsKey(i) ? i + 1 : null,
-                            selected: _leftPick == i || _matches.containsKey(i),
-                            confirmed: _confirmed.contains(i),
-                            wrong: _wrongLeft.contains(i),
-                            shakeTick: _shakeTick,
-                            foreground: foreground,
-                            background: neutral,
-                            border: border,
-                            onTap: () => _pickArabic(i),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        for (final i in _meaningOrder)
-                          _MatchTile(
-                            key: ValueKey('meaning-$i'),
-                            text: widget.question.pairs[i].meaning,
-                            pairNumber: _leftForRight(i) == null
-                                ? null
-                                : _leftForRight(i)! + 1,
-                            selected: _matches.containsValue(i),
-                            confirmed: _confirmed.contains(i),
-                            wrong: _wrongRight.contains(i),
-                            shakeTick: _shakeTick,
-                            foreground: foreground,
-                            background: neutral,
-                            border: border,
-                            onTap: () => _pickMeaning(i),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                correctCount == total
-                    ? 'Semua pasangan benar'
-                    : '$correctCount/$total pasangan benar',
-                style: TextStyle(
-                  color: muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  children: [
+                    for (final i in _meaningOrder)
+                      _MatchTile(
+                        key: ValueKey('meaning-$i'),
+                        text: widget.question.pairs[i].meaning,
+                        pairNumber: _leftForRight(i) == null
+                            ? null
+                            : _leftForRight(i)! + 1,
+                        selected: _matches.containsValue(i),
+                        confirmed: _confirmed.contains(i),
+                        wrong: _wrongRight.contains(i),
+                        shakeTick: _shakeTick,
+                        foreground: foreground,
+                        background: neutral,
+                        border: border,
+                        onTap: () => _pickMeaning(i),
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          child: QuizButton(
-            key: const ValueKey('vocab-match-check-button'),
-            label: checkLabel,
-            icon: Icons.check_rounded,
-            color: QuizColors.goldDark,
-            onPressed: ready && !_checking && correctCount < total
-                ? _checkAll
-                : null,
+          const SizedBox(height: 6),
+          Text(
+            correctCount == total
+                ? 'Semua pasangan benar'
+                : '$correctCount/$total pasangan benar',
+            style: TextStyle(
+              color: muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+    final button = SizedBox(
+      width: double.infinity,
+      child: QuizButton(
+        key: const ValueKey('vocab-match-check-button'),
+        label: checkLabel,
+        icon: Icons.check_rounded,
+        color: QuizColors.goldDark,
+        onPressed: ready && !_checking && correctCount < total
+            ? _checkAll
+            : null,
+      ),
+    );
+
+    if (widget.pinCheckButton) {
+      return Column(
+        children: [
+          Expanded(child: SingleChildScrollView(child: panel)),
+          const SizedBox(height: 12),
+          button,
+        ],
+      );
+    }
+
+    return Column(children: [panel, const SizedBox(height: 16), button]);
   }
 }
 
@@ -326,7 +335,9 @@ class _MatchTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            constraints: const BoxConstraints(minHeight: 64),
+            // Tinggi kedua kolom dibuat sama agar pasangan Arab–Indonesia
+            // tetap sejajar, termasuk saat arti Indonesia cukup panjang.
+            constraints: const BoxConstraints.tightFor(height: 96),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               color: fill,
@@ -368,6 +379,8 @@ class _MatchTile extends StatelessWidget {
                           ? TextDirection.rtl
                           : TextDirection.ltr,
                       textAlign: TextAlign.center,
+                      maxLines: arabic ? 2 : 4,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: arabic ? 'QuranHafs' : null,
                         color: wrong

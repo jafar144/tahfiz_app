@@ -605,6 +605,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     );
     emit(
       state.copyWith(
+        // Soal knowledge langsung dinilai tanpa emit pilihan terlebih dulu.
+        // Simpan indeksnya di state agar kartu dapat menampilkan hijau/merah.
+        picks: picks,
         choiceCorrect: correct,
         answers: [...state.answers, answer],
         review: [...state.review, reviewItem],
@@ -813,10 +816,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       mode,
       kelas: kelas,
     );
-    final before = beforeRes.fold(
-      ifLeft: (_) => null,
-      ifRight: (lb) => lb,
-    );
+    final before = beforeRes.fold(ifLeft: (_) => null, ifRight: (lb) => lb);
 
     // 2) Simpan skor (histori + leaderboard bila melampaui best).
     final save = await repository.saveAttempt(
@@ -832,10 +832,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     await _awardResultXp(result);
     // Layar berikutnya tak butuh Whisper — lepas lock untuk user lain.
     if (mode.isVoice) await _releaseSession();
-    final saveError = save.fold(
-      ifLeft: (f) => f.message,
-      ifRight: (_) => null,
-    );
+    final saveError = save.fold(ifLeft: (f) => f.message, ifRight: (_) => null);
 
     // 3) Potret papan SESUDAH → peringkat baru (hanya bila simpan sukses dan
     // peringkat lama diketahui; tanpa pembanding animasinya tak bermakna).

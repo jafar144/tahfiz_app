@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/vocab_match_board.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 /// Pola nomor ayat di akhir teks Uthmani: spasi-tak-putus + angka Arab-Hindi.
 final _ayahNumberTail = RegExp(r'[٠-٩ \s]+$');
@@ -193,11 +194,13 @@ class _AyahChoiceContent extends StatelessWidget {
                 ayah: q.options[i],
                 orderLabel: order >= 0 ? '${order + 1}' : null,
                 selected: order >= 0,
-                // Warnai hanya opsi yang DIPILIH saat terkunci
-                // (tanpa membocorkan jawaban benar).
-                lockedCorrect: locked && order >= 0
-                    ? state.choiceCorrect
-                    : null,
+                // Saat terkunci, jawaban benar selalu hijau dan pilihan yang
+                // keliru merah agar hasil Tantangan terbaca jelas.
+                lockedCorrect: !locked
+                    ? null
+                    : (q.correctOptionOrder.contains(i)
+                          ? true
+                          : (order >= 0 ? false : null)),
                 onTap: locked
                     ? null
                     : () {
@@ -245,16 +248,10 @@ class _KnowledgeContent extends StatelessWidget {
         ),
         if (fact.arabicText != null) ...[
           const SizedBox(height: 16),
-          Text(
-            fact.arabicText!,
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: 'QuranHafs',
-              color: QuizColors.gold,
-              fontSize: 27,
-              height: 1.8,
-            ),
+          HighlightedAyahText(
+            text: fact.arabicText!,
+            highlight: fact.highlightWord,
+            fontSize: 24,
           ),
         ],
         const SizedBox(height: 20),
@@ -337,7 +334,7 @@ class _ChoiceVocabMatchContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Column(
         children: [
@@ -346,10 +343,13 @@ class _ChoiceVocabMatchContent extends StatelessWidget {
             total: QuizConfig.choiceTriviaSeconds,
           ),
           const SizedBox(height: 14),
-          VocabMatchBoard(
-            question: state.currentQuestion!.vocabMatch!,
-            light: true,
-            onCompleted: cubit.completeVocabMatch,
+          Expanded(
+            child: VocabMatchBoard(
+              question: state.currentQuestion!.vocabMatch!,
+              light: true,
+              pinCheckButton: true,
+              onCompleted: cubit.completeVocabMatch,
+            ),
           ),
         ],
       ),

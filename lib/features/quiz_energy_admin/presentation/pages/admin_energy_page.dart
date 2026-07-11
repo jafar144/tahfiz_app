@@ -4,13 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
-import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
-import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
 /// Nilai default pemberian energi (samakan dengan default server).
 const _kDefaultPractice = 15;
@@ -23,7 +22,9 @@ const _kDefaultChallenge = 2;
 /// latihan dan +2 energi Tantangan per mode; jumlahnya bisa disesuaikan di
 /// lembar konfirmasi sebelum dikirim.
 class AdminEnergyPage extends StatelessWidget {
-  const AdminEnergyPage({super.key});
+  final bool embedded;
+
+  const AdminEnergyPage({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +32,15 @@ class AdminEnergyPage extends StatelessWidget {
       // Instance sendiri agar filter/pagination di sini tidak mengganggu
       // state daftar santri pada tab Santri.
       create: (_) => SantriCubit(getIt())..loadSantri(isActive: true),
-      child: const _AdminEnergyView(),
+      child: _AdminEnergyView(embedded: embedded),
     );
   }
 }
 
 class _AdminEnergyView extends StatefulWidget {
-  const _AdminEnergyView();
+  final bool embedded;
+
+  const _AdminEnergyView({required this.embedded});
 
   @override
   State<_AdminEnergyView> createState() => _AdminEnergyViewState();
@@ -80,6 +83,7 @@ class _AdminEnergyViewState extends State<_AdminEnergyView> {
     final result = await showModalBottomSheet<QuizEnergy>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: QuizColors.nightCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -103,119 +107,209 @@ class _AdminEnergyViewState extends State<_AdminEnergyView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const AiwaAppBar(title: 'Beri Energi Kuis'),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Info singkat sistem kuota mingguan.
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7E6),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFF3DFB3)),
-                  ),
-                  child: const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.nightlight_round,
-                        size: 18,
-                        color: Color(0xFFB9770B),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Energi tambahan berlaku untuk MINGGU BERJALAN dan '
-                          'hangus saat kuota direset tiap Senin. Default: +15 '
-                          'energi latihan, +2 Tantangan per mode.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
-                            color: Color(0xFF7A5A10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                AiwaSearch(
-                  controller: _searchController,
-                  hintText: 'Cari nama santri…',
-                  onSubmitted: (_) => _onSearch(),
-                  onSearch: _onSearch,
-                ),
-                const SizedBox(height: 8),
+    final content = Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, widget.embedded ? 14 : 8, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.embedded) ...[
+                const _ArenaEnergyHeader(),
+                const SizedBox(height: 14),
               ],
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<SantriCubit, SantriState>(
-              builder: (context, state) {
-                switch (state) {
-                  case SantriInitial() || SantriLoading():
-                    return const Center(child: CircularProgressIndicator());
-                  case SantriError(:final message):
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(message, textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              onPressed: _onSearch,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Coba Lagi'),
-                            ),
-                          ],
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: QuizColors.gold.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: QuizColors.gold.withValues(alpha: 0.34),
+                  ),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.nightlight_round,
+                      size: 18,
+                      color: QuizColors.gold,
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Energi tambahan berlaku untuk MINGGU BERJALAN dan '
+                        'hangus saat kuota direset tiap Senin. Default: +15 '
+                        'energi latihan, +2 Tantangan per mode.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: Colors.white70,
                         ),
                       ),
-                    );
-                  case SantriLoaded(
-                    :final santri,
-                    :final isFetchingMore,
-                  ):
-                    if (santri.isEmpty) {
-                      return const Center(
-                        child: Text('Tidak ada santri yang cocok.'),
-                      );
-                    }
-                    return ListView.separated(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      itemCount: santri.length + (isFetchingMore ? 1 : 0),
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) {
-                        if (i >= santri.length) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        }
-                        return _SantriTile(
-                          santri: santri[i],
-                          onTap: () => _openGrantSheet(santri[i]),
-                        );
-                      },
-                    );
-                }
-              },
-            ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _onSearch(),
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Cari nama santri…',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    color: Colors.white54,
+                  ),
+                  suffixIcon: IconButton(
+                    tooltip: 'Cari',
+                    onPressed: _onSearch,
+                    icon: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: QuizColors.gold,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: QuizColors.nightCard,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    borderSide: const BorderSide(
+                      color: QuizColors.gold,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
-        ],
+        ),
+        Expanded(
+          child: BlocBuilder<SantriCubit, SantriState>(
+            builder: (context, state) {
+              switch (state) {
+                case SantriInitial() || SantriLoading():
+                  return const Center(
+                    child: CircularProgressIndicator(color: QuizColors.gold),
+                  );
+                case SantriError(:final message):
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: QuizColors.goldDark,
+                            ),
+                            onPressed: _onSearch,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Coba Lagi'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                case SantriLoaded(:final santri, :final isFetchingMore):
+                  if (santri.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Tidak ada santri yang cocok.',
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    itemCount: santri.length + (isFetchingMore ? 1 : 0),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, i) {
+                      if (i >= santri.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(
+                              color: QuizColors.gold,
+                            ),
+                          ),
+                        );
+                      }
+                      return _SantriTile(
+                        santri: santri[i],
+                        onTap: () => _openGrantSheet(santri[i]),
+                      );
+                    },
+                  );
+              }
+            },
+          ),
+        ),
+      ],
+    );
+
+    if (widget.embedded) return content;
+    return Scaffold(
+      backgroundColor: const Color(0xFF0B2540),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0A1F35),
+        foregroundColor: Colors.white,
+        title: const Text('Energi Santri'),
       ),
+      body: content,
+    );
+  }
+}
+
+class _ArenaEnergyHeader extends StatelessWidget {
+  const _ArenaEnergyHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Icon(Icons.bolt_rounded, size: 30, color: QuizColors.gold),
+        SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Energi Santri',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                'Tambahkan bekal latihan dan tantangan',
+                style: TextStyle(color: Colors.white54, fontSize: 12.5),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -234,15 +328,15 @@ class _SantriTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: QuizColors.nightCard,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: Colors.white12),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFFFFF1D6),
+              backgroundColor: QuizColors.gold.withValues(alpha: 0.15),
               backgroundImage: santri.photoUrl != null
                   ? NetworkImage(santri.photoUrl!)
                   : null,
@@ -252,7 +346,7 @@ class _SantriTile extends StatelessWidget {
                           ? santri.name[0].toUpperCase()
                           : '?',
                       style: const TextStyle(
-                        color: Color(0xFFB9770B),
+                        color: QuizColors.gold,
                         fontWeight: FontWeight.w800,
                       ),
                     )
@@ -268,28 +362,28 @@ class _SantriTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
+                      color: Colors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
                   ),
                   Text(
                     'NIS ${santri.nis} • ${santri.kelas}',
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      color: Colors.white54,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.bolt_rounded,
-              color: Color(0xFFB9770B),
-              size: 20,
-            ),
+            const Icon(Icons.bolt_rounded, color: QuizColors.gold, size: 20),
             Text(
               'Beri',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: Colors.grey[700],
+                color: Colors.white70,
               ),
             ),
           ],
@@ -365,7 +459,7 @@ class _GrantEnergySheetState extends State<_GrantEnergySheet> {
               children: [
                 const Icon(
                   Icons.bolt_rounded,
-                  color: Color(0xFFB9770B),
+                  color: QuizColors.gold,
                   size: 22,
                 ),
                 const SizedBox(width: 8),
@@ -375,6 +469,7 @@ class _GrantEnergySheetState extends State<_GrantEnergySheet> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),
@@ -386,7 +481,7 @@ class _GrantEnergySheetState extends State<_GrantEnergySheet> {
             Text(
               'Tambahan berlaku untuk minggu berjalan (hangus saat reset '
               'Senin).',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: const TextStyle(fontSize: 12, color: Colors.white54),
             ),
             const SizedBox(height: 16),
             _StepperRow(
@@ -424,7 +519,7 @@ class _GrantEnergySheetState extends State<_GrantEnergySheet> {
               width: double.infinity,
               child: FilledButton.icon(
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFB9770B),
+                  backgroundColor: QuizColors.goldDark,
                   padding: const EdgeInsets.symmetric(vertical: 13),
                 ),
                 onPressed: _sending || total <= 0 ? null : _submit,
@@ -470,17 +565,23 @@ class _StepperRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: const Color(0xFFB9770B)),
+        Icon(icon, size: 18, color: QuizColors.gold),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         IconButton(
           onPressed: enabled && value > 0 ? () => onChanged(value - 1) : null,
           icon: const Icon(Icons.remove_circle_outline),
+          color: QuizColors.gold,
+          disabledColor: Colors.white24,
           visualDensity: VisualDensity.compact,
         ),
         SizedBox(
@@ -488,7 +589,11 @@ class _StepperRow extends StatelessWidget {
           child: Text(
             '$value',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
         IconButton(
@@ -496,6 +601,8 @@ class _StepperRow extends StatelessWidget {
               ? () => onChanged(value + 1)
               : null,
           icon: const Icon(Icons.add_circle_outline),
+          color: QuizColors.gold,
+          disabledColor: Colors.white24,
           visualDensity: VisualDensity.compact,
         ),
       ],
