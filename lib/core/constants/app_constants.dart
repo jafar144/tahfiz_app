@@ -1,23 +1,10 @@
-class AppConstants {
-  static const List<String> santriClasses = [
-    'Tahsin Awwal',
-    'Tahsin Akhir',
-    'Mutawassith',
-    'Pra Takhossus Awal',
-    'Pra Takhossus Akhir',
-    'Takhossus Awal',
-    'Takhossus Tsani',
-    'Takhossus Tsalits',
-    'Takhossus Robi',
-    'Takhossus Khomis',
-    'Takhossus Akhir',
-  ];
+import 'package:khoirunnasyien/core/config/app_config.dart';
 
-  static const List<String> classTypes = [
-    'Pagi',
-    'Sore',
-    'Malam'
-  ];
+class AppConstants {
+  static List<String> get santriClasses =>
+      AppConfig.current.curriculum.classNames;
+
+  static List<String> get classTypes => AppConfig.current.curriculum.classTypes;
 
   static const int sessionBufferMinutes = 30;
 }

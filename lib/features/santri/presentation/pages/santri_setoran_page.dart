@@ -149,7 +149,7 @@ class SantriSetoranPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.08),
+                          color: Colors.blue.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(Icons.menu_book_rounded, size: 48, color: Colors.blue.shade300),

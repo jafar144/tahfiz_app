@@ -156,7 +156,7 @@ class HalaqahDetailPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -204,7 +204,7 @@ class HalaqahDetailPage extends StatelessWidget {
               _buildBadge(
                 icon: Icons.person,
                 text: genderText,
-                color: genderColor.withOpacity(0.1),
+                color: genderColor.withValues(alpha: 0.1),
                 textColor: genderColor == Colors.pink ? Colors.red : Colors.blue, 
                 iconColor: genderColor == Colors.pink ? Colors.red : Colors.blue,
                 isCustomColor: true,
@@ -224,7 +224,7 @@ class HalaqahDetailPage extends StatelessWidget {
     Color? iconColor,
     bool isCustomColor = false,
   }) {
-    final bgColor = isCustomColor ? color : color.withOpacity(0.1);
+    final bgColor = isCustomColor ? color : color.withValues(alpha: 0.1);
     final fgColor = textColor ?? color;
     final icoColor = iconColor ?? color;
     
@@ -276,7 +276,7 @@ class HalaqahDetailPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

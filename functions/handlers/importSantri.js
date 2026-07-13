@@ -1,6 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/config");
+const { AUTH_EMAIL_DOMAIN, FUNCTION_OPTIONS } = require("../lib/config");
 const { createConnection } = require("../lib/mysql");
 const {
   normNis,
@@ -56,7 +56,7 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     if (apply) {
       for (const r of toCreate) {
         const nis = r._nis;
-        const email = `${nis}@khoirunnasyien.app`;
+        const email = `${nis}@${AUTH_EMAIL_DOMAIN.value()}`;
         const password = passwordFromBirthDate(r.tanggal_lahir) || String(nis);
         try {
           let userRecord;
@@ -135,7 +135,7 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
             previewDibuat: toCreate.map((r) => ({
               nis: r._nis,
               nama: r.nama,
-              email: `${r._nis}@khoirunnasyien.app`,
+              email: `${r._nis}@${AUTH_EMAIL_DOMAIN.value()}`,
               password: passwordFromBirthDate(r.tanggal_lahir) || String(r._nis),
               jenis_kelamin: jenisKelaminFromGolongan(r.golongan),
               tipe_kelas: tipeKelasFromGolongan(r.golongan),

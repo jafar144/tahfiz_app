@@ -5,6 +5,9 @@ const DB_PORT = defineString("DB_PORT", { default: "3306" });
 const DB_USER = defineString("DB_USER");
 const DB_NAME = defineString("DB_NAME");
 const DB_PASSWORD = defineSecret("DB_PASSWORD");
+const AUTH_EMAIL_DOMAIN = defineString("AUTH_EMAIL_DOMAIN", {
+  default: "khoirunnasyien.app",
+});
 
 const FUNCTION_OPTIONS = {
   region: "asia-southeast2",
@@ -27,6 +30,7 @@ module.exports = {
   DB_USER,
   DB_NAME,
   DB_PASSWORD,
+  AUTH_EMAIL_DOMAIN,
   FUNCTION_OPTIONS,
   SCHEDULE_OPTIONS,
 };

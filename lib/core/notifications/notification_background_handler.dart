@@ -11,7 +11,5 @@ import 'package:khoirunnasyien/firebase_options.dart';
 /// data di masa depan (mis. memperbarui badge / cache lokal).
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: FlavorFirebaseOptions.currentPlatform);
 }

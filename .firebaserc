@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "khoirun-app"
+    "default": "khoirun-app",
+    "khoirunnasyien": "khoirun-app"
   }
 }

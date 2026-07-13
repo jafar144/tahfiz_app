@@ -146,7 +146,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -158,7 +158,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -291,7 +291,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                       color: isSelected ? primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: isSelected
-                          ? [BoxShadow(color: primary.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 2))]
+                          ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))]
                           : null,
                     ),
                     child: Text(

@@ -39,7 +39,7 @@ class SantriCard extends StatelessWidget {
         boxShadow: [
           if (santri.isActive)
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -114,7 +114,7 @@ class SantriCard extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: _getSessionColor(santri.tipeKelas!)
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(

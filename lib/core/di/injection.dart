@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/firebase/auth_client.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/core/firebase/firestore_client.dart';
@@ -324,7 +325,9 @@ Future<void> initDI() async {
 
   // Uji Bacaan Qur'an (recitation check)
   getIt.registerLazySingleton<FirebaseFunctions>(
-    () => FirebaseFunctions.instanceFor(region: 'asia-southeast2'),
+    () => FirebaseFunctions.instanceFor(
+      region: AppConfig.current.functionsRegion,
+    ),
   );
   getIt.registerLazySingleton(() => QuranLocalDataSource());
   getIt.registerLazySingleton(

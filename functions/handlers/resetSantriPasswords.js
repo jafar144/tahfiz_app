@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { admin, db } = require("../lib/firebase");
+const { AUTH_EMAIL_DOMAIN } = require("../lib/config");
 const {
   normNis,
   passwordFromBirthDate,
@@ -18,7 +19,6 @@ const OPTIONS = {
   secrets: [RESET_TOKEN],
 };
 
-const EMAIL_DOMAIN = "khoirunnasyien.app";
 const MIN_PASSWORD_LEN = 6;
 
 // Kumpulkan daftar item {nis, tanggal_lahir?, password?} dari body JSON atau query.
@@ -111,7 +111,7 @@ exports.resetSantriPasswords = onRequest(OPTIONS, async (req, res) => {
         continue;
       }
 
-      const email = `${nis}@${EMAIL_DOMAIN}`;
+      const email = `${nis}@${AUTH_EMAIL_DOMAIN.value()}`;
       let userRecord;
       try {
         userRecord = await admin.auth().getUserByEmail(email);

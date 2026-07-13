@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
@@ -51,9 +52,9 @@ class _SplashPageState extends State<SplashPage> {
         backgroundColor: AppColors.background,
         body: Stack(
           children: [
-            const Center(
+            Center(
               child: Image(
-                image: AssetImage('assets/images/logo.png'),
+                image: AssetImage(AppConfig.current.logoAsset),
                 width: 150,
                 height: 150,
               ),
@@ -68,7 +69,7 @@ class _SplashPageState extends State<SplashPage> {
                   builder: (context, snapshot) {
                     return Text(
                       'Version ${snapshot.data ?? ''}',
-                      style: AppTextStyles.bodyBold
+                      style: AppTextStyles.bodyBold,
                     );
                   },
                 ),

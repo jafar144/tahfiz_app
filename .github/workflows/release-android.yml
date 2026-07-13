@@ -1,0 +1,233 @@
+name: Release Android flavor to Google Play
+
+on:
+  push:
+    tags:
+      - "*-v*.*.*+*"
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: "Nama flavor (contoh: khoirunnasyien)"
+        required: true
+        type: string
+      version_name:
+        description: "Versi publik, tanpa awalan v (contoh: 1.6.0)"
+        required: true
+        type: string
+      version_code:
+        description: "Build number unik dan selalu naik (contoh: 14)"
+        required: true
+        type: string
+      track:
+        description: "Track Google Play"
+        required: true
+        default: internal
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      status:
+        description: "Status release Google Play"
+        required: true
+        default: completed
+        type: choice
+        options:
+          - completed
+          - draft
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      flavor: ${{ steps.release.outputs.flavor }}
+      version_name: ${{ steps.release.outputs.version_name }}
+      version_code: ${{ steps.release.outputs.version_code }}
+      application_id: ${{ steps.release.outputs.application_id }}
+      entry_point: ${{ steps.release.outputs.entry_point }}
+      track: ${{ steps.release.outputs.track }}
+      status: ${{ steps.release.outputs.status }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Parse and validate release
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+          INPUT_FLAVOR: ${{ inputs.flavor }}
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+          INPUT_TRACK: ${{ inputs.track }}
+          INPUT_STATUS: ${{ inputs.status }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            flavor="$INPUT_FLAVOR"
+            version_name="$INPUT_VERSION_NAME"
+            version_code="$INPUT_VERSION_CODE"
+            track="$INPUT_TRACK"
+            status="$INPUT_STATUS"
+          elif [[ "$TAG_NAME" =~ ^([a-z0-9_]+)-v([0-9]+\.[0-9]+\.[0-9]+)\+([0-9]+)$ ]]; then
+            flavor="${BASH_REMATCH[1]}"
+            version_name="${BASH_REMATCH[2]}"
+            version_code="${BASH_REMATCH[3]}"
+            track="internal"
+            status="completed"
+          else
+            echo "Format tag tidak valid: $TAG_NAME" >&2
+            echo "Gunakan <flavor>-v<major>.<minor>.<patch>+<versionCode>." >&2
+            exit 1
+          fi
+
+          [[ "$flavor" =~ ^[a-z][a-z0-9_]*$ ]] || {
+            echo "Nama flavor tidak valid: $flavor" >&2
+            exit 1
+          }
+          [[ "$version_name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "version_name harus berbentuk x.y.z" >&2
+            exit 1
+          }
+          [[ "$version_code" =~ ^[1-9][0-9]*$ ]] || {
+            echo "version_code harus bilangan bulat positif" >&2
+            exit 1
+          }
+
+          config="config/flavors/$flavor.properties"
+          [[ -f "$config" ]] || {
+            echo "Flavor tidak dikenal: $config tidak ditemukan" >&2
+            exit 1
+          }
+
+          read_property() {
+            local key="$1"
+            sed -n "s/^${key}=//p" "$config" | tail -n 1 | tr -d '\r'
+          }
+
+          application_id="$(read_property applicationId)"
+          entry_point="$(read_property dartEntryPoint)"
+          [[ -n "$application_id" && -f "$entry_point" ]] || {
+            echo "applicationId atau dartEntryPoint flavor tidak valid" >&2
+            exit 1
+          }
+
+          {
+            echo "flavor=$flavor"
+            echo "version_name=$version_name"
+            echo "version_code=$version_code"
+            echo "application_id=$application_id"
+            echo "entry_point=$entry_point"
+            echo "track=$track"
+            echo "status=$status"
+          } >> "$GITHUB_OUTPUT"
+
+  build-and-release:
+    needs: prepare
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ needs.prepare.outputs.flavor }}
+    concurrency:
+      group: google-play-${{ needs.prepare.outputs.flavor }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: "3.44.4"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Restore Android upload key
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : "${KEYSTORE_BASE64:?ANDROID_KEYSTORE_BASE64 belum diisi}"
+          : "${STORE_PASSWORD:?ANDROID_KEYSTORE_PASSWORD belum diisi}"
+          : "${KEY_ALIAS:?ANDROID_KEY_ALIAS belum diisi}"
+          : "${KEY_PASSWORD:?ANDROID_KEY_PASSWORD belum diisi}"
+
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          {
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'storeFile=upload-keystore.jks\n'
+          } > android/key.properties
+
+      - name: Build signed Android App Bundle
+        shell: bash
+        env:
+          FLAVOR: ${{ needs.prepare.outputs.flavor }}
+          ENTRY_POINT: ${{ needs.prepare.outputs.entry_point }}
+          VERSION_NAME: ${{ needs.prepare.outputs.version_name }}
+          VERSION_CODE: ${{ needs.prepare.outputs.version_code }}
+          APP_VERSION_NAME: ${{ needs.prepare.outputs.version_name }}
+          APP_VERSION_CODE: ${{ needs.prepare.outputs.version_code }}
+        run: |
+          set -euo pipefail
+          flutter build appbundle \
+            --release \
+            --flavor "$FLAVOR" \
+            --target "$ENTRY_POINT" \
+            --build-name "$VERSION_NAME" \
+            --build-number "$VERSION_CODE" \
+            --dart-define="APP_FLAVOR=$FLAVOR"
+
+      - name: Locate bundle
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle="$(find build/app/outputs/bundle -type f -name '*.aab' -print -quit)"
+          [[ -n "$bundle" ]] || {
+            echo "AAB hasil build tidak ditemukan" >&2
+            exit 1
+          }
+          echo "path=$bundle" >> "$GITHUB_OUTPUT"
+
+      - name: Keep AAB as workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ needs.prepare.outputs.flavor }}-${{ needs.prepare.outputs.version_name }}+${{ needs.prepare.outputs.version_code }}
+          path: ${{ steps.bundle.outputs.path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload release to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ needs.prepare.outputs.application_id }}
+          releaseFiles: ${{ steps.bundle.outputs.path }}
+          tracks: ${{ github.event_name == 'workflow_dispatch' && needs.prepare.outputs.track || vars.PLAY_TRACK || 'internal' }}
+          status: ${{ github.event_name == 'workflow_dispatch' && needs.prepare.outputs.status || vars.PLAY_STATUS || 'completed' }}
+          releaseName: v${{ needs.prepare.outputs.version_name }} (${{ needs.prepare.outputs.version_code }})

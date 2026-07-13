@@ -89,7 +89,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                   children: [
                     _buildHeader(state),
                     _buildJourneySection(state),
-                    _buildArenaCard(),
+                    // _buildArenaCard(),
                     const KelulusanCarousel(),
                     _buildPaymentStatus(state),
                     // _buildMenuSection(context),
@@ -192,7 +192,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
   Widget _buildSwitchAccountButton() {
     final primary = Theme.of(context).primaryColor;
     return Material(
-      color: primary.withOpacity(0.1),
+      color: primary.withValues(alpha: 0.1),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -209,7 +209,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
     final primary = Theme.of(context).primaryColor;
     return CircleAvatar(
       radius: 22,
-      backgroundColor: primary.withOpacity(0.1),
+      backgroundColor: primary.withValues(alpha: 0.1),
       backgroundImage:
           (santri?.photoUrl != null && santri!.photoUrl!.isNotEmpty)
           ? NetworkImage(santri.photoUrl!)
@@ -623,19 +623,19 @@ class _SantriHomePageState extends State<SantriHomePage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               blurRadius: 15,
               offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(color: color.withOpacity(0.1)),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 28),

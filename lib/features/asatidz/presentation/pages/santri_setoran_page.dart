@@ -150,7 +150,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade50, Colors.blue.shade100.withOpacity(0.4)],
+          colors: [Colors.blue.shade50, Colors.blue.shade100.withValues(alpha: 0.4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -167,7 +167,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.12),
+                  color: Colors.blue.withValues(alpha: 0.12),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -201,7 +201,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -219,7 +219,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.menu_book_rounded, color: Colors.blue.shade400, size: 22),
@@ -240,7 +240,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),

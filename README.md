@@ -1,16 +1,10 @@
-# tahfiz_app
+# Tahfiz App
 
-A new Flutter project.
+Aplikasi tahfiz white-label berbasis Flutter. Setiap lembaga memakai flavor,
+Firebase project, kurikulum, aset brand, template syahadah, dan akun transkripsi
+sendiri dalam satu repo.
 
-## Getting Started
+Panduan lengkap:
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- [White-label, menambah lembaga, dan CI/CD Google Play](docs/white_label_and_play_release.md)
+- [Setup fitur uji bacaan](docs/recitation_check_setup.md)

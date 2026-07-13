@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart'; // Added
@@ -45,19 +46,19 @@ class _LoginPageState extends State<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Spacer(),
-                    const Center(
-                    child: Image(
-                      image: AssetImage('assets/images/logo.png'),
-                      width: 120,
-                      height: 120,
+                    Center(
+                      child: Image(
+                        image: AssetImage(AppConfig.current.logoAsset),
+                        width: 120,
+                        height: 120,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Khoirunnasyien',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.titleBlack,
-                  ),
+                    const SizedBox(height: 32),
+                    Text(
+                      AppConfig.current.appName,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.titleBlack,
+                    ),
                   const SizedBox(height: 32),
                   AiwaTextField(
                     label: 'NIS',
