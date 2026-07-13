@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
@@ -12,6 +13,10 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+
+String _multiplierText(double value) => value == value.roundToDouble()
+    ? value.toInt().toString()
+    : value.toStringAsFixed(1);
 
 /// Layar rekap akhir sesi kuis (mode suara & pilihan).
 ///
@@ -55,7 +60,7 @@ class QuizResultView extends StatelessWidget {
           children: [
             const Spacer(),
             Text(
-              _gradePoints(result.resultPoints + result.totalBonus),
+              _gradePoints(result.finalScore),
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -64,9 +69,15 @@ class QuizResultView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(
-              '${result.mode.label} • XP x${result.xpMultiplier}',
-              style: const TextStyle(color: Colors.white60),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '${result.mode.label} • ${result.difficulty.label} • '
+                'Skor ${result.finalScore} '
+                '(×${_multiplierText(result.scoreMultiplier)}) • '
+                'XP ×${_multiplierText(result.xpMultiplier)}',
+                style: const TextStyle(color: Colors.white60),
+              ),
             ),
             const SizedBox(height: 30),
 

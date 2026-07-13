@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dar
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_state.dart';
 import 'package:khoirunnasyien/features/arena/presentation/pages/arena_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
@@ -339,6 +340,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
   late QuizMode _mode = widget.state.voiceQuotaEmpty
       ? QuizMode.choice
       : QuizMode.voice;
+  QuizDifficulty _difficulty = QuizDifficulty.medium;
 
   /// Kelas cakupan terpilih (default: kelas sendiri).
   late String _scope = widget.state.kelas!;
@@ -451,6 +453,25 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             ),
             const SizedBox(height: 18),
 
+            const _SheetLabel('Tingkat kesulitan'),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (final difficulty in QuizDifficulty.values) ...[
+                  Expanded(
+                    child: _DifficultyOption(
+                      difficulty: difficulty,
+                      selected: _difficulty == difficulty,
+                      onTap: () => setState(() => _difficulty = difficulty),
+                    ),
+                  ),
+                  if (difficulty != QuizDifficulty.values.last)
+                    const SizedBox(width: 8),
+                ],
+              ],
+            ),
+            const SizedBox(height: 18),
+
             const _SheetLabel('Cakupan soal'),
             const SizedBox(height: 10),
             _SheetOption(
@@ -490,6 +511,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                     ? () => Navigator.of(context).pop(
                         QuizLaunch(
                           mode: _mode,
+                          difficulty: _difficulty,
                           ownKelas: _ownKelas,
                           scopeKelas: _scope,
                         ),
@@ -531,6 +553,61 @@ class _SheetLabel extends StatelessWidget {
         color: Colors.white70,
         fontSize: 13,
         fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _DifficultyOption extends StatelessWidget {
+  final QuizDifficulty difficulty;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DifficultyOption({
+    required this.difficulty,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = switch (difficulty) {
+      QuizDifficulty.easy => '80 · 20',
+      QuizDifficulty.medium => '40 · 40 · 20',
+      QuizDifficulty.hard => '10 · 30 · 60',
+    };
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? QuizColors.gold.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? QuizColors.gold : Colors.white12,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              difficulty.label,
+              style: TextStyle(
+                color: selected ? QuizColors.gold : Colors.white70,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Colors.white38, fontSize: 9.5),
+            ),
+          ],
+        ),
       ),
     );
   }

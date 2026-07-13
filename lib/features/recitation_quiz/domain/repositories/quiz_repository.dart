@@ -3,6 +3,7 @@ import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
@@ -12,12 +13,13 @@ abstract class QuizRepository {
   /// Susun [count] soal acak sesuai [settings] (juz terpilih + sambungan antar
   /// surah). Tiap soal: 1 ayat petunjuk + tugas yang bervariasi.
   ///
-  /// Mode suara: tugas diundi — lanjutkan 1-3 ayat, baca ayat TERAKHIR surah,
-  /// atau baca ayat ke-N surah (lihat [QuizVoiceTask]).
+  /// Mode suara: lanjutkan 1-4 ayat, baca ayat terakhir, baca ayat ke-N, atau
+  /// tebak dan baca ayat dari makna kosakata (lihat [QuizVoiceTask]).
   ///
   /// Mode pilihan (`settings.mode == choice`): tiap soal memuat `options`
   /// (6 ayat teracak berisi jawaban benar), diselingi soal TRIVIA surah
-  /// (nama+arti / nomor urut / jumlah ayat) sesuai rasio di `QuizConfig`.
+  /// Soal inti dan cadangan bonus dibentuk sesuai rules tiap mode dan profil
+  /// kesulitan di [QuizSettings].
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
     int count,
     required QuizSettings settings,
@@ -41,6 +43,7 @@ abstract class QuizRepository {
   /// yang dipilih (bisa 1 kelas di bawah [kelas]).
   Future<Either<Failure, void>> saveAttempt({
     required QuizMode mode,
+    QuizDifficulty difficulty = QuizDifficulty.easy,
     required int score,
     required List<int> questionScores,
     required List<int> juz,

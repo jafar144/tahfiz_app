@@ -1,27 +1,28 @@
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_question_types.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 
-/// Tugas soal INTI mode suara — apa yang harus dibaca santri dari ayat prompt.
-enum QuizVoiceTask {
-  /// Lanjutkan 1-3 ayat berikutnya dari ayat yang tampil (tugas klasik).
-  continueAyah,
+export 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_question_types.dart'
+    show QuizVoiceTask;
 
-  /// Ayat yang tampil BUKAN penutup surah — bacakan ayat TERAKHIR surahnya.
-  lastAyah,
+/// Petunjuk khusus soal Suara "tebak ayat dari makna".
+class MeaningToAyahPrompt {
+  final String meaning;
+  final String arabicHint;
 
-  /// Ayat yang tampil adalah penutup surah — bacakan ayat ke-N surah itu
-  /// (N diundi 1..min(5, jumlah ayat)).
-  specificAyah,
+  const MeaningToAyahPrompt({required this.meaning, required this.arabicHint});
 }
 
 /// Satu soal kuis: sebuah ayat [prompt] ditampilkan (teks Arab, tanpa label).
 ///
 /// Mode suara — tugas santri tergantung [task]:
-/// - [QuizVoiceTask.continueAyah]  : baca [answer] = 1-3 ayat lanjutan.
+/// - [QuizVoiceTask.continueAyah]  : baca [answer] = 1-4 ayat lanjutan.
 /// - [QuizVoiceTask.lastAyah]      : baca ayat terakhir surah dari ayat tampil.
 /// - [QuizVoiceTask.specificAyah]  : baca ayat ke-[targetAyahNumber] surahnya.
+/// - [QuizVoiceTask.meaningToAyah] : tebak dan baca ayat dari makna kosakata.
 /// Bacaan dicek Whisper. [answer] bisa memuat penanda basmalah (ayat bernomor
 /// 0) di depan ayat pertama surah.
 ///
@@ -43,6 +44,12 @@ class QuizQuestion {
   /// Tugas soal inti mode suara (default: lanjutkan ayat).
   final QuizVoiceTask task;
 
+  /// Label kesulitan aktual soal ini, bukan tingkat kesulitan sesi.
+  final QuizDifficulty difficulty;
+
+  /// Terisi hanya untuk [QuizVoiceTask.meaningToAyah].
+  final MeaningToAyahPrompt? meaningToAyah;
+
   /// Soal trivia surah (mode pilihan) tentang surah ayat [prompt]; null bila
   /// soal biasa (lanjutan ayat).
   final QuizBonusQuestion? trivia;
@@ -58,6 +65,8 @@ class QuizQuestion {
     required this.answer,
     this.options = const [],
     this.task = QuizVoiceTask.continueAyah,
+    this.difficulty = QuizDifficulty.medium,
+    this.meaningToAyah,
     this.trivia,
     this.knowledge,
     this.vocabMatch,
@@ -69,6 +78,9 @@ class QuizQuestion {
   bool get isKnowledge => knowledge != null;
 
   bool get isVocabMatch => vocabMatch != null;
+
+  bool get isMeaningToAyah =>
+      task == QuizVoiceTask.meaningToAyah && meaningToAyah != null;
 
   /// Nomor ayat yang diminta pada tugas [QuizVoiceTask.specificAyah]
   /// (diambil dari ayat jawaban pertama).

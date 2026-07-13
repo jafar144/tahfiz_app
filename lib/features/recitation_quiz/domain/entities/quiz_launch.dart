@@ -1,3 +1,4 @@
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 
 /// Parameter peluncuran halaman kuis dari Tahfiz Arena.
@@ -12,6 +13,8 @@ class QuizLaunch {
   /// Mode permainan yang dipilih di lembar Tantangan (suara / pilihan).
   final QuizMode mode;
 
+  final QuizDifficulty difficulty;
+
   /// Kelas ASLI santri — dipakai sebagai kelas leaderboard (santri selalu
   /// bersaing di papan kelasnya sendiri, walau memilih cakupan kelas bawah).
   final String ownKelas;
@@ -21,6 +24,7 @@ class QuizLaunch {
 
   const QuizLaunch({
     required this.mode,
+    this.difficulty = QuizDifficulty.medium,
     required this.ownKelas,
     required this.scopeKelas,
   });

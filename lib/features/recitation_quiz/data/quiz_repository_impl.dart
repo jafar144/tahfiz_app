@@ -14,15 +14,20 @@ import 'package:khoirunnasyien/features/recitation_check/domain/repositories/rec
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_bonus.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/choice_quiz_rules.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_difficulty_rules.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_question_types.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_session_rules.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/voice_quiz_rules.dart';
 
 class QuizRepositoryImpl implements QuizRepository {
   final QuranLocalDataSource local;
@@ -192,6 +197,7 @@ class QuizRepositoryImpl implements QuizRepository {
           allowed: allowedSurahs,
           count: count,
           includeKnowledge: !settings.ayatOnly,
+          sessionDifficulty: settings.difficulty,
           rng: rng,
         );
         if (choiceQuestions.isEmpty) {
@@ -202,76 +208,20 @@ class QuizRepositoryImpl implements QuizRepository {
         return Right(choiceQuestions);
       }
 
-      // Mode SUARA: undi tugas per soal; urutan diacak di akhir.
-      final questions = <QuizQuestion>[];
-
-      // Penjaga keragaman: prompt tak boleh kembar (soal "ayat ke-N" memindah
-      // prompt ke ayat penutup surah — bisa bentrok), dan tiap variasi tugas
-      // per surah hanya muncul sekali per sesi.
-      final usedPrompts = <String>{};
-      final usedVariants = <String>{};
-      String keyOf(Ayah a) => '${a.surahId}:${a.number}';
-
-      for (final i in candidates) {
-        if (questions.length >= count) break;
-        final prompt = pool[i];
-
-        // Undi tugas soal (lanjutkan / ayat terakhir / ayat ke-N).
-        final task = _rollVoiceTask(
-          prompt,
-          lastAyahOf,
-          completeSurahs,
-          usedVariants,
-          rng,
-        );
-        switch (task) {
-          case QuizVoiceTask.continueAyah:
-            if (!usedPrompts.add(keyOf(prompt))) continue;
-            // Jumlah ayat jawaban menyesuaikan PANJANG ayat (pendek → banyak,
-            // panjang → 1).
-            final len = _voiceAnswerLen(pool, i, segmentEnds, rng);
-            final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
-            questions.add(
-              QuizQuestion(
-                prompt: prompt,
-                answer: _withBasmalah(rawAnswer, basmalahText),
-              ),
-            );
-
-          case QuizVoiceTask.lastAyah:
-            // Ayat tampil dijamin bukan penutup surah (dicek saat undi tugas).
-            if (!usedPrompts.add(keyOf(prompt))) continue;
-            usedVariants.add('last:${prompt.surahId}');
-            questions.add(
-              QuizQuestion(
-                task: QuizVoiceTask.lastAyah,
-                prompt: prompt,
-                answer: [lastAyahOf[prompt.surahId]!],
-              ),
-            );
-
-          case QuizVoiceTask.specificAyah:
-            // Prompt DIGANTI jadi ayat penutup surah; minta baca ayat ke-N
-            // (N = 1..min(5, jumlah ayat), tak pernah ayat penutup itu sendiri).
-            final s = prompt.surahId;
-            final closing = lastAyahOf[s]!;
-            var maxN = min(QuizConfig.specificAyahMaxNumber, closing.number);
-            if (maxN >= closing.number) maxN = closing.number - 1;
-            if (maxN < 1) continue;
-            final n = 1 + rng.nextInt(maxN);
-            final target = ayatBySurah[s]?[n];
-            if (target == null) continue;
-            if (!usedPrompts.add(keyOf(closing))) continue;
-            usedVariants.add('specific:$s');
-            questions.add(
-              QuizQuestion(
-                task: QuizVoiceTask.specificAyah,
-                prompt: closing,
-                answer: _withBasmalah([target], basmalahText),
-              ),
-            );
-        }
-      }
+      final questions = _buildVoiceQuestions(
+        pool: pool,
+        candidates: candidates,
+        segmentEnds: segmentEnds,
+        allowed: allowedSurahs,
+        ayatBySurah: ayatBySurah,
+        lastAyahOf: lastAyahOf,
+        completeSurahs: completeSurahs,
+        count: count,
+        includeKnowledge: !settings.ayatOnly,
+        sessionDifficulty: settings.difficulty,
+        basmalahText: basmalahText,
+        rng: rng,
+      );
 
       if (questions.isEmpty) {
         return const Left(
@@ -279,15 +229,156 @@ class QuizRepositoryImpl implements QuizRepository {
         );
       }
 
-      questions.shuffle(rng);
+      if (VoiceQuizRules.shuffleQuestions) questions.shuffle(rng);
       return Right(questions);
     } catch (e) {
       return Left(UnknownFailure('Gagal menyusun soal kuis: $e'));
     }
   }
 
+  List<QuizQuestion> _buildVoiceQuestions({
+    required List<Ayah> pool,
+    required List<int> candidates,
+    required Set<int> segmentEnds,
+    required Set<int> allowed,
+    required Map<int, Map<int, Ayah>> ayatBySurah,
+    required Map<int, Ayah> lastAyahOf,
+    required Set<int> completeSurahs,
+    required int count,
+    required bool includeKnowledge,
+    required QuizDifficulty sessionDifficulty,
+    required String basmalahText,
+    required Random rng,
+  }) {
+    final bank = <QuizQuestion>[];
+
+    // Lanjutkan ayat: label berasal dari total beban kata jawaban.
+    for (final i in candidates) {
+      final len = _voiceAnswerLen(pool, i, segmentEnds, rng);
+      final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
+      final words = rawAnswer.fold<int>(
+        0,
+        (total, ayah) => total + _wordCount(ayah.text),
+      );
+      bank.add(
+        QuizQuestion(
+          prompt: pool[i],
+          answer: _withBasmalah(rawAnswer, basmalahText),
+          difficulty: VoiceQuizRules.continuationDifficulty(words),
+        ),
+      );
+    }
+
+    // Variasi per surah utuh: masing-masing hanya satu kandidat per sesi.
+    for (final surah in completeSurahs) {
+      final ayat = ayatBySurah[surah]?.values.toList()
+        ?..sort((a, b) => a.number.compareTo(b.number));
+      final closing = lastAyahOf[surah];
+      if (ayat == null || closing == null || ayat.length < 2) continue;
+
+      final promptOptions =
+          ayat.where((a) => a.number != closing.number).toList()..shuffle(rng);
+      if (promptOptions.isNotEmpty) {
+        bank.add(
+          QuizQuestion(
+            task: QuizVoiceTask.lastAyah,
+            difficulty: QuizDifficulty.medium,
+            prompt: promptOptions.first,
+            answer: [closing],
+          ),
+        );
+      }
+
+      var maxN = min(VoiceQuizRules.specificAyahMaxNumber, closing.number - 1);
+      if (maxN >= 1) {
+        final n = 1 + rng.nextInt(maxN);
+        final target = ayatBySurah[surah]?[n];
+        if (target != null) {
+          bank.add(
+            QuizQuestion(
+              task: QuizVoiceTask.specificAyah,
+              difficulty: QuizDifficulty.hard,
+              prompt: closing,
+              answer: _withBasmalah([target], basmalahText),
+            ),
+          );
+        }
+      }
+    }
+
+    // Variasi Sulit: arti Indonesia → ingat dan baca ayat lengkap. Entri yang
+    // kata Arabnya sama panjang dengan seluruh ayat sudah difilter oleh bank.
+    if (includeKnowledge) {
+      final meaningCandidates = QuizKnowledgeBank.meaningToAyahCandidates(
+        allowedSurahs: allowed,
+        ayat: pool,
+      )..shuffle(rng);
+      for (final candidate in meaningCandidates) {
+        bank.add(
+          QuizQuestion(
+            task: QuizVoiceTask.meaningToAyah,
+            difficulty: VoiceQuizRules.meaningToAyahDifficulty,
+            prompt: candidate.ayah,
+            answer: [candidate.ayah],
+            meaningToAyah: MeaningToAyahPrompt(
+              meaning: candidate.vocabulary.displayMeaning,
+              arabicHint: candidate.vocabulary.word,
+            ),
+          ),
+        );
+      }
+    }
+
+    bank.shuffle(rng);
+
+    final selected = <QuizQuestion>[];
+    final usedPrompts = <String>{};
+    String promptKey(QuizQuestion q) =>
+        '${q.prompt.surahId}:${q.prompt.number}';
+
+    QuizQuestion? take(QuizDifficulty target) {
+      final fallbackOrder = switch (target) {
+        QuizDifficulty.easy => const [
+          QuizDifficulty.easy,
+          QuizDifficulty.medium,
+          QuizDifficulty.hard,
+        ],
+        QuizDifficulty.medium => const [
+          QuizDifficulty.medium,
+          QuizDifficulty.easy,
+          QuizDifficulty.hard,
+        ],
+        QuizDifficulty.hard => const [
+          QuizDifficulty.hard,
+          QuizDifficulty.medium,
+          QuizDifficulty.easy,
+        ],
+      };
+      for (final difficulty in fallbackOrder) {
+        final index = bank.indexWhere(
+          (q) =>
+              q.difficulty == difficulty && !usedPrompts.contains(promptKey(q)),
+        );
+        if (index >= 0) return bank.removeAt(index);
+      }
+      return null;
+    }
+
+    while (selected.length < count && bank.isNotEmpty) {
+      final target = QuizDifficultyRules.rollQuestionDifficulty(
+        sessionDifficulty,
+        rng,
+      );
+      final question = take(target);
+      if (question == null) break;
+      usedPrompts.add(promptKey(question));
+      selected.add(question);
+    }
+    return selected;
+  }
+
   /// Susun soal mode PILIHAN dengan urutan TETAP: posisi kelipatan
-  /// [QuizConfig.choiceTriviaInterval] (5, 10, …) diisi soal TRIVIA surah
+  /// [ChoiceQuizRules.bonusReserveEveryNQuestions] menyisipkan cadangan bonus
   /// dengan tipe yang dirotasi merata (nama+arti / jumlah ayat / urutan);
   /// selebihnya soal lanjutan ayat pilihan ganda.
   List<QuizQuestion> _buildChoiceQuestions({
@@ -297,6 +388,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required Set<int> allowed,
     required int count,
     required bool includeKnowledge,
+    required QuizDifficulty sessionDifficulty,
     required Random rng,
   }) {
     final questions = <QuizQuestion>[];
@@ -304,11 +396,7 @@ class QuizRepositoryImpl implements QuizRepository {
     String keyOf(Ayah a) => '${a.surahId}:${a.number}';
 
     // Rotasi tipe trivia agar 3 variasi muncul merata sepanjang sesi.
-    final triviaTypes = <QuizBonusType>[
-      QuizBonusType.nameMeaning,
-      QuizBonusType.ayahCount,
-      QuizBonusType.orderNumber,
-    ]..shuffle(rng);
+    final triviaTypes = [...ChoiceQuizRules.rotatingTriviaTypes]..shuffle(rng);
     var triviaCount = 0;
 
     var cursor = 0; // penunjuk kandidat berikutnya untuk soal biasa
@@ -325,10 +413,13 @@ class QuizRepositoryImpl implements QuizRepository {
 
     while (questions.length < count) {
       final pos = questions.length + 1; // posisi 1-based soal berikutnya
-      final wantTrivia = pos % QuizConfig.choiceTriviaInterval == 0;
+      final wantTrivia = ChoiceQuizRules.isBonusPosition(pos);
 
       if (wantTrivia) {
-        if (includeKnowledge && rng.nextBool()) {
+        final bonusSource = includeKnowledge
+            ? ChoiceQuizRules.rollBonusSource(rng)
+            : ChoiceBonusSource.surahTrivia;
+        if (bonusSource == ChoiceBonusSource.vocabularyMatch) {
           final match = QuizKnowledgeBank.vocabularyMatch(
             allowedSurahs: allowed,
             rng: rng,
@@ -338,6 +429,7 @@ class QuizRepositoryImpl implements QuizRepository {
               QuizQuestion(
                 prompt: pool[candidates[cursor % candidates.length]],
                 answer: const [],
+                difficulty: QuizDifficulty.hard,
                 vocabMatch: match,
               ),
             );
@@ -359,7 +451,12 @@ class QuizRepositoryImpl implements QuizRepository {
           );
           if (trivia != null) {
             usedPrompts.add(keyOf(a));
-            built = QuizQuestion(prompt: a, answer: const [], trivia: trivia);
+            built = QuizQuestion(
+              prompt: a,
+              answer: const [],
+              difficulty: trivia.difficulty,
+              trivia: trivia,
+            );
             break;
           }
         }
@@ -376,7 +473,32 @@ class QuizRepositoryImpl implements QuizRepository {
       if (i == null) break; // kandidat habis
       final prompt = pool[i];
       usedPrompts.add(keyOf(prompt));
-      if (includeKnowledge && questions.length % 4 == 2) {
+
+      final targetDifficulty = QuizDifficultyRules.rollQuestionDifficulty(
+        sessionDifficulty,
+        rng,
+      );
+
+      // Soal fakta Journey adalah variasi inti Sulit mode Pilihan.
+      if (includeKnowledge && targetDifficulty == QuizDifficulty.hard) {
+        final fact = QuizKnowledgeBank.fact(allowedSurahs: allowed, rng: rng);
+        if (fact != null) {
+          questions.add(
+            QuizQuestion(
+              prompt: prompt,
+              answer: const [],
+              difficulty: QuizDifficulty.hard,
+              knowledge: fact,
+            ),
+          );
+          continue;
+        }
+      }
+
+      // Pada target Sedang, arti kosakata dan lanjutan tiga ayat berbagi ruang.
+      if (includeKnowledge &&
+          targetDifficulty == QuizDifficulty.medium &&
+          rng.nextBool()) {
         final knowledge = QuizKnowledgeBank.vocabularyMeaning(
           allowedSurahs: allowed,
           ayat: pool,
@@ -387,6 +509,7 @@ class QuizRepositoryImpl implements QuizRepository {
             QuizQuestion(
               prompt: prompt,
               answer: const [],
+              difficulty: QuizDifficulty.medium,
               knowledge: knowledge,
             ),
           );
@@ -394,59 +517,27 @@ class QuizRepositoryImpl implements QuizRepository {
         }
       }
       final maxLen = _availableAnswerLen(pool, i, segmentEnds);
-      final len = 1 + rng.nextInt(maxLen); // 1..maxAnswerAyah (dibatasi)
+      final int len;
+      if (targetDifficulty == QuizDifficulty.easy) {
+        final easyMax = min(2, maxLen);
+        len = 1 + rng.nextInt(easyMax);
+      } else if (maxLen >= 3) {
+        len = 3;
+      } else {
+        // Data di ujung segmen tidak cukup untuk tiga ayat; fallback ke Mudah.
+        len = min(2, maxLen);
+      }
       final rawAnswer = [for (var k = 1; k <= len; k++) pool[i + k]];
       questions.add(
         QuizQuestion(
           prompt: prompt,
           answer: rawAnswer,
+          difficulty: ChoiceQuizRules.continuationDifficulty(len),
           options: _buildOptions(pool, prompt, rawAnswer, rng),
         ),
       );
     }
     return questions;
-  }
-
-  /// Undi tugas soal suara untuk [prompt] sesuai bobot [QuizConfig]; hanya
-  /// tugas yang valid untuk ayat/surah ini yang ikut diundi.
-  QuizVoiceTask _rollVoiceTask(
-    Ayah prompt,
-    Map<int, Ayah> lastAyahOf,
-    Set<int> completeSurahs,
-    Set<String> usedVariants,
-    Random rng,
-  ) {
-    final s = prompt.surahId;
-    final last = lastAyahOf[s];
-    // Variasi "ayat terakhir/ke-N" HANYA untuk surah UTUH dalam pool (surah
-    // terpotong pada juz 1-3 tak boleh mereferensi ayat di luar rentang).
-    final whole = completeSurahs.contains(s);
-    final entries = <(QuizVoiceTask, int)>[
-      (QuizVoiceTask.continueAyah, QuizConfig.voiceTaskWeightContinue),
-    ];
-    // "Ayat terakhir surah": ayat tampil tak boleh penutup surah itu sendiri.
-    if (whole &&
-        last != null &&
-        prompt.number != last.number &&
-        !usedVariants.contains('last:$s')) {
-      entries.add((QuizVoiceTask.lastAyah, QuizConfig.voiceTaskWeightLastAyah));
-    }
-    // "Baca ayat ke-N": butuh minimal 2 ayat agar N ≠ ayat penutup.
-    if (whole &&
-        last != null &&
-        last.number >= 2 &&
-        !usedVariants.contains('specific:$s')) {
-      entries.add((
-        QuizVoiceTask.specificAyah,
-        QuizConfig.voiceTaskWeightSpecificAyah,
-      ));
-    }
-    var roll = rng.nextInt(entries.fold(0, (t, e) => t + e.$2));
-    for (final e in entries) {
-      roll -= e.$2;
-      if (roll < 0) return e.$1;
-    }
-    return QuizVoiceTask.continueAyah;
   }
 
   /// Sisipkan penanda basmalah (ayat bernomor 0) di depan tiap ayat pertama
@@ -471,7 +562,7 @@ class QuizRepositoryImpl implements QuizRepository {
     return answer;
   }
 
-  /// Rakit [QuizConfig.choiceOptionCount] opsi ayat: jawaban benar + distraktor.
+  /// Rakit [ChoiceQuizRules.optionCount] opsi: jawaban benar + distraktor.
   /// Distraktor diambil dari [pool] (selain prompt & ayat jawaban), unik per
   /// (surah, nomor). Semua diacak agar posisi jawaban tak tertebak.
   List<Ayah> _buildOptions(
@@ -492,7 +583,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
     final options = <Ayah>[...answer];
     for (final a in distractorPool) {
-      if (options.length >= QuizConfig.choiceOptionCount) break;
+      if (options.length >= ChoiceQuizRules.optionCount) break;
       if (options.any((o) => sameAyah(o, a))) continue;
       options.add(a);
     }
@@ -508,7 +599,7 @@ class QuizRepositoryImpl implements QuizRepository {
     List<Ayah> pool,
     int i,
     Set<int> segmentEnds, {
-    int maxCap = QuizConfig.maxAnswerAyah,
+    int maxCap = ChoiceQuizRules.maxAnswerAyah,
   }) {
     var len = 0;
     for (var k = 1; k <= maxCap; k++) {
@@ -525,7 +616,7 @@ class QuizRepositoryImpl implements QuizRepository {
       text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
 
   /// Jumlah ayat jawaban mode SUARA menurut PANJANG ayat pertama jawaban:
-  /// pendek → lebih banyak (3-4), sedang → 2-3, panjang → 1. Diundi dalam range
+  /// pendek → lebih banyak (3-4), sedang → 2, panjang → 1. Diundi dalam range
   /// kategori lalu dibatasi ketersediaan ayat (tak menyeberang batas juz).
   int _voiceAnswerLen(
     List<Ayah> pool,
@@ -537,16 +628,12 @@ class QuizRepositoryImpl implements QuizRepository {
       pool,
       i,
       segmentEnds,
-      maxCap: QuizConfig.voiceMaxAnswerAyah,
+      maxCap: VoiceQuizRules.maxAnswerAyah,
     );
     if (available <= 1) return available; // kandidat selalu punya ≥ 1 lanjutan
 
     final words = _wordCount(pool[i + 1].text);
-    final range = words <= QuizConfig.voiceShortAyahMaxWords
-        ? QuizConfig.voiceShortRange
-        : words <= QuizConfig.voiceMediumAyahMaxWords
-        ? QuizConfig.voiceMediumRange
-        : QuizConfig.voiceLongRange;
+    final range = VoiceQuizRules.answerRangeForWordCount(words);
     final target = range.$1 + rng.nextInt(range.$2 - range.$1 + 1);
     final len = target < available ? target : available;
     return len < 1 ? 1 : len;
@@ -568,6 +655,7 @@ class QuizRepositoryImpl implements QuizRepository {
   @override
   Future<Either<Failure, void>> saveAttempt({
     required QuizMode mode,
+    QuizDifficulty difficulty = QuizDifficulty.easy,
     required int score,
     required List<int> questionScores,
     required List<int> juz,
@@ -623,6 +711,7 @@ class QuizRepositoryImpl implements QuizRepository {
               'user_name': name,
               'role': role,
               'mode': mode.key,
+              'difficulty': difficulty.key,
               'juz': juz,
               'score': score,
               'bonus_score': bonusTotal,
@@ -650,6 +739,7 @@ class QuizRepositoryImpl implements QuizRepository {
           name: name,
           role: role,
           mode: mode,
+          difficulty: difficulty,
           monthKey: _monthKey(now),
           score: score,
           kelas: kelas,
@@ -701,6 +791,7 @@ class QuizRepositoryImpl implements QuizRepository {
     required String name,
     required String role,
     required QuizMode mode,
+    required QuizDifficulty difficulty,
     required String monthKey,
     required int score,
     String? kelas,
@@ -716,6 +807,7 @@ class QuizRepositoryImpl implements QuizRepository {
         'role': role,
         'month_key': monthKey,
         'mode': mode.key,
+        'last_difficulty': difficulty.key,
         'kelas': ?kelas,
         'last_score': score,
         'play_count': FieldValue.increment(1),
@@ -723,6 +815,7 @@ class QuizRepositoryImpl implements QuizRepository {
       };
       if (score > prevBest) {
         data['best_score'] = score;
+        data['best_difficulty'] = difficulty.key;
         // Tie-break: skor sama → yang lebih dulu mencapainya menang.
         data['best_at'] = FieldValue.serverTimestamp();
       }
@@ -758,7 +851,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
       final snap = await query
           .orderBy('best_score', descending: true)
-          .limit(QuizConfig.leaderboardLimit)
+          .limit(QuizSessionRules.leaderboardLimit)
           .get();
 
       final entries = snap.docs.map((d) => _entryFromDoc(d.data())).toList()

@@ -4,7 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/choice_quiz_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
@@ -21,6 +22,39 @@ final _ayahNumberTail = RegExp(r'[٠-٩ \s]+$');
 /// Buang glyph nomor ayat di akhir agar pemain tak bisa menebak urutan lewat
 /// nomornya (mode pilihan).
 String _stripAyahNumber(String text) => text.replaceAll(_ayahNumberTail, '');
+
+class _DifficultyBadge extends StatelessWidget {
+  final QuizDifficulty difficulty;
+  final bool light;
+
+  const _DifficultyBadge({required this.difficulty, this.light = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (difficulty) {
+      QuizDifficulty.easy => const Color(0xFF35A96F),
+      QuizDifficulty.medium =>
+        light ? const Color(0xFF9A6900) : QuizColors.gold,
+      QuizDifficulty.hard => const Color(0xFFE05252),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+      ),
+      child: Text(
+        difficulty.label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
 
 /// Layar bermain mode PILIHAN: timer mundur 60 detik, kartu ayat petunjuk,
 /// lalu 6 opsi ayat. Santri memilih lanjutan yang benar (berurutan bila lebih
@@ -120,6 +154,7 @@ class _QuizChoicePlayViewState extends State<QuizChoicePlayView> {
                     showTimeBonus: state.choiceCorrect == true,
                     timeBonus: state.lastTimeBonus,
                     bonusTick: state.timeBonusTick,
+                    difficulty: q.difficulty,
                   ),
                   // Hanya soal + jawaban yang bergeser saat pindah soal; header
                   // (timer/poin) di atas tetap diam.
@@ -340,7 +375,7 @@ class _ChoiceVocabMatchContent extends StatelessWidget {
         children: [
           _GoldCountdown(
             secondsLeft: state.choiceBonusSecondsLeft,
-            total: QuizConfig.choiceTriviaSeconds,
+            total: ChoiceQuizRules.bonusQuestionSeconds,
           ),
           const SizedBox(height: 14),
           Expanded(
@@ -388,6 +423,7 @@ class _ChoiceTriviaScreen extends StatelessWidget {
               _TriviaTopBar(
                 mainSeconds: state.secondsLeft,
                 points: state.runningPoints,
+                difficulty: q.difficulty,
               ),
               Expanded(
                 child: AnimatedSwitcher(
@@ -429,7 +465,7 @@ class _ChoiceTriviaScreen extends StatelessWidget {
                         ? state.answers.last.score +
                               state.answers.last.bonusScore
                         : 0) >=
-                    QuizConfig.choiceTriviaPoints,
+                    ChoiceQuizRules.bonusPoints,
               ),
             ),
           ),
@@ -442,8 +478,13 @@ class _ChoiceTriviaScreen extends StatelessWidget {
 class _TriviaTopBar extends StatelessWidget {
   final int mainSeconds;
   final int points;
+  final QuizDifficulty difficulty;
 
-  const _TriviaTopBar({required this.mainSeconds, required this.points});
+  const _TriviaTopBar({
+    required this.mainSeconds,
+    required this.points,
+    required this.difficulty,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -477,6 +518,8 @@ class _TriviaTopBar extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          _DifficultyBadge(difficulty: difficulty, light: true),
           const SizedBox(width: 8),
           const Text(
             'waktu dijeda',
@@ -535,14 +578,14 @@ class _TriviaContent extends StatelessWidget {
         children: [
           _GoldCountdown(
             secondsLeft: state.choiceBonusSecondsLeft,
-            total: QuizConfig.choiceTriviaSeconds,
+            total: ChoiceQuizRules.bonusQuestionSeconds,
           ),
           const SizedBox(height: 16),
           PromptAyahCard(text: state.currentQuestion!.prompt.text),
           const SizedBox(height: 14),
           TriviaQuestionCard(
             text: t.questionTextWith('ayat di atas'),
-            points: QuizConfig.choiceTriviaPoints,
+            points: ChoiceQuizRules.bonusPoints,
             hint: t.hintText,
           ),
           const SizedBox(height: 16),
@@ -692,6 +735,7 @@ class _Header extends StatelessWidget {
   final int secondsLeft;
   final int points;
   final int answered;
+  final QuizDifficulty difficulty;
 
   /// Sedang menampilkan umpan balik benar → tampilkan chip "+N dtk".
   final bool showTimeBonus;
@@ -706,6 +750,7 @@ class _Header extends StatelessWidget {
     required this.secondsLeft,
     required this.points,
     required this.answered,
+    required this.difficulty,
     this.showTimeBonus = false,
     this.timeBonus = 0,
     this.bonusTick = 0,
@@ -779,6 +824,8 @@ class _Header extends StatelessWidget {
                       )
                     : const SizedBox.shrink(),
               ),
+              const SizedBox(width: 8),
+              _DifficultyBadge(difficulty: difficulty),
               const Spacer(),
               // Poin berjalan.
               Container(

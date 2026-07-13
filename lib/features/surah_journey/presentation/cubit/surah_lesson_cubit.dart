@@ -6,7 +6,7 @@ import 'package:record/record.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_session_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
@@ -152,7 +152,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
         : state.progress.of(section.id).passed;
 
     // Potong energi di server bila belum pernah lulus (admin/master off skip).
-    if (!_passedBefore && QuizConfig.enforceEnergy && !_isAdmin) {
+    if (!_passedBefore && QuizSessionRules.enforceServerGate && !_isAdmin) {
       final energyRes = await quizRepository.startSession(
         mode: QuizMode.choice,
       );

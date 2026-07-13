@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/voice_quiz_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
@@ -107,7 +108,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
         // transisi Soal Bonus. Saat berjalan / selesai selalu layar emas.
         final inBonusSplash =
             state.bonusStage == BonusStage.offered &&
-            state.bonusPrepSecondsLeft <= QuizConfig.bonusPrepSplashSeconds;
+            state.bonusPrepSecondsLeft <= VoiceQuizRules.bonusPrepSplashSeconds;
         final showBonus =
             state.bonusStage == BonusStage.running ||
             state.bonusStage == BonusStage.done ||
@@ -165,6 +166,8 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             _VoiceTimerChip(
                               secondsLeft: state.voiceSecondsLeft,
                             ),
+                          const SizedBox(width: 8),
+                          _DifficultyBadge(difficulty: q.difficulty),
                         ],
                       ),
                     ],
@@ -183,11 +186,20 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                           // Instruksi soal tetap tampil saat hasil muncul (agar
                           // santri ingat tugasnya); hanya disembunyikan di tahap
                           // Soal Bonus.
-                          if (state.bonusStage == BonusStage.none) ...[
-                            _PromptHint(question: q),
-                            const SizedBox(height: 12),
+                          if (q.isMeaningToAyah)
+                            _MeaningToAyahCard(
+                              question: q,
+                              showArabicHint:
+                                  state.voiceSecondsLeft <=
+                                  VoiceQuizRules.meaningToAyahHintAtSeconds,
+                            )
+                          else ...[
+                            if (state.bonusStage == BonusStage.none) ...[
+                              _PromptHint(question: q),
+                              const SizedBox(height: 12),
+                            ],
+                            PromptAyahCard(text: q.prompt.text, dark: true),
                           ],
-                          PromptAyahCard(text: q.prompt.text, dark: true),
                         ],
                       ),
                     ),
@@ -474,6 +486,11 @@ class _VoiceBonusContent extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: Column(
           children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: _DifficultyBadge(difficulty: b.difficulty),
+            ),
+            const SizedBox(height: 4),
             _VoiceGoldRing(
               secondsLeft: state.bonusSecondsLeft,
               total: b.durationSeconds,
@@ -501,6 +518,11 @@ class _VoiceBonusContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: _DifficultyBadge(difficulty: b.difficulty),
+          ),
+          const SizedBox(height: 4),
           _VoiceGoldRing(
             secondsLeft: state.bonusSecondsLeft,
             total: b.durationSeconds,
@@ -724,6 +746,10 @@ class _PromptHint extends StatelessWidget {
           const TextSpan(text: ' surah ini'),
         ],
       ),
+      QuizVoiceTask.meaningToAyah => TextSpan(
+        text: 'Baca ayat yang mengandung makna berikut',
+        style: base,
+      ),
       QuizVoiceTask.continueAyah =>
         ayahCount > 1
             ? TextSpan(
@@ -770,6 +796,120 @@ class _PromptHint extends StatelessWidget {
             Icons.arrow_downward_rounded,
             size: 20,
             color: QuizColors.gold,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DifficultyBadge extends StatelessWidget {
+  final QuizDifficulty difficulty;
+
+  const _DifficultyBadge({required this.difficulty});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (difficulty) {
+      QuizDifficulty.easy => const Color(0xFF6EE7A8),
+      QuizDifficulty.medium => QuizColors.gold,
+      QuizDifficulty.hard => const Color(0xFFFF7B7B),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        difficulty.label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _MeaningToAyahCard extends StatelessWidget {
+  final QuizQuestion question;
+  final bool showArabicHint;
+
+  const _MeaningToAyahCard({
+    required this.question,
+    required this.showArabicHint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final prompt = question.meaningToAyah!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: QuizColors.nightCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Bacakan satu ayat yang mengandung makna',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '“${prompt.meaning}”',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: QuizColors.gold,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'dalam Surah ${question.prompt.surahName}',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 22),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: showArabicHint
+                ? Column(
+                    key: const ValueKey('arabic-hint'),
+                    children: [
+                      const Text(
+                        'Petunjuk kata Arab',
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        prompt.arabicHint,
+                        textAlign: TextAlign.center,
+                        textDirection: TextDirection.rtl,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  )
+                : const Text(
+                    'Petunjuk Arab muncul saat tersisa 30 detik',
+                    key: ValueKey('hint-countdown'),
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
           ),
         ],
       ),

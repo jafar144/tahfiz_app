@@ -7,4 +7,5 @@ sendiri dalam satu repo.
 Panduan lengkap:
 
 - [White-label, menambah lembaga, dan CI/CD Google Play](docs/white_label_and_play_release.md)
+- [Aturan soal, probabilitas, poin, dan bonus Kuis Tahfiz Arena](docs/tahfiz_arena_quiz_rules.md)
 - [Setup fitur uji bacaan](docs/recitation_check_setup.md)

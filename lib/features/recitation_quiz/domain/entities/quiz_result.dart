@@ -1,10 +1,12 @@
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_difficulty_rules.dart';
 
 /// Hasil satu soal setelah dikerjakan.
 ///
 /// Mode suara: bisa lewat 1-2 percobaan; [score] 0..100.
-/// Mode pilihan: satu kali jawab; [score] = poin (0 bila salah, 10/15/20 bila
+/// Mode pilihan: satu kali jawab; [score] = poin (0 bila salah, 10/14/18 bila
 /// benar sesuai jumlah ayat).
 class QuizAnswer {
   final int questionIndex;
@@ -49,11 +51,13 @@ class QuizResult {
   final List<QuizAnswer> answers;
   final int questionCount;
   final QuizMode mode;
+  final QuizDifficulty difficulty;
 
   const QuizResult({
     required this.answers,
     required this.questionCount,
     this.mode = QuizMode.voice,
+    this.difficulty = QuizDifficulty.easy,
   });
 
   /// Jumlah semua skor/poin soal.
@@ -72,8 +76,12 @@ class QuizResult {
   /// Mode suara memakai nilai rata-rata bacaan; mode pilihan memakai total poin.
   int get resultPoints => mode.isChoice ? totalPoints : averageScore;
 
-  /// Pengali XP: suara lebih sulit/mahal karena memakai pemeriksaan bacaan.
-  int get xpMultiplier => mode.isVoice ? 2 : 1;
+  double get scoreMultiplier => QuizDifficultyRules.scoreMultiplier(difficulty);
+
+  double get xpMultiplier => QuizDifficultyRules.xpMultiplier(mode, difficulty);
+
+  /// Skor dasar + bonus setelah multiplier kesulitan.
+  int get finalScore => ((resultPoints + totalBonus) * scoreMultiplier).round();
 
   /// XP yang didapat dari sesi:
   /// (total poin + total bonus) * pengali mode / 10, dibulatkan.
@@ -83,8 +91,7 @@ class QuizResult {
   /// Skor yang masuk leaderboard:
   /// - suara  : rata-rata akurasi (0..100) + total poin bonus
   /// - pilihan: total poin terkumpul + bonus
-  int get leaderboardScore =>
-      mode.isChoice ? totalPoints + totalBonus : averageScore + totalBonus;
+  int get leaderboardScore => finalScore;
 
   List<int> get scores => answers.map((a) => a.score).toList();
 

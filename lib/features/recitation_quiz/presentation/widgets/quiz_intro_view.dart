@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
@@ -138,11 +139,10 @@ class QuizIntroView extends StatelessWidget {
         ),
         _RuleTile(
           icon: Icons.auto_awesome_rounded,
-          title: 'Tiap soal ke-5: Soal Bonus',
+          title: '5 benar beruntun: Soal Bonus',
           subtitle:
               'Soal seputar surah (nama & arti / nomor urut / jumlah ayat). '
-              'Waktu permainan dijeda, ada hitung mundur sendiri — benar +20 '
-              'poin & +10 detik.',
+              'Salah mereset streak. Bonus benar memberi +20 poin & +8 detik.',
         ),
         _RuleTile(
           icon: Icons.bolt_rounded,
@@ -159,7 +159,7 @@ class QuizIntroView extends StatelessWidget {
         title: '10 soal acak & bervariasi',
         subtitle:
             'Lanjutkan ayat (jumlahnya menyesuaikan panjang ayat), baca ayat '
-            'terakhir surah, atau baca ayat ke-N dari surahnya.',
+            'terakhir surah, ayat ke-N, atau tebak ayat dari maknanya.',
       ),
       _RuleTile(
         icon: Icons.mic_rounded,
@@ -173,10 +173,10 @@ class QuizIntroView extends StatelessWidget {
       ),
       _RuleTile(
         icon: Icons.bolt_rounded,
-        title: 'Bonus seputar surah',
+        title: 'Bonus setelah 5 bacaan lolos',
         subtitle:
-            'Tiap bacaan yang lolos, ada soal kilat berhitung mundur untuk '
-            'poin tambahan: tebak surah, nama & arti, urutan, jumlah ayat.',
+            'Harus lolos 5 soal inti berturut-turut. Salah atau waktu habis '
+            'mengulang streak dari nol.',
       ),
     ];
   }
@@ -536,6 +536,48 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       color: Colors.white60,
                       fontWeight: FontWeight.w500,
                     ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const _SectionLabel(
+              icon: Icons.speed_rounded,
+              text: 'Tingkat Kesulitan',
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: _ModeOption(
+                    icon: Icons.sentiment_satisfied_rounded,
+                    title: 'Mudah',
+                    subtitle: '80% M · 20% S',
+                    selected: _s.difficulty == QuizDifficulty.easy,
+                    onTap: () =>
+                        _update(_s.copyWith(difficulty: QuizDifficulty.easy)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ModeOption(
+                    icon: Icons.psychology_alt_rounded,
+                    title: 'Sedang',
+                    subtitle: '40% M · 40% S · 20% Sulit',
+                    selected: _s.difficulty == QuizDifficulty.medium,
+                    onTap: () =>
+                        _update(_s.copyWith(difficulty: QuizDifficulty.medium)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _ModeOption(
+                    icon: Icons.local_fire_department_rounded,
+                    title: 'Sulit',
+                    subtitle: '10% M · 30% S · 60% Sulit',
+                    selected: _s.difficulty == QuizDifficulty.hard,
+                    onTap: () =>
+                        _update(_s.copyWith(difficulty: QuizDifficulty.hard)),
                   ),
                 ),
               ],

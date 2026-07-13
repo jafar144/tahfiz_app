@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_session_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 
 /// Cubit shell Tahfiz Arena: memuat profil ringkas user (role + kelas santri),
@@ -19,7 +19,8 @@ class ArenaCubit extends Cubit<ArenaState> {
 
   /// Energi dilewati untuk admin / saat master switch mati (samakan dengan
   /// perilaku kuis).
-  bool get _skipEnergy => !QuizConfig.enforceEnergy || state.role == 'admin';
+  bool get _skipEnergy =>
+      !QuizSessionRules.enforceServerGate || state.role == 'admin';
 
   Future<void> load() async {
     final user = auth.currentUser;

@@ -91,7 +91,7 @@ void main() {
       await tester.pump(Duration(milliseconds: ms));
     }
 
-    expect(find.text('Pilihan • XP x1'), findsOneWidget);
+    expect(find.text('Pilihan • Mudah • Skor 86 (×1) • XP ×1'), findsOneWidget);
     expect(find.text('TOTAL POIN'), findsOneWidget);
     expect(find.text('TOTAL BONUS'), findsOneWidget);
     expect(find.text('XP DIDAPAT'), findsOneWidget);

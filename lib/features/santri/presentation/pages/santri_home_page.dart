@@ -89,7 +89,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                   children: [
                     _buildHeader(state),
                     _buildJourneySection(state),
-                    // _buildArenaCard(),
+                    _buildArenaCard(),
                     const KelulusanCarousel(),
                     _buildPaymentStatus(state),
                     // _buildMenuSection(context),

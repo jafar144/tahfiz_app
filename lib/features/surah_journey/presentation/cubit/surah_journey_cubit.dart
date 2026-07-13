@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_config.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_session_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_progress.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
@@ -85,7 +85,7 @@ class SurahJourneyCubit extends Cubit<SurahJourneyState> {
 
   /// Admin & master switch mati → tampil penuh (samakan dengan Arena/Kuis).
   Future<QuizEnergy> _fetchEnergy() async {
-    if (!QuizConfig.enforceEnergy ||
+    if (!QuizSessionRules.enforceServerGate ||
         await quizRepository.isCurrentUserAdmin()) {
       return const QuizEnergy(current: 10, max: 10);
     }

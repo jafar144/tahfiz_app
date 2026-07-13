@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 
 /// Setelan sesi kuis yang dipilih santri sebelum mulai. Disimpan ke penyimpanan
@@ -8,6 +9,9 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 class QuizSettings extends Equatable {
   /// Mode permainan: suara (Whisper) atau pilihan ganda.
   final QuizMode mode;
+
+  /// Profil distribusi Mudah/Sedang/Sulit untuk soal inti sesi.
+  final QuizDifficulty difficulty;
 
   /// Juz yang diikutkan (subset dari [QuizJuz.supported]), minimal satu.
   final Set<int> juz;
@@ -30,6 +34,7 @@ class QuizSettings extends Equatable {
 
   const QuizSettings({
     this.mode = QuizMode.voice,
+    this.difficulty = QuizDifficulty.medium,
     this.juz = const {29, 30},
     this.rangeStart = const {},
     this.extraSurahs = const {},
@@ -54,12 +59,14 @@ class QuizSettings extends Equatable {
 
   QuizSettings copyWith({
     QuizMode? mode,
+    QuizDifficulty? difficulty,
     Set<int>? juz,
     Map<int, int>? rangeStart,
     Set<int>? extraSurahs,
     bool? ayatOnly,
   }) => QuizSettings(
     mode: mode ?? this.mode,
+    difficulty: difficulty ?? this.difficulty,
     juz: juz ?? this.juz,
     rangeStart: rangeStart ?? this.rangeStart,
     extraSurahs: extraSurahs ?? this.extraSurahs,
@@ -75,6 +82,7 @@ class QuizSettings extends Equatable {
 
   Map<String, dynamic> toJson() => {
     'mode': mode.key,
+    'difficulty': difficulty.key,
     'juz': sortedJuz,
     'range_start': rangeStart.map((k, v) => MapEntry(k.toString(), v)),
     'ayat_only': ayatOnly,
@@ -100,6 +108,7 @@ class QuizSettings extends Equatable {
     });
     return QuizSettings(
       mode: QuizModeX.fromKey(json['mode'] as String?),
+      difficulty: QuizDifficultyX.fromKey(json['difficulty'] as String?),
       juz: juz.isEmpty ? const {29, 30} : juz,
       rangeStart: rangeStart,
       ayatOnly: json['ayat_only'] as bool? ?? false,
@@ -107,5 +116,12 @@ class QuizSettings extends Equatable {
   }
 
   @override
-  List<Object?> get props => [mode, juz, rangeStart, extraSurahs, ayatOnly];
+  List<Object?> get props => [
+    mode,
+    difficulty,
+    juz,
+    rangeStart,
+    extraSurahs,
+    ayatOnly,
+  ];
 }

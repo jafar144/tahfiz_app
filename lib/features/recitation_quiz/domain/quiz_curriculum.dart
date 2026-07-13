@@ -1,5 +1,6 @@
 import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/institution/domain/institution_curriculum.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
 
@@ -23,13 +24,18 @@ class QuizCurriculum {
   static List<String> get rankableClasses =>
       _curriculum.classesWithMemorization;
 
-  static QuizSettings settingsFor(String kelas, QuizMode mode) {
+  static QuizSettings settingsFor(
+    String kelas,
+    QuizMode mode, {
+    QuizDifficulty difficulty = QuizDifficulty.medium,
+  }) {
     final scope = scopeFor(kelas);
     if (scope == null) {
       throw ArgumentError('Kelas "$kelas" tidak punya paket Tantangan.');
     }
     return QuizSettings(
       mode: mode,
+      difficulty: difficulty,
       juz: scope.juz.toSet(),
       extraSurahs: scope.extraSurahs,
     );

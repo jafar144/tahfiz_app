@@ -1,10 +1,18 @@
 import 'dart:math';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
+import 'package:khoirunnasyien/features/recitation_check/domain/recitation/arabic_normalizer.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_match_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/surah_lesson_seed.dart';
+
+class MeaningToAyahCandidate {
+  final Ayah ayah;
+  final VocabItem vocabulary;
+
+  const MeaningToAyahCandidate({required this.ayah, required this.vocabulary});
+}
 
 /// Materi Journey yang dapat dipakai kembali oleh Latihan dan Tantangan.
 class QuizKnowledgeBank {
@@ -78,6 +86,39 @@ class QuizKnowledgeBank {
           VocabMatchPair(arabic: item.word, meaning: item.displayMeaning),
       ],
     );
+  }
+
+  /// Kandidat soal Suara "tebak ayat dari makna".
+  ///
+  /// Kosakata wajib benar-benar merupakan BAGIAN dari ayat. Entri yang kata
+  /// Arabnya mencakup seluruh token ayat sengaja dibuang karena jawabannya akan
+  /// terlalu mudah ditebak dari petunjuk yang setara dengan terjemahan ayat.
+  static List<MeaningToAyahCandidate> meaningToAyahCandidates({
+    required Set<int> allowedSurahs,
+    required List<Ayah> ayat,
+  }) {
+    final sourceByKey = {
+      for (final source in ayat) '${source.surahId}:${source.number}': source,
+    };
+    final candidates = <MeaningToAyahCandidate>[];
+    for (final entry in _itemsFor(allowedSurahs)) {
+      final source = sourceByKey['${entry.surahId}:${entry.item.ayahNumber}'];
+      if (source == null ||
+          !isEligibleMeaningToAyahVocabulary(entry.item, source)) {
+        continue;
+      }
+      candidates.add(
+        MeaningToAyahCandidate(ayah: source, vocabulary: entry.item),
+      );
+    }
+    return candidates;
+  }
+
+  static bool isEligibleMeaningToAyahVocabulary(VocabItem item, Ayah ayah) {
+    final vocabularyTokens = ArabicNormalizer.tokenize(item.word);
+    final ayahTokens = ArabicNormalizer.tokenize(ayah.text);
+    if (vocabularyTokens.isEmpty || ayahTokens.isEmpty) return false;
+    return vocabularyTokens.length < ayahTokens.length;
   }
 
   static List<({int surahId, VocabItem item})> _itemsFor(
