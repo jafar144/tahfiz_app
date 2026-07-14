@@ -108,16 +108,6 @@ class SurahLessonSeed {
                 correctIndex: 2,
               ),
               FactQuestion(
-                question: 'Surah $nameLatin adalah surah ke berapa?',
-                options: [
-                  'Ke-${surahId - 2}',
-                  'Ke-${surahId - 1}',
-                  'Ke-$surahId',
-                  'Ke-${surahId + 1}',
-                ],
-                correctIndex: 2,
-              ),
-              FactQuestion(
                 question: 'Surah $nameLatin tergolong surah apa?',
                 options: [
                   'Makkiyah',
@@ -232,11 +222,6 @@ class SurahLessonSeed {
               FactQuestion(
                 question: 'Berapa jumlah ayat surah Al-Lail?',
                 options: ['15 ayat', '19 ayat', '21 ayat', '30 ayat'],
-                correctIndex: 2,
-              ),
-              FactQuestion(
-                question: 'Surah Al-Lail adalah surah ke berapa di Al-Qur\'an?',
-                options: ['Ke-90', 'Ke-91', 'Ke-92', 'Ke-93'],
                 correctIndex: 2,
               ),
               FactQuestion(
@@ -444,12 +429,6 @@ class SurahLessonSeed {
               ),
               FactQuestion(
                 question:
-                    'Surah Asy-Syams adalah surah ke berapa di Al-Qur\'an?',
-                options: ['Ke-89', 'Ke-90', 'Ke-91', 'Ke-92'],
-                correctIndex: 2,
-              ),
-              FactQuestion(
-                question:
                     'Surah Asy-Syams dibuka dengan berapa sumpah Allah '
                     'beruntun?',
                 options: ['3 sumpah', '5 sumpah', '7 sumpah', '9 sumpah'],
@@ -640,12 +619,6 @@ class SurahLessonSeed {
               FactQuestion(
                 question: 'Berapa jumlah ayat surah Al-Balad?',
                 options: ['15 ayat', '18 ayat', '20 ayat', '22 ayat'],
-                correctIndex: 2,
-              ),
-              FactQuestion(
-                question:
-                    'Surah Al-Balad adalah surah ke berapa di Al-Qur\'an?',
-                options: ['Ke-88', 'Ke-89', 'Ke-90', 'Ke-91'],
                 correctIndex: 2,
               ),
               FactQuestion(
@@ -850,11 +823,6 @@ class SurahLessonSeed {
               FactQuestion(
                 question: 'Berapa jumlah ayat surah Al-Fajr?',
                 options: ['21 ayat', '25 ayat', '30 ayat', '32 ayat'],
-                correctIndex: 2,
-              ),
-              FactQuestion(
-                question: 'Surah Al-Fajr adalah surah ke berapa di Al-Qur\'an?',
-                options: ['Ke-87', 'Ke-88', 'Ke-89', 'Ke-90'],
                 correctIndex: 2,
               ),
               FactQuestion(

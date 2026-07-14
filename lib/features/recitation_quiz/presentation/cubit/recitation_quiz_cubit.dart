@@ -1063,6 +1063,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       accuracyPercent: pct,
       bestAccuracyPercent: best,
     );
+    final fastMeaningBonus =
+        state.currentQuestion?.isMeaningToAyah == true &&
+            VoiceQuizRules.earnsMeaningToAyahFastBonus(
+              passed: passed,
+              secondsLeft: state.voiceSecondsLeft,
+            )
+        ? VoiceQuizRules.meaningToAyahFastBonusPoints
+        : 0;
 
     final pending = QuizAnswer(
       questionIndex: state.currentIndex,
@@ -1070,6 +1078,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       attempts: state.attempt,
       passed: passed,
       bestResult: passed ? result : bestResult,
+      bonusScore: fastMeaningBonus,
     );
 
     _voiceBonusStreak.registerCoreAnswer(correct: passed);
@@ -1422,6 +1431,36 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     bool correct,
     int score,
   ) {
+    if (q.isKnowledge) {
+      final knowledge = q.knowledge!;
+      final picked = picks.isNotEmpty ? picks.first : -1;
+      final yourAnswer = picked >= 0 && picked < knowledge.options.length
+          ? knowledge.options[picked]
+          : '—';
+      return QuizReviewItem(
+        correct: correct,
+        score: score,
+        question: knowledge.question,
+        promptArabic: knowledge.arabicText,
+        yourAnswer: yourAnswer,
+        yourAnswerArabic: knowledge.arabicOptions,
+        correctAnswer: knowledge.options[knowledge.correctIndex],
+        correctAnswerArabic: knowledge.arabicOptions,
+      );
+    }
+
+    if (q.isVocabMatch) {
+      return QuizReviewItem(
+        correct: correct,
+        score: score,
+        question: 'Cocokkan kosa kata Arab dengan artinya',
+        yourAnswer: correct
+            ? 'Semua pasangan tepat'
+            : 'Masih ada pasangan yang belum tepat',
+        correctAnswer: 'Setiap kata Arab dipasangkan dengan arti yang tepat',
+      );
+    }
+
     final t = q.trivia;
     if (t == null) {
       final your = picks
@@ -1493,7 +1532,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       correct: a.passed,
       score: a.score,
       question: question,
-      promptArabic: q.prompt.text,
+      promptArabic: q.isMeaningToAyah ? null : q.prompt.text,
       yourAnswer: a.passed
           ? 'Bacaan lolos (${a.score}%)'
           : 'Akurasi ${a.score}%',

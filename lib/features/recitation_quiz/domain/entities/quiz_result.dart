@@ -35,14 +35,14 @@ class QuizAnswer {
     this.bonusScore = 0,
   });
 
-  /// Salinan dengan poin bonus terisi (dipakai setelah soal bonus dijawab).
+  /// Tambahkan poin bonus baru tanpa menghapus bonus cepat yang sudah didapat.
   QuizAnswer withBonus(int bonus) => QuizAnswer(
     questionIndex: questionIndex,
     score: score,
     attempts: attempts,
     passed: passed,
     bestResult: bestResult,
-    bonusScore: bonus,
+    bonusScore: bonusScore + bonus,
   );
 }
 
@@ -76,17 +76,20 @@ class QuizResult {
   /// Mode suara memakai nilai rata-rata bacaan; mode pilihan memakai total poin.
   int get resultPoints => mode.isChoice ? totalPoints : averageScore;
 
-  double get scoreMultiplier => QuizDifficultyRules.scoreMultiplier(difficulty);
+  double get modeMultiplier => QuizDifficultyRules.modeScoreMultiplier(mode);
+
+  double get difficultyMultiplier =>
+      QuizDifficultyRules.scoreMultiplier(difficulty);
+
+  double get scoreMultiplier => modeMultiplier * difficultyMultiplier;
 
   double get xpMultiplier => QuizDifficultyRules.xpMultiplier(mode, difficulty);
 
   /// Skor dasar + bonus setelah multiplier kesulitan.
   int get finalScore => ((resultPoints + totalBonus) * scoreMultiplier).round();
 
-  /// XP yang didapat dari sesi:
-  /// (total poin + total bonus) * pengali mode / 10, dibulatkan.
-  int get earnedXp =>
-      (((resultPoints + totalBonus) * xpMultiplier) / 10).round();
+  /// XP muncul setelah seluruh multiplier poin selesai diterapkan.
+  int get earnedXp => (finalScore / 10).round();
 
   /// Skor yang masuk leaderboard:
   /// - suara  : rata-rata akurasi (0..100) + total poin bonus

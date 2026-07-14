@@ -45,7 +45,6 @@ class _LessonLearnViewState extends State<LessonLearnView> {
             _blockPage(block, state.surahAyat),
         ];
         final isLast = _page >= pages.length - 1;
-        final needEnergy = !state.progress.of(section.id).passed;
         final questionCount = LessonConfig.sectionQuestionCount(section.test);
 
         return Column(
@@ -84,12 +83,18 @@ class _LessonLearnViewState extends State<LessonLearnView> {
                   const SizedBox(height: 12),
                   isLast
                       ? JourneyPrimaryButton(
-                          onPressed: cubit.startSectionTest,
-                          icon: Icons.rocket_launch_rounded,
+                          onPressed: section.test.useVocabQuestions
+                              ? cubit.backToOverview
+                              : cubit.startSectionTest,
+                          icon: section.test.useVocabQuestions
+                              ? Icons.check_rounded
+                              : Icons.rocket_launch_rounded,
                           label: section.test.useVocabQuestions
-                              ? 'Mulai 3 Fase • $questionCount Latihan'
+                              ? 'Selesai Belajar'
                               : 'Mulai Test • $questionCount Soal',
-                          showEnergyCost: needEnergy,
+                          showEnergyCost:
+                              !section.test.useVocabQuestions &&
+                              !state.progress.of(section.id).passed,
                         )
                       : JourneyPrimaryButton(
                           onPressed: () => _controller.nextPage(
@@ -113,7 +118,10 @@ class _LessonLearnViewState extends State<LessonLearnView> {
       ParagraphBlock() => _ParagraphPage(block: block),
       FactListBlock() => _FactsPage(facts: block.facts),
       FullSurahBlock() => _FullSurahPage(ayat: ayat),
-      VocabListBlock() => _VocabPage(items: block.items, ayat: ayat),
+      VocabListBlock() => _VocabPage(
+        items: block.visibleItems.toList(growable: false),
+        ayat: ayat,
+      ),
     };
   }
 }

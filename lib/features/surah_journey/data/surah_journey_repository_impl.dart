@@ -174,10 +174,11 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
   @override
   Future<Either<Failure, List<LessonQuestion>>> generateSectionTest(
     SurahLesson lesson,
-    LessonSection section,
-  ) {
+    LessonSection section, {
+    VocabLearningPhase? vocabPhase,
+  }) {
     if (section.test.useVocabQuestions) {
-      return _generateVocabularySection(lesson, section);
+      return _generateVocabularySection(lesson, section, vocabPhase);
     }
     return _generate(
       lesson: lesson,
@@ -226,6 +227,7 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
   Future<Either<Failure, List<LessonQuestion>>> _generateVocabularySection(
     SurahLesson lesson,
     LessonSection section,
+    VocabLearningPhase? phase,
   ) async {
     try {
       final ayatRes = await getSurahAyat(lesson.surahId);
@@ -247,7 +249,16 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
           ),
         );
       }
-      return Right(questions);
+      if (phase == null) return Right(questions);
+      final phaseQuestions = questions
+          .where((question) => question.vocabPhase == phase)
+          .toList(growable: false);
+      if (phaseQuestions.length != VocabLearningRules.questionCountFor(phase)) {
+        return const Left(
+          UnknownFailure('Data kosa kata tidak cukup untuk menyusun kuis ini.'),
+        );
+      }
+      return Right(phaseQuestions);
     } catch (e) {
       return Left(UnknownFailure('Gagal menyusun latihan kosa kata: $e'));
     }

@@ -37,15 +37,22 @@ void main() {
     }
   });
 
-  test('aturan Kosa Kata berisi fase 5 + 10 + 5 dan lulus 16/20', () {
+  test('aturan Kosa Kata dipisah menjadi kuis 5, 10, dan 3 soal', () {
     expect(VocabLearningRules.phaseOneArabicToMeaningCount, 5);
     expect(
       VocabLearningRules.questionCountFor(VocabLearningPhase.mixedPractice),
       10,
     );
-    expect(VocabLearningRules.phaseThreeMeaningRecallCount, 5);
-    expect(VocabLearningRules.totalQuestionCount, 20);
-    expect(VocabLearningRules.minCorrect, 16);
+    expect(VocabLearningRules.phaseThreeMeaningRecallCount, 3);
+    expect(VocabLearningRules.totalQuestionCount, 18);
+    expect(VocabLearningRules.minCorrect, 15);
+    expect(
+      [
+        for (final phase in VocabLearningPhase.values)
+          VocabLearningRules.minCorrectFor(phase),
+      ],
+      [4, 8, 3],
+    );
   });
 
   test('seluruh surah dapat membentuk tiga fase dengan komposisi tepat', () {
@@ -111,7 +118,7 @@ void main() {
                 question.vocabPhase == VocabLearningPhase.meaningRecall,
           )
           .toList();
-      expect(phaseThree, hasLength(5), reason: lesson.nameLatin);
+      expect(phaseThree, hasLength(3), reason: lesson.nameLatin);
       for (final question in phaseThree) {
         expect(question.isVocabRecall, isTrue, reason: lesson.nameLatin);
         expect(question.answer, hasLength(1), reason: lesson.nameLatin);

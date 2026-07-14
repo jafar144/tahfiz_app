@@ -479,23 +479,8 @@ class QuizRepositoryImpl implements QuizRepository {
         rng,
       );
 
-      // Soal fakta Journey adalah variasi inti Sulit mode Pilihan.
-      if (includeKnowledge && targetDifficulty == QuizDifficulty.hard) {
-        final fact = QuizKnowledgeBank.fact(allowedSurahs: allowed, rng: rng);
-        if (fact != null) {
-          questions.add(
-            QuizQuestion(
-              prompt: prompt,
-              answer: const [],
-              difficulty: QuizDifficulty.hard,
-              knowledge: fact,
-            ),
-          );
-          continue;
-        }
-      }
-
-      // Pada target Sedang, arti kosakata dan lanjutan tiga ayat berbagi ruang.
+      // Informasi umum surah hanya muncul pada slot Bonus. Soal knowledge inti
+      // dibatasi pada arti kosa kata.
       if (includeKnowledge &&
           targetDifficulty == QuizDifficulty.medium &&
           rng.nextBool()) {

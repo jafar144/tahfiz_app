@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -68,25 +67,17 @@ class QuizResultView extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                '${result.mode.label} • ${result.difficulty.label} • '
-                'Skor ${result.finalScore} '
-                '(×${_multiplierText(result.scoreMultiplier)}) • '
-                'XP ×${_multiplierText(result.xpMultiplier)}',
-                style: const TextStyle(color: Colors.white60),
-              ),
-            ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 18),
 
             _ResultScoreReveal(
+              mode: result.mode,
+              difficulty: result.difficulty,
+              modeMultiplier: result.modeMultiplier,
+              difficultyMultiplier: result.difficultyMultiplier,
               points: result.resultPoints,
               bonus: result.totalBonus,
+              finalScore: result.finalScore,
               xp: result.earnedXp,
-              passedCount: result.passedCount,
-              questionCount: result.questionCount,
             ),
 
             const SizedBox(height: 24),
@@ -248,27 +239,27 @@ class QuizResultView extends StatelessWidget {
   }
 }
 
-const _passedTextStyle = TextStyle(
-  fontSize: 14,
-  fontWeight: FontWeight.w600,
-  color: Colors.white70,
-);
-
 /// Rekap hasil bergaya "kota" ala Duolingo: tiga tower muncul dari bawah satu
 /// per satu, angka count-up, lalu tower XP berkilau sebagai penutup.
 class _ResultScoreReveal extends StatefulWidget {
+  final QuizMode mode;
+  final QuizDifficulty difficulty;
+  final double modeMultiplier;
+  final double difficultyMultiplier;
   final int points;
   final int bonus;
+  final int finalScore;
   final int xp;
-  final int passedCount;
-  final int questionCount;
 
   const _ResultScoreReveal({
+    required this.mode,
+    required this.difficulty,
+    required this.modeMultiplier,
+    required this.difficultyMultiplier,
     required this.points,
     required this.bonus,
+    required this.finalScore,
     required this.xp,
-    required this.passedCount,
-    required this.questionCount,
   });
 
   @override
@@ -279,12 +270,12 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctl = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 3800),
+    duration: const Duration(milliseconds: 5200),
   );
   final AudioPlayer _stagePlayer = AudioPlayer();
   final AudioPlayer _tickPlayer = AudioPlayer();
-  final List<bool> _stageStarted = [false, false, false];
-  final List<int> _lastCounts = [0, 0, 0];
+  final List<bool> _stageStarted = [false, false, false, false, false];
+  final List<int> _lastCounts = [0, 0, 0, 0, 0];
   DateTime _lastTickAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
@@ -314,22 +305,36 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
   }
 
   void _handleFeedbackTick() {
-    final pointsT = _interval(0.04, 0.42);
-    final bonusT = _interval(0.42, 0.72);
-    final xpT = _interval(0.72, 0.96);
+    final pointsT = _interval(0.02, 0.20);
+    final bonusT = _interval(0.20, 0.36);
+    final modeT = _interval(0.38, 0.54);
+    final difficultyT = _interval(0.56, 0.72);
+    final xpT = _interval(0.76, 0.96);
+    final base = widget.points + widget.bonus;
+    final afterMode = (base * widget.modeMultiplier).round();
 
     _syncStageFeedback(0, pointsT, widget.points, 1.00);
     _syncStageFeedback(1, bonusT, widget.bonus, 1.14);
-    _syncStageFeedback(2, xpT, widget.xp, 1.30);
+    _syncStageFeedback(2, modeT, afterMode - base, 1.20);
+    _syncStageFeedback(3, difficultyT, widget.finalScore - afterMode, 1.28);
+    _syncStageFeedback(4, xpT, widget.xp, 1.36);
   }
 
   void _syncStageFeedback(int index, double t, int value, double pitch) {
     if (t <= 0) return;
     if (!_stageStarted[index]) {
       _stageStarted[index] = true;
-      QuizHaptics.tap();
+      if (index == 2 || index == 3) {
+        QuizHaptics.correct();
+      } else {
+        QuizHaptics.tap();
+      }
       unawaited(_playStageSound(pitch));
     }
+
+    // Multiplier cukup satu hentakan saat kartunya meloncat. Bunyi hitung
+    // berulang tetap dipakai hanya untuk poin, bonus, dan XP.
+    if (index == 2 || index == 3) return;
 
     final count = (value * t).round();
     if (count <= _lastCounts[index]) return;
@@ -366,26 +371,45 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
     return AnimatedBuilder(
       animation: _ctl,
       builder: (context, _) {
-        final pointsT = _interval(0.04, 0.42);
-        final bonusT = _interval(0.42, 0.72);
-        final xpT = _interval(0.72, 0.96);
-        final textT = _interval(0.88, 1.0);
-        final shownTotal = (widget.points * pointsT + widget.bonus * bonusT)
-            .round();
+        final pointsT = _interval(0.02, 0.20);
+        final bonusT = _interval(0.20, 0.36);
+        final modeT = _interval(0.38, 0.54);
+        final difficultyT = _interval(0.56, 0.72);
+        final xpT = _interval(0.76, 0.96);
+        final base = widget.points + widget.bonus;
+        final afterMode = (base * widget.modeMultiplier).round();
+        final baseShown = widget.points * pointsT + widget.bonus * bonusT;
+        final modeExtra = (afterMode - base) * modeT;
+        final difficultyExtra = (widget.finalScore - afterMode) * difficultyT;
+        final shownTotal = (baseShown + modeExtra + difficultyExtra).round();
 
         return Column(
           children: [
-            Transform.translate(
-              offset: const Offset(0, -10),
-              child: _ResultTotalRing(
-                points: widget.points,
-                bonus: widget.bonus,
-                pointsT: pointsT,
-                bonusT: bonusT,
-                shownTotal: shownTotal,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _MultiplierCard(
+                  label: 'MODE ${widget.mode.label.toUpperCase()}',
+                  value: widget.modeMultiplier,
+                  icon: widget.mode.isVoice
+                      ? Icons.mic_rounded
+                      : Icons.grid_view_rounded,
+                  color: QuizColors.xpBlue,
+                  t: modeT,
+                ),
+                const SizedBox(width: 10),
+                _MultiplierCard(
+                  label: 'TINGKAT ${widget.difficulty.label.toUpperCase()}',
+                  value: widget.difficultyMultiplier,
+                  icon: Icons.local_fire_department_rounded,
+                  color: QuizColors.gold,
+                  t: difficultyT,
+                ),
+              ],
             ),
-            const SizedBox(height: 52),
+            const SizedBox(height: 26),
+            _ResultTotalValue(value: shownTotal),
+            const SizedBox(height: 42),
             LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -398,7 +422,7 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                       t: pointsT,
                       width: cardWidth,
                       value: widget.points,
-                      label: 'Total Poin',
+                      label: 'Poin Dasar',
                       icon: Icons.star_rounded,
                       accentColor: const Color(0xFF00D084),
                     ),
@@ -424,14 +448,6 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                 );
               },
             ),
-            const SizedBox(height: 18),
-            Opacity(
-              opacity: textT,
-              child: Text(
-                '${widget.passedCount} dari ${widget.questionCount} soal lolos',
-                style: _passedTextStyle,
-              ),
-            ),
           ],
         );
       },
@@ -439,127 +455,145 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
   }
 }
 
-class _ResultTotalRing extends StatelessWidget {
-  final int points;
-  final int bonus;
-  final double pointsT;
-  final double bonusT;
-  final int shownTotal;
+class _MultiplierCard extends StatelessWidget {
+  final String label;
+  final double value;
+  final IconData icon;
+  final Color color;
+  final double t;
 
-  const _ResultTotalRing({
-    required this.points,
-    required this.bonus,
-    required this.pointsT,
-    required this.bonusT,
-    required this.shownTotal,
+  const _MultiplierCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.t,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 154,
-      height: 154,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _ResultRingPainter(
-                points: points,
-                bonus: bonus,
-                pointsT: pointsT,
-                bonusT: bonusT,
-              ),
+    final progress = t.clamp(0.0, 1.0);
+    final jump = progress < 0.42
+        ? Curves.easeOutCubic.transform((progress / 0.42).clamp(0.0, 1.0))
+        : 1 -
+              Curves.bounceOut.transform(
+                ((progress - 0.42) / 0.58).clamp(0.0, 1.0),
+              );
+
+    return Transform.translate(
+      offset: Offset(0, -11 * jump),
+      child: Transform.scale(
+        scale: 1 + (0.07 * jump),
+        child: Container(
+          width: 142,
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+          decoration: BoxDecoration(
+            color: Color.lerp(
+              Colors.white.withValues(alpha: 0.06),
+              color.withValues(alpha: 0.20),
+              progress,
             ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: 0.24 + (0.58 * progress)),
+              width: 1.4,
+            ),
+            boxShadow: progress > 0
+                ? [
+                    BoxShadow(
+                      color: color.withValues(
+                        alpha: (0.18 * progress) + (0.16 * jump),
+                      ),
+                      blurRadius: 14 + (8 * jump),
+                      spreadRadius: jump,
+                    ),
+                  ]
+                : const [],
           ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(
-                '$shownTotal',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 44,
-                  fontWeight: FontWeight.w900,
-                  height: 0.95,
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.14 + (0.16 * progress)),
                 ),
+                child: Icon(icon, color: color, size: 18),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'poin',
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.25,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      '×${_multiplierText(value)}',
+                      style: TextStyle(
+                        color: Color.lerp(Colors.white54, color, progress),
+                        fontSize: 19,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _ResultRingPainter extends CustomPainter {
-  final int points;
-  final int bonus;
-  final double pointsT;
-  final double bonusT;
+class _ResultTotalValue extends StatelessWidget {
+  final int value;
 
-  const _ResultRingPainter({
-    required this.points,
-    required this.bonus,
-    required this.pointsT,
-    required this.bonusT,
-  });
+  const _ResultTotalValue({required this.value});
 
   @override
-  void paint(Canvas canvas, Size size) {
-    const start = -math.pi / 2;
-    const full = 2 * math.pi;
-    final stroke = size.width * 0.10;
-    final rect = Rect.fromCircle(
-      center: size.center(Offset.zero),
-      radius: (size.width - stroke) / 2,
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('result_total_value'),
+      height: 94,
+      child: Center(
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            '$value',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 72,
+              fontWeight: FontWeight.w900,
+              height: 1,
+              letterSpacing: -2,
+              shadows: [
+                Shadow(
+                  color: Color(0x5500AEEF),
+                  blurRadius: 18,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
-    Paint paint(Color color, {double alpha = 1}) => Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = color.withValues(alpha: alpha);
-
-    canvas.drawArc(rect, start, full, false, paint(Colors.white, alpha: 0.12));
-
-    void drawTurns(double turnStart, double turns, Color color) {
-      var remaining = turns;
-      var cursor = turnStart;
-      while (remaining > 0) {
-        final sweep = remaining.clamp(0.0, 1.0).toDouble();
-        canvas.drawArc(
-          rect,
-          start + full * (cursor % 1),
-          full * sweep,
-          false,
-          paint(color),
-        );
-        remaining -= sweep;
-        cursor += sweep;
-      }
-    }
-
-    final pointTurns = (points * pointsT) / 100;
-    final bonusTurns = (bonus * bonusT) / 100;
-    drawTurns(0, pointTurns, QuizColors.correctBright);
-    drawTurns(pointTurns, bonusTurns, QuizColors.gold);
   }
-
-  @override
-  bool shouldRepaint(_ResultRingPainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.bonus != bonus ||
-      oldDelegate.pointsT != pointsT ||
-      oldDelegate.bonusT != bonusT;
 }
 
 class _ResultTower extends StatelessWidget {

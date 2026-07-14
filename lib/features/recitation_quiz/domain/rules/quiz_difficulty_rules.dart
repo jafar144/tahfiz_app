@@ -49,15 +49,13 @@ class QuizDifficultyRules {
         QuizDifficulty.hard => 2,
       };
 
-  /// XP mempertahankan bonus biaya mode Suara tanpa menumpuk multiplier secara
-  /// eksponensial: Pilihan 1/1.5/2, Suara 2/2.5/3.
+  /// Mode Suara bernilai dua kali karena membutuhkan hafalan aktif dan
+  /// pemeriksaan rekaman; Pilihan menjadi nilai dasar.
+  static double modeScoreMultiplier(QuizMode mode) => mode.isVoice ? 2 : 1;
+
+  /// Multiplier akhir diterapkan berurutan: mode lalu tingkat kesulitan.
+  /// Pilihan 1/1.5/2, Suara 2/3/4.
   static double xpMultiplier(QuizMode mode, QuizDifficulty difficulty) {
-    final modeBase = mode.isVoice ? 2.0 : 1.0;
-    return modeBase +
-        switch (difficulty) {
-          QuizDifficulty.easy => 0,
-          QuizDifficulty.medium => 0.5,
-          QuizDifficulty.hard => 1,
-        };
+    return modeScoreMultiplier(mode) * scoreMultiplier(difficulty);
   }
 }

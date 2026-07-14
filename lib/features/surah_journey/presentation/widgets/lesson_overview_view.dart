@@ -3,15 +3,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
 
 /// Daftar BAGIAN sebuah surah (peta kecil di dalam surah): kartu per bagian
 /// dengan status terkunci/terbuka/lulus, ditutup kartu UJIAN AKHIR.
-class LessonOverviewView extends StatelessWidget {
+class LessonOverviewView extends StatefulWidget {
   const LessonOverviewView({super.key});
+
+  @override
+  State<LessonOverviewView> createState() => _LessonOverviewViewState();
+}
+
+class _LessonOverviewViewState extends State<LessonOverviewView> {
+  String? _expandedSectionId;
 
   @override
   Widget build(BuildContext context) {
@@ -92,11 +101,41 @@ class LessonOverviewView extends StatelessWidget {
 
             // ── Kartu bagian ─────────────────────────────────────────────
             for (var i = 0; i < sections.length; i++) ...[
-              _SectionCard(
-                index: i + 1,
-                section: sections[i],
-                state: state,
-                onTap: () => cubit.openSection(sections[i]),
+              Builder(
+                builder: (context) {
+                  final section = sections[i];
+                  final isVocab = section.test.useVocabQuestions;
+                  final expanded = _expandedSectionId == section.id;
+                  return Column(
+                    children: [
+                      _SectionCard(
+                        index: i + 1,
+                        section: section,
+                        state: state,
+                        expanded: expanded,
+                        onTap: () {
+                          if (isVocab) {
+                            setState(
+                              () => _expandedSectionId = expanded
+                                  ? null
+                                  : section.id,
+                            );
+                          } else {
+                            cubit.openSection(section);
+                          }
+                        },
+                      ),
+                      if (isVocab && expanded)
+                        _VocabStages(
+                          section: section,
+                          state: state,
+                          onLearn: () => cubit.openSection(section),
+                          onQuiz: (phase) =>
+                              cubit.startVocabQuiz(section, phase),
+                        ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 10),
             ],
@@ -142,12 +181,14 @@ class _SectionCard extends StatelessWidget {
   final int index;
   final LessonSection section;
   final SurahLessonState state;
+  final bool expanded;
   final VoidCallback onTap;
 
   const _SectionCard({
     required this.index,
     required this.section,
     required this.state,
+    required this.expanded,
     required this.onTap,
   });
 
@@ -157,9 +198,7 @@ class _SectionCard extends StatelessWidget {
     final unlocked = state.sectionUnlocked(section);
     final passed = progress.passed;
     final questionCount = LessonConfig.sectionQuestionCount(section.test);
-    final legacyVocabProgress =
-        section.test.useVocabQuestions &&
-        progress.bestCorrect < LessonConfig.sectionMinCorrect(section.test);
+    final vocabCompleted = state.vocabCompletedCount(section);
 
     final Color accent = passed
         ? const Color(0xFF34D399)
@@ -263,12 +302,13 @@ class _SectionCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       passed
-                          ? (legacyVocabProgress
-                                ? 'Lulus • 3 fase baru siap diulang'
+                          ? section.test.useVocabQuestions
+                                ? 'Lulus • Semua kuis kosa kata selesai'
                                 : 'Lulus • Terbaik ${progress.bestCorrect}/'
-                                      '$questionCount benar')
+                                      '$questionCount benar'
                           : section.test.useVocabQuestions
-                          ? '20 latihan • kenali, cocokkan, lalu ucapkan'
+                          ? '$vocabCompleted dari 3 kuis selesai • '
+                                '${section.vocabItems.length} kata penting'
                           : section.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -286,14 +326,183 @@ class _SectionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (unlocked && !passed) const EnergyCostChip(),
+              if (unlocked && !passed && !section.test.useVocabQuestions)
+                const EnergyCostChip(),
               if (unlocked)
-                const Padding(
-                  padding: EdgeInsets.only(left: 6),
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
                   child: Icon(
-                    Icons.chevron_right_rounded,
+                    section.test.useVocabQuestions
+                        ? (expanded
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded)
+                        : Icons.chevron_right_rounded,
                     color: Colors.white54,
                   ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VocabStages extends StatelessWidget {
+  final LessonSection section;
+  final SurahLessonState state;
+  final VoidCallback onLearn;
+  final ValueChanged<VocabLearningPhase> onQuiz;
+
+  const _VocabStages({
+    required this.section,
+    required this.state,
+    required this.onLearn,
+    required this.onQuiz,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        children: [
+          _VocabStageTile(
+            number: 1,
+            title: 'Belajar Kosa Kata',
+            subtitle: '${section.vocabItems.length} kata beserta contoh ayat',
+            icon: Icons.menu_book_rounded,
+            unlocked: true,
+            passed: false,
+            onTap: onLearn,
+          ),
+          for (final phase in VocabLearningPhase.values) ...[
+            const SizedBox(height: 7),
+            _VocabStageTile(
+              number: phase.number + 1,
+              title: 'Kuis ${phase.number}',
+              subtitle:
+                  '${phase.title} • '
+                  '${VocabLearningRules.questionCountFor(phase)} soal',
+              icon: switch (phase) {
+                VocabLearningPhase.arabicToMeaning => Icons.translate_rounded,
+                VocabLearningPhase.mixedPractice => Icons.hub_rounded,
+                VocabLearningPhase.meaningRecall =>
+                  Icons.record_voice_over_rounded,
+              },
+              unlocked:
+                  phase.index == 0 ||
+                  state.vocabPhasePassed(
+                    section,
+                    VocabLearningPhase.values[phase.index - 1],
+                  ),
+              passed: state.vocabPhasePassed(section, phase),
+              onTap: () => onQuiz(phase),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _VocabStageTile extends StatelessWidget {
+  final int number;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool unlocked;
+  final bool passed;
+  final VoidCallback onTap;
+
+  const _VocabStageTile({
+    required this.number,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.unlocked,
+    required this.passed,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = passed
+        ? const Color(0xFF34D399)
+        : unlocked
+        ? QuizColors.gold
+        : Colors.white24;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: unlocked ? onTap : null,
+        borderRadius: BorderRadius.circular(13),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: unlocked ? 0.09 : 0.035),
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: color.withValues(alpha: 0.24)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: color.withValues(alpha: 0.14),
+                ),
+                child: Icon(
+                  passed
+                      ? Icons.check_rounded
+                      : unlocked
+                      ? icon
+                      : Icons.lock_rounded,
+                  size: 18,
+                  color: color,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$number. $title',
+                      style: TextStyle(
+                        color: unlocked ? Colors.white : Colors.white30,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      passed ? 'Selesai' : subtitle,
+                      style: TextStyle(
+                        color: passed
+                            ? const Color(0xFF34D399)
+                            : unlocked
+                            ? Colors.white54
+                            : Colors.white24,
+                        fontSize: 10.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (unlocked && !passed && number > 1) const EnergyCostChip(),
+              if (unlocked)
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white38,
+                  size: 20,
                 ),
             ],
           ),

@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.da
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/arabic_highlight_matcher.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/surah_lesson_seed.dart';
 
 void main() {
@@ -33,6 +34,48 @@ void main() {
       expect(lessons.map((lesson) => lesson.level), [
         for (var level = 1; level <= 15; level++) level,
       ]);
+    });
+
+    test('setiap materi membatasi kosa kata menjadi maksimal lima', () {
+      for (final lesson in SurahLessonSeed.lessons) {
+        for (final section in lesson.sections) {
+          expect(
+            section.vocabItems.length,
+            lessThanOrEqualTo(5),
+            reason: '${lesson.nameLatin} - ${section.title}',
+          );
+        }
+      }
+    });
+
+    test('nomor urut surah hanya menjadi informasi, bukan soal Journey', () {
+      final orderPattern = RegExp(
+        r'(urutan|surah ke|nomor ke)',
+        caseSensitive: false,
+      );
+
+      for (final lesson in SurahLessonSeed.lessons) {
+        final paragraphs = [
+          for (final section in lesson.sections)
+            for (final block in section.blocks)
+              if (block is ParagraphBlock) block.body,
+        ];
+        expect(
+          paragraphs.any(orderPattern.hasMatch),
+          isTrue,
+          reason: '${lesson.nameLatin} tetap harus menyampaikan urutan surah',
+        );
+
+        for (final section in lesson.sections) {
+          for (final question in section.test.bank) {
+            expect(
+              orderPattern.hasMatch(question.question),
+              isFalse,
+              reason: '${lesson.nameLatin}: ${question.question}',
+            );
+          }
+        }
+      }
     });
 
     test(

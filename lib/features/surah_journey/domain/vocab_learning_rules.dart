@@ -13,7 +13,7 @@ class VocabLearningRules {
   static const int phaseTwoMatchCount = 2;
 
   // Fase 3: arti → ucapkan potongan Arab, tanpa timer.
-  static const int phaseThreeMeaningRecallCount = 5;
+  static const int phaseThreeMeaningRecallCount = 3;
 
   static const int totalQuestionCount =
       phaseOneArabicToMeaningCount +
@@ -22,8 +22,9 @@ class VocabLearningRules {
       phaseTwoMatchCount +
       phaseThreeMeaningRecallCount;
 
-  /// Ambang lulus 80% dari 20 aktivitas.
-  static const int minCorrect = 16;
+  /// Ambang lulus lama untuk paket gabungan. Dipertahankan agar progres versi
+  /// sebelumnya tetap dapat dibaca, tetapi sesi baru dinilai per fase.
+  static const int minCorrect = 15;
 
   /// Dua dari sepuluh soal Ujian Akhir memakai recall makna → Arab.
   static const int examMeaningRecallCount = 2;
@@ -36,4 +37,18 @@ class VocabLearningRules {
           phaseTwoMatchCount,
     VocabLearningPhase.meaningRecall => phaseThreeMeaningRecallCount,
   };
+
+  /// Setiap kuis berdiri sendiri dengan ambang minimal 80%.
+  static int minCorrectFor(VocabLearningPhase phase) => switch (phase) {
+    VocabLearningPhase.arabicToMeaning => 4,
+    VocabLearningPhase.mixedPractice => 8,
+    VocabLearningPhase.meaningRecall => 3,
+  };
+
+  /// Kuis 1 dan 2 memakai kunci progres tambahan. Kuis 3 tetap memakai kunci
+  /// bagian utama agar kelulusannya membuka Ujian Akhir seperti data lama.
+  static String progressKey(String sectionId, VocabLearningPhase phase) =>
+      phase == VocabLearningPhase.meaningRecall
+      ? sectionId
+      : '${sectionId}_quiz_${phase.number}';
 }

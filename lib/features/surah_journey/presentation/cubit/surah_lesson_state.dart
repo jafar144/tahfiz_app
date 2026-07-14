@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_que
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
 
 /// Tahapan layar sesi satu surah.
 enum LessonStatus {
@@ -42,6 +43,10 @@ class SurahLessonState {
   /// Bagian yang sedang dibuka/diuji; null = UJIAN AKHIR surah.
   final LessonSection? activeSection;
 
+  /// Tahap kosa kata yang sedang diuji. Null saat belajar, bagian biasa, atau
+  /// Ujian Akhir.
+  final VocabLearningPhase? activeVocabPhase;
+
   /// Seluruh ayat surah (blok "Baca Surahnya" & penyusunan soal kosa kata).
   final List<Ayah> surahAyat;
 
@@ -77,6 +82,7 @@ class SurahLessonState {
     this.initialized = false,
     this.progress = SurahProgress.empty,
     this.activeSection,
+    this.activeVocabPhase,
     this.surahAyat = const [],
     this.questions = const [],
     this.currentIndex = 0,
@@ -106,7 +112,8 @@ class SurahLessonState {
   bool get isVocabularyTraining =>
       !isExam && activeSection?.test.useVocabQuestions == true;
 
-  VocabLearningPhase? get currentVocabPhase => currentQuestion?.vocabPhase;
+  VocabLearningPhase? get currentVocabPhase =>
+      activeVocabPhase ?? currentQuestion?.vocabPhase;
 
   int get currentPhaseQuestionNumber {
     final phase = currentVocabPhase;
@@ -126,6 +133,8 @@ class SurahLessonState {
   /// Jumlah benar minimal test aktif agar lulus.
   int get minCorrect => activeSection == null
       ? LessonConfig.examMinCorrect
+      : activeVocabPhase != null
+      ? VocabLearningRules.minCorrectFor(activeVocabPhase!)
       : LessonConfig.sectionMinCorrect(activeSection!.test);
 
   bool get passed => correctCount >= minCorrect;
@@ -137,6 +146,18 @@ class SurahLessonState {
   /// Seluruh bagian surah sudah lulus → ujian akhir terbuka.
   bool get examUnlocked =>
       progress.allSectionsPassed(lesson.sections.map((s) => s.id));
+
+  bool vocabPhasePassed(LessonSection section, VocabLearningPhase phase) {
+    // Progres gabungan versi lama berarti ketiga kuis sudah pernah dituntaskan.
+    if (progress.of(section.id).passed) return true;
+    return progress
+        .of(VocabLearningRules.progressKey(section.id, phase))
+        .passed;
+  }
+
+  int vocabCompletedCount(LessonSection section) => VocabLearningPhase.values
+      .where((phase) => vocabPhasePassed(section, phase))
+      .length;
 
   /// Bagian [section] terbuka bila semua bagian sebelumnya sudah lulus.
   bool sectionUnlocked(LessonSection section) {
@@ -163,6 +184,8 @@ class SurahLessonState {
     SurahProgress? progress,
     LessonSection? activeSection,
     bool clearActiveSection = false,
+    VocabLearningPhase? activeVocabPhase,
+    bool clearActiveVocabPhase = false,
     List<Ayah>? surahAyat,
     List<LessonQuestion>? questions,
     int? currentIndex,
@@ -188,6 +211,9 @@ class SurahLessonState {
       activeSection: clearActiveSection
           ? null
           : (activeSection ?? this.activeSection),
+      activeVocabPhase: clearActiveVocabPhase
+          ? null
+          : (activeVocabPhase ?? this.activeVocabPhase),
       surahAyat: surahAyat ?? this.surahAyat,
       questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,

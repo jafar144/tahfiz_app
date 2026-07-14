@@ -34,6 +34,9 @@ class VocabListBlock extends LessonBlock {
   final List<VocabItem> items;
 
   const VocabListBlock(this.items);
+
+  /// Materi Journey sengaja dibatasi agar satu tahap belajar tetap ringan.
+  Iterable<VocabItem> get visibleItems => items.take(5);
 }
 
 /// Satu kosa kata penting.
@@ -132,6 +135,6 @@ class LessonSection {
   /// Seluruh kosa kata pada blok-blok bagian ini.
   List<VocabItem> get vocabItems => [
     for (final b in blocks)
-      if (b is VocabListBlock) ...b.items,
+      if (b is VocabListBlock) ...b.visibleItems,
   ];
 }

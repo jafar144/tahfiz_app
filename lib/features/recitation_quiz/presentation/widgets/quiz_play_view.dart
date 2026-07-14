@@ -161,13 +161,14 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             _pill(context, 'Percobaan ke-2', QuizColors.gold),
                             const SizedBox(width: 8),
                           ],
+                          _DifficultyBadge(difficulty: q.difficulty),
                           if (state.phase == AnswerPhase.idle ||
-                              state.phase == AnswerPhase.recording)
+                              state.phase == AnswerPhase.recording) ...[
+                            const SizedBox(width: 8),
                             _VoiceTimerChip(
                               secondsLeft: state.voiceSecondsLeft,
                             ),
-                          const SizedBox(width: 8),
-                          _DifficultyBadge(difficulty: q.difficulty),
+                          ],
                         ],
                       ),
                     ],
@@ -486,12 +487,8 @@ class _VoiceBonusContent extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: _DifficultyBadge(difficulty: b.difficulty),
-            ),
-            const SizedBox(height: 4),
-            _VoiceGoldRing(
+            _VoiceBonusTimerHeader(
+              difficulty: b.difficulty,
               secondsLeft: state.bonusSecondsLeft,
               total: b.durationSeconds,
             ),
@@ -518,12 +515,8 @@ class _VoiceBonusContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: _DifficultyBadge(difficulty: b.difficulty),
-          ),
-          const SizedBox(height: 4),
-          _VoiceGoldRing(
+          _VoiceBonusTimerHeader(
+            difficulty: b.difficulty,
             secondsLeft: state.bonusSecondsLeft,
             total: b.durationSeconds,
           ),
@@ -624,6 +617,30 @@ class _VoiceBonusResult extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _VoiceBonusTimerHeader extends StatelessWidget {
+  final QuizDifficulty difficulty;
+  final int secondsLeft;
+  final int total;
+
+  const _VoiceBonusTimerHeader({
+    required this.difficulty,
+    required this.secondsLeft,
+    required this.total,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _DifficultyBadge(difficulty: difficulty),
+        const SizedBox(width: 10),
+        _VoiceGoldRing(secondsLeft: secondsLeft, total: total),
+      ],
     );
   }
 }

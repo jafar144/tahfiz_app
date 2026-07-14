@@ -554,7 +554,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   child: _ModeOption(
                     icon: Icons.sentiment_satisfied_rounded,
                     title: 'Mudah',
-                    subtitle: '80% M · 20% S',
                     selected: _s.difficulty == QuizDifficulty.easy,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.easy)),
@@ -565,7 +564,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   child: _ModeOption(
                     icon: Icons.psychology_alt_rounded,
                     title: 'Sedang',
-                    subtitle: '40% M · 40% S · 20% Sulit',
                     selected: _s.difficulty == QuizDifficulty.medium,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.medium)),
@@ -576,7 +574,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   child: _ModeOption(
                     icon: Icons.local_fire_department_rounded,
                     title: 'Sulit',
-                    subtitle: '10% M · 30% S · 60% Sulit',
                     selected: _s.difficulty == QuizDifficulty.hard,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.hard)),
@@ -697,14 +694,14 @@ class _SectionLabel extends StatelessWidget {
 class _ModeOption extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final bool selected;
   final VoidCallback onTap;
 
   const _ModeOption({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.selected,
     required this.onTap,
   });
@@ -754,11 +751,13 @@ class _ModeOption extends StatelessWidget {
                 color: selected ? QuizColors.gold : Colors.white,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 11.5, color: Colors.white54),
-            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                style: const TextStyle(fontSize: 11.5, color: Colors.white54),
+              ),
+            ],
           ],
         ),
       ),

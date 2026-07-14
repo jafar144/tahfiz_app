@@ -12,6 +12,8 @@ import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_sec
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 
 /// Cubit sesi SATU surah Petualangan Surah: daftar bagian → belajar per
@@ -72,6 +74,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
       state.copyWith(
         status: LessonStatus.learning,
         activeSection: section,
+        clearActiveVocabPhase: true,
         clearError: true,
       ),
     );
@@ -84,6 +87,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
       state.copyWith(
         status: LessonStatus.overview,
         clearActiveSection: true,
+        clearActiveVocabPhase: true,
         phase: LessonPhase.idle,
         clearVoiceResult: true,
         clearChoicePick: true,
@@ -126,32 +130,56 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
   Future<void> startSectionTest() async {
     final section = state.activeSection;
     if (section == null) return;
-    await _startTest(section: section);
+    await _startTest(section: section, vocabPhase: state.activeVocabPhase);
+  }
+
+  /// Mulai salah satu kuis kosa kata langsung dari daftar tahap.
+  Future<void> startVocabQuiz(
+    LessonSection section,
+    VocabLearningPhase phase,
+  ) async {
+    if (!state.sectionUnlocked(section)) return;
+    final previous = phase.index - 1;
+    if (previous >= 0 &&
+        !state.vocabPhasePassed(section, VocabLearningPhase.values[previous])) {
+      return;
+    }
+    await _startTest(section: section, vocabPhase: phase);
   }
 
   /// Mulai UJIAN AKHIR surah (dari daftar bagian; semua bagian harus lulus).
   Future<void> startExam() async {
     if (!state.examUnlocked) return;
-    await _startTest(section: null);
+    await _startTest(section: null, vocabPhase: null);
   }
 
   /// Ulangi test yang barusan selesai (soal diundi ulang; energi mengikuti
   /// status lulus TERBARU — sudah lulus → gratis).
-  Future<void> retryTest() => _startTest(section: state.activeSection);
+  Future<void> retryTest() => _startTest(
+    section: state.activeSection,
+    vocabPhase: state.activeVocabPhase,
+  );
 
-  Future<void> _startTest({required LessonSection? section}) async {
+  Future<void> _startTest({
+    required LessonSection? section,
+    required VocabLearningPhase? vocabPhase,
+  }) async {
     emit(
       state.copyWith(
         status: LessonStatus.loading,
         activeSection: section,
         clearActiveSection: section == null,
+        activeVocabPhase: vocabPhase,
+        clearActiveVocabPhase: vocabPhase == null,
         clearError: true,
       ),
     );
 
     _passedBefore = section == null
         ? state.progress.examPassed
-        : state.progress.of(section.id).passed;
+        : vocabPhase == null
+        ? state.progress.of(section.id).passed
+        : state.vocabPhasePassed(section, vocabPhase);
 
     // Potong energi di server bila belum pernah lulus (admin/master off skip).
     if (!_passedBefore && QuizSessionRules.enforceServerGate && !_isAdmin) {
@@ -172,7 +200,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
       if (blockMessage != null) {
         emit(
           state.copyWith(
-            status: section == null
+            status: section == null || vocabPhase != null
                 ? LessonStatus.overview
                 : LessonStatus.learning,
             errorMessage: blockMessage,
@@ -184,12 +212,16 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
 
     final res = section == null
         ? await repository.generateExam(state.lesson)
-        : await repository.generateSectionTest(state.lesson, section);
+        : await repository.generateSectionTest(
+            state.lesson,
+            section,
+            vocabPhase: vocabPhase,
+          );
     if (isClosed) return;
     res.fold(
       ifLeft: (f) => emit(
         state.copyWith(
-          status: section == null
+          status: section == null || vocabPhase != null
               ? LessonStatus.overview
               : LessonStatus.learning,
           errorMessage: f.message,
@@ -361,6 +393,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
 
   Future<void> _finish() async {
     final section = state.activeSection;
+    final vocabPhase = state.activeVocabPhase;
     final passed = state.passed;
 
     // XP: lulus pertama → hadiah penuh (+bonus sempurna khusus ujian akhir);
@@ -370,7 +403,10 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
       if (_passedBefore) {
         xpDelta = LessonConfig.xpRepeatPass;
       } else if (section != null) {
-        xpDelta = section.test.xpReward;
+        xpDelta = vocabPhase == null
+            ? section.test.xpReward
+            : (section.test.xpReward / VocabLearningPhase.values.length)
+                  .round();
       } else {
         xpDelta =
             LessonConfig.xpExamPass +
@@ -391,7 +427,9 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
     final res = section != null
         ? await repository.saveSectionResult(
             surahId: state.lesson.surahId,
-            sectionId: section.id,
+            sectionId: vocabPhase == null
+                ? section.id
+                : VocabLearningRules.progressKey(section.id, vocabPhase),
             correct: state.correctCount,
             passed: passed,
             xpDelta: xpDelta,

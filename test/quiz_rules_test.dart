@@ -74,8 +74,10 @@ void main() {
       );
       expect(
         QuizDifficultyRules.xpMultiplier(QuizMode.voice, QuizDifficulty.hard),
-        3,
+        4,
       );
+      expect(QuizDifficultyRules.modeScoreMultiplier(QuizMode.choice), 1);
+      expect(QuizDifficultyRules.modeScoreMultiplier(QuizMode.voice), 2);
     });
   });
 
@@ -116,6 +118,31 @@ void main() {
         VoiceQuizRules.finalScore(accuracyPercent: 91, bestAccuracyPercent: 91),
         100,
       );
+    });
+
+    test('variasi X mendapat bonus cepat hanya sebelum sisa 30 detik', () {
+      expect(
+        VoiceQuizRules.earnsMeaningToAyahFastBonus(
+          passed: true,
+          secondsLeft: 31,
+        ),
+        isTrue,
+      );
+      expect(
+        VoiceQuizRules.earnsMeaningToAyahFastBonus(
+          passed: true,
+          secondsLeft: 30,
+        ),
+        isFalse,
+      );
+      expect(
+        VoiceQuizRules.earnsMeaningToAyahFastBonus(
+          passed: false,
+          secondsLeft: 45,
+        ),
+        isFalse,
+      );
+      expect(VoiceQuizRules.meaningToAyahFastBonusPoints, 10);
     });
   });
 
@@ -217,9 +244,11 @@ void main() {
       mode: QuizMode.voice,
       difficulty: QuizDifficulty.hard,
     );
-    expect(result.finalScore, 200);
-    expect(result.leaderboardScore, 200);
-    expect(result.earnedXp, 30);
+    expect(result.modeMultiplier, 2);
+    expect(result.difficultyMultiplier, 2);
+    expect(result.finalScore, 400);
+    expect(result.leaderboardScore, 400);
+    expect(result.earnedXp, 40);
   });
 
   test('hanya Tantangan yang menyimpan hasil', () {

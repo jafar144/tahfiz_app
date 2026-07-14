@@ -46,6 +46,12 @@ class VoiceQuizRules {
   static const int meaningToAyahSeconds = 60;
   static const int meaningToAyahHintAtSeconds = 30;
   static const QuizDifficulty meaningToAyahDifficulty = QuizDifficulty.hard;
+  static const int meaningToAyahFastBonusPoints = 10;
+
+  static bool earnsMeaningToAyahFastBonus({
+    required bool passed,
+    required int secondsLeft,
+  }) => passed && secondsLeft > meaningToAyahHintAtSeconds;
 
   static (int, int) answerRangeForWordCount(int words) =>
       words <= shortAyahMaxWords

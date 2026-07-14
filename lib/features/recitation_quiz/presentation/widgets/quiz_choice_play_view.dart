@@ -519,13 +519,13 @@ class _TriviaTopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          _DifficultyBadge(difficulty: difficulty, light: true),
-          const SizedBox(width: 8),
           const Text(
             'waktu dijeda',
             style: TextStyle(fontSize: 11.5, color: Colors.black38),
           ),
           const Spacer(),
+          _DifficultyBadge(difficulty: difficulty, light: true),
+          const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
@@ -825,8 +825,9 @@ class _Header extends StatelessWidget {
                     : const SizedBox.shrink(),
               ),
               const SizedBox(width: 8),
-              _DifficultyBadge(difficulty: difficulty),
               const Spacer(),
+              _DifficultyBadge(difficulty: difficulty),
+              const SizedBox(width: 8),
               // Poin berjalan.
               Container(
                 padding: const EdgeInsets.symmetric(

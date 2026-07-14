@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -21,6 +22,7 @@ class LessonResultView extends StatelessWidget {
         final passed = state.passed;
         final isExam = state.isExam;
         final section = state.activeSection;
+        final vocabPhase = state.activeVocabPhase;
 
         // Aksi "lanjut" setelah lulus test bagian: bagian berikutnya yang
         // belum lulus, atau ujian akhir bila semua sudah lulus.
@@ -54,6 +56,9 @@ class LessonResultView extends StatelessWidget {
                       ? (isExam
                             ? 'Surah ${state.lesson.nameLatin} selesai — '
                                   'centang hijau untukmu di peta!'
+                            : vocabPhase != null
+                            ? 'Kuis ${vocabPhase.number} selesai. Kembali ke '
+                                  'daftar tahap saat kamu siap melanjutkan.'
                             : '${section?.title ?? 'Bagian'} sudah kamu '
                                   'kuasai. Lanjutkan perjalananmu!')
                       : 'Minimal ${state.minCorrect} benar dari '
@@ -130,6 +135,12 @@ class LessonResultView extends StatelessWidget {
                     icon: Icons.list_alt_rounded,
                     label: 'Lihat Bagian Surah',
                   ),
+                ] else if (passed && vocabPhase != null) ...[
+                  JourneyPrimaryButton(
+                    onPressed: cubit.backToOverview,
+                    icon: Icons.list_alt_rounded,
+                    label: 'Kembali ke Tahapan Kosa Kata',
+                  ),
                 ] else if (passed && nextSection != null) ...[
                   JourneyPrimaryButton(
                     onPressed: () => cubit.continueToSection(nextSection),
@@ -200,7 +211,9 @@ class LessonResultView extends StatelessWidget {
     final section = state.activeSection;
     return section == null
         ? state.progress.examPassed
-        : state.progress.of(section.id).passed;
+        : state.activeVocabPhase == null
+        ? state.progress.of(section.id).passed
+        : state.vocabPhasePassed(section, state.activeVocabPhase!);
   }
 }
 

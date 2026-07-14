@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
@@ -23,6 +24,7 @@ QuizResult _voiceResult({required int reading, required int bonus}) {
     answers: answers,
     questionCount: count,
     mode: QuizMode.voice,
+    difficulty: QuizDifficulty.easy,
   );
 }
 
@@ -65,13 +67,18 @@ void main() {
     await tester.pumpWidget(_wrap(result));
 
     // Melangkah menembus seluruh lini masa koreografi tower.
-    for (final ms in [0, 700, 1400, 2200, 3000, 4200]) {
+    for (final ms in [0, 700, 700, 900, 900, 1100, 1100]) {
       await tester.pump(Duration(milliseconds: ms));
     }
 
-    expect(find.text('TOTAL POIN'), findsOneWidget);
+    expect(find.text('MODE SUARA'), findsOneWidget);
+    expect(find.text('TINGKAT MUDAH'), findsOneWidget);
+    expect(find.text('×2'), findsOneWidget);
+    expect(find.text('POIN DASAR'), findsOneWidget);
     expect(find.text('TOTAL BONUS'), findsOneWidget);
     expect(find.text('XP DIDAPAT'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byKey(const ValueKey('result_total_value')), findsOneWidget);
     expect(find.text('95'), findsWidgets);
     expect(find.text('35'), findsWidgets);
     expect(find.text('26'), findsWidgets);
@@ -87,14 +94,18 @@ void main() {
     expect(result.earnedXp, 9); // ((80 + 6) * 1 / 10).round()
     await tester.pumpWidget(_wrap(result));
 
-    for (final ms in [0, 700, 1400, 2200, 3000, 4200]) {
+    for (final ms in [0, 700, 700, 900, 900, 1100, 1100]) {
       await tester.pump(Duration(milliseconds: ms));
     }
 
-    expect(find.text('Pilihan • Mudah • Skor 86 (×1) • XP ×1'), findsOneWidget);
-    expect(find.text('TOTAL POIN'), findsOneWidget);
+    expect(find.text('MODE PILIHAN'), findsOneWidget);
+    expect(find.text('TINGKAT MUDAH'), findsOneWidget);
+    expect(find.text('×1'), findsNWidgets(2));
+    expect(find.text('POIN DASAR'), findsOneWidget);
     expect(find.text('TOTAL BONUS'), findsOneWidget);
     expect(find.text('XP DIDAPAT'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byKey(const ValueKey('result_total_value')), findsOneWidget);
     expect(find.text('80'), findsWidgets);
     expect(find.text('6'), findsWidgets);
     expect(find.text('9'), findsWidgets);

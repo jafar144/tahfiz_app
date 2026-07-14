@@ -37,8 +37,9 @@ abstract class SurahJourneyRepository {
   /// Kata memakai tiga fase yang didefinisikan di `VocabLearningRules`.
   Future<Either<Failure, List<LessonQuestion>>> generateSectionTest(
     SurahLesson lesson,
-    LessonSection section,
-  );
+    LessonSection section, {
+    VocabLearningPhase? vocabPhase,
+  });
 
   /// Susun soal UJIAN AKHIR surah (komposisi di `LessonConfig`; soal pilihan
   /// diundi dari gabungan bank semua bagian + tepat dua soal recall kosa kata).
