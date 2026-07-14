@@ -15,6 +15,30 @@ enum LessonTaskType {
 
   /// Mencocokkan empat kosa kata Arab dengan artinya.
   vocabMatch,
+
+  /// SUARA: arti Indonesia tampil; santri mengucapkan potongan Arabnya.
+  vocabMeaningRecall,
+}
+
+/// Tahap penguatan kosa kata pada bagian Kosa Kata.
+enum VocabLearningPhase { arabicToMeaning, mixedPractice, meaningRecall }
+
+extension VocabLearningPhaseX on VocabLearningPhase {
+  int get number => index + 1;
+
+  String get title => switch (this) {
+    VocabLearningPhase.arabicToMeaning => 'Kenali Artinya',
+    VocabLearningPhase.mixedPractice => 'Latihan Campuran',
+    VocabLearningPhase.meaningRecall => 'Ingat & Ucapkan',
+  };
+}
+
+/// Petunjuk soal suara arti Indonesia → potongan Arab.
+class VocabRecallPrompt {
+  final String meaning;
+  final String arabicHint;
+
+  const VocabRecallPrompt({required this.meaning, required this.arabicHint});
 }
 
 /// Satu soal ujian surah — soal suara membawa ayat prompt+jawaban; soal
@@ -34,29 +58,75 @@ class LessonQuestion {
   /// Pasangan kosa kata (tipe [LessonTaskType.vocabMatch]).
   final VocabMatchQuestion? vocabMatch;
 
+  /// Fase latihan; null pada Ujian Akhir dan test bagian non-kosa-kata.
+  final VocabLearningPhase? vocabPhase;
+
+  /// Petunjuk khusus tipe [LessonTaskType.vocabMeaningRecall].
+  final VocabRecallPrompt? vocabRecall;
+
   const LessonQuestion._({
     required this.type,
     this.prompt,
     this.answer = const [],
     this.fact,
     this.vocabMatch,
+    this.vocabPhase,
+    this.vocabRecall,
   });
 
   const LessonQuestion.voice({
     required LessonTaskType type,
     required Ayah prompt,
     required List<Ayah> answer,
-  }) : this._(type: type, prompt: prompt, answer: answer);
+    VocabLearningPhase? vocabPhase,
+  }) : this._(
+         type: type,
+         prompt: prompt,
+         answer: answer,
+         vocabPhase: vocabPhase,
+       );
 
-  const LessonQuestion.choice(FactQuestion fact)
-    : this._(type: LessonTaskType.choiceFact, fact: fact);
+  const LessonQuestion.choice(
+    FactQuestion fact, {
+    VocabLearningPhase? vocabPhase,
+  }) : this._(
+         type: LessonTaskType.choiceFact,
+         fact: fact,
+         vocabPhase: vocabPhase,
+       );
 
-  const LessonQuestion.match(VocabMatchQuestion vocabMatch)
-    : this._(type: LessonTaskType.vocabMatch, vocabMatch: vocabMatch);
+  const LessonQuestion.match(
+    VocabMatchQuestion vocabMatch, {
+    VocabLearningPhase? vocabPhase,
+  }) : this._(
+         type: LessonTaskType.vocabMatch,
+         vocabMatch: vocabMatch,
+         vocabPhase: vocabPhase,
+       );
+
+  LessonQuestion.vocabRecall({
+    required Ayah sourceAyah,
+    required Ayah answerTarget,
+    required String meaning,
+    required String arabicHint,
+    this.vocabPhase,
+  }) : type = LessonTaskType.vocabMeaningRecall,
+       prompt = sourceAyah,
+       answer = [answerTarget],
+       fact = null,
+       vocabMatch = null,
+       vocabRecall = VocabRecallPrompt(
+         meaning: meaning,
+         arabicHint: arabicHint,
+       );
 
   bool get isVoice =>
       type == LessonTaskType.voiceContinue ||
-      type == LessonTaskType.voiceLastAyah;
+      type == LessonTaskType.voiceLastAyah ||
+      type == LessonTaskType.vocabMeaningRecall;
 
   bool get isMatch => type == LessonTaskType.vocabMatch;
+
+  bool get isVocabRecall =>
+      type == LessonTaskType.vocabMeaningRecall && vocabRecall != null;
 }

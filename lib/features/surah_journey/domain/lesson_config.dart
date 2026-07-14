@@ -1,3 +1,6 @@
+import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
+
 /// Konfigurasi & konstanta Petualangan Surah — SATU tempat untuk semua angka
 /// yang bisa disetel: komposisi ujian akhir, ambang lulus, XP, dsb.
 /// (Aturan ujian PER BAGIAN diatur di seed lewat `SectionTest`.)
@@ -41,4 +44,13 @@ class LessonConfig {
 
   /// Jeda tampil umpan balik benar/salah soal pilihan sebelum auto-lanjut.
   static const Duration choiceFeedbackDelay = Duration(milliseconds: 1100);
+
+  /// Jumlah aktivitas efektif. Bagian Kosa Kata memakai tiga fase terpusat,
+  /// sedangkan bagian lain tetap mengikuti angka pada seed.
+  static int sectionQuestionCount(SectionTest test) => test.useVocabQuestions
+      ? VocabLearningRules.totalQuestionCount
+      : test.questionCount;
+
+  static int sectionMinCorrect(SectionTest test) =>
+      test.useVocabQuestions ? VocabLearningRules.minCorrect : test.minCorrect;
 }

@@ -17,8 +17,12 @@ import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_sec
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_lesson_question_factory.dart';
 
 class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
+  static const _vocabFactory = VocabLessonQuestionFactory();
+
   final QuranLocalDataSource local;
   final RecitationRepository recitation;
   final FirebaseFirestore firestore;
@@ -172,6 +176,9 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
     SurahLesson lesson,
     LessonSection section,
   ) {
+    if (section.test.useVocabQuestions) {
+      return _generateVocabularySection(lesson, section);
+    }
     return _generate(
       lesson: lesson,
       questionCount: section.test.questionCount,
@@ -197,6 +204,10 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
       questionCount: LessonConfig.examQuestionCount,
       voiceContinueCount: LessonConfig.examVoiceContinueCount,
       voiceLastAyahCount: LessonConfig.examVoiceLastAyahCount,
+      vocabRecallCount: VocabLearningRules.examMeaningRecallCount,
+      vocabItems: [
+        for (final section in lesson.sections) ...section.vocabItems,
+      ],
       // Gabungan bank tertulis semua bagian + soal kosa kata seluruh surah.
       choicePool: (ayat, rng) => [
         for (final s in lesson.sections) ...s.test.bank,
@@ -212,6 +223,36 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
     );
   }
 
+  Future<Either<Failure, List<LessonQuestion>>> _generateVocabularySection(
+    SurahLesson lesson,
+    LessonSection section,
+  ) async {
+    try {
+      final ayatRes = await getSurahAyat(lesson.surahId);
+      Failure? loadFail;
+      var ayat = const <Ayah>[];
+      ayatRes.fold(ifLeft: (f) => loadFail = f, ifRight: (a) => ayat = a);
+      final fail = loadFail;
+      if (fail != null) return Left(fail);
+
+      final questions = _vocabFactory.buildLearningPhases(
+        items: section.vocabItems,
+        ayat: ayat,
+        rng: Random(),
+      );
+      if (questions.length != VocabLearningRules.totalQuestionCount) {
+        return const Left(
+          UnknownFailure(
+            'Data kosa kata tidak cukup untuk menyusun tiga fase latihan.',
+          ),
+        );
+      }
+      return Right(questions);
+    } catch (e) {
+      return Left(UnknownFailure('Gagal menyusun latihan kosa kata: $e'));
+    }
+  }
+
   /// Mesin penyusun soal: soal suara (sambung ayat + ayat terakhir) lalu
   /// slot sisanya diisi soal pilihan dari [choicePool] yang diundi.
   Future<Either<Failure, List<LessonQuestion>>> _generate({
@@ -219,6 +260,8 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
     required int questionCount,
     required int voiceContinueCount,
     required int voiceLastAyahCount,
+    int vocabRecallCount = 0,
+    List<VocabItem> vocabItems = const [],
     required List<FactQuestion> Function(List<Ayah> ayat, Random rng)
     choicePool,
     LessonQuestion? Function(Random rng)? matchBuilder,
@@ -278,6 +321,25 @@ class SurahJourneyRepositoryImpl implements SurahJourneyRepository {
             answer: [for (var k = 1; k <= len; k++) ayat[i + k]],
           ),
         );
+      }
+
+      // 3) Arti Indonesia → ucapkan potongan Arab. Pada Ujian Akhir jumlah
+      // soal ini eksplisit dan jawaban tidak menampilkan hint secara otomatis.
+      if (vocabRecallCount > 0) {
+        final recalls = _vocabFactory.buildMeaningRecallQuestions(
+          items: vocabItems,
+          ayat: ayat,
+          count: vocabRecallCount,
+          rng: rng,
+        );
+        if (recalls.length != vocabRecallCount) {
+          return const Left(
+            UnknownFailure(
+              'Data kosa kata tidak cukup untuk soal recall Ujian Akhir.',
+            ),
+          );
+        }
+        questions.addAll(recalls);
       }
 
       // ── Soal PILIHAN ─────────────────────────────────────────────────────

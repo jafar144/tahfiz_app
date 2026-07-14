@@ -87,6 +87,10 @@ class ArenaQuizTab extends StatelessWidget {
                 chips: const [
                   _InfoChip(icon: kEnergyIcon, label: '1 energi / sesi'),
                   _InfoChip(icon: Icons.tune_rounded, label: 'Bebas dikustom'),
+                  _InfoChip(
+                    icon: Icons.speed_rounded,
+                    label: '3 tingkat kesulitan',
+                  ),
                 ],
                 buttonLabel: 'Mulai Latihan',
                 onPressed: () => _openPractice(context),
@@ -187,6 +191,10 @@ class ArenaQuizTab extends StatelessWidget {
               ? Icons.check_circle_rounded
               : Icons.grid_view_rounded,
           label: quotaLabel('Pilihan', state.choiceChallengeLeft),
+        ),
+        const _InfoChip(
+          icon: Icons.speed_rounded,
+          label: 'Mudah • Sedang • Sulit',
         ),
       ],
       buttonLabel: bothEmpty

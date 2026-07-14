@@ -228,8 +228,10 @@ class QuizIntroView extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     settings.mode.isChoice
-                        ? 'Uji hafalanmu dengan pilihan ganda'
-                        : 'Uji hafalanmu dengan suara',
+                        ? 'Pilihan ganda • Kesulitan '
+                              '${settings.difficulty.label}'
+                        : 'Mode suara • Kesulitan '
+                              '${settings.difficulty.label}',
                     style: const TextStyle(fontSize: 13, color: Colors.white60),
                   ),
                   const SizedBox(height: 24),

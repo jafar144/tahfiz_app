@@ -88,6 +88,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
         clearVoiceResult: true,
         clearChoicePick: true,
         choiceLocked: false,
+        vocabHintVisible: false,
         clearXpGained: true,
         clearError: true,
       ),
@@ -109,6 +110,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
         clearVoiceResult: true,
         clearChoicePick: true,
         choiceLocked: false,
+        vocabHintVisible: false,
         clearXpGained: true,
         clearError: true,
       ),
@@ -203,6 +205,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
           clearChoicePick: true,
           choiceLocked: false,
           answers: const [],
+          vocabHintVisible: false,
           clearXpGained: true,
         ),
       ),
@@ -210,6 +213,11 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
   }
 
   // ─────────────────────────────────────────────────────────── Soal suara ──
+
+  void showVocabHint() {
+    if (state.isExam || state.currentQuestion?.isVocabRecall != true) return;
+    emit(state.copyWith(vocabHintVisible: true));
+  }
 
   Future<void> startRecording() async {
     final q = state.currentQuestion;
@@ -345,6 +353,7 @@ class SurahLessonCubit extends Cubit<SurahLessonState> {
         clearVoiceResult: true,
         clearChoicePick: true,
         choiceLocked: false,
+        vocabHintVisible: false,
         clearError: true,
       ),
     );

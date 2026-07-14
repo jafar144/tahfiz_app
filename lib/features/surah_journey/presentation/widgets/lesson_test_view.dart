@@ -46,6 +46,14 @@ class _LessonTestViewState extends State<LessonTestView> {
       builder: (context, state) {
         final q = state.currentQuestion;
         if (q == null) return const SizedBox.shrink();
+        final vocabPhase = q.vocabPhase;
+        final questionLabel = vocabPhase == null
+            ? '${state.isExam ? 'Ujian Akhir — ' : ''}'
+                  'Soal ${state.currentIndex + 1} dari '
+                  '${state.questions.length}'
+            : 'Fase ${vocabPhase.number} • '
+                  'Soal ${state.currentPhaseQuestionNumber} dari '
+                  '${state.currentPhaseQuestionCount}';
 
         return SafeArea(
           child: Column(
@@ -56,6 +64,10 @@ class _LessonTestViewState extends State<LessonTestView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (vocabPhase != null) ...[
+                      _VocabPhaseHeader(activePhase: vocabPhase),
+                      const SizedBox(height: 10),
+                    ],
                     SegmentedProgress(
                       total: state.questions.length,
                       currentIndex: state.currentIndex,
@@ -67,9 +79,7 @@ class _LessonTestViewState extends State<LessonTestView> {
                     Row(
                       children: [
                         Text(
-                          '${state.isExam ? 'Ujian Akhir — ' : ''}'
-                          'Soal ${state.currentIndex + 1} dari '
-                          '${state.questions.length}',
+                          questionLabel,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -110,11 +120,16 @@ class _TypeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, label) = question.isVoice
-        ? (Icons.mic_rounded, 'Soal Suara')
-        : question.isMatch
-        ? (Icons.hub_rounded, 'Cocokkan Kata')
-        : (Icons.touch_app_rounded, 'Pilihan');
+    final (icon, label) = switch (question.type) {
+      LessonTaskType.vocabMeaningRecall => (
+        Icons.record_voice_over_rounded,
+        'Ingat & Ucapkan',
+      ),
+      LessonTaskType.vocabMatch => (Icons.hub_rounded, 'Cocokkan Kata'),
+      LessonTaskType.voiceContinue ||
+      LessonTaskType.voiceLastAyah => (Icons.mic_rounded, 'Soal Suara'),
+      LessonTaskType.choiceFact => (Icons.touch_app_rounded, 'Pilihan'),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -141,6 +156,67 @@ class _TypeChip extends StatelessWidget {
   }
 }
 
+class _VocabPhaseHeader extends StatelessWidget {
+  final VocabLearningPhase activePhase;
+
+  const _VocabPhaseHeader({required this.activePhase});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (final phase in VocabLearningPhase.values) ...[
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+              decoration: BoxDecoration(
+                color: phase == activePhase
+                    ? QuizColors.gold.withValues(alpha: 0.18)
+                    : Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: phase.index <= activePhase.index
+                      ? QuizColors.gold.withValues(alpha: 0.55)
+                      : Colors.white12,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'FASE ${phase.number}',
+                    style: TextStyle(
+                      color: phase == activePhase
+                          ? QuizColors.gold
+                          : Colors.white38,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    phase.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: phase == activePhase
+                          ? Colors.white
+                          : Colors.white38,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (phase != VocabLearningPhase.values.last) const SizedBox(width: 6),
+        ],
+      ],
+    );
+  }
+}
+
 // ───────────────────────────────────────────────────────────── Soal suara ──
 
 class _VoiceQuestion extends StatelessWidget {
@@ -156,18 +232,22 @@ class _VoiceQuestion extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       child: Column(
         children: [
-          _InstructionCard(question: q),
-          const SizedBox(height: 12),
-          // Ayat petunjuk.
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: journeyCardDecoration(
-              borderColor: QuizColors.gold.withValues(alpha: 0.3),
-              radius: 20,
+          if (q.isVocabRecall)
+            _VocabRecallCard(state: state, cubit: cubit)
+          else ...[
+            _InstructionCard(question: q),
+            const SizedBox(height: 12),
+            // Ayat petunjuk.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              decoration: journeyCardDecoration(
+                borderColor: QuizColors.gold.withValues(alpha: 0.3),
+                radius: 20,
+              ),
+              child: HighlightedAyahText(text: q.prompt!.text, fontSize: 23),
             ),
-            child: HighlightedAyahText(text: q.prompt!.text, fontSize: 23),
-          ),
+          ],
           const SizedBox(height: 24),
           switch (state.phase) {
             LessonPhase.idle => _RecordButton(
@@ -193,6 +273,121 @@ class _VoiceQuestion extends StatelessWidget {
             ),
             LessonPhase.revealed => _VoiceResult(state: state, cubit: cubit),
           },
+        ],
+      ),
+    );
+  }
+}
+
+class _VocabRecallCard extends StatelessWidget {
+  final SurahLessonState state;
+  final SurahLessonCubit cubit;
+
+  const _VocabRecallCard({required this.state, required this.cubit});
+
+  @override
+  Widget build(BuildContext context) {
+    final prompt = state.currentQuestion!.vocabRecall!;
+    final showHint =
+        (!state.isExam && state.vocabHintVisible) ||
+        state.phase == LessonPhase.revealed;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            QuizColors.gold.withValues(alpha: 0.22),
+            QuizColors.gold.withValues(alpha: 0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'ARTI INDONESIA',
+            style: TextStyle(
+              color: QuizColors.gold,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            prompt.meaning,
+            key: const ValueKey('vocab-recall-meaning'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Ingat lalu ucapkan potongan Arab yang memiliki arti tersebut.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white60, fontSize: 12.5),
+          ),
+          const SizedBox(height: 16),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: showHint
+                ? Container(
+                    key: const ValueKey('vocab-recall-hint'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white12),
+                    ),
+                    child: Text(
+                      prompt.arabicHint,
+                      textAlign: TextAlign.center,
+                      textDirection: TextDirection.rtl,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'QuranHafs',
+                        fontSize: 25,
+                        height: 1.6,
+                      ),
+                    ),
+                  )
+                : state.isExam
+                ? const Text(
+                    'Petunjuk tidak tersedia selama Ujian Akhir.',
+                    key: ValueKey('vocab-recall-exam-no-hint'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : OutlinedButton.icon(
+                    key: const ValueKey('show-vocab-recall-hint'),
+                    onPressed: cubit.showVocabHint,
+                    icon: const Icon(Icons.lightbulb_outline_rounded, size: 18),
+                    label: const Text('Lihat Bahasa Arab'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: QuizColors.gold,
+                      side: BorderSide(
+                        color: QuizColors.gold.withValues(alpha: 0.55),
+                      ),
+                    ),
+                  ),
+          ),
         ],
       ),
     );

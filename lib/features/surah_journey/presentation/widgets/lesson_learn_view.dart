@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_section.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -45,6 +46,7 @@ class _LessonLearnViewState extends State<LessonLearnView> {
         ];
         final isLast = _page >= pages.length - 1;
         final needEnergy = !state.progress.of(section.id).passed;
+        final questionCount = LessonConfig.sectionQuestionCount(section.test);
 
         return Column(
           children: [
@@ -84,8 +86,9 @@ class _LessonLearnViewState extends State<LessonLearnView> {
                       ? JourneyPrimaryButton(
                           onPressed: cubit.startSectionTest,
                           icon: Icons.rocket_launch_rounded,
-                          label:
-                              'Mulai Test • ${section.test.questionCount} Soal',
+                          label: section.test.useVocabQuestions
+                              ? 'Mulai 3 Fase • $questionCount Latihan'
+                              : 'Mulai Test • $questionCount Soal',
                           showEnergyCost: needEnergy,
                         )
                       : JourneyPrimaryButton(

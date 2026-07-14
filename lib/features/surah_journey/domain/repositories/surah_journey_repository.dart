@@ -33,14 +33,15 @@ abstract class SurahJourneyRepository {
   /// Seluruh ayat surah [surahId] (untuk halaman belajar & penyusunan soal).
   Future<Either<Failure, List<Ayah>>> getSurahAyat(int surahId);
 
-  /// Susun soal test untuk SATU BAGIAN sesuai `SectionTest`-nya.
+  /// Susun soal test untuk SATU BAGIAN sesuai `SectionTest`-nya. Bagian Kosa
+  /// Kata memakai tiga fase yang didefinisikan di `VocabLearningRules`.
   Future<Either<Failure, List<LessonQuestion>>> generateSectionTest(
     SurahLesson lesson,
     LessonSection section,
   );
 
   /// Susun soal UJIAN AKHIR surah (komposisi di `LessonConfig`; soal pilihan
-  /// diundi dari gabungan bank semua bagian + soal kosa kata).
+  /// diundi dari gabungan bank semua bagian + tepat dua soal recall kosa kata).
   Future<Either<Failure, List<LessonQuestion>>> generateExam(
     SurahLesson lesson,
   );

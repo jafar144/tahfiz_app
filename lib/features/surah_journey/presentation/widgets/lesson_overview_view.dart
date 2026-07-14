@@ -156,6 +156,10 @@ class _SectionCard extends StatelessWidget {
     final progress = state.progress.of(section.id);
     final unlocked = state.sectionUnlocked(section);
     final passed = progress.passed;
+    final questionCount = LessonConfig.sectionQuestionCount(section.test);
+    final legacyVocabProgress =
+        section.test.useVocabQuestions &&
+        progress.bestCorrect < LessonConfig.sectionMinCorrect(section.test);
 
     final Color accent = passed
         ? const Color(0xFF34D399)
@@ -217,19 +221,54 @@ class _SectionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      section.title,
-                      style: TextStyle(
-                        color: unlocked ? Colors.white : Colors.white38,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14.5,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            section.title,
+                            style: TextStyle(
+                              color: unlocked ? Colors.white : Colors.white38,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14.5,
+                            ),
+                          ),
+                        ),
+                        if (section.test.useVocabQuestions) ...[
+                          const SizedBox(width: 7),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: QuizColors.gold.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: QuizColors.gold.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: const Text(
+                              '3 FASE',
+                              style: TextStyle(
+                                color: QuizColors.gold,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
                       passed
-                          ? 'Lulus • Terbaik ${progress.bestCorrect}/'
-                                '${section.test.questionCount} benar'
+                          ? (legacyVocabProgress
+                                ? 'Lulus • 3 fase baru siap diulang'
+                                : 'Lulus • Terbaik ${progress.bestCorrect}/'
+                                      '$questionCount benar')
+                          : section.test.useVocabQuestions
+                          ? '20 latihan • kenali, cocokkan, lalu ucapkan'
                           : section.subtitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,

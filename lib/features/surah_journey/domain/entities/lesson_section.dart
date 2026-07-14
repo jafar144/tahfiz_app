@@ -83,7 +83,7 @@ class SectionTest {
   /// Banyak soal SUARA "baca ayat terakhir surah".
   final int voiceLastAyahCount;
 
-  /// Susun soal arti kata secara otomatis dari [VocabListBlock] bagian ini.
+  /// Susun tiga fase penguatan otomatis dari [VocabListBlock] bagian ini.
   final bool useVocabQuestions;
 
   /// Bank soal pilihan ganda tertulis; ujian mengambil beberapa secara acak.

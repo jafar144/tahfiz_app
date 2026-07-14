@@ -60,6 +60,9 @@ class SurahLessonState {
   /// Benar/salah per soal yang sudah dijawab (urut soal).
   final List<bool> answers;
 
+  /// Hint Arab pada soal recall kosa kata dibuka secara manual.
+  final bool vocabHintVisible;
+
   // ── Hasil & penyimpanan ────────────────────────────────────────────────
   final bool saving;
 
@@ -82,6 +85,7 @@ class SurahLessonState {
     this.choicePick,
     this.choiceLocked = false,
     this.answers = const [],
+    this.vocabHintVisible = false,
     this.saving = false,
     this.xpGained,
     this.errorMessage,
@@ -99,9 +103,30 @@ class SurahLessonState {
 
   int get correctCount => answers.where((a) => a).length;
 
+  bool get isVocabularyTraining =>
+      !isExam && activeSection?.test.useVocabQuestions == true;
+
+  VocabLearningPhase? get currentVocabPhase => currentQuestion?.vocabPhase;
+
+  int get currentPhaseQuestionNumber {
+    final phase = currentVocabPhase;
+    if (phase == null) return currentIndex + 1;
+    return questions
+        .take(currentIndex + 1)
+        .where((question) => question.vocabPhase == phase)
+        .length;
+  }
+
+  int get currentPhaseQuestionCount {
+    final phase = currentVocabPhase;
+    if (phase == null) return questions.length;
+    return questions.where((question) => question.vocabPhase == phase).length;
+  }
+
   /// Jumlah benar minimal test aktif agar lulus.
-  int get minCorrect =>
-      activeSection?.test.minCorrect ?? LessonConfig.examMinCorrect;
+  int get minCorrect => activeSection == null
+      ? LessonConfig.examMinCorrect
+      : LessonConfig.sectionMinCorrect(activeSection!.test);
 
   bool get passed => correctCount >= minCorrect;
 
@@ -148,6 +173,7 @@ class SurahLessonState {
     bool clearChoicePick = false,
     bool? choiceLocked,
     List<bool>? answers,
+    bool? vocabHintVisible,
     bool? saving,
     int? xpGained,
     bool clearXpGained = false,
@@ -170,6 +196,7 @@ class SurahLessonState {
       choicePick: clearChoicePick ? null : (choicePick ?? this.choicePick),
       choiceLocked: choiceLocked ?? this.choiceLocked,
       answers: answers ?? this.answers,
+      vocabHintVisible: vocabHintVisible ?? this.vocabHintVisible,
       saving: saving ?? this.saving,
       xpGained: clearXpGained ? null : (xpGained ?? this.xpGained),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
