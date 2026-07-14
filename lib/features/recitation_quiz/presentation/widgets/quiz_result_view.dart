@@ -54,7 +54,7 @@ class QuizResultView extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         child: Column(
           children: [
             const Spacer(),
@@ -67,7 +67,7 @@ class QuizResultView extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 28),
 
             _ResultScoreReveal(
               mode: result.mode,
@@ -80,7 +80,7 @@ class QuizResultView extends StatelessWidget {
               xp: result.earnedXp,
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 34),
             // Latihan tidak disimpan → status simpan hanya untuk Tantangan.
             if (isChallenge) _saveStatus(context),
             const Spacer(),
@@ -397,7 +397,7 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                   color: QuizColors.xpBlue,
                   t: modeT,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 14),
                 _MultiplierCard(
                   label: 'TINGKAT ${widget.difficulty.label.toUpperCase()}',
                   value: widget.difficultyMultiplier,
@@ -407,9 +407,9 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                 ),
               ],
             ),
-            const SizedBox(height: 26),
+            const SizedBox(height: 36),
             _ResultTotalValue(value: shownTotal),
-            const SizedBox(height: 42),
+            const SizedBox(height: 52),
             LayoutBuilder(
               builder: (context, constraints) {
                 final width = constraints.maxWidth;
@@ -426,7 +426,7 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                       icon: Icons.star_rounded,
                       accentColor: const Color(0xFF00D084),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _ResultTower(
                       t: bonusT,
                       width: cardWidth,
@@ -435,7 +435,7 @@ class _ResultScoreRevealState extends State<_ResultScoreReveal>
                       icon: Icons.bolt_rounded,
                       accentColor: QuizColors.gold,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     _ResultTower(
                       t: xpT,
                       width: cardWidth,
@@ -569,7 +569,7 @@ class _ResultTotalValue extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       key: const ValueKey('result_total_value'),
-      height: 94,
+      height: 110,
       child: Center(
         child: FittedBox(
           fit: BoxFit.scaleDown,
