@@ -1,10 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 
 class SantriProfilePage extends StatefulWidget {
   const SantriProfilePage({super.key});
@@ -14,6 +14,14 @@ class SantriProfilePage extends StatefulWidget {
 }
 
 class _SantriProfilePageState extends State<SantriProfilePage> {
+  Future<String>? _appVersion;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _appVersion ??= context.read<AuthCubit>().getVersion();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,12 +32,13 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
           if (state is AuthLoading) {
             return const Center(child: CircularProgressIndicator());
           }
-        
+
           if (state is! AuthAuthenticated) {
-             return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           final user = state.user;
+          final kelas = context.watch<SantriHomeCubit>().state.santri?.kelas;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -37,7 +46,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
               children: [
                 _buildProfileHeader(user.name, user.nis),
                 const SizedBox(height: 24),
-                _buildInfoCard(context, user),
+                _buildInfoCard(context, user, kelas),
                 const SizedBox(height: 24),
                 _buildMenuSection(context),
                 const SizedBox(height: 24),
@@ -119,7 +128,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, dynamic user) {
+  Widget _buildInfoCard(BuildContext context, dynamic user, String? kelas) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -149,9 +158,11 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
           const Divider(height: 24),
           _buildInfoRow(Icons.person_outline, 'Nama Lengkap', user.name),
           const Divider(height: 24),
-          _buildInfoRow(Icons.school, 'Kelas', 'Juz 30'), 
-          const Divider(height: 24),
-          _buildInfoRow(Icons.phone, 'No. HP', '08123456789'),
+          _buildInfoRow(
+            Icons.school,
+            'Kelas',
+            kelas?.trim().isNotEmpty == true ? kelas!.trim() : '-',
+          ),
         ],
       ),
     );
@@ -175,10 +186,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 2),
               Text(
@@ -197,31 +205,37 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
   }
 
   Widget _buildMenuSection(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    return FutureBuilder<String>(
+      future: _appVersion,
+      builder: (context, snapshot) {
+        final version = snapshot.data;
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          _buildMenuItem(
-            icon: Icons.info,
-            title: 'Tentang Aplikasi',
-            subtitle: 'Versi 1.0.0',
-            color: Colors.green,
-            onTap: () {
-              _showAboutDialog(context);
-            },
+          child: Column(
+            children: [
+              _buildMenuItem(
+                icon: Icons.info,
+                title: 'Tentang Aplikasi',
+                subtitle: version == null
+                    ? 'Memuat versi...'
+                    : 'Versi $version',
+                color: Colors.green,
+                onTap: () => _showAboutDialog(context),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -307,9 +321,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
@@ -359,9 +371,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.info, color: Colors.blue, size: 28),
@@ -369,34 +379,32 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
             Text('Tentang Aplikasi'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tahfiz App',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Versi 1.0.0',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
+        content: FutureBuilder<String>(
+          future: _appVersion,
+          builder: (context, snapshot) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tahfiz App',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  snapshot.data == null
+                      ? 'Memuat versi...'
+                      : 'Versi ${snapshot.data}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                ),
+              ],
+            );
+          },
         ),
         actions: [
           TextButton(
