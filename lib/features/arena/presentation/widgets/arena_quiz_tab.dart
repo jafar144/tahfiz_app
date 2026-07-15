@@ -121,7 +121,7 @@ class ArenaQuizTab extends StatelessWidget {
         title: 'Tantangan',
         subtitle:
             'Soal sesuai kurikulum kelasmu, jatah terbatas tiap pekan — skor '
-            'terbaik masuk papan juara kelas.',
+            'terbaik masuk papan juara sesuai tingkatan kuis.',
         chips: [],
         buttonLabel: 'Memuat…',
         onPressed: null,
@@ -136,7 +136,7 @@ class ArenaQuizTab extends StatelessWidget {
         title: 'Tantangan',
         subtitle:
             'Khusus santri: soal sesuai kurikulum kelas, jatah terbatas tiap '
-            'pekan, hasilnya masuk papan juara kelas.',
+            'pekan, hasilnya masuk papan juara sesuai tingkatan kuis.',
         chips: const [
           _InfoChip(icon: Icons.lock_rounded, label: 'Khusus santri'),
         ],
@@ -178,7 +178,7 @@ class ArenaQuizTab extends StatelessWidget {
       title: 'Tantangan',
       subtitle:
           'Soal mengikuti kurikulum kelasmu${state.kelas != null ? ' (${state.kelas})' : ''}. '
-          'Jatah terbatas tiap pekan — skor terbaikmu masuk papan juara kelas!',
+          'Jatah terbatas tiap pekan — skor terbaikmu masuk papan juara sesuai tingkatan kuis!',
       chips: [
         _InfoChip(
           icon: state.voiceQuotaEmpty
@@ -374,7 +374,8 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
   @override
   Widget build(BuildContext context) {
     final below = _belowKelas;
-    final canStart = !_quotaEmpty(_mode);
+    final selectedTier = QuizCurriculum.leaderboardTierFor(_scope);
+    final canStart = !_quotaEmpty(_mode) && selectedTier != null;
 
     return SafeArea(
       top: false,
@@ -421,7 +422,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             const SizedBox(height: 4),
             const Text(
               'Jatah terbatas tiap pekan untuk tiap mode. Skor terbaik bulan '
-              'ini tampil di papan juara kelasmu.',
+              'ini tampil di papan juara sesuai tingkatan kuis yang dipilih.',
               style: TextStyle(color: Colors.white60, fontSize: 12),
             ),
             const SizedBox(height: 18),
@@ -485,7 +486,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             _SheetOption(
               icon: Icons.school_rounded,
               title: 'Kelasku — $_ownKelas',
-              subtitle: _scopeSummary(_ownKelas),
+              subtitle: _scopeSubtitle(_ownKelas),
               selected: _scope == _ownKelas,
               onTap: () => setState(() => _scope = _ownKelas),
             ),
@@ -494,14 +495,14 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
               _SheetOption(
                 icon: Icons.south_rounded,
                 title: 'Turun 1 kelas — $below',
-                subtitle: _scopeSummary(below),
+                subtitle: _scopeSubtitle(below),
                 selected: _scope == below,
                 onTap: () => setState(() => _scope = below),
               ),
               const SizedBox(height: 6),
               const Text(
-                'Pilih ini bila materi kelasmu belum tuntas — skormu tetap '
-                'masuk papan juara kelasmu sendiri.',
+                'Pilih ini bila materi kelasmu belum tuntas — skor akan masuk '
+                'papan juara tingkatan kuis yang dipilih.',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
               ),
             ],
@@ -522,6 +523,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                           difficulty: _difficulty,
                           ownKelas: _ownKelas,
                           scopeKelas: _scope,
+                          tier: selectedTier,
                         ),
                       )
                     : null,
@@ -531,6 +533,13 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
         ),
       ),
     );
+  }
+
+  static String _scopeSubtitle(String kelas) {
+    final summary = _scopeSummary(kelas);
+    final tier = QuizCurriculum.leaderboardTierFor(kelas);
+    if (tier == null) return summary;
+    return '$summary • Papan ${tier.label}';
   }
 
   /// Ringkasan cakupan kurikulum sebuah kelas untuk subtitle opsi.

@@ -1,5 +1,6 @@
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_tier.dart';
 
 /// Parameter peluncuran halaman kuis dari Tahfiz Arena.
 ///
@@ -8,24 +9,27 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mod
 ///
 /// Instance kelas ini = mode TANTANGAN (challenge): mode & cakupan dikunci
 /// sesuai kurikulum kelas, langsung mulai tanpa intro, hasil disimpan ke
-/// leaderboard kelas. Hanya untuk santri, 1x per hari per mode.
+/// leaderboard tingkatan kuis. Hanya untuk santri, 1x per hari per mode.
 class QuizLaunch {
   /// Mode permainan yang dipilih di lembar Tantangan (suara / pilihan).
   final QuizMode mode;
 
   final QuizDifficulty difficulty;
 
-  /// Kelas ASLI santri — dipakai sebagai kelas leaderboard (santri selalu
-  /// bersaing di papan kelasnya sendiri, walau memilih cakupan kelas bawah).
+  /// Kelas asli santri, disimpan untuk histori dan analitik.
   final String ownKelas;
 
   /// Kelas CAKUPAN soal yang dipilih (kelas sendiri, atau 1 kelas di bawah).
   final String scopeKelas;
+
+  /// Tingkatan leaderboard berdasarkan cakupan soal yang dimainkan.
+  final QuizTier tier;
 
   const QuizLaunch({
     required this.mode,
     this.difficulty = QuizDifficulty.medium,
     required this.ownKelas,
     required this.scopeKelas,
+    required this.tier,
   });
 }

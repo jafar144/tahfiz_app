@@ -21,6 +21,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_lea
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_tier.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_knowledge_bank.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz_repository.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/choice_quiz_rules.dart';
@@ -51,8 +52,8 @@ class QuizRepositoryImpl implements QuizRepository {
   static const String _journeyProgressCollection = 'surah_journey_progress';
 
   /// Koleksi papan juara bulanan (best-score, ringan untuk dibaca):
-  /// `quiz_leaderboards/{yyyy-MM}/{mode}/{uid}` — satu dokumen per user per
-  /// bulan per mode, hanya menyimpan skor TERBAIK. Dipisah per mode karena
+  /// `quiz_leaderboards/{yyyy-MM}/{mode}_{tier}/{uid}` — satu dokumen per user,
+  /// bulan, mode, dan tingkatan; hanya menyimpan skor TERBAIK. Dipisah karena
   /// skala skor suara & pilihan berbeda dan tak bisa dibandingkan.
   static const String _leaderboardCollection = 'quiz_leaderboards';
 
@@ -63,10 +64,11 @@ class QuizRepositoryImpl implements QuizRepository {
   CollectionReference<Map<String, dynamic>> _entriesRef(
     String monthKey,
     QuizMode mode,
+    String tierKey,
   ) => firestore
       .collection(_leaderboardCollection)
       .doc(monthKey)
-      .collection(mode.key);
+      .collection('${mode.key}_$tierKey');
 
   @override
   Future<Either<Failure, List<QuizQuestion>>> generateQuestions({
@@ -646,8 +648,9 @@ class QuizRepositoryImpl implements QuizRepository {
     required List<int> juz,
     int bonusTotal = 0,
     int earnedXp = 0,
-    String? kelas,
-    String? scopeKelas,
+    required String studentClass,
+    required String scopeClass,
+    required QuizTier tier,
   }) async {
     try {
       final user = auth.currentUser;
@@ -707,8 +710,10 @@ class QuizRepositoryImpl implements QuizRepository {
               // Penanda Tantangan (challenge) + kelas terkait; null = latihan
               // lama (data sebelum fitur Arena).
               'kind': 'challenge',
-              'kelas': ?kelas,
-              'scope_kelas': ?scopeKelas,
+              'kelas': studentClass,
+              'scope_kelas': scopeClass,
+              'quiz_tier': tier.key,
+              'quiz_tier_label': tier.label,
               'created_at': FieldValue.serverTimestamp(),
             })
             .timeout(const Duration(seconds: 6));
@@ -727,7 +732,9 @@ class QuizRepositoryImpl implements QuizRepository {
           difficulty: difficulty,
           monthKey: _monthKey(now),
           score: score,
-          kelas: kelas,
+          studentClass: studentClass,
+          scopeClass: scopeClass,
+          tier: tier,
         ).timeout(const Duration(seconds: 6));
       } catch (_) {
         // Diabaikan (termasuk offline: transaksi butuh server); skor tetap
@@ -768,9 +775,9 @@ class QuizRepositoryImpl implements QuizRepository {
     }
   }
 
-  /// Tulis best-score ke `quiz_leaderboards/{bulan}/{mode}/{uid}` hanya bila
-  /// [score] melebihi best-score yang sudah tercatat (bulan + mode ini).
-  /// [kelas] = kelas leaderboard santri (papan juara difilter per kelas).
+  /// Tulis best-score ke papan bulan + mode + tingkatan terkait hanya bila
+  /// [score] melebihi skor terbaik user pada papan tersebut. Satu user dapat
+  /// memiliki skor terbaik independen di beberapa tingkatan.
   Future<void> _upsertLeaderboardEntry({
     required String uid,
     required String name,
@@ -779,9 +786,11 @@ class QuizRepositoryImpl implements QuizRepository {
     required QuizDifficulty difficulty,
     required String monthKey,
     required int score,
-    String? kelas,
+    required String studentClass,
+    required String scopeClass,
+    required QuizTier tier,
   }) {
-    final ref = _entriesRef(monthKey, mode).doc(uid);
+    final ref = _entriesRef(monthKey, mode, tier.key).doc(uid);
     return firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);
       final prevBest = (snap.data()?['best_score'] as num?)?.toInt() ?? -1;
@@ -793,7 +802,10 @@ class QuizRepositoryImpl implements QuizRepository {
         'month_key': monthKey,
         'mode': mode.key,
         'last_difficulty': difficulty.key,
-        'kelas': ?kelas,
+        'kelas': studentClass,
+        'scope_kelas': scopeClass,
+        'quiz_tier': tier.key,
+        'quiz_tier_label': tier.label,
         'last_score': score,
         'play_count': FieldValue.increment(1),
         'updated_at': FieldValue.serverTimestamp(),
@@ -824,15 +836,14 @@ class QuizRepositoryImpl implements QuizRepository {
   @override
   Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
     QuizMode mode, {
-    String? kelas,
+    required String tierKey,
   }) async {
     try {
       final monthKey = _monthKey(DateTime.now());
-      final entriesRef = _entriesRef(monthKey, mode);
+      final entriesRef = _entriesRef(monthKey, mode, tierKey);
 
-      // Papan per kelas (Tantangan): saring entri milik kelas terkait.
+      // Sub-koleksi sudah khusus untuk satu tingkatan, jadi tak perlu filter.
       Query<Map<String, dynamic>> query = entriesRef;
-      if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
 
       final snap = await query
           .orderBy('best_score', descending: true)
@@ -862,9 +873,8 @@ class QuizRepositoryImpl implements QuizRepository {
         } else {
           final mySnap = await entriesRef.doc(uid).get();
           final myData = mySnap.data();
-          // Pada papan per kelas, entri user hanya relevan bila kelasnya sama
-          // (mis. admin membuka papan kelas lain → tanpa kartu "Kamu").
-          if (myData != null && (kelas == null || myData['kelas'] == kelas)) {
+          // Dokumen UID ini sudah berada pada papan tingkatan yang dipilih.
+          if (myData != null) {
             myEntry = _entryFromDoc(myData);
             // Peringkat = 1 + jumlah user dengan skor lebih tinggi
             // (aggregate count — tidak membaca isi dokumen).

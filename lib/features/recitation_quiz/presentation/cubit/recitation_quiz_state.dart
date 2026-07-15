@@ -68,7 +68,7 @@ class RecitationQuizState extends Equatable {
   final String? errorMessage;
 
   /// True bila sesi ini adalah TANTANGAN (challenge): setelan dikunci sesuai
-  /// kurikulum kelas, tanpa layar intro, hasil disimpan ke leaderboard kelas,
+  /// kurikulum kelas, tanpa layar intro, hasil disimpan per tingkatan kuis,
   /// dan tidak ada "Main Lagi" (jatah 1x per hari per mode).
   final bool challenge;
 

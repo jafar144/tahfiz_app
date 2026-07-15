@@ -13,7 +13,7 @@ enum QuizSessionKind { practice, challenge }
 /// TANTANGAN:
 /// - mode dan cakupan dikunci oleh kurikulum kelas;
 /// - memakai kuota harian terpisah untuk Suara dan Pilihan;
-/// - hasil ditulis ke histori dan leaderboard kelas.
+/// - hasil ditulis ke histori dan leaderboard tingkatan kuis.
 ///
 /// Jumlah energi/kuota adalah otoritas Cloud Functions. File ini hanya memuat
 /// perilaku client yang menjadi bagian dari gameplay.

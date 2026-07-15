@@ -11,7 +11,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
-/// Tab Papan Juara ala Duolingo: scroll kelas horizontal di atas, toggle mode
+/// Tab Papan Juara: scroll tingkatan kuis di atas, toggle mode
 /// Suara/Pilihan, lalu daftar peringkat Tantangan bulan berjalan (skor
 /// TERBAIK per santri; direset tiap awal bulan).
 class ArenaLeaderboardTab extends StatefulWidget {
@@ -36,17 +36,18 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
     });
   }
 
-  /// Muat papan pertama kali: default kelas = kelas santri sendiri (bila ikut
-  /// ranked), selain itu kelas ranked pertama (Mutawassith).
+  /// Default ke tingkatan cakupan kelas santri; bila tidak tersedia, gunakan
+  /// tingkatan kuis pertama.
   void _initialLoad(ArenaState arena) {
     if (_initialized) return;
     _initialized = true;
-    final classes = QuizCurriculum.rankableClasses;
-    final own = arena.kelas;
-    final kelas = (own != null && classes.contains(own)) ? own : classes.first;
+    final tiers = QuizCurriculum.leaderboardTiers;
+    if (tiers.isEmpty) return;
+    final ownTier = QuizCurriculum.leaderboardTierFor(arena.kelas);
+    final tier = ownTier ?? tiers.first;
     context.read<QuizLeaderboardCubit>().load(
       mode: QuizMode.voice,
-      kelas: kelas,
+      tierKey: tier.key,
     );
   }
 
@@ -59,7 +60,8 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
         return BlocBuilder<QuizLeaderboardCubit, QuizLeaderboardState>(
           builder: (context, state) {
             final cubit = context.read<QuizLeaderboardCubit>();
-            final classes = QuizCurriculum.rankableClasses;
+            final tiers = QuizCurriculum.leaderboardTiers;
+            final ownTier = QuizCurriculum.leaderboardTierFor(arena.kelas);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,23 +92,23 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
                 ),
                 const SizedBox(height: 12),
 
-                // Scroll kelas horizontal.
+                // Scroll tingkatan kuis horizontal.
                 SizedBox(
                   height: 38,
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     scrollDirection: Axis.horizontal,
-                    itemCount: classes.length,
+                    itemCount: tiers.length,
                     separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
-                      final k = classes[i];
-                      final selected = k == state.kelas;
-                      final isMine = k == arena.kelas;
-                      return _ClassChip(
-                        label: k,
+                      final tier = tiers[i];
+                      final selected = tier.key == state.tierKey;
+                      final isMine = tier.key == ownTier?.key;
+                      return _TierChip(
+                        label: tier.label,
                         selected: selected,
                         isMine: isMine,
-                        onTap: () => cubit.switchKelas(k),
+                        onTap: () => cubit.switchTier(tier.key),
                       );
                     },
                   ),
@@ -232,11 +234,7 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
             // Kartu "Kamu" bila punya skor tapi di luar top-10.
             if (!inTop && lb.myEntry != null) ...[
               const SizedBox(height: 8),
-              _EntryTile(
-                rank: lb.myRank ?? 0,
-                entry: lb.myEntry!,
-                isMe: true,
-              ),
+              _EntryTile(rank: lb.myRank ?? 0, entry: lb.myEntry!, isMe: true),
             ],
           ],
         );
@@ -273,13 +271,13 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
 
 // ─────────────────────────────────────────────────────────────── Widgets ──
 
-class _ClassChip extends StatelessWidget {
+class _TierChip extends StatelessWidget {
   final String label;
   final bool selected;
   final bool isMine;
   final VoidCallback onTap;
 
-  const _ClassChip({
+  const _TierChip({
     required this.label,
     required this.selected,
     required this.isMine,
@@ -309,7 +307,11 @@ class _ClassChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isMine) ...[
-              const Icon(Icons.person_rounded, size: 13, color: QuizColors.gold),
+              const Icon(
+                Icons.person_rounded,
+                size: 13,
+                color: QuizColors.gold,
+              ),
               const SizedBox(width: 4),
             ],
             Text(

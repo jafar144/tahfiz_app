@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_lea
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_tier.dart';
 
 abstract class QuizRepository {
   /// Susun [count] soal acak sesuai [settings] (juz terpilih + sambungan antar
@@ -39,8 +40,8 @@ abstract class QuizRepository {
   ///
   /// [score] = skor leaderboard (suara: rata-rata 0..100 + bonus; pilihan:
   /// total poin + bonus). [bonusTotal] = total poin bonus terpisah.
-  /// [kelas] = kelas leaderboard santri; [scopeKelas] = kelas cakupan soal
-  /// yang dipilih (bisa 1 kelas di bawah [kelas]).
+  /// Skor terbaik dipisah berdasarkan [tier]; satu santri dapat tercatat pada
+  /// beberapa tingkatan dalam bulan yang sama.
   Future<Either<Failure, void>> saveAttempt({
     required QuizMode mode,
     QuizDifficulty difficulty = QuizDifficulty.easy,
@@ -49,8 +50,9 @@ abstract class QuizRepository {
     required List<int> juz,
     int bonusTotal = 0,
     int earnedXp = 0,
-    String? kelas,
-    String? scopeKelas,
+    required String studentClass,
+    required String scopeClass,
+    required QuizTier tier,
   });
 
   /// Tambahkan XP kuis ke progres Arena/Journey pengguna saat sesi selesai.
@@ -58,11 +60,10 @@ abstract class QuizRepository {
   Future<Either<Failure, void>> awardXp(int amount);
 
   /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user
-  /// + peringkat user saat ini. Leaderboard dipisah per mode; bila [kelas]
-  /// diisi, hanya entri kelas itu yang dihitung (papan Tantangan per kelas).
+  /// + peringkat user saat ini, dipisah per [tierKey].
   Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
     QuizMode mode, {
-    String? kelas,
+    required String tierKey,
   });
 
   /// True bila user saat ini ber-role `admin`. Dipakai untuk melewati sistem

@@ -789,7 +789,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     );
 
     // Hasil LATIHAN tidak disimpan; hanya TANTANGAN yang masuk histori &
-    // leaderboard kelas.
+    // leaderboard tingkatan kuis.
     if (!_storesResult) {
       emit(
         state.copyWith(
@@ -833,14 +833,14 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     );
 
     final mode = result.mode;
-    final kelas = _launch!.ownKelas;
+    final tier = _launch!.tier;
     // Jeda minimal agar halaman loading tak sekadar berkedip.
     final minDelay = Future<void>.delayed(const Duration(milliseconds: 1400));
 
     // 1) Potret papan SEBELUM skor baru tercatat → peringkat lama.
     final beforeRes = await repository.getMonthlyLeaderboard(
       mode,
-      kelas: kelas,
+      tierKey: tier.key,
     );
     final before = beforeRes.fold(ifLeft: (_) => null, ifRight: (lb) => lb);
 
@@ -853,8 +853,9 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       juz: state.settings.sortedJuz,
       bonusTotal: result.totalBonus,
       earnedXp: result.earnedXp,
-      kelas: _launch?.ownKelas,
-      scopeKelas: _launch?.scopeKelas,
+      studentClass: _launch!.ownKelas,
+      scopeClass: _launch!.scopeKelas,
+      tier: tier,
     );
     await _awardResultXp(result);
     // Layar berikutnya tak butuh Whisper — lepas lock untuk user lain.
@@ -867,7 +868,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     if (saveError == null && before != null) {
       final afterRes = await repository.getMonthlyLeaderboard(
         mode,
-        kelas: kelas,
+        tierKey: tier.key,
       );
       after = afterRes.fold(ifLeft: (_) => null, ifRight: (lb) => lb);
     }
@@ -1363,7 +1364,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
       );
 
       // Hasil LATIHAN tidak disimpan; hanya TANTANGAN yang masuk histori &
-      // leaderboard kelas.
+      // leaderboard tingkatan kuis.
       if (!_storesResult) {
         emit(
           state.copyWith(

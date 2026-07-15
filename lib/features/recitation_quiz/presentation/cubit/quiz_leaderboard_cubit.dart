@@ -12,22 +12,30 @@ class QuizLeaderboardCubit extends Cubit<QuizLeaderboardState> {
   QuizLeaderboardCubit(this.repository, this.auth)
     : super(const QuizLeaderboardState());
 
-  /// Muat papan juara untuk [mode] + [kelas] (default: nilai di state).
-  /// [kelas] wajib untuk papan Tantangan per kelas (Tahfiz Arena).
-  Future<void> load({QuizMode? mode, String? kelas}) async {
+  /// Muat papan juara untuk [mode] + [tierKey].
+  Future<void> load({QuizMode? mode, String? tierKey}) async {
     final targetMode = mode ?? state.mode;
-    final targetKelas = kelas ?? state.kelas;
+    final targetTierKey = tierKey ?? state.tierKey;
+    if (targetTierKey == null) {
+      emit(
+        state.copyWith(
+          status: LeaderboardStatus.error,
+          errorMessage: 'Tingkatan kuis belum tersedia.',
+        ),
+      );
+      return;
+    }
     emit(
       QuizLeaderboardState(
         status: LeaderboardStatus.loading,
         mode: targetMode,
-        kelas: targetKelas,
+        tierKey: targetTierKey,
         currentUserId: auth.currentUser?.uid,
       ),
     );
     final res = await repository.getMonthlyLeaderboard(
       targetMode,
-      kelas: targetKelas,
+      tierKey: targetTierKey,
     );
     res.fold(
       ifLeft: (f) => emit(
@@ -48,11 +56,11 @@ class QuizLeaderboardCubit extends Cubit<QuizLeaderboardState> {
     await load(mode: mode);
   }
 
-  /// Ganti kelas papan lalu muat ulang (abaikan bila kelas sama).
-  Future<void> switchKelas(String kelas) async {
-    if (kelas == state.kelas && state.status != LeaderboardStatus.error) {
+  /// Ganti tingkatan papan lalu muat ulang.
+  Future<void> switchTier(String tierKey) async {
+    if (tierKey == state.tierKey && state.status != LeaderboardStatus.error) {
       return;
     }
-    await load(kelas: kelas);
+    await load(tierKey: tierKey);
   }
 }

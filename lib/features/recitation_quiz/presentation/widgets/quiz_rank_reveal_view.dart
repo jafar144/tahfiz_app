@@ -31,7 +31,7 @@ class QuizRankRevealView extends StatelessWidget {
           ? const NightLoadingPage(
               key: ValueKey('rank-loading'),
               title: 'Menghitung peringkatmu…',
-              subtitle: 'Skormu sedang dicatat di papan juara kelas',
+              subtitle: 'Skormu sedang dicatat di papan juara tingkatan kuis',
               icon: Icons.emoji_events_rounded,
               withBackground: false,
             )
