@@ -31,6 +31,22 @@ class AdminHomeRemoteDatasourceImpl implements AdminHomeRemoteDatasource {
   }
 
   @override
+  Future<int> getTotalSantriByGenderAndSession({
+    required String gender,
+    required String session,
+  }) async {
+    final snapshot = await firestore
+        .collection('santri_profiles')
+        .where('is_active', isEqualTo: true)
+        .where('jenis_kelamin', isEqualTo: gender)
+        .where('tipe_kelas', isEqualTo: session)
+        .count()
+        .get();
+
+    return snapshot.count ?? 0;
+  }
+
+  @override
   Future<int> getTotalAsatidzPutra() async {
     // Assuming 'L' for laki-laki
     final snapshot = await firestore

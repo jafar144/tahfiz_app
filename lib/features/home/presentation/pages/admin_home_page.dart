@@ -22,17 +22,28 @@ class AdminHomePage extends StatefulWidget {
 
 class _AdminHomePageState extends State<AdminHomePage> {
   Timer? _rotateTimer;
-  bool _showMutasi = false;
+  int _santriInfoIndex = 0;
 
   @override
   void initState() {
     super.initState();
     context.read<AdminHomeCubit>().loadHome();
     AppUpdateService.checkForFlexibleUpdate(context);
-    // Kartu santri bergantian menampilkan total ↔ mutasi tiap 6 detik.
-    _rotateTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted) setState(() => _showMutasi = !_showMutasi);
+    _scheduleNextSantriInfo();
+  }
+
+  void _scheduleNextSantriInfo() {
+    _rotateTimer?.cancel();
+    _rotateTimer = Timer(const Duration(seconds: 6), () {
+      if (!mounted) return;
+      setState(() => _santriInfoIndex = (_santriInfoIndex + 1) % 3);
+      _scheduleNextSantriInfo();
     });
+  }
+
+  void _advanceSantriInfo() {
+    setState(() => _santriInfoIndex = (_santriInfoIndex + 1) % 3);
+    _scheduleNextSantriInfo();
   }
 
   @override
@@ -76,6 +87,10 @@ class _AdminHomePageState extends State<AdminHomePage> {
                       totalSantriPutri: 123,
                       totalAsatidzPutra: 10,
                       totalAsatidzPutri: 10,
+                      santriPutraSore: 70,
+                      santriPutraMalam: 53,
+                      santriPutriPagi: 65,
+                      santriPutriSore: 58,
                       masukPutra: 3,
                       masukPutri: 2,
                       keluarPutra: 1,
@@ -109,32 +124,62 @@ class _AdminHomePageState extends State<AdminHomePage> {
                             children: [
                               InfoCard(
                                 title: 'Santri Putra',
-                                value: _formatValue(displayData.totalSantriPutra),
+                                value: _formatValue(
+                                  displayData.totalSantriPutra,
+                                ),
                                 color: Colors.blue,
+                                displayIndex: _santriInfoIndex,
+                                details: [
+                                  InfoCardDetail(
+                                    label: 'Sore',
+                                    value: displayData.santriPutraSore,
+                                  ),
+                                  InfoCardDetail(
+                                    label: 'Malam',
+                                    value: displayData.santriPutraMalam,
+                                  ),
+                                ],
                                 masuk: displayData.masukPutra,
                                 keluar: displayData.keluarPutra,
-                                showMutasi: _showMutasi,
+                                onTap: _advanceSantriInfo,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(
                                 title: 'Santri Putri',
-                                value: _formatValue(displayData.totalSantriPutri),
+                                value: _formatValue(
+                                  displayData.totalSantriPutri,
+                                ),
                                 color: Colors.pink,
+                                displayIndex: _santriInfoIndex,
+                                details: [
+                                  InfoCardDetail(
+                                    label: 'Pagi',
+                                    value: displayData.santriPutriPagi,
+                                  ),
+                                  InfoCardDetail(
+                                    label: 'Sore',
+                                    value: displayData.santriPutriSore,
+                                  ),
+                                ],
                                 masuk: displayData.masukPutri,
                                 keluar: displayData.keluarPutri,
-                                showMutasi: _showMutasi,
+                                onTap: _advanceSantriInfo,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(
                                 title: 'Asatidz Putra',
-                                value: _formatValue(displayData.totalAsatidzPutra),
+                                value: _formatValue(
+                                  displayData.totalAsatidzPutra,
+                                ),
                                 icon: Icons.school_rounded,
                                 color: Colors.blue,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(
                                 title: 'Asatidz Putri',
-                                value: _formatValue(displayData.totalAsatidzPutri),
+                                value: _formatValue(
+                                  displayData.totalAsatidzPutri,
+                                ),
                                 icon: Icons.school_rounded,
                                 color: Colors.red,
                               ),
@@ -219,7 +264,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
       ),
     );
   }
-  
+
   String _formatValue(int value) {
     return value.toString();
   }

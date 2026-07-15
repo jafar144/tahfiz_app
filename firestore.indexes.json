@@ -17,6 +17,193 @@
       ]
     },
     {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "santri_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "monthly_reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "santri_id", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "DESCENDING" },
+        { "fieldPath": "bulan", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "asatidz_attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "asatidz_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "halaqah_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_setoran",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "santri_id", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "voice",
       "queryScope": "COLLECTION",
       "fields": [
@@ -49,5 +236,24 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "members",
+      "fieldPath": "santri_id",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
+    }
+  ]
 }
