@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart'
 import 'package:khoirunnasyien/features/surah_journey/domain/surah_lesson_seed.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/vocab_lesson_question_factory.dart';
+import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +54,31 @@ void main() {
       ],
       [4, 8, 3],
     );
+  });
+
+  test('indikator test hanya menghitung soal dan jawaban kuis aktif', () {
+    final lesson = SurahLessonSeed.lessons.first;
+    final section = lesson.sections.singleWhere(
+      (section) => section.test.useVocabQuestions,
+    );
+    final questions = factory.buildLearningPhases(
+      items: section.vocabItems,
+      ayat: ayatBySurah[lesson.surahId]!,
+      rng: Random(lesson.surahId),
+    );
+    final state = SurahLessonState(
+      lesson: lesson,
+      status: LessonStatus.testing,
+      activeSection: section,
+      activeVocabPhase: VocabLearningPhase.mixedPractice,
+      questions: questions,
+      currentIndex: 7,
+      answers: const [true, false, true, true, false, true, false],
+    );
+
+    expect(state.currentPhaseQuestionNumber, 3);
+    expect(state.currentPhaseQuestionCount, 10);
+    expect(state.currentPhaseAnswers, const [true, false]);
   });
 
   test('seluruh surah dapat membentuk tiga fase dengan komposisi tepat', () {

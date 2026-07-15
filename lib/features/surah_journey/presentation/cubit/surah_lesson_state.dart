@@ -130,6 +130,24 @@ class SurahLessonState {
     return questions.where((question) => question.vocabPhase == phase).length;
   }
 
+  /// Jawaban yang ditampilkan pada indikator test aktif. Untuk kuis kosa kata,
+  /// indikator hanya membaca jawaban dari kuis tersebut, sehingga progres
+  /// Kuis 1, 2, dan 3 tidak pernah tercampur meski state lama masih memuat
+  /// kumpulan soal gabungan.
+  List<bool> get currentPhaseAnswers {
+    final vocabPhase = currentVocabPhase;
+    if (vocabPhase == null) return answers;
+
+    return [
+      for (
+        var index = 0;
+        index < answers.length && index < questions.length;
+        index++
+      )
+        if (questions[index].vocabPhase == vocabPhase) answers[index],
+    ];
+  }
+
   /// Jumlah benar minimal test aktif agar lulus.
   int get minCorrect => activeSection == null
       ? LessonConfig.examMinCorrect

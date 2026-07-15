@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/vocab_match_board.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/lesson_question.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/lesson_config.dart';
+import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rules.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
@@ -46,12 +47,12 @@ class _LessonTestViewState extends State<LessonTestView> {
       builder: (context, state) {
         final q = state.currentQuestion;
         if (q == null) return const SizedBox.shrink();
-        final vocabPhase = q.vocabPhase;
+        final vocabPhase = state.currentVocabPhase;
         final questionLabel = vocabPhase == null
             ? '${state.isExam ? 'Ujian Akhir — ' : ''}'
                   'Soal ${state.currentIndex + 1} dari '
                   '${state.questions.length}'
-            : 'Fase ${vocabPhase.number} • '
+            : 'Kuis ${vocabPhase.number} • '
                   'Soal ${state.currentPhaseQuestionNumber} dari '
                   '${state.currentPhaseQuestionCount}';
 
@@ -65,14 +66,24 @@ class _LessonTestViewState extends State<LessonTestView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (vocabPhase != null) ...[
-                      _VocabPhaseHeader(activePhase: vocabPhase),
+                      _VocabQuizHeader(activeQuiz: vocabPhase),
                       const SizedBox(height: 10),
                     ],
                     SegmentedProgress(
-                      total: state.questions.length,
-                      currentIndex: state.currentIndex,
+                      key: vocabPhase == null
+                          ? null
+                          : ValueKey(
+                              'vocab-quiz-${vocabPhase.number}-progress',
+                            ),
+                      total: vocabPhase == null
+                          ? state.questions.length
+                          : state.currentPhaseQuestionCount,
+                      currentIndex: vocabPhase == null
+                          ? state.currentIndex
+                          : state.currentPhaseQuestionNumber - 1,
                       doneScores: [
-                        for (final ok in state.answers) ok ? 100 : 0,
+                        for (final ok in state.currentPhaseAnswers)
+                          ok ? 100 : 0,
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -156,63 +167,85 @@ class _TypeChip extends StatelessWidget {
   }
 }
 
-class _VocabPhaseHeader extends StatelessWidget {
-  final VocabLearningPhase activePhase;
+class _VocabQuizHeader extends StatelessWidget {
+  final VocabLearningPhase activeQuiz;
 
-  const _VocabPhaseHeader({required this.activePhase});
+  const _VocabQuizHeader({required this.activeQuiz});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (final phase in VocabLearningPhase.values) ...[
+    final icon = switch (activeQuiz) {
+      VocabLearningPhase.arabicToMeaning => Icons.translate_rounded,
+      VocabLearningPhase.mixedPractice => Icons.hub_rounded,
+      VocabLearningPhase.meaningRecall => Icons.record_voice_over_rounded,
+    };
+
+    return Container(
+      key: ValueKey('vocab-quiz-${activeQuiz.number}-header'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: QuizColors.gold.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: QuizColors.gold.withValues(alpha: 0.42)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: QuizColors.gold.withValues(alpha: 0.18),
+            ),
+            child: Icon(icon, size: 18, color: QuizColors.gold),
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-              decoration: BoxDecoration(
-                color: phase == activePhase
-                    ? QuizColors.gold.withValues(alpha: 0.18)
-                    : Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: phase.index <= activePhase.index
-                      ? QuizColors.gold.withValues(alpha: 0.55)
-                      : Colors.white12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'KUIS ${activeQuiz.number}',
+                  style: const TextStyle(
+                    color: QuizColors.gold,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.8,
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'FASE ${phase.number}',
-                    style: TextStyle(
-                      color: phase == activePhase
-                          ? QuizColors.gold
-                          : Colors.white38,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w900,
-                    ),
+                const SizedBox(height: 1),
+                Text(
+                  activeQuiz.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    phase.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: phase == activePhase
-                          ? Colors.white
-                          : Colors.white38,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Text(
+              '${VocabLearningRules.questionCountFor(activeQuiz)} soal',
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          if (phase != VocabLearningPhase.values.last) const SizedBox(width: 6),
         ],
-      ],
+      ),
     );
   }
 }
