@@ -6,17 +6,12 @@ const { importPayments } = require("./handlers/importPayments");
 const { importMonthlyReports } = require("./handlers/importMonthlyReports");
 const { groupPengajarSantri } = require("./handlers/groupPengajarSantri");
 const {
-  notifyAssessmentWindowOpen,
-  notifyIncompleteAssessment,
+  scheduledAssessmentNotifications,
 } = require("./handlers/assessmentNotifier");
 const {
-  notifyPaymentDue,
-  notifyArrearsMidMonth,
-  notifyArrearsMonthEnd,
+  scheduledPaymentNotifications,
 } = require("./handlers/paymentNotifier");
-const {
-  cleanupExpiredSyahadah,
-} = require("./handlers/cleanupExpiredSyahadah");
+const { cleanupExpiredSyahadah } = require("./handlers/cleanupExpiredSyahadah");
 const { guestLookup } = require("./handlers/guestLookup");
 const { transcribeRecitation } = require("./handlers/transcribeRecitation");
 const {
@@ -35,17 +30,16 @@ exports.importPayments = importPayments;
 exports.importMonthlyReports = importMonthlyReports;
 exports.groupPengajarSantri = groupPengajarSantri;
 
-// Notifikasi penilaian bulanan (penjadwal harian 19:30 WIB).
-exports.notifyAssessmentWindowOpen = notifyAssessmentWindowOpen;
-exports.notifyIncompleteAssessment = notifyIncompleteAssessment;
+// Hanya tiga export scheduler. Nama dua export lama dipertahankan agar deploy
+// memperbarui fungsi yang sudah ada, bukan membuat scheduler tambahan.
 
-// Notifikasi SPP santri reguler (penjadwal 08:00 WIB):
-// tgl 5 ajakan bayar, tgl 15 & 3 hari sebelum akhir bulan pengingat tunggakan.
-exports.notifyPaymentDue = notifyPaymentDue;
-exports.notifyArrearsMidMonth = notifyArrearsMidMonth;
-exports.notifyArrearsMonthEnd = notifyArrearsMonthEnd;
+// #1 Penilaian bulanan: semua kondisi, tiap hari 19:30 WIB.
+exports.notifyAssessmentWindowOpen = scheduledAssessmentNotifications;
 
-// Pembersih foto kelulusan kedaluwarsa (>7 hari), jalan tiap Senin 03:00 WIB.
+// #2 SPP: semua kondisi tanggal, tiap hari 08:00 WIB.
+exports.notifyArrearsMonthEnd = scheduledPaymentNotifications;
+
+// #3 Pembersih foto kelulusan kedaluwarsa, tiap Senin 03:00 WIB.
 exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
 
 // Endpoint guest web (read-only): cek pembayaran & penilaian terakhir by NIS.

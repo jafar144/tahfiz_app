@@ -4,13 +4,17 @@ const { SCHEDULE_OPTIONS } = require("../lib/config");
 const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
 const { sendToUid } = require("../lib/messaging");
 const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
+const {
+  PAYMENT_DUE_DAY,
+  ARREARS_MID_DAY,
+  ARREARS_MONTH_END_DAYS_REMAINING,
+  PAYMENT_JOBS,
+  paymentJobNames,
+  runScheduledJobs,
+} = require("../lib/notificationSchedule");
 
-// Notif #1: tiap tanggal 5 → ajakan bayar SPP bulan ini.
-const PAYMENT_DUE_DAY = 5;
-// Notif #2: tiap tanggal 15 → pengingat tunggakan.
-const ARREARS_MID_DAY = 15;
-// Notif #3: 3 hari sebelum akhir bulan (daysRemaining == 3) → pengingat tunggakan.
-const MONTH_END_DAYS_REMAINING = 3;
+// Ketiga kebutuhan pembayaran berbagi satu scheduler harian dan dipilih dari
+// tanggal Jakarta sebelum query Firestore dijalankan.
 
 // Reads penuh (santri_profiles + payments) butuh kelonggaran timeout.
 const PAYMENT_SCHEDULE_OPTIONS = { ...SCHEDULE_OPTIONS, timeoutSeconds: 300 };
@@ -83,42 +87,40 @@ async function runArrearsMidMonth(parts = jakartaDateParts()) {
 
 // 3 hari sebelum akhir bulan: jalankan pengingat tunggakan.
 async function runArrearsMonthEnd(parts = jakartaDateParts()) {
-  if (parts.daysRemaining !== MONTH_END_DAYS_REMAINING) {
+  if (parts.daysRemaining !== ARREARS_MONTH_END_DAYS_REMAINING) {
     logger.info(`[arrearsEnd] dilewati (sisa ${parts.daysRemaining} hari).`);
     return { skipped: true };
   }
   return sendArrearsReminders(parts);
 }
 
-// Penjadwal (zona Jakarta, 08:00 WIB). Tanggal tetap (5, 15) pakai cron langsung;
-// akhir bulan dievaluasi harian karena tanggalnya bergeser tiap bulan.
-const notifyPaymentDue = onSchedule(
-  { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8 5 * *" },
-  async () => {
-    await runPaymentDue();
+async function runPaymentNotifications(
+  parts = jakartaDateParts(),
+  runners = {
+    [PAYMENT_JOBS.paymentDue]: runPaymentDue,
+    [PAYMENT_JOBS.arrearsMidMonth]: runArrearsMidMonth,
+    [PAYMENT_JOBS.arrearsMonthEnd]: runArrearsMonthEnd,
   }
-);
-
-const notifyArrearsMidMonth = onSchedule(
-  { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8 15 * *" },
-  async () => {
-    await runArrearsMidMonth();
+) {
+  const jobNames = paymentJobNames(parts);
+  if (!jobNames.length) {
+    logger.info(`[paymentSchedule] tidak ada tugas pada tanggal ${parts.day}.`);
   }
-);
+  return runScheduledJobs(jobNames, runners, parts);
+}
 
-const notifyArrearsMonthEnd = onSchedule(
+// Satu penjadwal harian 08:00 WIB menangani seluruh notifikasi pembayaran.
+const scheduledPaymentNotifications = onSchedule(
   { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8 * * *" },
   async () => {
-    await runArrearsMonthEnd();
+    await runPaymentNotifications();
   }
 );
 
 module.exports = {
-  notifyPaymentDue,
-  notifyArrearsMidMonth,
-  notifyArrearsMonthEnd,
-  // diekspor untuk pengujian manual
+  scheduledPaymentNotifications,
   runPaymentDue,
   runArrearsMidMonth,
   runArrearsMonthEnd,
+  runPaymentNotifications,
 };

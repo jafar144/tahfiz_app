@@ -110,19 +110,30 @@ Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
 Penjadwal mengirim notifikasi lewat token di koleksi `device_tokens` (per `uid`).
 Perhitungan tanggal memakai zona **WIB** (`lib/jakartaTime.js`).
 
-- **Penilaian bulanan asatidz** (`assessmentNotifier.js`, harian 19:30 WIB):
-  - `notifyAssessmentWindowOpen` — saat window penilaian dibuka (broadcast asatidz).
-  - `notifyIncompleteAssessment` — pengingat penilaian belum lengkap (per asatidz).
+Jumlah fungsi terjadwal dibatasi menjadi **3 scheduler**. Dua scheduler notifikasi
+berjalan harian dan memilih job lewat kondisi tanggal; satu scheduler lain tetap
+menangani cleanup mingguan:
+
+1. `notifyAssessmentWindowOpen` — koordinator penilaian, harian **19:30 WIB**:
+   - H-6 akhir bulan: broadcast bahwa window penilaian dibuka.
+   - H-1 dan hari terakhir: pengingat penilaian belum lengkap per asatidz.
+2. `notifyArrearsMonthEnd` — koordinator SPP, harian **08:00 WIB**:
+   - Tanggal 5: ajakan membayar SPP bulan berjalan.
+   - Tanggal 15: pengingat tunggakan.
+   - H-3 akhir bulan: pengingat tunggakan.
+3. `cleanupExpiredSyahadah` — cleanup foto kelulusan, Senin **03:00 WIB**.
+
+Nama scheduler #1 dan #2 mempertahankan export lama agar deploy memperbarui
+fungsi yang sudah ada tanpa membuat scheduler keempat.
+
+Saat deploy pertama dari versi enam scheduler, pastikan menyetujui penghapusan
+`notifyIncompleteAssessment`, `notifyPaymentDue`, dan
+`notifyArrearsMidMonth`. Ketiganya sudah digantikan koordinator di atas dan
+tidak boleh dibiarkan aktif karena dapat mengirim notifikasi ganda.
 
 - **SPP santri** (`paymentNotifier.js`, 08:00 WIB) — hanya **santri reguler aktif**:
   `is_active == true` dan **tidak sedang gratis** (`free_until` kosong atau sudah
   lewat; yang `free_until`-nya masih di masa depan dilewati).
-  - `notifyPaymentDue` — **tiap tanggal 5**: ajakan membayar SPP bulan berjalan
-    (broadcast ke semua santri reguler, ada catatan "abaikan jika sudah bayar").
-  - `notifyArrearsMidMonth` — **tiap tanggal 15**: pengingat **tunggakan** (bulan
-    berjalan + bulan-bulan sebelumnya yang belum ada dokumen `payments`).
-  - `notifyArrearsMonthEnd` — **3 hari sebelum akhir bulan**: pengingat tunggakan
-    yang sama (penjadwal harian, mengirim saat sisa hari = 3).
   - Bulan mulai tagih = bulan `tanggal_masuk`, atau bulan **setelah** `free_until`
     bila masa gratis sudah lewat — konsisten dengan `PaymentUtils.resolveStartDate`
     di app. `bulan`/`tahun` pada `payments` dinormalisasi ke angka (data campur

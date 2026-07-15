@@ -4,19 +4,21 @@ const { SCHEDULE_OPTIONS } = require("../lib/config");
 const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
 const { sendToRole, sendToUid } = require("../lib/messaging");
 const { computeIncompleteAsatidz } = require("../lib/assessmentStatus");
+const {
+  ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING,
+  ASSESSMENT_LAST_DAYS_THRESHOLD,
+  ASSESSMENT_JOBS,
+  assessmentJobNames,
+  runScheduledJobs,
+} = require("../lib/notificationSchedule");
 
-// Hari (sisa) saat window penilaian dibuka. Konsisten dengan app:
-// MonthlyReportCubit.checkIsInWindow → windowStart = lastDay - 6 hari,
-// sehingga pada hari pembukaan daysRemaining == 6.
-const WINDOW_OPEN_DAYS_REMAINING = 6;
-
-// Dua hari terakhir bulan: daysRemaining 1 (sehari sebelum) & 0 (hari terakhir).
-const LAST_DAYS_THRESHOLD = 1;
+// Kedua kebutuhan penilaian berbagi satu scheduler dan dipilih berdasarkan
+// posisi tanggal terhadap akhir bulan di zona Jakarta.
 
 // --- Notif #1: pemberitahuan window penilaian dibuka (broadcast ke asatidz) ---
 async function runWindowOpen(parts = jakartaDateParts()) {
   const { month, year, daysRemaining } = parts;
-  if (daysRemaining !== WINDOW_OPEN_DAYS_REMAINING) {
+  if (daysRemaining !== ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING) {
     logger.info(`[windowOpen] dilewati (sisa ${daysRemaining} hari).`);
     return { skipped: true };
   }
@@ -39,7 +41,7 @@ async function runWindowOpen(parts = jakartaDateParts()) {
 // --- Notif #2: pengingat penilaian belum lengkap (per asatidz) ---
 async function runIncomplete(parts = jakartaDateParts()) {
   const { month, year, daysRemaining } = parts;
-  if (daysRemaining > LAST_DAYS_THRESHOLD) {
+  if (daysRemaining > ASSESSMENT_LAST_DAYS_THRESHOLD) {
     logger.info(`[incomplete] dilewati (sisa ${daysRemaining} hari).`);
     return { skipped: true };
   }
@@ -70,26 +72,31 @@ async function runIncomplete(parts = jakartaDateParts()) {
   return { notified };
 }
 
-// Penjadwal: tiap hari 19:30 WIB. Fungsi memutuskan sendiri apakah hari ini
-// perlu mengirim, berdasarkan posisi tanggal dalam bulan (zona Jakarta).
-const notifyAssessmentWindowOpen = onSchedule(
-  { ...SCHEDULE_OPTIONS, schedule: "30 19 * * *" },
-  async () => {
-    await runWindowOpen();
+async function runAssessmentNotifications(
+  parts = jakartaDateParts(),
+  runners = {
+    [ASSESSMENT_JOBS.windowOpen]: runWindowOpen,
+    [ASSESSMENT_JOBS.incomplete]: runIncomplete,
   }
-);
+) {
+  const jobNames = assessmentJobNames(parts);
+  if (!jobNames.length) {
+    logger.info(`[assessmentSchedule] tidak ada tugas pada tanggal ${parts.day}.`);
+  }
+  return runScheduledJobs(jobNames, runners, parts);
+}
 
-const notifyIncompleteAssessment = onSchedule(
+// Satu penjadwal harian 19:30 WIB menangani kedua notifikasi penilaian.
+const scheduledAssessmentNotifications = onSchedule(
   { ...SCHEDULE_OPTIONS, schedule: "30 19 * * *" },
   async () => {
-    await runIncomplete();
+    await runAssessmentNotifications();
   }
 );
 
 module.exports = {
-  notifyAssessmentWindowOpen,
-  notifyIncompleteAssessment,
-  // diekspor untuk pengujian manual
+  scheduledAssessmentNotifications,
   runWindowOpen,
   runIncomplete,
+  runAssessmentNotifications,
 };
