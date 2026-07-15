@@ -3,7 +3,7 @@ name: Release Android flavor to Google Play
 on:
   push:
     tags:
-      - "*-v*.*.*+*"
+      - '*-v*.*.*\+*'
   workflow_dispatch:
     inputs:
       flavor:
