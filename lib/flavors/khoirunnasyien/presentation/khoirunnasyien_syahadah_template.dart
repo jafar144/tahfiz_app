@@ -274,7 +274,7 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
             child: SizedBox(
               width: 460,
               child: Transform.rotate(
-                angle: -0.03,
+                angle: -0.01,
                 child: Text(
                   displayName,
                   style: GoogleFonts.breeSerif(
