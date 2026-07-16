@@ -25,6 +25,22 @@ void main() {
     expect(settings.extraSurahs, {77, 75, 74, 70, 69, 68});
   });
 
+  test('fiqih classes only apply from Mutawassith upward', () {
+    final curriculum = AppConfig.current.curriculum;
+
+    expect(curriculum.fiqihClassNames, ['Fiqih 1', 'Fiqih 2', 'Fiqih 3']);
+    expect(curriculum.isFiqihEligible('Tahsin Awwal'), isFalse);
+    expect(curriculum.isFiqihEligible('Tahsin Akhir'), isFalse);
+    expect(curriculum.isFiqihEligible('Mutawassith'), isTrue);
+    expect(curriculum.isFiqihEligible('Takhossus Akhir'), isTrue);
+    expect(
+      curriculum.normalizeFiqihClass('Mutawassith', ' Fiqih 2 '),
+      'Fiqih 2',
+    );
+    expect(curriculum.normalizeFiqihClass('Tahsin Akhir', 'Fiqih 1'), isNull);
+    expect(curriculum.normalizeFiqihClass('Mutawassith', 'Fiqih 4'), isNull);
+  });
+
   test('leaderboard exposes distinct quiz tiers, not curriculum classes', () {
     final tiers = QuizCurriculum.leaderboardTiers;
 

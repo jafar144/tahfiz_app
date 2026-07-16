@@ -36,6 +36,7 @@ class AsatidzSantriCubit extends Cubit<AsatidzSantriState> {
                 name: s.name,
                 nis: s.nis,
                 kelas: s.kelas,
+                kelasFiqih: s.kelasFiqih,
                 jenisKelamin: s.jenisKelamin,
                 isActive: s.isActive,
                 isFree: s.isFree,

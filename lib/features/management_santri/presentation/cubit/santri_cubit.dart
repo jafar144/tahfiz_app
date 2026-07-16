@@ -139,6 +139,7 @@ class SantriCubit extends Cubit<SantriState> {
         waliName: params.waliName,
         waliPhone: params.waliPhone,
         kelas: params.kelas,
+        kelasFiqih: params.kelasFiqih,
         tipeKelas: params.tipeKelas,
         entryDate: params.entryDate,
         isFree: params.isFree,

@@ -19,6 +19,8 @@ const khoirunnasyienCurriculum = InstitutionCurriculum(
     'Takhossus Akhir',
   ],
   classTypes: ['Pagi', 'Sore', 'Malam'],
+  fiqihClassNames: ['Fiqih 1', 'Fiqih 2', 'Fiqih 3'],
+  firstFiqihEligibleClass: 'Mutawassith',
   memorizationByClass: {
     'Mutawassith': MemorizationScope(juz: [30]),
     'Pra Takhossus Awal': MemorizationScope(

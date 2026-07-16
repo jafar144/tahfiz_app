@@ -176,6 +176,12 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                      label: 'Kelas',
                      value: detail.kelas,
                    ),
+                   if (detail.kelasFiqih != null)
+                     AiwaDetailInfoRow(
+                       icon: Icons.menu_book_outlined,
+                       label: 'Kelas Fiqih',
+                       value: detail.kelasFiqih!,
+                     ),
                    AiwaDetailInfoRow(
                      icon: Icons.category,
                      label: 'Tipe Kelas',
@@ -352,6 +358,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
       name: detail.name,
       nis: detail.nis,
       kelas: detail.kelas,
+      kelasFiqih: detail.kelasFiqih,
       jenisKelamin: detail.jenisKelamin,
       isActive: detail.isActive,
       isFree: detail.isFree,

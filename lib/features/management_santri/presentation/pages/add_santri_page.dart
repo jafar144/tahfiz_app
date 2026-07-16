@@ -38,6 +38,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
   DateTime? _birthDate;
   DateTime _entryDate = DateTime.now();
   String? _selectedClass; // Example: 'Kelas A'
+  String? _selectedFiqihClass;
   String? _classType; // Pagi, Sore, Malam
   DateTime? _freeUntil;
   bool _isFree = false;
@@ -109,6 +110,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
         waliName: _waliNameController.text,
         waliPhone: _waliPhoneController.text,
         kelas: _selectedClass!,
+        kelasFiqih: _selectedFiqihClass,
         tipeKelas: _classType!,
         entryDate: _entryDate,
         isFree: _isFree,
@@ -204,6 +206,9 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         onTap: () {
                           setState(() {
                             _selectedClass = cls;
+                            if (!AppConstants.isFiqihEligible(cls)) {
+                              _selectedFiqihClass = null;
+                            }
                           });
                           Navigator.pop(context);
                         },
@@ -269,6 +274,52 @@ class _AddSantriPageState extends State<AddSantriPage> {
           }
         );
       },
+    );
+  }
+
+  void _showFiqihClassBottomSheet() async {
+    await UiUtils.dismissKeyboard(context);
+    if (!mounted) return;
+
+    final options = ['Belum ditentukan', ...AppConstants.fiqihClasses];
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'Pilih Kelas Fiqih',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              for (final option in options)
+                ListTile(
+                  title: Text(option, textAlign: TextAlign.center),
+                  trailing:
+                      (_selectedFiqihClass ?? 'Belum ditentukan') == option
+                      ? const Icon(Icons.check, color: Colors.blue)
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _selectedFiqihClass = option == 'Belum ditentukan'
+                          ? null
+                          : option;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -515,6 +566,15 @@ class _AddSantriPageState extends State<AddSantriPage> {
                           ),
                         ],
                       ),
+                      if (AppConstants.isFiqihEligible(_selectedClass)) ...[
+                        const SizedBox(height: 12),
+                        AiwaClickableInput(
+                          label: 'Kelas Fiqih (Opsional)',
+                          value: _selectedFiqihClass ?? 'Belum ditentukan',
+                          icon: Icons.menu_book_outlined,
+                          onTap: _showFiqihClassBottomSheet,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       AiwaClickableInput(
                         label: 'Tanggal Masuk',

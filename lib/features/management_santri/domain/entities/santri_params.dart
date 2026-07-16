@@ -10,6 +10,7 @@ class SantriParams {
   final String waliName;
   final String waliPhone;
   final String kelas;
+  final String? kelasFiqih;
   final String tipeKelas;
   final DateTime entryDate;
   final bool isFree; // Status Pembayaran (Gratis/Berbayar)
@@ -29,6 +30,7 @@ class SantriParams {
     required this.waliName,
     required this.waliPhone,
     required this.kelas,
+    this.kelasFiqih,
     required this.tipeKelas,
     required this.entryDate,
     required this.isFree,

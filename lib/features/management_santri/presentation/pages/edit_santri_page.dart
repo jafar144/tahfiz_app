@@ -37,6 +37,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
   late String _gender;
   DateTime? _birthDate;
   String? _selectedClass;
+  String? _selectedFiqihClass;
   String? _classType;
   late DateTime _entryDate;
   late bool _isFree;
@@ -68,6 +69,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
     _gender = widget.santri.jenisKelamin;
     _birthDate = widget.santri.tanggalLahir;
     _selectedClass = widget.santri.kelas;
+    _selectedFiqihClass = widget.santri.kelasFiqih;
     _classType = widget.santri.tipeKelas;
     _entryDate = widget.santri.tanggalMasuk ?? DateTime.now();
     _isFree = widget.santri.isFree;
@@ -304,6 +306,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
         waliName: _waliNameController.text,
         waliPhone: _waliPhoneController.text,
         kelas: _selectedClass!,
+        kelasFiqih: _selectedFiqihClass,
         tipeKelas: _classType!,
         entryDate: _entryDate,
         isFree: _isFree,
@@ -539,7 +542,12 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           onTap: () => _showSelectionSheet(
                             'Pilih Kelas',
                             AppConstants.santriClasses,
-                            (val) => setState(() => _selectedClass = val),
+                            (val) => setState(() {
+                              _selectedClass = val;
+                              if (!AppConstants.isFiqihEligible(val)) {
+                                _selectedFiqihClass = null;
+                              }
+                            }),
                           ),
                         ),
                       ),
@@ -558,6 +566,23 @@ class _EditSantriPageState extends State<EditSantriPage> {
                       ),
                     ],
                   ),
+                  if (AppConstants.isFiqihEligible(_selectedClass)) ...[
+                    const SizedBox(height: 12),
+                    AiwaClickableInput(
+                      label: 'Kelas Fiqih (Opsional)',
+                      value: _selectedFiqihClass ?? 'Belum ditentukan',
+                      icon: Icons.menu_book_outlined,
+                      onTap: () => _showSelectionSheet(
+                        'Pilih Kelas Fiqih',
+                        ['Belum ditentukan', ...AppConstants.fiqihClasses],
+                        (val) => setState(() {
+                          _selectedFiqihClass = val == 'Belum ditentukan'
+                              ? null
+                              : val;
+                        }),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   AiwaClickableInput(
                     label: 'Tanggal Masuk',

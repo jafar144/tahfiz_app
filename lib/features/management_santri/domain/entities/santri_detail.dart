@@ -3,6 +3,7 @@ class SantriDetail {
   final String name;
   final String nis;
   final String kelas;
+  final String? kelasFiqih;
   final String jenisKelamin;
   final bool isActive;
   final bool isFree;
@@ -24,6 +25,7 @@ class SantriDetail {
     required this.name,
     required this.nis,
     required this.kelas,
+    this.kelasFiqih,
     required this.jenisKelamin,
     required this.isActive,
     required this.isFree,

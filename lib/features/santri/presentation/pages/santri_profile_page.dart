@@ -38,7 +38,9 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
           }
 
           final user = state.user;
-          final kelas = context.watch<SantriHomeCubit>().state.santri?.kelas;
+          final santri = context.watch<SantriHomeCubit>().state.santri;
+          final kelas = santri?.kelas;
+          final kelasFiqih = santri?.kelasFiqih;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -46,7 +48,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
               children: [
                 _buildProfileHeader(user.name, user.nis),
                 const SizedBox(height: 24),
-                _buildInfoCard(context, user, kelas),
+                _buildInfoCard(context, user, kelas, kelasFiqih),
                 const SizedBox(height: 24),
                 _buildMenuSection(context),
                 const SizedBox(height: 24),
@@ -128,7 +130,12 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, dynamic user, String? kelas) {
+  Widget _buildInfoCard(
+    BuildContext context,
+    dynamic user,
+    String? kelas,
+    String? kelasFiqih,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -163,6 +170,14 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
             'Kelas',
             kelas?.trim().isNotEmpty == true ? kelas!.trim() : '-',
           ),
+          if (kelasFiqih?.trim().isNotEmpty == true) ...[
+            const Divider(height: 24),
+            _buildInfoRow(
+              Icons.menu_book_outlined,
+              'Kelas Fiqih',
+              kelasFiqih!.trim(),
+            ),
+          ],
         ],
       ),
     );

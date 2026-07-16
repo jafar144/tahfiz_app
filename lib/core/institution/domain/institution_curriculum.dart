@@ -5,6 +5,13 @@ class InstitutionCurriculum {
   final List<String> classTypes;
   final Map<String, MemorizationScope> memorizationByClass;
 
+  /// Jenjang kelas fiqih yang dapat dipilih pada profil santri.
+  final List<String> fiqihClassNames;
+
+  /// Kelas tahfiz pertama yang boleh memiliki kelas fiqih. Semua kelas pada
+  /// urutan [classNames] mulai dari kelas ini ikut dianggap memenuhi syarat.
+  final String? firstFiqihEligibleClass;
+
   /// Pemetaan kelas ke satu tingkat cakupan alternatif di bawahnya.
   final Map<String, String> previousChallengeClass;
 
@@ -12,6 +19,8 @@ class InstitutionCurriculum {
     required this.classNames,
     required this.classTypes,
     required this.memorizationByClass,
+    this.fiqihClassNames = const [],
+    this.firstFiqihEligibleClass,
     this.previousChallengeClass = const {},
   });
 
@@ -25,6 +34,21 @@ class InstitutionCurriculum {
     for (final className in classNames)
       if (memorizationByClass.containsKey(className)) className,
   ];
+
+  bool isFiqihEligible(String? className) {
+    if (className == null || firstFiqihEligibleClass == null) return false;
+    final selectedIndex = classNames.indexOf(className.trim());
+    final firstEligibleIndex = classNames.indexOf(firstFiqihEligibleClass!);
+    return firstEligibleIndex >= 0 && selectedIndex >= firstEligibleIndex;
+  }
+
+  String? normalizeFiqihClass(String? className, String? fiqihClass) {
+    final value = fiqihClass?.trim();
+    if (!isFiqihEligible(className) || !fiqihClassNames.contains(value)) {
+      return null;
+    }
+    return value;
+  }
 }
 
 /// Cakupan hafalan kumulatif sebuah kelas.

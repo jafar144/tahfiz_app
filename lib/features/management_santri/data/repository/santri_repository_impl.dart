@@ -62,6 +62,7 @@ class SantriRepositoryImpl implements SantriRepository {
         name: s.name,
         nis: s.nis,
         kelas: s.kelas,
+        kelasFiqih: s.kelasFiqih,
         jenisKelamin: s.jenisKelamin,
         isActive: s.isActive,
         isFree: s.isFree,
@@ -98,6 +99,7 @@ class SantriRepositoryImpl implements SantriRepository {
       name: detail.name,
       nis: detail.nis,
       kelas: detail.kelas,
+      kelasFiqih: detail.kelasFiqih,
       jenisKelamin: detail.jenisKelamin,
       isActive: detail.isActive,
       isFree: detail.isFree,
@@ -161,6 +163,7 @@ class SantriRepositoryImpl implements SantriRepository {
         name: s.name,
         nis: s.nis,
         kelas: s.kelas,
+        kelasFiqih: s.kelasFiqih,
         jenisKelamin: s.jenisKelamin,
         isActive: s.isActive,
         isFree: s.isFree,
@@ -175,6 +178,7 @@ class SantriRepositoryImpl implements SantriRepository {
       );
     }).toList();
   }
+
   @override
   Future<List<AsatidzEntity>> getAsatidzList() async {
     return await remote.getAsatidzList();

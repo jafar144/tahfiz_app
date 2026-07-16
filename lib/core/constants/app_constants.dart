@@ -6,5 +6,11 @@ class AppConstants {
 
   static List<String> get classTypes => AppConfig.current.curriculum.classTypes;
 
+  static List<String> get fiqihClasses =>
+      AppConfig.current.curriculum.fiqihClassNames;
+
+  static bool isFiqihEligible(String? santriClass) =>
+      AppConfig.current.curriculum.isFiqihEligible(santriClass);
+
   static const int sessionBufferMinutes = 30;
 }

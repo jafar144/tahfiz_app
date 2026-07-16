@@ -4,6 +4,9 @@ const { resetSantriPasswords } = require("./handlers/resetSantriPasswords");
 const { importSantri } = require("./handlers/importSantri");
 const { importPayments } = require("./handlers/importPayments");
 const { importMonthlyReports } = require("./handlers/importMonthlyReports");
+const {
+  migrateSantriFiqihClasses,
+} = require("./handlers/migrateSantriFiqihClasses");
 const { groupPengajarSantri } = require("./handlers/groupPengajarSantri");
 const {
   scheduledAssessmentNotifications,
@@ -28,6 +31,7 @@ exports.resetSantriPasswords = resetSantriPasswords;
 exports.importSantri = importSantri;
 exports.importPayments = importPayments;
 exports.importMonthlyReports = importMonthlyReports;
+exports.migrateSantriFiqihClasses = migrateSantriFiqihClasses;
 exports.groupPengajarSantri = groupPengajarSantri;
 
 // Hanya tiga export scheduler. Nama dua export lama dipertahankan agar deploy

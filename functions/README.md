@@ -224,6 +224,39 @@ https://asia-southeast2-khoirun-app.cloudfunctions.net/importMonthlyReports?appl
 - Semua data diambil dalam 1 query MySQL + 1 `get()` Firestore (field `name`, `nis` saja),
   diff dilakukan di memori. Untuk ribuan baris ini berjalan dalam hitungan detik.
 
+## Migrasi kelas Fiqih
+
+Migrasi ini mengisi `santri_profiles.kelas_fiqih = "Fiqih 1"` hanya untuk
+santri aktif mulai kelas Mutawassith. Nilai `Fiqih 1` sampai `Fiqih 3` yang sudah ada
+tidak ditimpa, sehingga aman dijalankan ulang.
+
+```bash
+cd functions
+npm run migrate:santri-fiqih
+npm run migrate:santri-fiqih -- --apply
+```
+
+Perintah pertama selalu dry-run. Periksa jumlah kandidat sebelum menjalankan
+perintah kedua.
+
+### Lewat link Cloud Function
+
+Set token sekali lalu deploy endpointnya:
+
+```bash
+firebase functions:secrets:set FIQIH_MIGRATION_TOKEN
+firebase deploy --only functions:migrateSantriFiqihClasses
+```
+
+Setelah deploy, buka dry-run berikut (ganti `TOKEN_RAHASIA`):
+
+```text
+https://asia-southeast2-khoirun-app.cloudfunctions.net/migrateSantriFiqihClasses?token=TOKEN_RAHASIA
+```
+
+Untuk menulis data, tambahkan `&apply=true`. Endpoint menolak request tanpa
+token dan tidak menimpa nilai Fiqih yang sudah ada.
+
 ## Test lokal (emulator)
 
 ```bash

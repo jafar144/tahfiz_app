@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/features/management_santri/data/datasource/santri_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
@@ -22,6 +23,18 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     if (freeUntil != null) return freeUntil.isAfter(DateTime.now());
     return data['is_free'] == true;
   }
+
+  static String? _fiqihClassFromData(Map<String, dynamic> data) {
+    final value = data['kelas_fiqih'];
+    if (value is! String || value.trim().isEmpty) return null;
+    return value.trim();
+  }
+
+  static String? _normalizedFiqihClass(SantriParams params) =>
+      AppConfig.current.curriculum.normalizeFiqihClass(
+        params.kelas,
+        params.kelasFiqih,
+      );
 
   @override
   Future<List<SantriEntity>> getSantriList({
@@ -70,6 +83,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             name: data['name'],
             nis: data['nis'],
             kelas: data['kelas'],
+            kelasFiqih: _fiqihClassFromData(data),
             jenisKelamin: data['jenis_kelamin'],
             isActive: data['is_active'] ?? true,
             isFree: _isFreeFromData(data),
@@ -129,6 +143,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           name: data['name'],
           nis: data['nis'],
           kelas: data['kelas'],
+          kelasFiqih: _fiqihClassFromData(data),
           jenisKelamin: data['jenis_kelamin'],
           isActive: data['is_active'] ?? true,
           isFree: _isFreeFromData(data),
@@ -185,6 +200,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         name: data['name'],
         nis: data['nis'],
         kelas: data['kelas'],
+        kelasFiqih: _fiqihClassFromData(data),
         jenisKelamin: data['jenis_kelamin'],
         isActive: data['is_active'] ?? true,
         isFree: _isFreeFromData(data),
@@ -234,6 +250,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             name: data['name'],
             nis: data['nis'],
             kelas: data['kelas'],
+            kelasFiqih: _fiqihClassFromData(data),
             jenisKelamin: data['jenis_kelamin'],
             isActive: data['is_active'] ?? true,
             isFree: isCurrentlyFree,
@@ -276,6 +293,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       name: data['name'] ?? '',
       nis: data['nis'] ?? '',
       kelas: data['kelas'] ?? '',
+      kelasFiqih: _fiqihClassFromData(data),
       jenisKelamin: data['jenis_kelamin'] ?? '',
       isActive: data['is_active'] ?? true,
       isFree: isFree,
@@ -295,6 +313,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   @override
   Future<void> addSantri(SantriParams params) async {
     final email = '${params.nis}@khoirunnasyien.app';
+    final kelasFiqih = _normalizedFiqihClass(params);
     // Password format: YYYYMMDD
     final birthDate = params.birthDate;
     final password = '${birthDate.year}${birthDate.month.toString().padLeft(2, '0')}${birthDate.day.toString().padLeft(2, '0')}';
@@ -334,6 +353,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         )) : null,
         'jenis_kelamin': params.jenisKelamin,
         'kelas': params.kelas,
+        'kelas_fiqih': ?kelasFiqih,
         'nama_wali': params.waliName,
         'nomor_wali': params.waliPhone,
         'name': params.name,
@@ -354,6 +374,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   @override
   Future<void> updateSantri(String id, SantriParams params) async {
     final docRef = firestore.collection('santri_profiles').doc(id);
+    final kelasFiqih = _normalizedFiqihClass(params);
 
     // Catat kapan santri keluar untuk laporan mutasi. tanggal_keluar hanya
     // di-set saat transisi aktif → nonaktif (bukan tiap edit), dan dihapus
@@ -366,6 +387,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'name': params.name,
       'nis': params.nis,
       'kelas': params.kelas,
+      'kelas_fiqih': kelasFiqih ?? FieldValue.delete(),
       'jenis_kelamin': params.jenisKelamin,
       'is_active': params.isActive,
       'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
@@ -447,6 +469,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           name: data['name'] ?? '',
           nis: data['nis'] ?? '',
           kelas: data['kelas'] ?? '',
+          kelasFiqih: _fiqihClassFromData(data),
           jenisKelamin: data['jenis_kelamin'] ?? '',
           isActive: data['is_active'] ?? true,
           isFree: isFree,

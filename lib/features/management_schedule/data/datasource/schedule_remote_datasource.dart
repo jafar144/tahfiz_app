@@ -271,6 +271,7 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
         name: data['name'] ?? '',
         nis: data['nis'] ?? '',
         kelas: data['kelas'] ?? '',
+        kelasFiqih: (data['kelas_fiqih'] as String?)?.trim(),
         jenisKelamin: data['jenis_kelamin'] ?? '',
         isActive: data['is_active'] ?? true,
         isFree: freeUntil != null && freeUntil.isAfter(now),
