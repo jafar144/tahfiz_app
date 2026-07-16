@@ -4,7 +4,7 @@ import 'package:khoirunnasyien/features/home/presentation/widgets/info_card.dart
 
 void main() {
   testWidgets(
-    'card sedikit lebih lebar, bisa diketuk, dan seluruh transisi bergerak turun',
+    'card ringkas, detail berupa badge ikon, dan indikator tersusun vertikal',
     (tester) async {
       var displayIndex = 0;
 
@@ -20,8 +20,18 @@ void main() {
                     color: Colors.blue,
                     displayIndex: displayIndex,
                     details: const [
-                      InfoCardDetail(label: 'Sore', value: 72),
-                      InfoCardDetail(label: 'Malam', value: 48),
+                      InfoCardDetail(
+                        label: 'Sore',
+                        value: 72,
+                        icon: Icons.wb_twilight,
+                        color: Colors.deepOrange,
+                      ),
+                      InfoCardDetail(
+                        label: 'Malam',
+                        value: 48,
+                        icon: Icons.nights_stay_outlined,
+                        color: Colors.indigo,
+                      ),
                     ],
                     masuk: 3,
                     keluar: 1,
@@ -35,9 +45,13 @@ void main() {
         ),
       );
 
-      expect(tester.getSize(find.byType(InfoCard)).width, 152);
+      expect(tester.getSize(find.byType(InfoCard)).width, 140);
       expect(find.text('Santri Putra'), findsOneWidget);
       expect(find.text('120'), findsOneWidget);
+      final indicatorSize = tester.getSize(
+        find.byKey(const ValueKey('info-card-face-indicator')),
+      );
+      expect(indicatorSize.height, greaterThan(indicatorSize.width));
 
       await tester.tap(find.byType(InfoCard));
       await tester.pump();
@@ -59,16 +73,24 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      expect(find.text('Rincian Sesi'), findsOneWidget);
+      expect(find.text('Rincian Sesi'), findsNothing);
+      expect(find.byIcon(Icons.wb_twilight), findsOneWidget);
       expect(find.text('Sore'), findsOneWidget);
       expect(find.text('72'), findsOneWidget);
+      expect(find.byIcon(Icons.nights_stay_outlined), findsOneWidget);
       expect(find.text('Malam'), findsOneWidget);
       expect(find.text('48'), findsOneWidget);
 
       await tester.tap(find.byType(InfoCard));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Mutasi'), findsOneWidget);
+      expect(find.text('30 hari terakhir'), findsNothing);
+      expect(find.text('30 hari'), findsOneWidget);
+      expect(find.byIcon(Icons.history_rounded), findsNothing);
+      expect(find.byIcon(Icons.person_add_alt_1_rounded), findsOneWidget);
+      expect(find.text('Masuk'), findsNothing);
       expect(find.text('3'), findsOneWidget);
+      expect(find.byIcon(Icons.person_remove_alt_1_rounded), findsOneWidget);
+      expect(find.text('Keluar'), findsNothing);
       expect(find.text('1'), findsOneWidget);
 
       await tester.tap(find.byType(InfoCard));

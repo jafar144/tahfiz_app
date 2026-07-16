@@ -5,8 +5,15 @@ import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 class InfoCardDetail {
   final String label;
   final int value;
+  final IconData icon;
+  final Color color;
 
-  const InfoCardDetail({required this.label, required this.value});
+  const InfoCardDetail({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 }
 
 class InfoCard extends StatelessWidget {
@@ -15,7 +22,7 @@ class InfoCard extends StatelessWidget {
   final IconData icon;
   final Color? color;
 
-  /// Rincian dua sesi yang ditampilkan pada wajah kedua.
+  /// Ringkasan dua sesi berbentuk badge ikon pada wajah kedua.
   final List<InfoCardDetail> details;
 
   /// Mutasi 30 hari terakhir. Bila salah satu diisi, kartu bisa bergantian
@@ -59,7 +66,7 @@ class InfoCard extends StatelessWidget {
     final activeFace = _activeFace;
 
     return Container(
-      width: 152,
+      width: 140,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -78,19 +85,19 @@ class InfoCard extends StatelessWidget {
           onTap: _faces.length > 1 ? onTap : null,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
                         color: effectiveColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, color: effectiveColor, size: 22),
+                      child: Icon(icon, color: effectiveColor, size: 20),
                     ),
                     const Spacer(),
                     if (_faces.length > 1)
@@ -101,10 +108,10 @@ class InfoCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 // Tinggi dikunci agar card tidak berubah ukuran antartampilan.
                 SizedBox(
-                  height: 56,
+                  height: 60,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 520),
                     switchInCurve: Curves.easeOutCubic,
@@ -116,9 +123,6 @@ class InfoCard extends StatelessWidget {
                       );
                     },
                     transitionBuilder: (child, animation) {
-                      // Satu transition harus membedakan animasi maju dan
-                      // reverse. Saat masuk, posisi bergerak dari atas ke
-                      // tengah; saat keluar, dari tengah ke bawah.
                       return AnimatedBuilder(
                         animation: animation,
                         child: child,
@@ -142,7 +146,7 @@ class InfoCard extends StatelessWidget {
                         },
                       );
                     },
-                    child: _face(activeFace, effectiveColor),
+                    child: _face(activeFace),
                   ),
                 ),
               ],
@@ -153,9 +157,9 @@ class InfoCard extends StatelessWidget {
     );
   }
 
-  Widget _face(String face, Color color) {
+  Widget _face(String face) {
     return switch (face) {
-      'details' => _detailsFace(color),
+      'details' => _detailsFace(),
       'mutasi' => _mutasiFace(),
       _ => _totalFace(),
     };
@@ -168,109 +172,175 @@ class InfoCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(title, style: AppTextStyles.infoGrey.copyWith(height: 1)),
+        const SizedBox(height: 3),
         Text(value, style: AppTextStyles.titleBlack.copyWith(height: 1.05)),
       ],
     );
   }
 
-  Widget _detailsFace(Color color) {
+  Widget _detailsFace() {
     final visibleDetails = details.take(2).toList(growable: false);
-    return Column(
+    return Align(
       key: const ValueKey('details'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('Rincian Sesi', style: AppTextStyles.infoGrey.copyWith(height: 1)),
-        const SizedBox(height: 3),
-        Row(
+      alignment: Alignment.centerLeft,
+      child: Transform.translate(
+        offset: const Offset(0, -5),
+        child: Row(
           children: [
             for (var index = 0; index < visibleDetails.length; index++) ...[
-              if (index > 0) const SizedBox(width: 10),
-              Expanded(
-                child: _SessionMetric(
-                  detail: visibleDetails[index],
-                  color: color,
-                ),
-              ),
+              if (index > 0) const SizedBox(width: 6),
+              Expanded(child: _SessionMetric(detail: visibleDetails[index])),
             ],
           ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _mutasiFace() {
-    return Column(
+    return Semantics(
       key: const ValueKey('mutasi'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Mutasi · 30 hari',
-          style: AppTextStyles.infoGrey.copyWith(height: 1),
-        ),
-        const SizedBox(height: 4),
-        Row(
+      label: 'Mutasi 30 hari terakhir',
+      container: true,
+      child: SizedBox.expand(
+        child: Stack(
           children: [
-            _delta(Icons.arrow_upward_rounded, masuk ?? 0, AppColors.success),
-            const SizedBox(width: 14),
-            _delta(Icons.arrow_downward_rounded, keluar ?? 0, AppColors.error),
+            Align(
+              alignment: Alignment.center,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _MutationMetric(
+                        label: 'Masuk',
+                        count: masuk ?? 0,
+                        icon: Icons.person_add_alt_1_rounded,
+                        color: AppColors.success,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _MutationMetric(
+                        label: 'Keluar',
+                        count: keluar ?? 0,
+                        icon: Icons.person_remove_alt_1_rounded,
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Positioned(
+              right: 0,
+              bottom: 0,
+              child: Text(
+                '30 hari',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 8,
+                  height: 1,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
+}
 
-  Widget _delta(IconData icon, int count, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 1),
-        Text(
-          '$count',
-          style: TextStyle(
-            fontSize: 19,
-            fontWeight: FontWeight.bold,
-            color: color,
+class _MutationMetric extends StatelessWidget {
+  final String label;
+  final int count;
+  final IconData icon;
+  final Color color;
+
+  const _MutationMetric({
+    required this.label,
+    required this.count,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: '$label: $count santri',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 26,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 14, color: color),
           ),
-        ),
-      ],
+          const SizedBox(height: 1),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontSize: 17,
+              height: 1,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _SessionMetric extends StatelessWidget {
   final InfoCardDetail detail;
-  final Color color;
 
-  const _SessionMetric({required this.detail, required this.color});
+  const _SessionMetric({required this.detail});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Flexible(
-          child: Text(
-            detail.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: Colors.black45,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: detail.color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(detail.icon, size: 14, color: detail.color),
+                const SizedBox(width: 4),
+                Text(
+                  detail.label,
+                  style: TextStyle(
+                    color: detail.color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 3),
+        const SizedBox(height: 4),
         Text(
           '${detail.value}',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 17,
             height: 1,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: Colors.black87,
           ),
         ),
       ],
@@ -291,15 +361,16 @@ class _FaceIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      key: const ValueKey('info-card-face-indicator'),
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var index = 0; index < count; index++)
           AnimatedContainer(
             duration: const Duration(milliseconds: 220),
-            width: index == activeIndex ? 10 : 4,
-            height: 4,
-            margin: const EdgeInsets.only(left: 3),
+            width: 4,
+            height: index == activeIndex ? 10 : 4,
+            margin: EdgeInsets.only(top: index == 0 ? 0 : 3),
             decoration: BoxDecoration(
               color: color.withValues(
                 alpha: index == activeIndex ? 0.85 : 0.18,

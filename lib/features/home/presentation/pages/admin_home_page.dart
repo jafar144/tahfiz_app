@@ -133,10 +133,14 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                   InfoCardDetail(
                                     label: 'Sore',
                                     value: displayData.santriPutraSore,
+                                    icon: Icons.wb_twilight,
+                                    color: Colors.deepOrange.shade700,
                                   ),
                                   InfoCardDetail(
                                     label: 'Malam',
                                     value: displayData.santriPutraMalam,
+                                    icon: Icons.nights_stay_outlined,
+                                    color: Colors.indigo.shade700,
                                   ),
                                 ],
                                 masuk: displayData.masukPutra,
@@ -149,16 +153,20 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                 value: _formatValue(
                                   displayData.totalSantriPutri,
                                 ),
-                                color: Colors.pink,
+                                color: Colors.red,
                                 displayIndex: _santriInfoIndex,
                                 details: [
                                   InfoCardDetail(
                                     label: 'Pagi',
                                     value: displayData.santriPutriPagi,
+                                    icon: Icons.wb_sunny_outlined,
+                                    color: Colors.orange.shade700,
                                   ),
                                   InfoCardDetail(
                                     label: 'Sore',
                                     value: displayData.santriPutriSore,
+                                    icon: Icons.wb_twilight,
+                                    color: Colors.deepOrange.shade700,
                                   ),
                                 ],
                                 masuk: displayData.masukPutri,
