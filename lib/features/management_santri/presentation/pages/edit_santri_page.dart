@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
@@ -89,14 +90,20 @@ class _EditSantriPageState extends State<EditSantriPage> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context, bool isBirthDate, {bool isFreeUntil = false}) async {
+  Future<void> _selectDate(
+    BuildContext context,
+    bool isBirthDate, {
+    bool isFreeUntil = false,
+  }) async {
     await UiUtils.dismissKeyboard(context);
 
     if (!context.mounted) return;
 
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isFreeUntil ? (_freeUntil ?? DateTime.now()) : (isBirthDate ? (_birthDate ?? DateTime(2010)) : _entryDate),
+      initialDate: isFreeUntil
+          ? (_freeUntil ?? DateTime.now())
+          : (isBirthDate ? (_birthDate ?? DateTime(2010)) : _entryDate),
       firstDate: DateTime(1990),
       lastDate: isFreeUntil ? DateTime(2050) : DateTime.now(),
       builder: (context, child) {
@@ -131,7 +138,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
   ) async {
     await UiUtils.dismissKeyboard(context);
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -184,19 +191,57 @@ class _EditSantriPageState extends State<EditSantriPage> {
     final file = await ImageUtils.pickImage(ImageSource.gallery);
     if (file == null) return;
 
-    setState(() => _isPickingPhoto = true);
-
     try {
-      final compressed = await ImageUtils.compressImage(file);
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: file.path,
+        // Sama dengan rasio bidang foto pada template syahadah (500 x 560).
+        // Rasio dikunci agar semua foto santri memiliki komposisi seragam.
+        aspectRatio: const CropAspectRatio(ratioX: 25, ratioY: 28),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 95,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Atur Foto Santri',
+            toolbarColor: const Color(0xFF004AAD),
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: const Color(0xFF004AAD),
+            lockAspectRatio: true,
+            showCropGrid: true,
+          ),
+          IOSUiSettings(
+            title: 'Atur Foto Santri',
+            doneButtonTitle: 'Simpan',
+            cancelButtonTitle: 'Batal',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+          ),
+        ],
+      );
+      if (croppedFile == null || !mounted) return;
+
+      setState(() => _isPickingPhoto = true);
+
+      final compressed = await ImageUtils.compressImage(File(croppedFile.path));
+      if (!mounted) return;
+
       if (compressed != null) {
         setState(() {
           _localPhotoFile = compressed;
           _photoRemoved = false;
         });
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto gagal diproses. Silakan coba lagi.'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -266,10 +311,14 @@ class _EditSantriPageState extends State<EditSantriPage> {
       final scheduleRepo = getIt<ScheduleRepository>();
       bool leaveHalaqah = false;
       if (!_isActive) {
-        final halaqahResult =
-            await scheduleRepo.getHalaqahBySantriId(widget.santri.id);
+        final halaqahResult = await scheduleRepo.getHalaqahBySantriId(
+          widget.santri.id,
+        );
         if (!mounted) return;
-        final halaqah = halaqahResult.fold(ifLeft: (_) => null, ifRight: (h) => h);
+        final halaqah = halaqahResult.fold(
+          ifLeft: (_) => null,
+          ifRight: (h) => h,
+        );
         if (halaqah != null) {
           final confirmed = await _confirmLeaveHalaqah(halaqah.name);
           if (!mounted || confirmed != true) return;
@@ -281,15 +330,21 @@ class _EditSantriPageState extends State<EditSantriPage> {
 
       // Keluarkan santri dari halaqah lebih dulu (bila dikonfirmasi).
       if (leaveHalaqah) {
-        final removeResult =
-            await scheduleRepo.removeSantriFromHalaqah(widget.santri.id);
+        final removeResult = await scheduleRepo.removeSantriFromHalaqah(
+          widget.santri.id,
+        );
         if (!mounted) return;
-        final failure = removeResult.fold(ifLeft: (f) => f, ifRight: (_) => null);
+        final failure = removeResult.fold(
+          ifLeft: (f) => f,
+          ifRight: (_) => null,
+        );
         if (failure != null) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Gagal mengeluarkan dari halaqah: ${failure.message}'),
+              content: Text(
+                'Gagal mengeluarkan dari halaqah: ${failure.message}',
+              ),
             ),
           );
           return;
@@ -311,7 +366,9 @@ class _EditSantriPageState extends State<EditSantriPage> {
         entryDate: _entryDate,
         isFree: _isFree,
         isActive: _isActive,
-        freeUntil: _isFree ? (_freeUntil ?? DateTime(DateTime.now().year + 7)) : null,
+        freeUntil: _isFree
+            ? (_freeUntil ?? DateTime(DateTime.now().year + 7))
+            : null,
         localPhotoFile: _localPhotoFile,
         photoUrl: _photoUrl,
         removePhoto: _photoRemoved,
@@ -373,43 +430,63 @@ class _EditSantriPageState extends State<EditSantriPage> {
                                     fit: BoxFit.cover,
                                   )
                                 : (_photoUrl != null && !_photoRemoved)
-                                    ? DecorationImage(
-                                        image: NetworkImage(_photoUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
+                                ? DecorationImage(
+                                    image: NetworkImage(_photoUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
                           child: !_hasPhoto
-                              ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.grey,
+                                )
                               : null,
                         ),
                         if (_isPickingPhoto)
                           const Positioned.fill(
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            child: Center(child: CircularProgressIndicator()),
                           ),
                         Positioned(
                           bottom: 0,
                           right: 0,
                           child: GestureDetector(
-                            onTap: _isPickingPhoto
-                                ? null
-                                : (_hasPhoto ? _removePhoto : _pickImage),
+                            onTap: _isPickingPhoto ? null : _pickImage,
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _hasPhoto ? Colors.red.shade400 : Colors.blue,
+                                color: Colors.blue,
                               ),
                               child: Icon(
-                                _hasPhoto ? Icons.close : Icons.camera_alt,
+                                _hasPhoto ? Icons.edit : Icons.camera_alt,
                                 color: Colors.white,
                                 size: 20,
                               ),
                             ),
                           ),
                         ),
+                        if (_hasPhoto)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _isPickingPhoto ? null : _removePhoto,
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.red.shade400,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -667,7 +744,11 @@ class _EditSantriPageState extends State<EditSantriPage> {
                             setState(() {
                               _isFree = true;
                               // Only set default if null
-                              _freeUntil ??= DateTime(DateTime.now().year + 7, DateTime.now().month, DateTime.now().day);
+                              _freeUntil ??= DateTime(
+                                DateTime.now().year + 7,
+                                DateTime.now().month,
+                                DateTime.now().day,
+                              );
                             });
                           },
                           activeColor: Colors.orange,
@@ -683,14 +764,15 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           ? 'Pilih Tanggal'
                           : DateFormat('dd MMMM yyyy').format(_freeUntil!),
                       icon: Icons.event,
-                      onTap: () => _selectDate(context, false, isFreeUntil: true),
+                      onTap: () =>
+                          _selectDate(context, false, isFreeUntil: true),
                     ),
                   ],
                   const SizedBox(height: 24),
                   AiwaButton(
                     text: 'Simpan Perubahan',
-                    onPressed: _submit,
-                    isLoading: _isLoading,
+                    onPressed: _isPickingPhoto ? null : _submit,
+                    isLoading: _isLoading || _isPickingPhoto,
                     height: 48,
                   ),
                   const SizedBox(height: 16),
