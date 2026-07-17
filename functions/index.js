@@ -25,6 +25,7 @@ const {
   grantQuizEnergy,
 } = require("./handlers/quizEnergy");
 const { setAppFeatureConfig } = require("./handlers/appConfig");
+const { deleteKelulusanPhoto } = require("./handlers/kelulusanAdmin");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -69,3 +70,6 @@ exports.grantQuizEnergy = grantQuizEnergy;
 
 // App Config runtime. Penulisan hanya diizinkan untuk admin oleh handler.
 exports.setAppFeatureConfig = setAppFeatureConfig;
+
+// Hapus poster kelulusan dan record Home Santri (khusus admin).
+exports.deleteKelulusanPhoto = deleteKelulusanPhoto;

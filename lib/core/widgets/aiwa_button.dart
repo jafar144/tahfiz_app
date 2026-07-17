@@ -5,6 +5,7 @@ class AiwaButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final double height;
+  final Color? color;
 
   const AiwaButton({
     super.key,
@@ -12,11 +13,13 @@ class AiwaButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.height = 48,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final buttonColor = color ?? theme.primaryColor;
 
     return SizedBox(
       height: height,
@@ -24,8 +27,8 @@ class AiwaButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: theme.primaryColor,
-          disabledBackgroundColor: theme.primaryColor.withValues(alpha: 0.6),
+          backgroundColor: buttonColor,
+          disabledBackgroundColor: buttonColor.withValues(alpha: 0.6),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),

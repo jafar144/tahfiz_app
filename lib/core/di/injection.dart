@@ -286,7 +286,7 @@ Future<void> initDI() async {
   getIt.registerLazySingleton(() => FamilyRepository(getIt()));
 
   // Kelulusan (syahadah)
-  getIt.registerLazySingleton(() => KelulusanRepository(getIt()));
+  getIt.registerLazySingleton(() => KelulusanRepository(getIt(), getIt()));
 
   getIt.registerFactory(
     () => FamilyCubit(familyRepository: getIt(), santriRepository: getIt()),

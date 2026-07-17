@@ -18,6 +18,7 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
   // Tinggi kartu mengikuti rasio poster (4:5) secara otomatis.
   static const _viewportFraction = 0.55;
   final _controller = PageController(viewportFraction: _viewportFraction);
+  StreamSubscription<List<KelulusanEntity>>? _subscription;
   Timer? _timer;
   List<KelulusanEntity> _items = [];
   bool _loading = true;
@@ -26,21 +27,35 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _subscribe();
   }
 
-  Future<void> _load() async {
-    try {
-      final items = await getIt<KelulusanRepository>().getKelulusan();
-      if (!mounted) return;
-      setState(() {
-        _items = items;
-        _loading = false;
-      });
-      if (items.length > 1) _startAutoScroll();
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+  void _subscribe() {
+    _subscription = getIt<KelulusanRepository>().watchKelulusan().listen(
+      (items) {
+        if (!mounted) return;
+        _timer?.cancel();
+        final nextIndex = items.isEmpty
+            ? 0
+            : _current.clamp(0, items.length - 1);
+        setState(() {
+          _items = items;
+          _loading = false;
+          _current = nextIndex;
+        });
+        if (items.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _controller.hasClients) {
+              _controller.jumpToPage(nextIndex);
+            }
+          });
+        }
+        if (items.length > 1) _startAutoScroll();
+      },
+      onError: (_) {
+        if (mounted) setState(() => _loading = false);
+      },
+    );
   }
 
   void _startAutoScroll() {
@@ -58,6 +73,7 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
 
   @override
   void dispose() {
+    _subscription?.cancel();
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
@@ -104,8 +120,11 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium_rounded,
-                  size: 18, color: Color(0xFFB8860B)),
+              const Icon(
+                Icons.workspace_premium_rounded,
+                size: 18,
+                color: Color(0xFFB8860B),
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Kelulusan Santri Minggu Ini',
@@ -192,8 +211,10 @@ class _KelulusanCarouselState extends State<KelulusanCarousel> {
                 alignment: Alignment.topCenter,
                 errorBuilder: (context, error, stack) => Container(
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.image_not_supported_outlined,
-                      color: Colors.grey),
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Colors.grey,
+                  ),
                 ),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;

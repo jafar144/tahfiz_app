@@ -2,20 +2,10 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
 const { admin, db } = require("../lib/firebase");
 const { SCHEDULE_OPTIONS } = require("../lib/config");
+const { storagePathFromUrl } = require("../lib/storagePath");
 
 // Foto kelulusan hanya tampil 7 hari; setelah itu dibuang agar hemat storage.
 const EXPIRY_DAYS = 7;
-
-// Ambil path objek Storage dari Firebase download URL:
-// https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<ENCODED_PATH>?alt=media&token=...
-function storagePathFromUrl(url) {
-  try {
-    const m = String(url).match(/\/o\/([^?]+)/);
-    return m ? decodeURIComponent(m[1]) : null;
-  } catch (_) {
-    return null;
-  }
-}
 
 async function runCleanup() {
   const cutoff = new Date(Date.now() - EXPIRY_DAYS * 24 * 60 * 60 * 1000);

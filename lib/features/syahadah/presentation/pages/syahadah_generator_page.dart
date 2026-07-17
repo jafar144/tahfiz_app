@@ -201,9 +201,25 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = context.select<AuthCubit, bool>((cubit) {
+      final state = cubit.state;
+      return state is AuthAuthenticated && state.user.role == UserRole.admin;
+    });
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AiwaAppBar(title: 'Kelulusan Santri'),
+      appBar: AiwaAppBar(
+        title: 'Kelulusan Santri',
+        actions: [
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Kelola foto kelulusan',
+              onPressed: () =>
+                  context.pushNamed(RouteNames.adminSyahadahPhotos),
+              icon: const Icon(Icons.photo_library_outlined),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: GestureDetector(
           onTap: () => UiUtils.unfocus(context),

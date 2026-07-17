@@ -40,6 +40,7 @@ import 'package:khoirunnasyien/features/management_santri/presentation/pages/sel
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/select_asatidz_page.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
+import 'package:khoirunnasyien/features/syahadah/presentation/pages/kelulusan_photo_list_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_payment_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
@@ -345,6 +346,11 @@ class AppRouter {
         path: RoutePaths.adminSyahadah,
         name: RouteNames.adminSyahadah,
         builder: (context, state) => const SyahadahGeneratorPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminSyahadahPhotos,
+        name: RouteNames.adminSyahadahPhotos,
+        builder: (context, state) => const KelulusanPhotoListPage(),
       ),
       GoRoute(
         path: RoutePaths.santriPayment,

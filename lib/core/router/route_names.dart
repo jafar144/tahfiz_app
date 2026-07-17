@@ -26,6 +26,7 @@ abstract class RouteNames {
   static const editHalaqah = 'edit_halaqah';
 
   static const adminSyahadah = 'admin_syahadah';
+  static const adminSyahadahPhotos = 'admin_syahadah_photos';
   static const santriPayment = 'santri_payment';
   static const santriReports = 'santri_reports';
 

@@ -8,6 +8,10 @@ class AiwaBottomSheet extends StatelessWidget {
   final Widget content;
   final VoidCallback onReset;
   final VoidCallback onApply;
+  final String resetText;
+  final String applyText;
+  final Color resetColor;
+  final Color? applyColor;
 
   const AiwaBottomSheet({
     super.key,
@@ -15,6 +19,10 @@ class AiwaBottomSheet extends StatelessWidget {
     required this.content,
     required this.onReset,
     required this.onApply,
+    this.resetText = 'Reset',
+    this.applyText = 'Terapkan',
+    this.resetColor = Colors.red,
+    this.applyColor,
   });
 
   @override
@@ -49,16 +57,17 @@ class AiwaBottomSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: AiwaOutlineButton(
-                  text: 'Reset',
+                  text: resetText,
                   onPressed: onReset,
-                  color: Colors.red,
+                  color: resetColor,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: AiwaButton(
-                  text: 'Terapkan',
-                onPressed: onApply,
+                  text: applyText,
+                  onPressed: onApply,
+                  color: applyColor,
                 ),
               ),
             ],

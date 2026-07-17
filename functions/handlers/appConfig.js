@@ -1,20 +1,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
+const { assertAdmin } = require("../lib/authz");
 const { isSupportedAppFeature } = require("../lib/appFeatureConfig");
 
 const OPTIONS = { region: "asia-southeast2" };
 const CONFIG_DOCUMENT = db.collection("app_config").doc("runtime");
-
-async function assertAdmin(uid) {
-  const snapshot = await db.collection("users").doc(uid).get();
-  const user = snapshot.exists ? snapshot.data() || {} : {};
-  if (user.is_admin !== true && user.role !== "admin") {
-    throw new HttpsError(
-      "permission-denied",
-      "Hanya admin yang dapat mengubah App Config.",
-    );
-  }
-}
 
 const setAppFeatureConfig = onCall(OPTIONS, async (request) => {
   if (!request.auth) {
