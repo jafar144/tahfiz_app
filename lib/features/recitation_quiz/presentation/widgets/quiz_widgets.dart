@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_block.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 
@@ -37,6 +38,148 @@ class QuizColors {
     if (pct > 90) return correct;
     if (pct >= 80) return gold;
     return missing;
+  }
+}
+
+/// Label multiplier ringkas untuk kartu setelan kuis.
+String quizMultiplierLabel(double multiplier) {
+  final value = multiplier == multiplier.truncateToDouble()
+      ? multiplier.toInt().toString()
+      : multiplier.toString();
+  return '×$value';
+}
+
+IconData quizDifficultyIcon(QuizDifficulty difficulty) => switch (difficulty) {
+  QuizDifficulty.easy => Icons.sentiment_satisfied_rounded,
+  QuizDifficulty.medium => Icons.psychology_alt_rounded,
+  QuizDifficulty.hard => Icons.local_fire_department_rounded,
+};
+
+/// Judul seksi setelan yang dipakai bersama oleh Latihan dan Tantangan.
+class QuizSectionLabel extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const QuizSectionLabel({super.key, required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: QuizColors.gold),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu pilihan setelan yang konsisten di alur Latihan dan Tantangan.
+class QuizSelectionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  const QuizSelectionCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.selected,
+    this.disabled = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final active = selected && !disabled;
+    final titleColor = disabled
+        ? Colors.white24
+        : (active ? QuizColors.gold : Colors.white);
+
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      selected: active,
+      child: InkWell(
+        onTap: disabled ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: active
+                ? QuizColors.gold.withValues(alpha: 0.14)
+                : Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: active ? QuizColors.gold : Colors.white12,
+              width: active ? 1.6 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: active
+                        ? QuizColors.gold
+                        : (disabled ? Colors.white24 : Colors.white54),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    disabled
+                        ? Icons.check_circle_rounded
+                        : (active
+                              ? Icons.check_circle_rounded
+                              : Icons.circle_outlined),
+                    size: 20,
+                    color: active
+                        ? QuizColors.gold
+                        : (disabled ? Colors.white24 : Colors.white30),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: titleColor,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: disabled ? Colors.white24 : Colors.white54,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -664,8 +807,7 @@ class _EnergyBadgeState extends State<EnergyBadge> {
     if (e.isFull) {
       info = 'Energi penuh';
     } else {
-      final remaining =
-          e.resetAt?.difference(DateTime.now()) ?? Duration.zero;
+      final remaining = e.resetAt?.difference(DateTime.now()) ?? Duration.zero;
       final label = e.canPlay ? 'reset mingguan dalam' : 'Bisa main lagi dalam';
       info = '$label ${formatRefill(remaining)}';
     }

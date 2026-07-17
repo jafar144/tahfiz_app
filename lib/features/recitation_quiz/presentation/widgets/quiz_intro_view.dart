@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_dif
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_juz.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_difficulty_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 
@@ -493,7 +494,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ),
             ),
             const SizedBox(height: 18),
-            const _SectionLabel(
+            const QuizSectionLabel(
               icon: Icons.sports_esports_rounded,
               text: 'Mode Main',
             ),
@@ -501,20 +502,22 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             Row(
               children: [
                 Expanded(
-                  child: _ModeOption(
+                  child: QuizSelectionCard(
                     icon: Icons.mic_rounded,
                     title: 'Suara',
-                    subtitle: 'Bacakan lanjutannya',
+                    subtitle:
+                        'Bacakan lanjutannya · Poin ${quizMultiplierLabel(QuizDifficultyRules.modeScoreMultiplier(QuizMode.voice))}',
                     selected: _s.mode.isVoice,
                     onTap: () => _update(_s.copyWith(mode: QuizMode.voice)),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _ModeOption(
+                  child: QuizSelectionCard(
                     icon: Icons.grid_view_rounded,
                     title: 'Pilihan',
-                    subtitle: '6 opsi · 60 detik',
+                    subtitle:
+                        '6 opsi · 60 detik · Poin ${quizMultiplierLabel(QuizDifficultyRules.modeScoreMultiplier(QuizMode.choice))}',
                     selected: _s.mode.isChoice,
                     onTap: () => _update(_s.copyWith(mode: QuizMode.choice)),
                   ),
@@ -543,7 +546,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ],
             ),
             const SizedBox(height: 20),
-            const _SectionLabel(
+            const QuizSectionLabel(
               icon: Icons.speed_rounded,
               text: 'Tingkat Kesulitan',
             ),
@@ -551,9 +554,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             Row(
               children: [
                 Expanded(
-                  child: _ModeOption(
-                    icon: Icons.sentiment_satisfied_rounded,
+                  child: QuizSelectionCard(
+                    icon: quizDifficultyIcon(QuizDifficulty.easy),
                     title: 'Mudah',
+                    subtitle:
+                        'Poin ${quizMultiplierLabel(QuizDifficultyRules.scoreMultiplier(QuizDifficulty.easy))}',
                     selected: _s.difficulty == QuizDifficulty.easy,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.easy)),
@@ -561,9 +566,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _ModeOption(
-                    icon: Icons.psychology_alt_rounded,
+                  child: QuizSelectionCard(
+                    icon: quizDifficultyIcon(QuizDifficulty.medium),
                     title: 'Sedang',
+                    subtitle:
+                        'Poin ${quizMultiplierLabel(QuizDifficultyRules.scoreMultiplier(QuizDifficulty.medium))}',
                     selected: _s.difficulty == QuizDifficulty.medium,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.medium)),
@@ -571,9 +578,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _ModeOption(
-                    icon: Icons.local_fire_department_rounded,
+                  child: QuizSelectionCard(
+                    icon: quizDifficultyIcon(QuizDifficulty.hard),
                     title: 'Sulit',
+                    subtitle:
+                        'Poin ${quizMultiplierLabel(QuizDifficultyRules.scoreMultiplier(QuizDifficulty.hard))}',
                     selected: _s.difficulty == QuizDifficulty.hard,
                     onTap: () =>
                         _update(_s.copyWith(difficulty: QuizDifficulty.hard)),
@@ -582,7 +591,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ],
             ),
             const SizedBox(height: 20),
-            const _SectionLabel(icon: Icons.tune_rounded, text: 'Jenis Soal'),
+            const QuizSectionLabel(
+              icon: Icons.tune_rounded,
+              text: 'Jenis Soal',
+            ),
             const SizedBox(height: 8),
             SwitchListTile(
               value: _s.ayatOnly,
@@ -604,7 +616,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            const _SectionLabel(icon: Icons.layers_rounded, text: 'Pilih Juz'),
+            const QuizSectionLabel(
+              icon: Icons.layers_rounded,
+              text: 'Pilih Juz',
+            ),
             const SizedBox(height: 4),
             const Text(
               'Boleh pilih lebih dari satu.',
@@ -655,109 +670,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _SectionLabel({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: QuizColors.gold),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Kartu pemilihan mode main (Suara / Pilihan).
-class _ModeOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _ModeOption({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: BoxDecoration(
-          color: selected
-              ? QuizColors.gold.withValues(alpha: 0.14)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? QuizColors.gold : Colors.white12,
-            width: selected ? 1.6 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: selected ? QuizColors.gold : Colors.white54,
-                ),
-                const Spacer(),
-                Icon(
-                  selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                  size: 20,
-                  color: selected ? QuizColors.gold : Colors.white30,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: selected ? QuizColors.gold : Colors.white,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle!,
-                style: const TextStyle(fontSize: 11.5, color: Colors.white54),
-              ),
-            ],
           ],
         ),
       ),

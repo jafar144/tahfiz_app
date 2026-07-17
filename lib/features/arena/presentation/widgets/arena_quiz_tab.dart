@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_lau
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_difficulty_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
@@ -379,7 +380,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
 
     return SafeArea(
       top: false,
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
           20,
           16,
@@ -427,17 +428,20 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             ),
             const SizedBox(height: 18),
 
-            const _SheetLabel('Mode main'),
+            const QuizSectionLabel(
+              icon: Icons.sports_esports_rounded,
+              text: 'Mode Main',
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: _SheetOption(
+                  child: QuizSelectionCard(
                     icon: Icons.mic_rounded,
                     title: 'Suara',
                     subtitle: _modeSubtitle(
                       QuizMode.voice,
-                      'Bacakan jawabannya',
+                      'Bacakan jawabannya · Poin ${quizMultiplierLabel(QuizDifficultyRules.modeScoreMultiplier(QuizMode.voice))}',
                     ),
                     selected: _mode.isVoice,
                     disabled: _quotaEmpty(QuizMode.voice),
@@ -446,12 +450,12 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: _SheetOption(
+                  child: QuizSelectionCard(
                     icon: Icons.grid_view_rounded,
                     title: 'Pilihan',
                     subtitle: _modeSubtitle(
                       QuizMode.choice,
-                      '6 opsi · 60 detik',
+                      '6 opsi · 60 detik · Poin ${quizMultiplierLabel(QuizDifficultyRules.modeScoreMultiplier(QuizMode.choice))}',
                     ),
                     selected: _mode.isChoice,
                     disabled: _quotaEmpty(QuizMode.choice),
@@ -462,14 +466,20 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             ),
             const SizedBox(height: 18),
 
-            const _SheetLabel('Tingkat kesulitan'),
+            const QuizSectionLabel(
+              icon: Icons.speed_rounded,
+              text: 'Tingkat Kesulitan',
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
                 for (final difficulty in QuizDifficulty.values) ...[
                   Expanded(
-                    child: _DifficultyOption(
-                      difficulty: difficulty,
+                    child: QuizSelectionCard(
+                      icon: quizDifficultyIcon(difficulty),
+                      title: difficulty.label,
+                      subtitle:
+                          'Poin ${quizMultiplierLabel(QuizDifficultyRules.scoreMultiplier(difficulty))}',
                       selected: _difficulty == difficulty,
                       onTap: () => setState(() => _difficulty = difficulty),
                     ),
@@ -481,7 +491,10 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             ),
             const SizedBox(height: 18),
 
-            const _SheetLabel('Cakupan soal'),
+            const QuizSectionLabel(
+              icon: Icons.layers_rounded,
+              text: 'Cakupan Soal',
+            ),
             const SizedBox(height: 10),
             _SheetOption(
               icon: Icons.school_rounded,
@@ -557,85 +570,11 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
   }
 }
 
-class _SheetLabel extends StatelessWidget {
-  final String text;
-
-  const _SheetLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Colors.white70,
-        fontSize: 13,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
-}
-
-class _DifficultyOption extends StatelessWidget {
-  final QuizDifficulty difficulty;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _DifficultyOption({
-    required this.difficulty,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = switch (difficulty) {
-      QuizDifficulty.easy => '80 · 20',
-      QuizDifficulty.medium => '40 · 40 · 20',
-      QuizDifficulty.hard => '10 · 30 · 60',
-    };
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? QuizColors.gold.withValues(alpha: 0.15)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? QuizColors.gold : Colors.white12,
-          ),
-        ),
-        child: Column(
-          children: [
-            Text(
-              difficulty.label,
-              style: TextStyle(
-                color: selected ? QuizColors.gold : Colors.white70,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              subtitle,
-              style: const TextStyle(color: Colors.white38, fontSize: 9.5),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SheetOption extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final bool selected;
-  final bool disabled;
   final VoidCallback onTap;
 
   const _SheetOption({
@@ -643,16 +582,14 @@ class _SheetOption extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.selected,
-    this.disabled = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final active = selected && !disabled;
-    final baseColor = disabled ? Colors.white24 : Colors.white;
+    final active = selected;
     return InkWell(
-      onTap: disabled ? null : onTap,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
@@ -670,11 +607,9 @@ class _SheetOption extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              disabled ? Icons.check_circle_rounded : icon,
+              icon,
               size: 20,
-              color: active
-                  ? QuizColors.gold
-                  : (disabled ? Colors.white24 : Colors.white54),
+              color: active ? QuizColors.gold : Colors.white54,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -684,7 +619,7 @@ class _SheetOption extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      color: active ? QuizColors.gold : baseColor,
+                      color: active ? QuizColors.gold : Colors.white,
                       fontWeight: FontWeight.w800,
                       fontSize: 13.5,
                     ),
@@ -693,8 +628,8 @@ class _SheetOption extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        color: disabled ? Colors.white24 : Colors.white54,
+                      style: const TextStyle(
+                        color: Colors.white54,
                         fontSize: 11,
                       ),
                     ),
