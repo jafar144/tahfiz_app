@@ -337,20 +337,13 @@ class _SantriTile extends StatelessWidget {
             CircleAvatar(
               radius: 20,
               backgroundColor: QuizColors.gold.withValues(alpha: 0.15),
-              backgroundImage: santri.photoUrl != null
-                  ? NetworkImage(santri.photoUrl!)
-                  : null,
-              child: santri.photoUrl == null
-                  ? Text(
-                      santri.name.isNotEmpty
-                          ? santri.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        color: QuizColors.gold,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    )
-                  : null,
+              child: Text(
+                santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: QuizColors.gold,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
