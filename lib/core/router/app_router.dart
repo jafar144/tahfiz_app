@@ -46,6 +46,7 @@ import 'package:khoirunnasyien/features/family/presentation/pages/family_form_pa
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_assessment_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_monthly_report_page.dart';
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/pages/recitation_check_page.dart';
@@ -64,7 +65,6 @@ import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_j
 import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_lesson_page.dart';
 
 class AppRouter {
-
   /// Transisi khas Tahfiz Arena ala Android native: halaman baru meluncur
   /// masuk dari kanan MENIMPA halaman lama (halaman lama diam, tidak ikut
   /// bergeser); saat back, halaman atas meluncur keluar menyingkap halaman
@@ -93,9 +93,7 @@ class AppRouter {
           // Bayangan tipis di tepi agar terasa "menimpa" halaman di bawahnya.
           child: DecoratedBox(
             decoration: const BoxDecoration(
-              boxShadow: [
-                BoxShadow(color: Colors.black38, blurRadius: 24),
-              ],
+              boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 24)],
             ),
             child: child,
           ),
@@ -190,9 +188,8 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.detailAsatidz,
         name: RouteNames.detailAsatidz,
-        builder: (context, state) => DetailAsatidzPage(
-          asatidzId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            DetailAsatidzPage(asatidzId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: RoutePaths.editAsatidz,
@@ -247,21 +244,25 @@ class AppRouter {
         builder: (context, state) {
           final extras = state.extra as Map<String, dynamic>? ?? {};
           final gender = extras['gender'] as String?;
-          final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
+          final disabledIds =
+              (extras['disabledIds'] as List?)?.cast<String>() ?? [];
           final isMultiSelect = extras['isMultiSelect'] as bool? ?? false;
           final asatidzId = extras['asatidzId'] as String?;
           final isFree = extras['isFree'] as bool?;
 
           return BlocProvider(
-            create: (_) => getIt<SantriCubit>()..loadSantri(
-              isActive: true,
-              gender: gender,
-              asatidzId: asatidzId,
-              isFree: isFree,
-            ),
+            create: (_) => getIt<SantriCubit>()
+              ..loadSantri(
+                isActive: true,
+                gender: gender,
+                asatidzId: asatidzId,
+                isFree: isFree,
+              ),
             child: SelectSantriPage(
               genderFiltered: gender,
-              initialSelection: (extras['initialSelection'] as List?)?.cast<SantriEntity>() ?? [],
+              initialSelection:
+                  (extras['initialSelection'] as List?)?.cast<SantriEntity>() ??
+                  [],
               disabledIds: disabledIds,
               isMultiSelect: isMultiSelect,
               asatidzId: asatidzId,
@@ -276,13 +277,13 @@ class AppRouter {
         builder: (context, state) {
           final extras = state.extra as Map<String, dynamic>? ?? {};
           final gender = extras['gender'] as String?;
-          final disabledIds = (extras['disabledIds'] as List?)?.cast<String>() ?? [];
+          final disabledIds =
+              (extras['disabledIds'] as List?)?.cast<String>() ?? [];
 
           return BlocProvider(
-            create: (_) => getIt<AsatidzCubit>()..loadAsatidz(
-              isActive: true,
-              gender: gender,
-            ),
+            create: (_) =>
+                getIt<AsatidzCubit>()
+                  ..loadAsatidz(isActive: true, gender: gender),
             child: SelectAsatidzPage(
               genderFiltered: gender,
               initialSelectedId: extras['initialSelectedId'] as String?,
@@ -295,19 +296,18 @@ class AppRouter {
         path: RoutePaths.detailHalaqah,
         name: RouteNames.detailHalaqah,
         builder: (context, state) {
-           final extras = state.extra as Map<String, dynamic>;
-           final halaqah = extras['halaqah'] as Halaqah;
-           final sessionName = extras['sessionName'] as String? ?? 'Regular';
-           final gender = extras['gender'] as String? ?? 'Putra'; // L/P usually but the page might expect full string or code? The page expects L/P or 'Putra'/'Putri'?
-           // Let's check detail page: it handles L/P conversion. 'gender' passed from view page is from cubit which is 'L' or 'P'.
-           
-           return BlocProvider(
-             create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah)..init(),
-             child: HalaqahDetailPage(
-               sessionName: sessionName,
-               gender: gender,
-             ),
-           );
+          final extras = state.extra as Map<String, dynamic>;
+          final halaqah = extras['halaqah'] as Halaqah;
+          final sessionName = extras['sessionName'] as String? ?? 'Regular';
+          final gender =
+              extras['gender'] as String? ??
+              'Putra'; // L/P usually but the page might expect full string or code? The page expects L/P or 'Putra'/'Putri'?
+          // Let's check detail page: it handles L/P conversion. 'gender' passed from view page is from cubit which is 'L' or 'P'.
+
+          return BlocProvider(
+            create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah)..init(),
+            child: HalaqahDetailPage(sessionName: sessionName, gender: gender),
+          );
         },
       ),
       GoRoute(
@@ -352,6 +352,16 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: RoutePaths.santriReports,
+        name: RouteNames.santriReports,
+        pageBuilder: (context, state) => _slideOverPage(
+          key: state.pageKey,
+          child: SantriMonthlyReportPage(
+            santriId: state.extra as String? ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.adminFamily,
         name: RouteNames.adminFamily,
         builder: (context, state) => BlocProvider(
@@ -375,9 +385,8 @@ class AppRouter {
       GoRoute(
         path: RoutePaths.journey,
         name: RouteNames.journey,
-        builder: (context, state) => JourneyPage(
-          currentKelas: state.extra as String?,
-        ),
+        builder: (context, state) =>
+            JourneyPage(currentKelas: state.extra as String?),
       ),
       GoRoute(
         path: RoutePaths.familyForm,

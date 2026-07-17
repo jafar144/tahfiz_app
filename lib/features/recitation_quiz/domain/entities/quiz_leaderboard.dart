@@ -35,7 +35,7 @@ class MonthlyLeaderboard {
   /// Kunci bulan, format `yyyy-MM` (mis. `2026-07`).
   final String monthKey;
 
-  /// Maksimal 10 peringkat teratas, sudah terurut.
+  /// Peringkat teratas sesuai batas query, sudah terurut.
   final List<LeaderboardEntry> entries;
 
   /// Entri milik user saat ini (null bila belum pernah main bulan ini).

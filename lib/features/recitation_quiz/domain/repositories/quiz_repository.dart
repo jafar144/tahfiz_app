@@ -59,11 +59,15 @@ abstract class QuizRepository {
   /// Best-effort; berlaku untuk semua role agar sesi latihan tetap menaikkan XP.
   Future<Either<Failure, void>> awardXp(int amount);
 
-  /// Papan juara [mode] bulan berjalan: top-10 skor tertinggi per user
-  /// + peringkat user saat ini, dipisah per [tierKey].
+  /// Papan juara [mode] untuk [monthKey] (default bulan berjalan), dipisah per
+  /// [tierKey]. [limit] dapat diperkecil untuk ringkasan dan data user saat ini
+  /// dapat dilewati lewat [includeCurrentUser] agar tidak menambah read.
   Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
     QuizMode mode, {
     required String tierKey,
+    String? monthKey,
+    int? limit,
+    bool includeCurrentUser = true,
   });
 
   /// True bila user saat ini ber-role `admin`. Dipakai untuk melewati sistem

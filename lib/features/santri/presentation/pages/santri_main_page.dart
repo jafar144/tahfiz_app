@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/features/arena/presentation/pages/arena_lobby_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_home_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_profile_page.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_monthly_report_page.dart';
 
 class SantriMainPage extends StatefulWidget {
   const SantriMainPage({super.key});
@@ -12,19 +12,25 @@ class SantriMainPage extends StatefulWidget {
 
 class _SantriMainPageState extends State<SantriMainPage> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
 
-  final List<Widget> _pages = const [
-    SantriHomePage(),
-    SantriMonthlyReportPage(),
-    SantriProfilePage(),
-  ];
+  Widget _pageFor(int index) => switch (index) {
+    0 => const SantriHomePage(),
+    1 => const ArenaLobbyPage(),
+    _ => const SantriProfilePage(),
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _pages,
+        children: [
+          for (var index = 0; index < 3; index++)
+            _initializedTabs.contains(index)
+                ? _pageFor(index)
+                : const SizedBox.shrink(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -42,6 +48,7 @@ class _SantriMainPageState extends State<SantriMainPage> {
           onTap: (index) {
             setState(() {
               _currentIndex = index;
+              _initializedTabs.add(index);
             });
           },
           type: BottomNavigationBarType.fixed,
@@ -56,14 +63,14 @@ class _SantriMainPageState extends State<SantriMainPage> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assessment_outlined),
-              activeIcon: Icon(Icons.assessment),
-              label: 'Penilaian',
+              icon: Icon(Icons.sports_esports_outlined),
+              activeIcon: Icon(Icons.sports_esports_rounded),
+              label: 'Arena',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
               activeIcon: Icon(Icons.person),
-              label: 'Profile',
+              label: 'Profil',
             ),
           ],
         ),
@@ -71,4 +78,3 @@ class _SantriMainPageState extends State<SantriMainPage> {
     );
   }
 }
-

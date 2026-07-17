@@ -837,17 +837,21 @@ class QuizRepositoryImpl implements QuizRepository {
   Future<Either<Failure, MonthlyLeaderboard>> getMonthlyLeaderboard(
     QuizMode mode, {
     required String tierKey,
+    String? monthKey,
+    int? limit,
+    bool includeCurrentUser = true,
   }) async {
     try {
-      final monthKey = _monthKey(DateTime.now());
-      final entriesRef = _entriesRef(monthKey, mode, tierKey);
+      final targetMonthKey = monthKey ?? _monthKey(DateTime.now());
+      final entryLimit = limit ?? QuizSessionRules.leaderboardLimit;
+      final entriesRef = _entriesRef(targetMonthKey, mode, tierKey);
 
       // Sub-koleksi sudah khusus untuk satu tingkatan, jadi tak perlu filter.
       Query<Map<String, dynamic>> query = entriesRef;
 
       final snap = await query
           .orderBy('best_score', descending: true)
-          .limit(QuizSessionRules.leaderboardLimit)
+          .limit(entryLimit)
           .get();
 
       final entries = snap.docs.map((d) => _entryFromDoc(d.data())).toList()
@@ -864,7 +868,7 @@ class QuizRepositoryImpl implements QuizRepository {
       // Posisi user saat ini (bila sudah pernah main bulan ini).
       LeaderboardEntry? myEntry;
       int? myRank;
-      final uid = auth.currentUser?.uid;
+      final uid = includeCurrentUser ? auth.currentUser?.uid : null;
       if (uid != null) {
         final idx = entries.indexWhere((e) => e.userId == uid);
         if (idx >= 0) {
@@ -894,7 +898,7 @@ class QuizRepositoryImpl implements QuizRepository {
       return Right(
         MonthlyLeaderboard(
           mode: mode,
-          monthKey: monthKey,
+          monthKey: targetMonthKey,
           entries: entries,
           myEntry: myEntry,
           myRank: myRank,

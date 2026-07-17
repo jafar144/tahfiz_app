@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/firebase/auth_client.dart';
+import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_lobby_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/core/firebase/firestore_client.dart';
 import 'package:khoirunnasyien/core/firebase/storage_client.dart';
@@ -31,10 +32,14 @@ import 'package:khoirunnasyien/features/management_santri/data/repository/santri
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
-import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart' as mgmt_asatidz_ds;
-import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource_impl.dart' as mgmt_asatidz_ds_impl;
-import 'package:khoirunnasyien/features/management_asatidz/data/repository/asatidz_repository_impl.dart' as mgmt_asatidz_repo;
-import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart' as mgmt_asatidz_domain;
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart'
+    as mgmt_asatidz_ds;
+import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource_impl.dart'
+    as mgmt_asatidz_ds_impl;
+import 'package:khoirunnasyien/features/management_asatidz/data/repository/asatidz_repository_impl.dart'
+    as mgmt_asatidz_repo;
+import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart'
+    as mgmt_asatidz_domain;
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
@@ -56,7 +61,8 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/h
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/data/datasources/asatidz_remote_datasource.dart';
 import 'package:khoirunnasyien/features/asatidz/data/repositories/asatidz_repository_impl.dart';
-import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart' as asatidz_domain;
+import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart'
+    as asatidz_domain;
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_santri_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
@@ -87,7 +93,6 @@ import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_less
 import 'package:khoirunnasyien/features/surah_journey/domain/repositories/surah_journey_repository.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
-
 
 final getIt = GetIt.instance;
 
@@ -159,36 +164,24 @@ Future<void> initDI() async {
 
   getIt.registerLazySingleton<ScheduleRepository>(
     () => ScheduleRepositoryImpl(getIt()),
-  );  
+  );
 
   getIt.registerLazySingleton<asatidz_domain.AsatidzRepository>(
     () => AsatidzRepositoryImpl(remoteDataSource: getIt()),
   );
 
   // Cubit
-  getIt.registerFactory(
-    () => AuthCubit(getIt(), getIt(), getIt()),
-  );
+  getIt.registerFactory(() => AuthCubit(getIt(), getIt(), getIt()));
 
-  getIt.registerFactory(
-    () => AdminHomeCubit(getIt(), getIt()),
-  );
+  getIt.registerFactory(() => AdminHomeCubit(getIt(), getIt()));
 
-  getIt.registerFactory(
-    () => SantriCubit(getIt()),
-  );
+  getIt.registerFactory(() => SantriCubit(getIt()));
 
-  getIt.registerFactory(
-    () => SantriDetailCubit(getIt()),
-  );
+  getIt.registerFactory(() => SantriDetailCubit(getIt()));
 
-  getIt.registerFactory(
-    () => AsatidzCubit(getIt()),
-  );
+  getIt.registerFactory(() => AsatidzCubit(getIt()));
 
-  getIt.registerFactory(
-    () => AsatidzDetailCubit(getIt()),
-  );
+  getIt.registerFactory(() => AsatidzDetailCubit(getIt()));
 
   // Payment
   getIt.registerLazySingleton<PaymentRemoteDataSource>(
@@ -199,17 +192,11 @@ Future<void> initDI() async {
     () => PaymentRepositoryImpl(getIt(), getIt()),
   );
 
-  getIt.registerFactory(
-    () => PaymentCubit(getIt(), getIt()),
-  );
+  getIt.registerFactory(() => PaymentCubit(getIt(), getIt()));
 
-  getIt.registerFactory(
-    () => InputPaymentCubit(getIt()),
-  );
+  getIt.registerFactory(() => InputPaymentCubit(getIt()));
 
-  getIt.registerFactory(
-    () => SantriPaymentHistoryCubit(getIt()),
-  );
+  getIt.registerFactory(() => SantriPaymentHistoryCubit(getIt()));
 
   getIt.registerFactory(
     () => FamilyPaymentCubit(
@@ -219,13 +206,9 @@ Future<void> initDI() async {
     ),
   );
 
-  getIt.registerFactory(
-    () => FinancialReportCubit(getIt(), getIt()),
-  );
+  getIt.registerFactory(() => FinancialReportCubit(getIt(), getIt()));
 
-  getIt.registerFactory(
-    () => ScheduleCubit(getIt()),
-  );
+  getIt.registerFactory(() => ScheduleCubit(getIt()));
 
   getIt.registerFactory(
     () => AddHalaqahCubit(
@@ -252,11 +235,7 @@ Future<void> initDI() async {
     ),
   );
 
-  getIt.registerFactory(
-    () => AsatidzSantriCubit(
-      scheduleRepository: getIt(),
-    ),
-  );
+  getIt.registerFactory(() => AsatidzSantriCubit(scheduleRepository: getIt()));
 
   getIt.registerFactory(
     () => SantriHomeCubit(
@@ -270,9 +249,7 @@ Future<void> initDI() async {
     ),
   );
 
-  getIt.registerFactory(
-    () => SantriSetoranCubit(getIt()),
-  );
+  getIt.registerFactory(() => SantriSetoranCubit(getIt()));
 
   // Monthly Report
   getIt.registerLazySingleton<MonthlyReportRemoteDataSource>(
@@ -290,13 +267,9 @@ Future<void> initDI() async {
     ),
   );
 
-  getIt.registerFactory(
-    () => MonthlyReportInputCubit(repository: getIt()),
-  );
+  getIt.registerFactory(() => MonthlyReportInputCubit(repository: getIt()));
 
-  getIt.registerFactory(
-    () => SantriMonthlyReportCubit(repository: getIt()),
-  );
+  getIt.registerFactory(() => SantriMonthlyReportCubit(repository: getIt()));
 
   getIt.registerFactory(
     () => AdminAssessmentCubit(
@@ -307,20 +280,13 @@ Future<void> initDI() async {
   );
 
   // Family
-  getIt.registerLazySingleton(
-    () => FamilyRepository(getIt()),
-  );
+  getIt.registerLazySingleton(() => FamilyRepository(getIt()));
 
   // Kelulusan (syahadah)
-  getIt.registerLazySingleton(
-    () => KelulusanRepository(getIt()),
-  );
+  getIt.registerLazySingleton(() => KelulusanRepository(getIt()));
 
   getIt.registerFactory(
-    () => FamilyCubit(
-      familyRepository: getIt(),
-      santriRepository: getIt(),
-    ),
+    () => FamilyCubit(familyRepository: getIt(), santriRepository: getIt()),
   );
 
   // Uji Bacaan Qur'an (recitation check)
@@ -354,6 +320,7 @@ Future<void> initDI() async {
   );
   getIt.registerFactory(() => RecitationQuizCubit(getIt(), getIt()));
   getIt.registerFactory(() => QuizLeaderboardCubit(getIt(), getIt()));
+  getIt.registerFactory(() => ArenaLobbyCubit(getIt()));
 
   // Tahfiz Arena (shell Petualangan + Kuis + Papan Juara)
   getIt.registerFactory(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
-import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
@@ -10,22 +9,24 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/mont
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriMonthlyReportPage extends StatelessWidget {
-  const SantriMonthlyReportPage({super.key});
+  final String santriId;
+
+  const SantriMonthlyReportPage({super.key, required this.santriId});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (ctx) {
-        final santriId = ctx.read<SantriHomeCubit>().currentSantriId ?? '';
-        return SantriMonthlyReportCubit(repository: getIt())..loadReports(santriId);
-      },
-      child: const _SantriMonthlyReportView(),
+      create: (_) =>
+          SantriMonthlyReportCubit(repository: getIt())..loadReports(santriId),
+      child: _SantriMonthlyReportView(santriId: santriId),
     );
   }
 }
 
 class _SantriMonthlyReportView extends StatelessWidget {
-  const _SantriMonthlyReportView();
+  final String santriId;
+
+  const _SantriMonthlyReportView({required this.santriId});
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +49,9 @@ class _SantriMonthlyReportView extends StatelessWidget {
                   Text(state.message),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final santriId = context.read<SantriHomeCubit>().currentSantriId ?? '';
-                      context.read<SantriMonthlyReportCubit>().loadReports(santriId);
-                    },
+                    onPressed: () => context
+                        .read<SantriMonthlyReportCubit>()
+                        .loadReports(santriId),
                     child: const Text(MonthlyReportStrings.cobaLagi),
                   ),
                 ],
@@ -65,14 +65,13 @@ class _SantriMonthlyReportView extends StatelessWidget {
             }
 
             return RefreshIndicator(
-              onRefresh: () async {
-                final santriId = context.read<SantriHomeCubit>().currentSantriId ?? '';
-                context.read<SantriMonthlyReportCubit>().loadReports(santriId);
-              },
+              onRefresh: () => context
+                  .read<SantriMonthlyReportCubit>()
+                  .loadReports(santriId),
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: state.reports.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   return MonthlyReportCard(report: state.reports[index]);
                 },
@@ -92,8 +91,8 @@ class _SantriMonthlyReportView extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 3,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (_, __) => Container(
+        separatorBuilder: (_, _) => const SizedBox(height: 16),
+        itemBuilder: (_, _) => Container(
           height: 200,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -109,7 +108,11 @@ class _SantriMonthlyReportView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assessment_outlined, size: 64, color: Colors.grey.shade300),
+          Icon(
+            Icons.assessment_outlined,
+            size: 64,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
           Text(
             MonthlyReportStrings.belumAdaPenilaian,
@@ -122,10 +125,7 @@ class _SantriMonthlyReportView extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             MonthlyReportStrings.santriEmptySubtitle,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade400,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
           ),
         ],
       ),

@@ -6,7 +6,6 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
-import 'package:khoirunnasyien/features/santri/presentation/widgets/santri_setoran_card.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
@@ -89,11 +88,8 @@ class _SantriHomePageState extends State<SantriHomePage> {
                   children: [
                     _buildHeader(state),
                     _buildJourneySection(state),
-                    _buildArenaCard(),
                     const KelulusanCarousel(),
                     _buildPaymentStatus(state),
-                    // _buildMenuSection(context),
-                    // if (state.latestSetoran != null) _buildLatestSetoran(state),
                     if (state.latestReport != null) _buildLatestReport(state),
                     if (state.pembimbingName != null)
                       _buildPembimbingSection(state),
@@ -312,85 +308,6 @@ class _SantriHomePageState extends State<SantriHomePage> {
     );
   }
 
-  /// Kartu pintu masuk Tahfiz Arena (Petualangan Surah + Kuis + Papan Juara)
-  /// bernuansa malam, senada dengan gaya Arena.
-  Widget _buildArenaCard() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.pushNamed(RouteNames.arena),
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0B2540), Color(0xFF123B33)],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF0B2540).withValues(alpha: 0.35),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Icon(
-                    Icons.sports_esports_rounded,
-                    color: Color(0xFFF6A609),
-                    size: 27,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tahfiz Arena',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 3),
-                      Text(
-                        'Petualangan surah, kuis hafalan, dan papan juara '
-                        'kelasmu — main sambil muroja\'ah!',
-                        style: TextStyle(color: Colors.white70, fontSize: 11.5),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white54,
-                  size: 16,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildPaymentStatus(SantriHomeState state) {
     final primary = Theme.of(context).primaryColor;
     final isFree = state.santri?.isFree ?? false;
@@ -557,145 +474,46 @@ class _SantriHomePageState extends State<SantriHomePage> {
     );
   }
 
-  Widget _buildMenuSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Menu Utama',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMenuCard(
-                  title: 'Setoran',
-                  icon: Icons.menu_book_rounded,
-                  color: Colors.blue,
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildMenuCard(
-                  title: 'Presensi',
-                  icon: Icons.fact_check_rounded,
-                  color: Colors.orange,
-                  onTap: () {},
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildMenuCard(
-                  title: 'Jadwal',
-                  icon: Icons.calendar_month_rounded,
-                  color: Colors.purple,
-                  onTap: () {},
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuCard({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ],
-          border: Border.all(color: color.withValues(alpha: 0.1)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 28),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLatestSetoran(SantriHomeState state) {
-    final setoran = state.latestSetoran!;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Setoran Terakhir',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SantriSetoranCard(setoran: setoran),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLatestReport(SantriHomeState state) {
     return Padding(
       padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Penilaian Terakhir',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Penilaian Terakhir',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  final santriId = context
+                      .read<SantriHomeCubit>()
+                      .currentSantriId;
+                  if (santriId == null) return;
+                  context.pushNamed(RouteNames.santriReports, extra: santriId);
+                },
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Lihat Semua', style: TextStyle(fontSize: 12)),
+                    SizedBox(width: 2),
+                    Icon(Icons.chevron_right_rounded, size: 17),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           MonthlyReportCard(report: state.latestReport!),
