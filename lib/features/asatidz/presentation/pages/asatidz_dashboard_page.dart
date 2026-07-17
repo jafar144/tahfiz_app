@@ -18,6 +18,11 @@ import 'package:khoirunnasyien/features/management_santri/presentation/pages/sel
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/services/app_update_service.dart';
+import 'package:khoirunnasyien/core/utils/role.dart';
+import 'package:khoirunnasyien/features/app_config/domain/entities/app_feature.dart';
+import 'package:khoirunnasyien/features/app_config/domain/feature_access_policy.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_state.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
@@ -40,6 +45,17 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final appConfigState = context.watch<AppConfigCubit>().state;
+    final configReady = appConfigState.status != AppConfigStatus.initial &&
+        appConfigState.status != AppConfigStatus.loading;
+    final showTahfizArena = configReady &&
+        resolveAppFeatureAccess(
+              config: appConfigState.config,
+              feature: AppFeature.tahfizArena,
+              role: UserRole.asatidz,
+            ) ==
+            AppFeatureAccess.enabled;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
@@ -134,11 +150,12 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                             );
                           },
                         ),
-                        MenuCard(
-                          icon: Icons.sports_esports_rounded,
-                          title: 'Tahfiz Arena',
-                          onTap: () => context.pushNamed(RouteNames.arena),
-                        ),
+                        if (showTahfizArena)
+                          MenuCard(
+                            icon: Icons.sports_esports_rounded,
+                            title: 'Tahfiz Arena',
+                            onTap: () => context.pushNamed(RouteNames.arena),
+                          ),
                       ],
                     ),
                     // if (state.activeHalaqah != null) ...[
@@ -745,4 +762,3 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
     );
   }
 }
-

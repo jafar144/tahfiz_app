@@ -5,6 +5,9 @@ import 'package:khoirunnasyien/core/router/route_paths.dart';
 import 'package:khoirunnasyien/features/auth/presentation/pages/login_page.dart';
 import 'package:khoirunnasyien/features/auth/presentation/pages/splash_page.dart';
 import 'package:khoirunnasyien/features/home/presentation/pages/home_page.dart';
+import 'package:khoirunnasyien/features/app_config/domain/entities/app_feature.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/pages/app_config_page.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/widgets/app_feature_gate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
@@ -146,6 +149,11 @@ class AppRouter {
         path: RoutePaths.home,
         name: RouteNames.home,
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: RoutePaths.appConfig,
+        name: RouteNames.appConfig,
+        builder: (context, state) => const AppConfigPage(),
       ),
       GoRoute(
         path: RoutePaths.addSantri,
@@ -431,13 +439,16 @@ class AppRouter {
         name: RouteNames.arena,
         pageBuilder: (context, state) => _slideOverPage(
           key: state.pageKey,
-          child: MultiBlocProvider(
-            providers: [
-              BlocProvider(create: (_) => getIt<ArenaCubit>()..load()),
-              BlocProvider(create: (_) => getIt<SurahJourneyCubit>()..load()),
-              BlocProvider(create: (_) => getIt<QuizLeaderboardCubit>()),
-            ],
-            child: const ArenaPage(),
+          child: AppFeatureGate(
+            feature: AppFeature.tahfizArena,
+            child: MultiBlocProvider(
+              providers: [
+                BlocProvider(create: (_) => getIt<ArenaCubit>()..load()),
+                BlocProvider(create: (_) => getIt<SurahJourneyCubit>()..load()),
+                BlocProvider(create: (_) => getIt<QuizLeaderboardCubit>()),
+              ],
+              child: const ArenaPage(),
+            ),
           ),
         ),
       ),

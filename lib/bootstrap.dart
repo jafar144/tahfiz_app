@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/core/notifications/notification_background_handle
 import 'package:khoirunnasyien/core/notifications/notification_service.dart';
 import 'package:khoirunnasyien/core/router/app_router.dart';
 import 'package:khoirunnasyien/core/theme/app_theme.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 
@@ -54,7 +55,13 @@ Future<void> bootstrap({
   unawaited(getIt<NotificationService>().init());
 
   runApp(
-    BlocProvider(create: (_) => getIt<AuthCubit>(), child: const TahfizApp()),
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => getIt<AuthCubit>()),
+        BlocProvider(create: (_) => getIt<AppConfigCubit>()),
+      ],
+      child: const TahfizApp(),
+    ),
   );
 }
 

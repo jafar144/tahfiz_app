@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart'; // Added
 import 'package:khoirunnasyien/core/router/route_names.dart'; // Added
 import 'package:khoirunnasyien/core/utils/role.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/asatidz_shell_page.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
@@ -27,11 +28,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   @override
+  void initState() {
+    super.initState();
+    context.read<AppConfigCubit>().start();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
         if (state is AuthUnauthenticated) {
-            context.goNamed(RouteNames.login);
+          context.goNamed(RouteNames.login);
         }
       },
       child: BlocBuilder<AuthCubit, AuthState>(
@@ -41,10 +48,10 @@ class _HomePageState extends State<HomePage> {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-  
+
           final user = state.user;
           final role = user.role;
-  
+
           switch (role) {
             case UserRole.admin:
               return MultiBlocProvider(
@@ -55,7 +62,7 @@ class _HomePageState extends State<HomePage> {
                 ],
                 child: const AdminShellPage(),
               );
-  
+
             case UserRole.santri:
               final santriId = SantriHomeCubit.overrideSantriId ?? user.uid;
               return BlocProvider(
@@ -63,7 +70,7 @@ class _HomePageState extends State<HomePage> {
                 create: (_) => getIt<SantriHomeCubit>()..loadData(santriId),
                 child: SantriMainPage(key: ValueKey('main_$santriId')),
               );
-  
+
             case UserRole.asatidz:
               return BlocProvider(
                 create: (_) => AsatidzDashboardCubit(

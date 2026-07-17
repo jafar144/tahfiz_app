@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
@@ -343,11 +344,7 @@ class AdminProfilePage extends StatelessWidget {
             title: 'Pengaturan',
             subtitle: 'Konfigurasi aplikasi',
             color: Colors.teal,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur coming soon...')),
-              );
-            },
+            onTap: () => context.pushNamed(RouteNames.appConfig),
           ),
           const Divider(height: 1),
           _buildMenuItem(

@@ -6,6 +6,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/firebase/auth_client.dart';
+import 'package:khoirunnasyien/features/app_config/data/app_config_repository_impl.dart';
+import 'package:khoirunnasyien/features/app_config/domain/repositories/app_config_repository.dart';
+import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_lobby_cubit.dart';
 import 'package:khoirunnasyien/features/arena/presentation/cubit/arena_cubit.dart';
 import 'package:khoirunnasyien/core/firebase/firestore_client.dart';
@@ -295,6 +298,11 @@ Future<void> initDI() async {
       region: AppConfig.current.functionsRegion,
     ),
   );
+  getIt.registerLazySingleton<AppConfigRepository>(
+    () => AppConfigRepositoryImpl(firestore: getIt(), functions: getIt()),
+  );
+  getIt.registerFactory(() => AppConfigCubit(getIt()));
+
   getIt.registerLazySingleton(() => QuranLocalDataSource());
   getIt.registerLazySingleton(
     () => TranscriptionRemoteDataSource(getIt<FirebaseFunctions>()),

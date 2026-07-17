@@ -24,6 +24,7 @@ const {
   endQuizSession,
   grantQuizEnergy,
 } = require("./handlers/quizEnergy");
+const { setAppFeatureConfig } = require("./handlers/appConfig");
 
 exports.compareSantri = compareSantri;
 exports.checkBirthDates = checkBirthDates;
@@ -65,3 +66,6 @@ exports.heartbeatQuizSession = heartbeatQuizSession;
 exports.endQuizSession = endQuizSession;
 // Admin/asatidz memberi energi tambahan minggu berjalan ke santri.
 exports.grantQuizEnergy = grantQuizEnergy;
+
+// App Config runtime. Penulisan hanya diizinkan untuk admin oleh handler.
+exports.setAppFeatureConfig = setAppFeatureConfig;
