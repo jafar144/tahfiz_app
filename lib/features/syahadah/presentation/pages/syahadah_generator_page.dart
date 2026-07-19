@@ -402,6 +402,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                         key: _repaintBoundaryKey,
                                         child: SyahadahTemplate(
                                           displayName: _namaController.text,
+                                          nis: _selectedSantri!.nis,
                                           hafalan: _hafalanController.text,
                                           photoUrl: _selectedSantri!.photoUrl!,
                                           kelas: _selectedSantri!.kelas,

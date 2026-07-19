@@ -9,6 +9,7 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
   const KhoirunnasyienSyahadahTemplate({super.key, required this.data});
 
   String get displayName => data.displayName;
+  String get nis => data.nis;
   String get hafalan => data.hafalan;
   String get photoUrl => data.photoUrl;
   String get kelas => data.kelas;
@@ -108,7 +109,7 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
             right: 0,
             top: 800,
             child: Transform.rotate(
-              angle: 0.03,
+              angle: 0.01,
               child: Container(
                 width: 560,
                 height: 280,
@@ -162,7 +163,7 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
             child: Transform.rotate(
               angle: -0.015,
               child: Container(
-                height: 450,
+                height: 390,
                 decoration: BoxDecoration(
                   color: _goldColor,
                   borderRadius: const BorderRadius.only(
@@ -267,22 +268,41 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
             ),
           ),
 
-          // Nama santri
+          // Nama dan NIS santri. Keduanya sengaja berupa widget terpisah agar
+          // NIS tidak pernah menyambung pada baris nama.
           Positioned(
             left: 590,
-            top: 820,
+            top: 830,
             child: SizedBox(
               width: 460,
               child: Transform.rotate(
                 angle: -0.01,
-                child: Text(
-                  displayName,
-                  style: GoogleFonts.breeSerif(
-                    fontSize: 50,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                    height: 1.2,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.breeSerif(
+                        fontSize: 52,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '($nis)',
+                      maxLines: 1,
+                      style: GoogleFonts.breeSerif(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                        height: 1.1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -297,10 +317,10 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
               child: Text(
                 _quoteText,
                 style: GoogleFonts.arimo(
-                  fontSize: _isTahsin ? 57 : 50,
+                  fontSize: _isTahsin ? 49 : 44,
                   fontWeight: FontWeight.w400,
                   color: Colors.black87,
-                  height: 1.4,
+                  height: 1.3,
                 ),
               ),
             ),

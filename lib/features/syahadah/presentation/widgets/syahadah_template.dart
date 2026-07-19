@@ -4,6 +4,7 @@ typedef SyahadahTemplateBuilder = Widget Function(SyahadahTemplateData data);
 
 class SyahadahTemplateData {
   final String displayName;
+  final String nis;
   final String hafalan;
   final String photoUrl;
   final String kelas;
@@ -11,6 +12,7 @@ class SyahadahTemplateData {
 
   const SyahadahTemplateData({
     required this.displayName,
+    required this.nis,
     required this.hafalan,
     required this.photoUrl,
     required this.kelas,
@@ -39,6 +41,7 @@ class SyahadahTemplateRegistry {
 /// flavor aktif sehingga halaman generator tetap bebas dari detail lembaga.
 class SyahadahTemplate extends StatelessWidget {
   final String displayName;
+  final String nis;
   final String hafalan;
   final String photoUrl;
   final String kelas;
@@ -47,6 +50,7 @@ class SyahadahTemplate extends StatelessWidget {
   const SyahadahTemplate({
     super.key,
     required this.displayName,
+    required this.nis,
     required this.hafalan,
     required this.photoUrl,
     required this.kelas,
@@ -58,6 +62,7 @@ class SyahadahTemplate extends StatelessWidget {
     return SyahadahTemplateRegistry.build(
       SyahadahTemplateData(
         displayName: displayName,
+        nis: nis,
         hafalan: hafalan,
         photoUrl: photoUrl,
         kelas: kelas,
