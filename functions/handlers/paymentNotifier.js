@@ -1,9 +1,17 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
-const { SCHEDULE_OPTIONS } = require("../lib/config");
+const {
+  SCHEDULE_OPTIONS,
+  WABLAS_TOKEN,
+  WABLAS_SECRET_KEY,
+} = require("../lib/config");
 const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
 const { sendToUid } = require("../lib/messaging");
 const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
+const {
+  runWhatsAppArrears,
+  runBirthdayWhatsApp,
+} = require("./whatsappNotifier");
 const {
   PAYMENT_DUE_DAY,
   ARREARS_MID_DAY,
@@ -17,7 +25,11 @@ const {
 // tanggal Jakarta sebelum query Firestore dijalankan.
 
 // Reads penuh (santri_profiles + payments) butuh kelonggaran timeout.
-const PAYMENT_SCHEDULE_OPTIONS = { ...SCHEDULE_OPTIONS, timeoutSeconds: 300 };
+const PAYMENT_SCHEDULE_OPTIONS = {
+  ...SCHEDULE_OPTIONS,
+  timeoutSeconds: 300,
+  secrets: [WABLAS_TOKEN, WABLAS_SECRET_KEY],
+};
 
 // Susun teks daftar bulan tunggakan, dipadatkan bila banyak.
 function formatArrearsList(months) {
@@ -51,11 +63,16 @@ async function runPaymentDue(parts = jakartaDateParts()) {
 }
 
 // --- Notif #2 & #3: pengingat tunggakan SPP (per santri) ---
-async function sendArrearsReminders(parts) {
+async function sendArrearsReminders(parts, { sendWhatsApp = false } = {}) {
   const unpaid = await computeUnpaidSantri(parts);
   if (!unpaid.length) {
     logger.info("[arrears] tidak ada santri menunggak.");
-    return { notified: 0 };
+    return {
+      notified: 0,
+      whatsapp: sendWhatsApp
+        ? await runWhatsAppArrears(parts, [])
+        : { skipped: true },
+    };
   }
 
   let notified = 0;
@@ -73,7 +90,10 @@ async function sendArrearsReminders(parts) {
   }
 
   logger.info(`[arrears] mengingatkan ${notified} santri menunggak.`);
-  return { notified };
+  const whatsapp = sendWhatsApp
+    ? await runWhatsAppArrears(parts, unpaid)
+    : { skipped: true };
+  return { notified, whatsapp };
 }
 
 // Tanggal 15: jalankan pengingat tunggakan.
@@ -91,7 +111,7 @@ async function runArrearsMonthEnd(parts = jakartaDateParts()) {
     logger.info(`[arrearsEnd] dilewati (sisa ${parts.daysRemaining} hari).`);
     return { skipped: true };
   }
-  return sendArrearsReminders(parts);
+  return sendArrearsReminders(parts, { sendWhatsApp: true });
 }
 
 async function runPaymentNotifications(
@@ -100,6 +120,7 @@ async function runPaymentNotifications(
     [PAYMENT_JOBS.paymentDue]: runPaymentDue,
     [PAYMENT_JOBS.arrearsMidMonth]: runArrearsMidMonth,
     [PAYMENT_JOBS.arrearsMonthEnd]: runArrearsMonthEnd,
+    [PAYMENT_JOBS.birthdayWhatsApp]: runBirthdayWhatsApp,
   }
 ) {
   const jobNames = paymentJobNames(parts);
@@ -122,5 +143,6 @@ module.exports = {
   runPaymentDue,
   runArrearsMidMonth,
   runArrearsMonthEnd,
+  runBirthdayWhatsApp,
   runPaymentNotifications,
 };

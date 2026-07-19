@@ -17,6 +17,7 @@ const PAYMENT_JOBS = Object.freeze({
   paymentDue: "paymentDue",
   arrearsMidMonth: "arrearsMidMonth",
   arrearsMonthEnd: "arrearsMonthEnd",
+  birthdayWhatsApp: "birthdayWhatsApp",
 });
 
 function assessmentJobNames(parts) {
@@ -41,6 +42,9 @@ function paymentJobNames(parts) {
   if (parts.daysRemaining === ARREARS_MONTH_END_DAYS_REMAINING) {
     jobs.push(PAYMENT_JOBS.arrearsMonthEnd);
   }
+  // Scheduler pembayaran berjalan harian; pemeriksaan ulang tahun menumpang di
+  // sini agar tidak menambah Cloud Scheduler keempat.
+  jobs.push(PAYMENT_JOBS.birthdayWhatsApp);
   return jobs;
 }
 

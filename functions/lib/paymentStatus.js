@@ -22,19 +22,24 @@ function shiftMonth(year, month, delta) {
 
 // Bulan mulai wajib bayar, atau null bila tak bisa ditentukan.
 function resolveStartMonth(freeUntil, tanggalMasuk, now) {
+  // Tanggal masuk adalah batas minimum mutlak. Tanpa tanggal masuk, santri
+  // tidak boleh dianggap mempunyai kewajiban pembayaran.
+  if (!tanggalMasuk) return null;
+  const entryParts = jakartaDateParts(tanggalMasuk);
+  const entryMonth = { year: entryParts.year, month: entryParts.month };
+
   if (freeUntil && freeUntil.getTime() <= now.getTime()) {
     const { year, month } = jakartaDateParts(freeUntil);
-    return shiftMonth(year, month, 1);
+    const afterFree = shiftMonth(year, month, 1);
+    const entryIdx = entryMonth.year * 12 + entryMonth.month - 1;
+    const afterFreeIdx = afterFree.year * 12 + afterFree.month - 1;
+    return afterFreeIdx > entryIdx ? afterFree : entryMonth;
   }
-  if (tanggalMasuk) {
-    const { year, month } = jakartaDateParts(tanggalMasuk);
-    return { year, month };
-  }
-  return null;
+  return entryMonth;
 }
 
 // Ambil santri yang berhak ditagih SPP: is_active == true & tidak sedang gratis.
-// Mengembalikan array { uid, name, freeUntil(Date|null), tanggalMasuk(Date|null) }.
+// Mengembalikan profil yang dibutuhkan FCM dan pengingat WhatsApp.
 async function fetchPayingSantri(now = new Date()) {
   const snap = await db
     .collection("santri_profiles")
@@ -50,6 +55,9 @@ async function fetchPayingSantri(now = new Date()) {
     result.push({
       uid: doc.id,
       name: data.name || "",
+      nis: String(data.nis || ""),
+      namaWali: data.nama_wali || "",
+      nomorWali: data.nomor_wali || "",
       freeUntil,
       tanggalMasuk: data.tanggal_masuk ? data.tanggal_masuk.toDate() : null,
     });
@@ -79,8 +87,8 @@ async function fetchPaidMonths() {
 }
 
 // Santri reguler aktif yang punya tunggakan pada bulan berjalan (parts) ke bawah.
-// Mengembalikan array { uid, name, count, months: [{year, month}] } (terurut dari
-// bulan terlama). parts = jakartaDateParts() bulan berjalan.
+// Mengembalikan array { uid, name, nis, namaWali, nomorWali, count,
+// months: [{year, month}] } (terurut dari bulan terlama).
 async function computeUnpaidSantri(parts = jakartaDateParts(), now = new Date()) {
   const [santri, paidBySantri] = await Promise.all([
     fetchPayingSantri(now),
@@ -104,7 +112,16 @@ async function computeUnpaidSantri(parts = jakartaDateParts(), now = new Date())
     }
 
     if (months.length) {
-      result.push({ uid: s.uid, name: s.name, count: months.length, months });
+      result.push({
+        uid: s.uid,
+        name: s.name,
+        nis: s.nis,
+        namaWali: s.namaWali,
+        nomorWali: s.nomorWali,
+        tanggalMasuk: s.tanggalMasuk,
+        count: months.length,
+        months,
+      });
     }
   }
 

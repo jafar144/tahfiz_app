@@ -30,14 +30,19 @@ test("scheduler penilaian memilih hanya job pada hari yang tepat", () => {
 test("scheduler pembayaran mempertahankan tanggal 5, 15, dan H-3", () => {
   assert.deepEqual(paymentJobNames({ day: 5, daysRemaining: 25 }), [
     PAYMENT_JOBS.paymentDue,
+    PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 15, daysRemaining: 15 }), [
     PAYMENT_JOBS.arrearsMidMonth,
+    PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 27, daysRemaining: 3 }), [
     PAYMENT_JOBS.arrearsMonthEnd,
+    PAYMENT_JOBS.birthdayWhatsApp,
   ]);
-  assert.deepEqual(paymentJobNames({ day: 10, daysRemaining: 20 }), []);
+  assert.deepEqual(paymentJobNames({ day: 10, daysRemaining: 20 }), [
+    PAYMENT_JOBS.birthdayWhatsApp,
+  ]);
 });
 
 test("koordinator menjalankan hanya runner terpilih dan meneruskan tanggal", async () => {
@@ -92,12 +97,17 @@ test("handler gabungan meneruskan hanya job yang dipilih planner", async () => {
         calls.push(PAYMENT_JOBS.arrearsMidMonth);
         return { notified: 3 };
       },
+      [PAYMENT_JOBS.birthdayWhatsApp]: async () => {
+        calls.push(PAYMENT_JOBS.birthdayWhatsApp);
+        return { sent: 1 };
+      },
     }
   );
 
   assert.deepEqual(calls, [
     ASSESSMENT_JOBS.windowOpen,
     PAYMENT_JOBS.arrearsMidMonth,
+    PAYMENT_JOBS.birthdayWhatsApp,
   ]);
 });
 

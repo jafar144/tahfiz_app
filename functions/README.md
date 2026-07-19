@@ -141,6 +141,57 @@ tidak boleh dibiarkan aktif karena dapat mengirim notifikasi ganda.
   - Tap notifikasi membuka beranda santri (`data.type` = `payment_due` /
     `payment_arrears`).
 
+### WhatsApp terjadwal via Wablas
+
+Pengiriman WhatsApp menumpang pada `notifyArrearsMonthEnd`, sehingga jumlah
+Cloud Scheduler tetap **3**:
+
+- **Ulang tahun** diperiksa setiap hari pukul 08:00 WIB. Santri aktif yang
+  `tanggal_lahir`-nya sama dengan tanggal Jakarta hari ini mendapat ucapan di
+  `nomor_wali`. Timestamp seperti `December 28, 2010 at 12:00:00 AM UTC+7`
+  dibaca sebagai 28 Desember.
+- **Tunggakan lama** dikirim hanya pada H-3 akhir bulan. FCM tetap dikirim untuk
+  semua tunggakan, sedangkan WhatsApp hanya untuk santri yang bulan tunggakan
+  tertuanya sudah memasuki minimal **3 periode tagihan**. Contoh: pada Juli,
+  tunggakan Mei memenuhi syarat dan tunggakan Juni belum.
+- Periode pembayaran tidak pernah dihitung sebelum bulan `tanggal_masuk`, juga
+  pada profil yang pernah mempunyai masa gratis. Santri yang baru masuk Juli
+  baru mempunyai satu periode pada Juli sehingga belum menerima WA tunggakan.
+- Nomor `08...`, `8...`, atau `62...` dinormalisasi ke format `62...`. Data tanpa
+  `nomor_wali` valid dialihkan ke `WHATSAPP_ADMIN_PHONE`. Pesan admin memuat
+  nama santri, alasan pengalihan, isi pesan asli, dan penjelasan bahwa nomor
+  tersebut menerima pesan karena terdaftar sebagai admin.
+- Template pesan berada di `lib/whatsappMessages.js`. Ubah teks di
+  `buildArrearsWhatsAppMessage` atau `buildBirthdayWhatsAppMessage` tanpa perlu
+  mengubah scheduler maupun filter penerima.
+
+Konfigurasi non-secret di `functions/.env`:
+
+```dotenv
+WABLAS_BASE_URL=https://SERVER_DEVICE.wablas.com
+WABLAS_ENABLED=false
+WHATSAPP_ADMIN_PHONE=6289679479654
+```
+
+URL otomatis dibersihkan dari slash di belakang untuk mencegah endpoint `//api`.
+Simpan token dan secret key ke Secret Manager:
+
+```bash
+firebase functions:secrets:set WABLAS_TOKEN
+firebase functions:secrets:set WABLAS_SECRET_KEY
+```
+
+Untuk emulator, nilai secret dapat dioverride lewat `functions/.secret.local`:
+
+```dotenv
+WABLAS_TOKEN=token_device
+WABLAS_SECRET_KEY=secret_key_device
+```
+
+Set `WABLAS_ENABLED=true` hanya setelah server, credential, nomor wali, dan
+template pesan selesai diuji. Token dan secret key tidak boleh disimpan di
+Flutter, `.env`, atau source control.
+
 - **Pembersih foto kelulusan** (`cleanupExpiredSyahadah.js`, **tiap Senin 03:00
   WIB**): menghapus entri koleksi `kelulusan` yang `created_at`-nya lebih dari
   **7 hari** beserta file gambarnya di Storage (`syahadah_photos/`), agar storage

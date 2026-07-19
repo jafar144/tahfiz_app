@@ -6,32 +6,39 @@ import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.d
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
 import 'package:khoirunnasyien/core/utils/error_handler.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
+
 class PaymentCubit extends Cubit<PaymentState> {
   final PaymentRepository paymentRepository;
   final SantriRepository santriRepository;
 
   PaymentCubit(this.paymentRepository, this.santriRepository)
-      : super(PaymentInitial());
+    : super(PaymentInitial());
 
   Future<void> loadDashboard(DateTime date) async {
     emit(PaymentLoading());
     try {
-      final month = date.month.toString();
-      final year = date.year.toString();
-      
+      final selectedDate = PaymentUtils.clampToSupportedPeriod(date);
+      final month = selectedDate.month.toString();
+      final year = selectedDate.year.toString();
+
       // 1. Fetch Payments for Month/Year
       final payments = await paymentRepository.getPayments(month, year);
-      
+
       // 2. Fetch All Active Santri
-      final allActiveSantri = await santriRepository.getSantriList(isActive: true, limit: 9999);
+      final allActiveSantri = await santriRepository.getSantriList(
+        isActive: true,
+        limit: 9999,
+      );
 
       // Hanya hitung santri yang sudah terdaftar (tanggal_masuk) pada bulan/tahun terpilih.
       final allSantri = allActiveSantri
-          .where((s) => PaymentUtils.isEnrolledInMonth(
-                tanggalMasuk: s.tanggalMasuk,
-                month: date.month,
-                year: date.year,
-              ))
+          .where(
+            (s) => PaymentUtils.isEnrolledInMonth(
+              tanggalMasuk: s.tanggalMasuk,
+              month: selectedDate.month,
+              year: selectedDate.year,
+            ),
+          )
           .toList();
 
       // 3. Separate Paid and Unpaid
@@ -51,30 +58,33 @@ class PaymentCubit extends Cubit<PaymentState> {
 
       // 4. Use payments for that month as recent transactions
       final santriMap = {for (var s in allSantri) s.id: s.name};
-      final recentTransactions = payments.map((p) {
-        return PaymentEntity(
-          id: p.id,
-          santriId: p.santriId,
-          bulan: p.bulan,
-          tahun: p.tahun,
-          total: p.total,
-          method: p.method,
-          createdAt: p.createdAt,
-          createdBy: p.createdBy,
-          santriName: santriMap[p.santriId],
-        );
-      }).toList()
-        // Urutkan terbaru di atas (descending sesuai tanggal dibuat).
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final recentTransactions =
+          payments.map((p) {
+              return PaymentEntity(
+                id: p.id,
+                santriId: p.santriId,
+                bulan: p.bulan,
+                tahun: p.tahun,
+                total: p.total,
+                method: p.method,
+                createdAt: p.createdAt,
+                createdBy: p.createdBy,
+                santriName: santriMap[p.santriId],
+              );
+            }).toList()
+            // Urutkan terbaru di atas (descending sesuai tanggal dibuat).
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      emit(PaymentLoaded(
-        paidCount: paidStudents.length,
-        unpaidCount: unpaidStudents.length,
-        paidStudents: paidStudents,
-        unpaidStudents: unpaidStudents,
-        recentTransactions: recentTransactions,
-        selectedDate: date,
-      ));
+      emit(
+        PaymentLoaded(
+          paidCount: paidStudents.length,
+          unpaidCount: unpaidStudents.length,
+          paidStudents: paidStudents,
+          unpaidStudents: unpaidStudents,
+          recentTransactions: recentTransactions,
+          selectedDate: selectedDate,
+        ),
+      );
     } catch (e) {
       emit(PaymentError(ErrorHandler.getMessage(e)));
     }
@@ -87,7 +97,7 @@ class PaymentCubit extends Cubit<PaymentState> {
     if (currentState is PaymentLoaded) {
       selectedDate = currentState.selectedDate;
     }
-    
+
     try {
       await paymentRepository.deletePayment(paymentId);
       // Reload dashboard after successful deletion
