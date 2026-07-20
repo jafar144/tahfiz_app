@@ -52,19 +52,29 @@ class AsatidzCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: backgroundColor,
                     shape: BoxShape.circle,
+                    image:
+                        asatidz.photoUrl != null && asatidz.photoUrl!.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(asatidz.photoUrl!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    UiUtils.getInitials(asatidz.name),
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
+                  child:
+                      asatidz.photoUrl != null && asatidz.photoUrl!.isNotEmpty
+                      ? null
+                      : Text(
+                          UiUtils.getInitials(asatidz.name),
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // Content
                 Expanded(
                   child: Column(
@@ -94,7 +104,7 @@ class AsatidzCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
+
                       // NIY (Using NIS field as NIY generally)
                       Text(
                         asatidz.nis,
@@ -103,7 +113,6 @@ class AsatidzCard extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      
                     ],
                   ),
                 ),

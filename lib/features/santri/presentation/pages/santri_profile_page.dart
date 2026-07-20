@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 
 class SantriProfilePage extends StatefulWidget {
@@ -332,105 +333,58 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final confirmed = await showAiwaActionSheet<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Konfirmasi Keluar'),
-          ],
-        ),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari aplikasi?',
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Batal',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<AuthCubit>().logout();
-              context.go('/login');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Keluar',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+      title: 'Konfirmasi Keluar',
+      content: const Text(
+        'Apakah Anda yakin ingin keluar dari aplikasi?',
+        style: TextStyle(fontSize: 15),
       ),
+      confirmText: 'Keluar',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.red,
     );
+    if (confirmed == true && context.mounted) {
+      await context.read<AuthCubit>().logout();
+      if (context.mounted) context.go('/login');
+    }
   }
 
   void _showAboutDialog(BuildContext context) {
-    showDialog(
+    showAiwaActionSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.info, color: Colors.blue, size: 28),
-            SizedBox(width: 12),
-            Text('Tentang Aplikasi'),
-          ],
-        ),
-        content: FutureBuilder<String>(
-          future: _appVersion,
-          builder: (context, snapshot) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tahfiz App',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  snapshot.data == null
-                      ? 'Memuat versi...'
-                      : 'Versi ${snapshot.data}',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
-                ),
-              ],
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+      title: 'Tentang Aplikasi',
+      content: FutureBuilder<String>(
+        future: _appVersion,
+        builder: (context, snapshot) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Tahfiz App',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                snapshot.data == null
+                    ? 'Memuat versi...'
+                    : 'Versi ${snapshot.data}',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              ),
+            ],
+          );
+        },
       ),
+      confirmText: 'Tutup',
+      showCancelAction: false,
     );
   }
 }

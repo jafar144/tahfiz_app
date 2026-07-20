@@ -1,5 +1,5 @@
-
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_params.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
@@ -16,15 +16,11 @@ class AsatidzCubit extends Cubit<AsatidzState> {
 
   AsatidzCubit(this.repository) : super(AsatidzInitial());
 
-  void loadAsatidz({
-    String? keyword,
-    bool? isActive,
-    String? gender,
-  }) async {
+  void loadAsatidz({String? keyword, bool? isActive, String? gender}) async {
     _currentKeyword = keyword;
     _currentIsActive = isActive;
     _currentGender = gender;
-    
+
     emit(AsatidzLoading());
     try {
       final result = await repository.getAsatidzList(
@@ -36,10 +32,12 @@ class AsatidzCubit extends Cubit<AsatidzState> {
 
       final isSearching = keyword != null && keyword.isNotEmpty;
 
-      emit(AsatidzLoaded(
-        result,
-        hasReachedMax: isSearching ? true : result.length < _limit,
-      ));
+      emit(
+        AsatidzLoaded(
+          result,
+          hasReachedMax: isSearching ? true : result.length < _limit,
+        ),
+      );
     } catch (e) {
       emit(AsatidzError(ErrorHandler.getMessage(e)));
     }
@@ -63,12 +61,14 @@ class AsatidzCubit extends Cubit<AsatidzState> {
         limit: _limit,
         lastDocumentId: lastId,
       );
-      
-      emit(currentState.copyWith(
-        asatidz: List.of(currentState.asatidz)..addAll(newAsatidz),
-        hasReachedMax: newAsatidz.length < _limit,
-        isFetchingMore: false,
-      ));
+
+      emit(
+        currentState.copyWith(
+          asatidz: List.of(currentState.asatidz)..addAll(newAsatidz),
+          hasReachedMax: newAsatidz.length < _limit,
+          isFetchingMore: false,
+        ),
+      );
     } catch (e) {
       emit(currentState.copyWith(isFetchingMore: false));
     }
@@ -76,10 +76,34 @@ class AsatidzCubit extends Cubit<AsatidzState> {
 
   Future<void> addAsatidz(AsatidzParams params) async {
     emit(AsatidzLoading());
+    String? photoUrl;
     try {
-      await repository.addAsatidz(params);
+      if (params.localPhotoFile != null && params.isActive) {
+        photoUrl = await ImageUtils.uploadImageToFirebase(
+          params.localPhotoFile!,
+          'asatidz_photos',
+        );
+        if (photoUrl == null) {
+          emit(AsatidzError('Gagal mengupload foto'));
+          return;
+        }
+      }
+
+      await repository.addAsatidz(
+        AsatidzParams(
+          name: params.name,
+          nis: params.nis,
+          phone: params.phone,
+          jenisKelamin: params.jenisKelamin,
+          isActive: params.isActive,
+          photoUrl: photoUrl,
+        ),
+      );
       loadAsatidz(keyword: _currentKeyword, isActive: _currentIsActive);
     } catch (e) {
+      if (photoUrl != null) {
+        await ImageUtils.deleteImageFromFirebase(photoUrl);
+      }
       emit(AsatidzError(ErrorHandler.getMessage(e)));
     }
   }

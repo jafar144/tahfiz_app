@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
@@ -21,10 +27,24 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
   late TextEditingController _nameController;
   late TextEditingController _nisController;
   late TextEditingController _phoneController;
-  
+
   late String _gender;
   late bool _isActive;
   bool _isLoading = false;
+  bool _isPickingPhoto = false;
+  String? _photoUrl;
+  File? _localPhotoFile;
+  bool _photoRemoved = false;
+
+  bool get _hasPhoto =>
+      _localPhotoFile != null ||
+      (_photoUrl != null && _photoUrl!.isNotEmpty && !_photoRemoved);
+
+  ImageProvider? get _photoProvider {
+    if (_localPhotoFile != null) return FileImage(_localPhotoFile!);
+    if (_hasPhoto) return NetworkImage(_photoUrl!);
+    return null;
+  }
 
   @override
   void initState() {
@@ -34,6 +54,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
     _phoneController = TextEditingController(text: widget.asatidz.phone);
     _gender = widget.asatidz.jenisKelamin;
     _isActive = widget.asatidz.isActive;
+    _photoUrl = widget.asatidz.photoUrl;
   }
 
   @override
@@ -44,7 +65,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
@@ -54,37 +75,100 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
         phone: _phoneController.text,
         jenisKelamin: _gender,
         isActive: _isActive,
+        photoUrl: _photoUrl,
+        localPhotoFile: _localPhotoFile,
+        removePhoto: _photoRemoved,
       );
 
-      context.read<AsatidzDetailCubit>().updateAsatidz(widget.asatidz.id, params).then((_) {
-         if (mounted) {
-           setState(() => _isLoading = false);
-           Navigator.pop(context);
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Asatidz berhasil diperbarui')),
-           );
-         }
-      }).catchError((e) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal: $e')),
-          );
-        }
-      });
+      final success = await context.read<AsatidzDetailCubit>().updateAsatidz(
+        widget.asatidz.id,
+        params,
+      );
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Asatidz berhasil diperbarui')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil asatidz gagal diperbarui')),
+        );
+      }
     }
+  }
+
+  Future<void> _pickImage() async {
+    final file = await ImageUtils.pickImage(ImageSource.gallery);
+    if (file == null) return;
+
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: file.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 95,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Atur Foto Asatidz',
+            toolbarColor: const Color(0xFF004AAD),
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: const Color(0xFF004AAD),
+            lockAspectRatio: true,
+            showCropGrid: true,
+          ),
+          IOSUiSettings(
+            title: 'Atur Foto Asatidz',
+            doneButtonTitle: 'Simpan',
+            cancelButtonTitle: 'Batal',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+          ),
+        ],
+      );
+      if (croppedFile == null || !mounted) return;
+
+      setState(() => _isPickingPhoto = true);
+      final compressed = await ImageUtils.compressImage(File(croppedFile.path));
+      if (!mounted) return;
+      if (compressed != null) {
+        setState(() {
+          _localPhotoFile = compressed;
+          _photoRemoved = false;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto gagal diproses. Silakan coba lagi.'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memilih foto: $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _localPhotoFile = null;
+      _photoRemoved = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Edit Asatidz'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
+      appBar: const AiwaAppBar(title: 'Edit Asatidz'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -92,6 +176,77 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Center(
+                child: Column(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: _photoProvider,
+                          child: !_hasPhoto
+                              ? Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.grey.shade500,
+                                )
+                              : null,
+                        ),
+                        if (_isPickingPhoto)
+                          const Positioned.fill(
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Material(
+                            color: Colors.blue,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _isPickingPhoto ? null : _pickImage,
+                              child: const Padding(
+                                padding: EdgeInsets.all(9),
+                                child: Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_hasPhoto) ...[
+                      const SizedBox(height: 10),
+                      TextButton.icon(
+                        onPressed: _isPickingPhoto ? null : _removePhoto,
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Hapus foto'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        'Foto profil (opsional)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               _buildSectionTitle('Informasi Pribadi'),
               const SizedBox(height: 20),
               AiwaTextField(
@@ -158,7 +313,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-               Row(
+              Row(
                 children: [
                   Expanded(
                     child: AiwaSelectionCard(
@@ -190,7 +345,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
               const SizedBox(height: 40),
               AiwaButton(
                 text: 'Simpan Perubahan',
-                onPressed: _submit,
+                onPressed: _isPickingPhoto ? null : _submit,
                 isLoading: _isLoading,
                 height: 52,
               ),

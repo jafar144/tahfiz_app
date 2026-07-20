@@ -4,6 +4,7 @@ class AsatidzEntity {
   final String nis;
   final String jenisKelamin;
   final bool isActive;
+  final String? photoUrl;
 
   AsatidzEntity({
     required this.id,
@@ -11,5 +12,6 @@ class AsatidzEntity {
     required this.nis,
     required this.jenisKelamin,
     required this.isActive,
+    this.photoUrl,
   });
 }

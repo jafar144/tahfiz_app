@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/app_config/domain/entities/app_feature.dart';
 import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
 import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_state.dart';
@@ -70,25 +71,17 @@ class AppConfigPage extends StatelessWidget {
 
   Future<void> _updateTahfizArena(BuildContext context, bool enabled) async {
     if (!enabled) {
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAiwaActionSheet<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Nonaktifkan Tahfiz Arena?'),
-          content: const Text(
-            'Menu asatidz akan disembunyikan dan santri akan melihat '
-            'pemberitahuan bahwa fitur sedang dalam perbaikan.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Batal'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Nonaktifkan'),
-            ),
-          ],
+        title: 'Nonaktifkan Tahfiz Arena?',
+        content: const Text(
+          'Menu asatidz akan disembunyikan dan santri akan melihat '
+          'pemberitahuan bahwa fitur sedang dalam perbaikan.',
         ),
+        confirmText: 'Nonaktifkan',
+        confirmValue: true,
+        cancelValue: false,
+        confirmColor: Colors.red,
       );
       if (confirmed != true || !context.mounted) return;
     }

@@ -216,32 +216,6 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
       builder: (ctx) => _LeaveQuizSheet(challenge: challenge),
     );
   }
-
-  // ignore: unused_element
-  Future<bool?> _confirmLeave(BuildContext context, {bool challenge = false}) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Keluar dari kuis?'),
-        content: Text(
-          challenge
-              ? '1 jatah Tantangan mingguanmu sudah terpakai — bila keluar '
-                    'sekarang, skormu tidak tercatat.'
-              : 'Progres kuis saat ini tidak akan disimpan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Bar atas gelap: tombol kembali bulat + judul — gaya sama dengan halaman

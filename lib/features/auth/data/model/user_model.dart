@@ -8,6 +8,7 @@ class UserModel {
   final UserRole role;
   final String phone;
   final bool isAdmin;
+  final String? photoUrl;
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     required this.role,
     required this.phone,
     this.isAdmin = false,
+    this.photoUrl,
   });
 
   factory UserModel.fromJson(String uid, Map<String, dynamic> json) {
@@ -28,6 +30,7 @@ class UserModel {
       role: (json['role'] as String).toRole(),
       phone: json['phone'] ?? '',
       isAdmin: json['is_admin'] ?? false,
+      photoUrl: json['photo_url'],
     );
   }
 
@@ -39,6 +42,7 @@ class UserModel {
     UserRole? role,
     String? phone,
     bool? isAdmin,
+    String? photoUrl,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -48,6 +52,7 @@ class UserModel {
       role: role ?? this.role,
       phone: phone ?? this.phone,
       isAdmin: isAdmin ?? this.isAdmin,
+      photoUrl: photoUrl ?? this.photoUrl,
     );
   }
 }

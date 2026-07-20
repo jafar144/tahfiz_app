@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
@@ -394,58 +395,28 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                                   ),
                                   confirmDismiss: (direction) async {
                                     if (isOldTransaction) {
-                                      await showDialog(
+                                      await showAiwaActionSheet<void>(
                                         context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text(
-                                            'Tidak Dapat Menghapus',
-                                          ),
-                                          content: const Text(
-                                            'Transaksi yang sudah lebih dari 1 bulan tidak dapat dihapus demi keamanan data.',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.of(context).pop(),
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
+                                        title: 'Tidak Dapat Menghapus',
+                                        content: const Text(
+                                          'Transaksi yang sudah lebih dari 1 bulan tidak dapat dihapus demi keamanan data.',
                                         ),
+                                        confirmText: 'Mengerti',
+                                        showCancelAction: false,
                                       );
                                       return false; // Prevent dismiss
                                     }
 
-                                    return await showDialog(
+                                    return await showAiwaActionSheet<bool>(
                                       context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Hapus Transaksi'),
-                                        content: const Text(
-                                          'Apakah Anda yakin ingin menghapus transaksi ini? Data yang dihapus tidak dapat dikembalikan.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(
-                                              context,
-                                            ).pop(false),
-                                            child: const Text(
-                                              'Batal',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.of(context).pop(true),
-                                            child: const Text(
-                                              'Hapus',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      title: 'Hapus Transaksi',
+                                      content: const Text(
+                                        'Apakah Anda yakin ingin menghapus transaksi ini? Data yang dihapus tidak dapat dikembalikan.',
                                       ),
+                                      confirmText: 'Hapus',
+                                      confirmValue: true,
+                                      cancelValue: false,
+                                      confirmColor: Colors.red,
                                     );
                                   },
                                   onDismissed: (direction) {

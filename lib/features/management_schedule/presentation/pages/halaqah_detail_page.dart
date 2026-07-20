@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
@@ -64,9 +65,9 @@ class HalaqahDetailPage extends StatelessWidget {
             );
             context.pop();
           } else if (state is HalaqahDetailError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         builder: (context, state) {
@@ -90,19 +91,22 @@ class HalaqahDetailPage extends StatelessWidget {
 
           return SafeArea(
             child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildHeaderCard(context, halaqah),
-                const SizedBox(height: 24),
-                _buildInfoSection(context, halaqah, state),
-                const SizedBox(height: 24),
-                _buildSantriSection(halaqah, state is HalaqahDetailLoaded ? state.santriList : []),
-                const SizedBox(height: 80), // Space for FAB
-              ],
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildHeaderCard(context, halaqah),
+                  const SizedBox(height: 24),
+                  _buildInfoSection(context, halaqah, state),
+                  const SizedBox(height: 24),
+                  _buildSantriSection(
+                    halaqah,
+                    state is HalaqahDetailLoaded ? state.santriList : [],
+                  ),
+                  const SizedBox(height: 80), // Space for FAB
+                ],
+              ),
             ),
-          ),
-        );
+          );
         },
       ),
     );
@@ -110,26 +114,17 @@ class HalaqahDetailPage extends StatelessWidget {
 
   Future<void> _confirmDelete(BuildContext context) async {
     final cubit = context.read<HalaqahDetailCubit>();
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAiwaActionSheet<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Hapus Halaqah'),
-        content: const Text(
-          'Yakin ingin menghapus halaqah ini? Semua santri akan dilepas dari '
-          'halaqah ini. Tindakan ini tidak dapat dibatalkan.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Hapus'),
-          ),
-        ],
+      title: 'Hapus Halaqah',
+      content: const Text(
+        'Yakin ingin menghapus halaqah ini? Semua santri akan dilepas dari '
+        'halaqah ini. Tindakan ini tidak dapat dibatalkan.',
       ),
+      confirmText: 'Hapus',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.red,
     );
 
     if (confirmed == true) {
@@ -140,13 +135,17 @@ class HalaqahDetailPage extends StatelessWidget {
   Widget _buildHeaderCard(BuildContext context, Halaqah halaqah) {
     final initial = halaqah.name.isNotEmpty
         ? (halaqah.name.length >= 2
-            ? halaqah.name.substring(0, 2).toUpperCase()
-            : halaqah.name[0].toUpperCase())
+              ? halaqah.name.substring(0, 2).toUpperCase()
+              : halaqah.name[0].toUpperCase())
         : '?';
 
     // Gender Text and Color
-    final genderText = gender == 'L' ? 'Putra' : (gender == 'P' ? 'Putri' : gender);
-    final genderColor = (gender == 'P' || gender == 'Putri') ? Colors.pink : Colors.blue; 
+    final genderText = gender == 'L'
+        ? 'Putra'
+        : (gender == 'P' ? 'Putri' : gender);
+    final genderColor = (gender == 'P' || gender == 'Putri')
+        ? Colors.pink
+        : Colors.blue;
 
     return Container(
       width: double.infinity,
@@ -205,8 +204,12 @@ class HalaqahDetailPage extends StatelessWidget {
                 icon: Icons.person,
                 text: genderText,
                 color: genderColor.withValues(alpha: 0.1),
-                textColor: genderColor == Colors.pink ? Colors.red : Colors.blue, 
-                iconColor: genderColor == Colors.pink ? Colors.red : Colors.blue,
+                textColor: genderColor == Colors.pink
+                    ? Colors.red
+                    : Colors.blue,
+                iconColor: genderColor == Colors.pink
+                    ? Colors.red
+                    : Colors.blue,
                 isCustomColor: true,
               ),
             ],
@@ -227,7 +230,7 @@ class HalaqahDetailPage extends StatelessWidget {
     final bgColor = isCustomColor ? color : color.withValues(alpha: 0.1);
     final fgColor = textColor ?? color;
     final icoColor = iconColor ?? color;
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -253,7 +256,10 @@ class HalaqahDetailPage extends StatelessWidget {
   }
 
   Widget _buildInfoSection(
-      BuildContext context, Halaqah halaqah, HalaqahDetailState state) {
+    BuildContext context,
+    Halaqah halaqah,
+    HalaqahDetailState state,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -303,8 +309,11 @@ class HalaqahDetailPage extends StatelessWidget {
                     color: Colors.blueGrey.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.door_sliding_outlined,
-                      color: Colors.blueGrey.shade700, size: 20),
+                  child: Icon(
+                    Icons.door_sliding_outlined,
+                    color: Colors.blueGrey.shade700,
+                    size: 20,
+                  ),
                 ),
                 title: 'Ruangan',
                 content: 'Ruang ${halaqah.room}',
@@ -367,14 +376,15 @@ class HalaqahDetailPage extends StatelessWidget {
   Widget _buildScheduleRow(Halaqah halaqah, HalaqahDetailState state) {
     List schedules = [];
     if (state is HalaqahDetailLoaded) {
-      schedules = state.schedules
-          .where((s) => halaqah.scheduleIds.contains(s.id))
-          .toList()
-        ..sort((a, b) {
-          final byDay = a.day.compareTo(b.day);
-          if (byDay != 0) return byDay;
-          return a.startTime.compareTo(b.startTime);
-        });
+      schedules =
+          state.schedules
+              .where((s) => halaqah.scheduleIds.contains(s.id))
+              .toList()
+            ..sort((a, b) {
+              final byDay = a.day.compareTo(b.day);
+              if (byDay != 0) return byDay;
+              return a.startTime.compareTo(b.startTime);
+            });
     }
 
     return Padding(
@@ -388,8 +398,11 @@ class HalaqahDetailPage extends StatelessWidget {
               color: Colors.blue.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(Icons.calendar_today_rounded,
-                color: Colors.blue.shade700, size: 20),
+            child: Icon(
+              Icons.calendar_today_rounded,
+              color: Colors.blue.shade700,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -406,7 +419,10 @@ class HalaqahDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 if (schedules.isEmpty)
-                   const Text('-', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    '-',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ...schedules.map((schedule) {
                   final dayName = _dayName(schedule.day);
                   return Padding(
@@ -424,7 +440,9 @@ class HalaqahDetailPage extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(6),
@@ -529,7 +547,7 @@ class HalaqahDetailPage extends StatelessWidget {
       ],
     );
   }
-  
+
   String _capitalize(String text) {
     if (text.isEmpty) return text;
     return text[0].toUpperCase() + text.substring(1);
@@ -570,7 +588,7 @@ class HalaqahDetailPage extends StatelessWidget {
       'Kamis',
       'Jumat',
       'Sabtu',
-      'Minggu'
+      'Minggu',
     ];
     if (day >= 1 && day <= 7) return days[day - 1];
     return '';

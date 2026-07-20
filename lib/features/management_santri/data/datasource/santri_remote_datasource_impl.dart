@@ -30,11 +30,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     return value.trim();
   }
 
-  static String? _normalizedFiqihClass(SantriParams params) =>
-      AppConfig.current.curriculum.normalizeFiqihClass(
-        params.kelas,
-        params.kelasFiqih,
-      );
+  static String? _normalizedFiqihClass(SantriParams params) => AppConfig
+      .current
+      .curriculum
+      .normalizeFiqihClass(params.kelas, params.kelasFiqih);
 
   @override
   Future<List<SantriEntity>> getSantriList({
@@ -69,9 +68,12 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             .collection('santri_profiles')
             .where('halaqah_id', whereIn: chunk);
 
-        if (isActive != null) query = query.where('is_active', isEqualTo: isActive);
-        if (gender != null) query = query.where('jenis_kelamin', isEqualTo: gender);
-        if (session != null) query = query.where('tipe_kelas', isEqualTo: session);
+        if (isActive != null)
+          query = query.where('is_active', isEqualTo: isActive);
+        if (gender != null)
+          query = query.where('jenis_kelamin', isEqualTo: gender);
+        if (session != null)
+          query = query.where('tipe_kelas', isEqualTo: session);
         if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
 
         final snapshot = await query.get();
@@ -106,7 +108,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       if (keyword != null && keyword.isNotEmpty) {
         final k = keyword.toLowerCase();
         return result.where((s) {
-          return s.name.toLowerCase().contains(k) || s.nis.toLowerCase().contains(k);
+          return s.name.toLowerCase().contains(k) ||
+              s.nis.toLowerCase().contains(k);
         }).toList();
       }
 
@@ -163,7 +166,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       final k = keyword.toLowerCase();
       return result.where((s) {
-        return s.name.toLowerCase().contains(k) || s.nis.toLowerCase().contains(k);
+        return s.name.toLowerCase().contains(k) ||
+            s.nis.toLowerCase().contains(k);
       }).toList();
     }
 
@@ -179,7 +183,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     }
 
     if (lastDocumentId != null) {
-      final lastDoc = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
+      final lastDoc = await firestore
+          .collection('santri_profiles')
+          .doc(lastDocumentId)
+          .get();
       if (lastDoc.exists) {
         final lastName = lastDoc.data()?['name'];
         if (lastName != null) {
@@ -228,7 +235,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     const int batchSize = 50;
 
     if (lastDocumentId != null) {
-      final snap = await firestore.collection('santri_profiles').doc(lastDocumentId).get();
+      final snap = await firestore
+          .collection('santri_profiles')
+          .doc(lastDocumentId)
+          .get();
       if (snap.exists) lastDoc = snap;
     }
 
@@ -245,23 +255,25 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         final isCurrentlyFree = _isFreeFromData(data);
 
         if (isCurrentlyFree == isFree) {
-          result.add(SantriEntity(
-            id: doc.id,
-            name: data['name'],
-            nis: data['nis'],
-            kelas: data['kelas'],
-            kelasFiqih: _fiqihClassFromData(data),
-            jenisKelamin: data['jenis_kelamin'],
-            isActive: data['is_active'] ?? true,
-            isFree: isCurrentlyFree,
-            freeUntil: freeUntil,
-            nomorWali: data['nomor_wali'],
-            pembimbing: null,
-            tipeKelas: data['tipe_kelas'],
-            tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
-            halaqahId: data['halaqah_id'],
-            photoUrl: data['photo_url'],
-          ));
+          result.add(
+            SantriEntity(
+              id: doc.id,
+              name: data['name'],
+              nis: data['nis'],
+              kelas: data['kelas'],
+              kelasFiqih: _fiqihClassFromData(data),
+              jenisKelamin: data['jenis_kelamin'],
+              isActive: data['is_active'] ?? true,
+              isFree: isCurrentlyFree,
+              freeUntil: freeUntil,
+              nomorWali: data['nomor_wali'],
+              pembimbing: null,
+              tipeKelas: data['tipe_kelas'],
+              tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+              halaqahId: data['halaqah_id'],
+              photoUrl: data['photo_url'],
+            ),
+          );
           if (result.length >= limit) break;
         }
       }
@@ -283,7 +295,9 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     }
 
     final data = doc.data() as Map<String, dynamic>;
-    final userData = userDoc.exists ? userDoc.data() as Map<String, dynamic> : <String, dynamic>{};
+    final userData = userDoc.exists
+        ? userDoc.data() as Map<String, dynamic>
+        : <String, dynamic>{};
 
     final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
     final isFree = _isFreeFromData(data);
@@ -316,7 +330,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     final kelasFiqih = _normalizedFiqihClass(params);
     // Password format: YYYYMMDD
     final birthDate = params.birthDate;
-    final password = '${birthDate.year}${birthDate.month.toString().padLeft(2, '0')}${birthDate.day.toString().padLeft(2, '0')}';
+    final password =
+        '${birthDate.year}${birthDate.month.toString().padLeft(2, '0')}${birthDate.day.toString().padLeft(2, '0')}';
 
     FirebaseApp? tempApp;
     try {
@@ -346,11 +361,16 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
       await firestore.collection('santri_profiles').doc(uid).set({
         'is_active': true,
-        'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
-          DateTime.now().year + 7,
-          DateTime.now().month,
-          DateTime.now().day,
-        )) : null,
+        'free_until': params.isFree
+            ? Timestamp.fromDate(
+                params.freeUntil ??
+                    DateTime(
+                      DateTime.now().year + 7,
+                      DateTime.now().month,
+                      DateTime.now().day,
+                    ),
+              )
+            : null,
         'jenis_kelamin': params.jenisKelamin,
         'kelas': params.kelas,
         'kelas_fiqih': ?kelasFiqih,
@@ -390,11 +410,16 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       'kelas_fiqih': kelasFiqih ?? FieldValue.delete(),
       'jenis_kelamin': params.jenisKelamin,
       'is_active': params.isActive,
-      'free_until': params.isFree ? Timestamp.fromDate(params.freeUntil ?? DateTime(
-          DateTime.now().year + 7,
-          DateTime.now().month,
-          DateTime.now().day,
-        )) : null,
+      'free_until': params.isFree
+          ? Timestamp.fromDate(
+              params.freeUntil ??
+                  DateTime(
+                    DateTime.now().year + 7,
+                    DateTime.now().month,
+                    DateTime.now().day,
+                  ),
+            )
+          : null,
       'is_free': FieldValue.delete(), // Ensure old field is removed if present
       'nama_wali': params.waliName,
       'nomor_wali': params.waliPhone,
@@ -448,7 +473,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     if (ids.isEmpty) return [];
 
     final List<SantriEntity> allSantris = [];
-    
+
     // Firestore whereIn supports max 10 items
     for (var i = 0; i < ids.length; i += 10) {
       final end = (i + 10 < ids.length) ? i + 10 : ids.length;
@@ -482,16 +507,20 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           photoUrl: data['photo_url'],
         );
       }).toList();
-      
+
       allSantris.addAll(items);
     }
-    
+
     return allSantris;
   }
+
   @override
   Future<List<AsatidzEntity>> getAsatidzList() async {
-    final snapshot = await firestore.collection('asatidz_profiles').where('is_active', isEqualTo: true).get();
-    
+    final snapshot = await firestore
+        .collection('asatidz_profiles')
+        .where('is_active', isEqualTo: true)
+        .get();
+
     return snapshot.docs.map((doc) {
       final data = doc.data();
       return AsatidzEntity(
@@ -500,6 +529,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         nis: data['nis'] ?? '',
         jenisKelamin: data['jenis_kelamin'] ?? '',
         isActive: data['is_active'] ?? true,
+        photoUrl: data['photo_url'],
       );
     }).toList();
   }

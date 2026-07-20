@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/core/utils/format_utils.dart';
 import 'package:khoirunnasyien/core/utils/message_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_santri_card.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -47,29 +48,25 @@ class _StudentPaymentListBottomSheetState
   Future<void> _launchWhatsApp(String? phone, String nis, String name) async {
     debugPrint('DEBUG: Launching WhatsApp for $name ($phone)');
     if (phone == null || phone.isEmpty) {
-      showDialog(
+      await showAiwaActionSheet<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Info'),
-          content: const Text('Nomor telepon belum ada di data santri'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
+        title: 'Nomor Telepon Belum Ada',
+        content: const Text(
+          'Tambahkan nomor telepon pada data santri sebelum mengirim pengingat WhatsApp.',
         ),
+        confirmText: 'Mengerti',
+        showCancelAction: false,
       );
       return;
     }
-    
+
     final formattedPhone = FormatUtils.formatPhoneNumber(phone);
     final message = Uri.encodeComponent(
       MessageUtils.getPaymentReminderMessage(name, nis, widget.monthYear),
     );
-    
+
     final url = Uri.parse("https://wa.me/$formattedPhone?text=$message");
-    
+
     // Launch directly since we are targeting a specific app scheme/url
     await launchUrl(url, mode: LaunchMode.externalApplication);
   }
@@ -127,9 +124,9 @@ class _StudentPaymentListBottomSheetState
                 ],
               ),
             ),
-            
+
             SizedBox(height: 8),
-      
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -149,19 +146,19 @@ class _StudentPaymentListBottomSheetState
               ),
             ),
             const SizedBox(height: 16),
-      
+
             // List
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: _filteredStudents.length,
-                separatorBuilder: (_,_) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final student = _filteredStudents[index];
                   return PaymentSantriCard(
                     student,
-                    status: widget.showWhatsApp 
-                        ? null 
+                    status: widget.showWhatsApp
+                        ? null
                         : (student.isFree ? 'Gratis' : 'Sudah Bayar'),
                     trailing: widget.showWhatsApp
                         ? IconButton(

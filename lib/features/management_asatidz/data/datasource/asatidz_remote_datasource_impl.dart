@@ -25,17 +25,20 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
     if (isActive != null) {
       query = query.where('is_active', isEqualTo: isActive);
     }
-    
+
     if (gender != null) {
       query = query.where('jenis_kelamin', isEqualTo: gender);
     }
 
     bool isSearching = keyword != null && keyword.isNotEmpty;
-    
+
     if (!isSearching) {
       query = query.limit(limit);
       if (lastDocumentId != null) {
-        final lastDoc = await firestore.collection('asatidz_profiles').doc(lastDocumentId).get();
+        final lastDoc = await firestore
+            .collection('asatidz_profiles')
+            .doc(lastDocumentId)
+            .get();
         if (lastDoc.exists) {
           query = query.startAfterDocument(lastDoc);
         }
@@ -65,6 +68,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
         nis: data['nis'] ?? '',
         jenisKelamin: data['jenis_kelamin'] ?? '',
         isActive: data['is_active'] ?? true,
+        photoUrl: data['photo_url'],
       );
     }).toList();
   }
@@ -90,6 +94,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       jenisKelamin: data['jenis_kelamin'] ?? '',
       isActive: data['is_active'] ?? true,
       phone: userData['phone'] ?? '',
+      photoUrl: data['photo_url'] ?? userData['photo_url'],
     );
   }
 
@@ -122,6 +127,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
         'role': 'asatidz',
         'uid': uid,
         'created_at': FieldValue.serverTimestamp(),
+        if (params.photoUrl != null) 'photo_url': params.photoUrl,
       });
 
       await firestore.collection('asatidz_profiles').doc(uid).set({
@@ -131,6 +137,7 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
         'nis': params.nis,
         'uid': uid,
         'created_at': FieldValue.serverTimestamp(),
+        if (params.photoUrl != null) 'photo_url': params.photoUrl,
       });
     } finally {
       await tempApp?.delete();
@@ -139,17 +146,29 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
 
   @override
   Future<void> updateAsatidz(String id, AsatidzParams params) async {
-    await firestore.collection('asatidz_profiles').doc(id).update({
+    final Object? photoUpdate =
+        params.photoUrl ?? (params.removePhoto ? FieldValue.delete() : null);
+
+    final profileUpdate = <String, dynamic>{
       'name': params.name,
       'nis': params.nis,
       'jenis_kelamin': params.jenisKelamin,
       'is_active': params.isActive,
-    });
-
-    await firestore.collection('users').doc(id).update({
+    };
+    final userUpdate = <String, dynamic>{
       'name': params.name,
       'phone': params.phone,
       'nis': params.nis,
-    });
+    };
+    if (photoUpdate != null) {
+      profileUpdate['photo_url'] = photoUpdate;
+      userUpdate['photo_url'] = photoUpdate;
+    }
+
+    await firestore
+        .collection('asatidz_profiles')
+        .doc(id)
+        .update(profileUpdate);
+    await firestore.collection('users').doc(id).update(userUpdate);
   }
 }

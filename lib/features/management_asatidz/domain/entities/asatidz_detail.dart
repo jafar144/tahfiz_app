@@ -5,6 +5,7 @@ class AsatidzDetail {
   final String phone;
   final String jenisKelamin;
   final bool isActive;
+  final String? photoUrl;
 
   AsatidzDetail({
     required this.id,
@@ -13,5 +14,6 @@ class AsatidzDetail {
     required this.phone,
     required this.jenisKelamin,
     required this.isActive,
+    this.photoUrl,
   });
 }

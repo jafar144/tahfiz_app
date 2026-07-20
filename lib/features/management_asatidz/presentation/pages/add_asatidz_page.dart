@@ -1,5 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
@@ -23,6 +29,8 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
 
   String _gender = 'L'; // L / P
   bool _isLoading = false;
+  bool _isPickingPhoto = false;
+  File? _localPhotoFile;
 
   @override
   void dispose() {
@@ -40,9 +48,64 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
         phone: _phoneController.text,
         jenisKelamin: _gender,
         isActive: true, // Default active
+        localPhotoFile: _localPhotoFile,
       );
 
       context.read<AsatidzCubit>().addAsatidz(params);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final file = await ImageUtils.pickImage(ImageSource.gallery);
+    if (file == null) return;
+
+    try {
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: file.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressFormat: ImageCompressFormat.jpg,
+        compressQuality: 95,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Atur Foto Asatidz',
+            toolbarColor: const Color(0xFF004AAD),
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: const Color(0xFF004AAD),
+            lockAspectRatio: true,
+            showCropGrid: true,
+          ),
+          IOSUiSettings(
+            title: 'Atur Foto Asatidz',
+            doneButtonTitle: 'Simpan',
+            cancelButtonTitle: 'Batal',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+          ),
+        ],
+      );
+      if (croppedFile == null || !mounted) return;
+
+      setState(() => _isPickingPhoto = true);
+      final compressed = await ImageUtils.compressImage(File(croppedFile.path));
+      if (!mounted) return;
+      if (compressed != null) {
+        setState(() => _localPhotoFile = compressed);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto gagal diproses. Silakan coba lagi.'),
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memilih foto: $error')));
+      }
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
     }
   }
 
@@ -60,22 +123,14 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
           Navigator.pop(context);
         } else if (state is AsatidzError) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal: ${state.message}')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal: ${state.message}')));
         }
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: const Text(
-            'Tambah Asatidz',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-        ),
+        appBar: const AiwaAppBar(title: 'Tambah Asatidz'),
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -84,6 +139,62 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey.shade200,
+                          backgroundImage: _localPhotoFile == null
+                              ? null
+                              : FileImage(_localPhotoFile!),
+                          child: _localPhotoFile == null
+                              ? Icon(
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.grey.shade500,
+                                )
+                              : null,
+                        ),
+                        if (_isPickingPhoto)
+                          const Positioned.fill(
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Material(
+                            color: Colors.blue,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: _isPickingPhoto ? null : _pickImage,
+                              child: const Padding(
+                                padding: EdgeInsets.all(9),
+                                child: Icon(
+                                  Icons.camera_alt_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Text(
+                      'Foto profil (opsional)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
                   _buildSectionTitle('Informasi Pribadi'),
                   const SizedBox(height: 20),
                   AiwaTextField(
@@ -150,7 +261,7 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
                   const SizedBox(height: 40),
                   AiwaButton(
                     text: 'Tambah Asatidz',
-                    onPressed: _submit,
+                    onPressed: _isPickingPhoto ? null : _submit,
                     isLoading: _isLoading,
                     height: 52,
                   ),

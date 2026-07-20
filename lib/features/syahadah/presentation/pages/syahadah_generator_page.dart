@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -12,12 +13,14 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 
+import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_save_banner.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -37,9 +40,13 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
 
   SantriEntity? _selectedSantri;
   bool _isGenerating = false;
+  KelulusanSaveStatus? _saveStatus;
+  _PendingKelulusanSave? _pendingSave;
+  int _saveAttempt = 0;
 
   @override
   void dispose() {
+    _saveAttempt++;
     _hafalanController.dispose();
     _namaController.dispose();
     super.dispose();
@@ -73,42 +80,123 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       _selectedSantri != null &&
       _selectedSantri!.kelas.toLowerCase().startsWith('tahsin');
 
-
-
-  Future<bool?> _showConfirmDialog() {
-    return showDialog<bool>(
+  Future<bool?> _showConfirmSheet() {
+    return showAiwaActionSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.workspace_premium_rounded, color: Colors.blue),
-            SizedBox(width: 10),
-            Expanded(child: Text('Konfirmasi Kelulusan')),
-          ],
-        ),
-        content: const Text(
-          'Foto kelulusan ini akan ditampilkan pada daftar Kelulusan Santri '
-          'di halaman Home semua santri, lalu dibagikan.\n\nLanjutkan?',
-          style: TextStyle(height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Batal',
-                style: TextStyle(color: Colors.grey.shade600)),
+      title: 'Konfirmasi Kelulusan',
+      content: const Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.workspace_premium_rounded,
+                color: Colors.blue,
+                size: 28,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Poster akan langsung dibagikan. Foto juga disimpan ke '
+                  'daftar Kelulusan Santri secara paralel.',
+                  style: TextStyle(height: 1.45),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+          SizedBox(height: 14),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color(0xFFFFF7E6),
+              borderRadius: BorderRadius.all(Radius.circular(12)),
             ),
-            child: const Text('Lanjut & Bagikan'),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFFB45309),
+                    size: 21,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Anda boleh melanjutkan ke WhatsApp. Jangan tutup paksa '
+                      'Tahfiz App sampai banner berubah menjadi “Sudah tersimpan”.',
+                      style: TextStyle(
+                        color: Color(0xFF92400E),
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
+      confirmText: 'Bagikan Sekarang',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.blue,
     );
+  }
+
+  void _startBackgroundSave(_PendingKelulusanSave job) {
+    final attempt = ++_saveAttempt;
+    setState(() {
+      _pendingSave = job;
+      _saveStatus = KelulusanSaveStatus.saving;
+    });
+    unawaited(_saveKelulusanInBackground(job, attempt));
+  }
+
+  Future<void> _saveKelulusanInBackground(
+    _PendingKelulusanSave job,
+    int attempt,
+  ) async {
+    String? uploadedUrl;
+    try {
+      uploadedUrl = await ImageUtils.uploadImageToFirebase(
+        job.file,
+        'syahadah_photos',
+      );
+      if (uploadedUrl == null) throw Exception('Upload foto gagal');
+
+      await getIt<KelulusanRepository>().addKelulusan(
+        santriId: job.santri.id,
+        santriName: job.displayName,
+        kelas: job.santri.kelas,
+        hafalan: job.hafalan,
+        imageUrl: uploadedUrl,
+      );
+      if (mounted && attempt == _saveAttempt) {
+        setState(() => _saveStatus = KelulusanSaveStatus.success);
+      }
+    } catch (_) {
+      if (uploadedUrl != null) {
+        await ImageUtils.deleteImageFromFirebase(uploadedUrl);
+      }
+      if (mounted && attempt == _saveAttempt) {
+        setState(() => _saveStatus = KelulusanSaveStatus.failure);
+      }
+    }
+  }
+
+  void _retryBackgroundSave() {
+    final job = _pendingSave;
+    if (job == null || _saveStatus == KelulusanSaveStatus.saving) return;
+    _startBackgroundSave(job);
+  }
+
+  void _dismissSaveStatus() {
+    if (_saveStatus == KelulusanSaveStatus.saving) return;
+    setState(() => _saveStatus = null);
   }
 
   Future<void> _generateAndShare() async {
@@ -131,8 +219,12 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       return;
     }
 
-    final confirmed = await _showConfirmDialog();
+    final confirmed = await _showConfirmSheet();
     if (confirmed != true) return;
+
+    final selectedSantri = _selectedSantri!;
+    final displayName = _namaController.text;
+    final hafalan = _hafalanController.text;
 
     setState(() => _isGenerating = true);
 
@@ -151,41 +243,27 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       // share sheet OS bisa menampilkan thumbnail lama dari cache.
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final imagePath =
-          '${directory.path}/syahadah_${_selectedSantri!.name.replaceAll(' ', '_')}_$timestamp.png';
+          '${directory.path}/syahadah_${selectedSantri.name.replaceAll(' ', '_')}_$timestamp.png';
       final rawFile = File(imagePath);
       await rawFile.writeAsBytes(pngBytes);
 
       // Kompres hingga maksimal 1 MB (hemat storage & ringan dibagikan).
       final file = await ImageUtils.compressToMaxSize(rawFile) ?? rawFile;
 
-      // Simpan ke Storage + catat di koleksi kelulusan agar tampil di
-      // carousel Home santri. Bila gagal, tetap lanjut membagikan.
-      final url =
-          await ImageUtils.uploadImageToFirebase(file, 'syahadah_photos');
-      if (url != null) {
-        await getIt<KelulusanRepository>().addKelulusan(
-          santriId: _selectedSantri!.id,
-          santriName: _namaController.text,
-          kelas: _selectedSantri!.kelas,
-          hafalan: _hafalanController.text,
-          imageUrl: url,
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Foto gagal disimpan ke daftar kelulusan, tetapi tetap dibagikan.',
-            ),
-          ),
-        );
-      }
-
-      final xfile = XFile(file.path);
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [xfile]
+      // Storage dan Firestore diproses paralel. Banner menjaga pengguna tetap
+      // mengetahui status penyimpanan ketika kembali dari share sheet.
+      _startBackgroundSave(
+        _PendingKelulusanSave(
+          file: file,
+          santri: selectedSantri,
+          displayName: displayName,
+          hafalan: hafalan,
         ),
       );
+      await WidgetsBinding.instance.endOfFrame;
+
+      final xfile = XFile(file.path);
+      await SharePlus.instance.share(ShareParams(files: [xfile]));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -225,6 +303,25 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           onTap: () => UiUtils.unfocus(context),
           child: Column(
             children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => SizeTransition(
+                  sizeFactor: animation,
+                  alignment: Alignment.topCenter,
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: _saveStatus == null
+                    ? const SizedBox.shrink(key: ValueKey('save-status-hidden'))
+                    : KelulusanSaveBanner(
+                        status: _saveStatus!,
+                        onRetry: _saveStatus == KelulusanSaveStatus.failure
+                            ? _retryBackgroundSave
+                            : null,
+                        onDismiss: _dismissSaveStatus,
+                      ),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
@@ -245,16 +342,20 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                         const SizedBox(height: 8),
                         InkWell(
                           onTap: _selectSantri,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           child: Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               children: [
                                 CircleAvatar(
+                                  radius: 18,
                                   backgroundColor: Colors.blue.shade100,
                                   backgroundImage:
                                       _selectedSantri?.photoUrl != null
@@ -267,7 +368,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                         )
                                       : null,
                                 ),
-                                const SizedBox(width: 16),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -277,7 +378,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                         _selectedSantri?.name ??
                                             'Ketuk untuk memilih santri',
                                         style: TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 14,
                                           fontWeight: _selectedSantri != null
                                               ? FontWeight.bold
                                               : FontWeight.normal,
@@ -325,7 +426,9 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  _isTahsin ? Icons.auto_stories : Icons.menu_book,
+                                  _isTahsin
+                                      ? Icons.auto_stories
+                                      : Icons.menu_book,
                                   size: 16,
                                   color: _isTahsin
                                       ? Colors.orange.shade700
@@ -435,7 +538,9 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                 ),
                 child: AiwaButton(
                   text: 'Generate & Bagikan',
-                  onPressed: _generateAndShare,
+                  onPressed: _saveStatus == KelulusanSaveStatus.saving
+                      ? null
+                      : _generateAndShare,
                   isLoading: _isGenerating,
                 ),
               ),
@@ -470,4 +575,18 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       ),
     );
   }
+}
+
+class _PendingKelulusanSave {
+  final File file;
+  final SantriEntity santri;
+  final String displayName;
+  final String hafalan;
+
+  const _PendingKelulusanSave({
+    required this.file,
+    required this.santri,
+    required this.displayName,
+    required this.hafalan,
+  });
 }

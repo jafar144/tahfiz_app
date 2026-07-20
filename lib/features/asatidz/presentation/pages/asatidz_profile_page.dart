@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:go_router/go_router.dart';
@@ -25,7 +26,7 @@ class AsatidzProfilePage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                _buildProfileHeader(user.name, user.email),
+                _buildProfileHeader(user.name, user.email, user.photoUrl),
                 const SizedBox(height: 24),
                 _buildInfoCard(context, user),
                 const SizedBox(height: 24),
@@ -41,9 +42,7 @@ class AsatidzProfilePage extends StatelessWidget {
     );
   }
 
-
-
-  Widget _buildProfileHeader(String name, String email) {
+  Widget _buildProfileHeader(String name, String email, String? photoUrl) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -69,6 +68,12 @@ class AsatidzProfilePage extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
+              image: photoUrl != null && photoUrl.isNotEmpty
+                  ? DecorationImage(
+                      image: NetworkImage(photoUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -77,16 +82,18 @@ class AsatidzProfilePage extends StatelessWidget {
                 ),
               ],
             ),
-            child: Center(
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : 'A',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade600,
-                ),
-              ),
-            ),
+            child: photoUrl != null && photoUrl.isNotEmpty
+                ? null
+                : Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'A',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue.shade600,
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -143,17 +150,24 @@ class AsatidzProfilePage extends StatelessWidget {
           _buildInfoRow(Icons.phone, 'No. Telepon', user.phone),
           const Divider(height: 24),
           _buildInfoRow(
-            Icons.work, 
-            'Role', 
-            'Asatidz', 
-            trailing: user.isAdmin ? _buildSmallSwitchButton(context, isToAsatidz: false) : null,
+            Icons.work,
+            'Role',
+            'Asatidz',
+            trailing: user.isAdmin
+                ? _buildSmallSwitchButton(context, isToAsatidz: false)
+                : null,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Widget? trailing}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Widget? trailing,
+  }) {
     return Row(
       children: [
         Container(
@@ -171,10 +185,7 @@ class AsatidzProfilePage extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 2),
               Text(
@@ -188,65 +199,41 @@ class AsatidzProfilePage extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) ...[
-          const SizedBox(width: 8),
-          trailing,
-        ],
+        if (trailing != null) ...[const SizedBox(width: 8), trailing],
       ],
     );
   }
 
-  Widget _buildSmallSwitchButton(BuildContext context, {required bool isToAsatidz}) {
+  Widget _buildSmallSwitchButton(
+    BuildContext context, {
+    required bool isToAsatidz,
+  }) {
     return InkWell(
-      onTap: () {
-        showDialog(
+      onTap: () async {
+        final confirmed = await showAiwaActionSheet<bool>(
           context: context,
-          builder: (dialogContext) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.swap_horiz, color: Colors.blue, size: 28),
-                SizedBox(width: 12),
-                Text('Ganti Role'),
-              ],
-            ),
-            content: Text(
-              'Apakah Anda yakin ingin beralih ke role ${isToAsatidz ? 'Asatidz' : 'Admin'}?',
-              style: const TextStyle(fontSize: 15),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
+          title: 'Ganti Role',
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.swap_horiz, color: Colors.blue, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Text(
-                  'Batal',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                  context.read<AuthCubit>().switchRole();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Ya, Ganti',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  'Apakah Anda yakin ingin beralih ke role ${isToAsatidz ? 'Asatidz' : 'Admin'}?',
+                  style: const TextStyle(fontSize: 15, height: 1.4),
                 ),
               ),
             ],
           ),
+          confirmText: 'Ya, Ganti',
+          confirmValue: true,
+          cancelValue: false,
+          confirmColor: Colors.blue,
         );
+        if (confirmed == true && context.mounted) {
+          context.read<AuthCubit>().switchRole();
+        }
       },
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -406,111 +393,51 @@ class AsatidzProfilePage extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    final confirmed = await showAiwaActionSheet<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Konfirmasi Keluar'),
-          ],
-        ),
-        content: const Text(
-          'Apakah Anda yakin ingin keluar dari aplikasi?',
-          style: TextStyle(fontSize: 15),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Batal',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.read<AuthCubit>().logout();
-              context.go('/login');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              'Keluar',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
+      title: 'Konfirmasi Keluar',
+      content: const Text(
+        'Apakah Anda yakin ingin keluar dari aplikasi?',
+        style: TextStyle(fontSize: 15),
       ),
+      confirmText: 'Keluar',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.red,
     );
+    if (confirmed == true && context.mounted) {
+      await context.read<AuthCubit>().logout();
+      if (context.mounted) context.go('/login');
+    }
   }
 
   void _showAboutDialog(BuildContext context) {
-    showDialog(
+    showAiwaActionSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.info, color: Colors.blue, size: 28),
-            SizedBox(width: 12),
-            Text('Tentang Aplikasi'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tahfiz App',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Versi 1.0.0',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade700,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Tutup',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+      title: 'Tentang Aplikasi',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tahfiz App',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Versi 1.0.0',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aplikasi manajemen tahfiz untuk memudahkan pengelolaan santri, asatidz, dan kegiatan tahfiz.',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
           ),
         ],
       ),
+      confirmText: 'Tutup',
+      showCancelAction: false,
     );
   }
 }

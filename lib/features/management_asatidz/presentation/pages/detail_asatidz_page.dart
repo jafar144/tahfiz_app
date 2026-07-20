@@ -59,27 +59,28 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
             return const SizedBox();
           },
         ),
-        floatingActionButton: BlocBuilder<AsatidzDetailCubit, AsatidzDetailState>(
-          builder: (context, state) {
-            if (state is AsatidzDetailLoaded) {
-              return FloatingActionButton.extended(
-                onPressed: () {
-                  context.pushNamed(
-                    RouteNames.editAsatidz,
-                    extra: <String, dynamic>{
-                      'asatidz': state.detail,
-                      'cubit': _cubit,
+        floatingActionButton:
+            BlocBuilder<AsatidzDetailCubit, AsatidzDetailState>(
+              builder: (context, state) {
+                if (state is AsatidzDetailLoaded) {
+                  return FloatingActionButton.extended(
+                    onPressed: () {
+                      context.pushNamed(
+                        RouteNames.editAsatidz,
+                        extra: <String, dynamic>{
+                          'asatidz': state.detail,
+                          'cubit': _cubit,
+                        },
+                      );
                     },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit Profil'),
+                    backgroundColor: Colors.blue.shade600,
                   );
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit Profil'),
-                backgroundColor: Colors.blue.shade600,
-              );
-            }
-            return const SizedBox();
-          },
-        ),
+                }
+                return const SizedBox();
+              },
+            ),
       ),
     );
   }
@@ -123,18 +124,24 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
 
                 const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
                 const SizedBox(height: 10),
-                AiwaInfoCard(children: [
-                  AiwaDetailInfoRow(
-                    icon: detail.jenisKelamin == 'L' ? Icons.male : Icons.female,
-                    label: 'Jenis Kelamin',
-                    value: detail.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
-                  ),
-                  AiwaDetailInfoRow(
-                    icon: Icons.phone,
-                    label: 'No. Telepon',
-                    value: detail.phone,
-                  ),
-                ]),
+                AiwaInfoCard(
+                  children: [
+                    AiwaDetailInfoRow(
+                      icon: detail.jenisKelamin == 'L'
+                          ? Icons.male
+                          : Icons.female,
+                      label: 'Jenis Kelamin',
+                      value: detail.jenisKelamin == 'L'
+                          ? 'Laki-laki'
+                          : 'Perempuan',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.phone,
+                      label: 'No. Telepon',
+                      value: detail.phone,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 80),
               ],
             ),
@@ -179,14 +186,22 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white,
-                  child: Text(
-                    detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
+                  backgroundImage:
+                      detail.photoUrl != null && detail.photoUrl!.isNotEmpty
+                      ? NetworkImage(detail.photoUrl!)
+                      : null,
+                  child: detail.photoUrl == null || detail.photoUrl!.isEmpty
+                      ? Text(
+                          detail.name.isNotEmpty
+                              ? detail.name[0].toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        )
+                      : null,
                 ),
               ),
             ],

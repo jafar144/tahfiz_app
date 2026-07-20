@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
@@ -33,8 +34,9 @@ class SantriReportDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => SantriReportDetailCubit(repository: getIt())
-        ..load(santri.id, joinedAt: santri.tanggalMasuk),
+      create: (_) =>
+          SantriReportDetailCubit(repository: getIt())
+            ..load(santri.id, joinedAt: santri.tanggalMasuk),
       child: _SantriReportDetailView(santri: santri, viewOnly: viewOnly),
     );
   }
@@ -86,7 +88,8 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           ? null
           : BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
               builder: (context, state) {
-                final isEdit = state is SantriReportDetailLoaded &&
+                final isEdit =
+                    state is SantriReportDetailLoaded &&
                     state.currentMonthFilled;
                 return FloatingActionButton.extended(
                   onPressed: _onAddPressed,
@@ -108,28 +111,28 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
               child: SantriCard(widget.santri, onTap: () {}),
             ),
             Expanded(
-              child: BlocBuilder<SantriReportDetailCubit,
-                  SantriReportDetailState>(
-                builder: (context, state) {
-                  if (state is SantriReportDetailLoading) {
-                    return _buildSkeleton();
-                  }
+              child:
+                  BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
+                    builder: (context, state) {
+                      if (state is SantriReportDetailLoading) {
+                        return _buildSkeleton();
+                      }
 
-                  if (state is SantriReportDetailError) {
-                    return _buildError(state.message);
-                  }
+                      if (state is SantriReportDetailError) {
+                        return _buildError(state.message);
+                      }
 
-                  if (state is SantriReportDetailLoaded) {
-                    if (state.reports.isEmpty &&
-                        state.missingPeriods.isEmpty) {
-                      return _buildEmptyState();
-                    }
-                    return _buildList(state);
-                  }
+                      if (state is SantriReportDetailLoaded) {
+                        if (state.reports.isEmpty &&
+                            state.missingPeriods.isEmpty) {
+                          return _buildEmptyState();
+                        }
+                        return _buildList(state);
+                      }
 
-                  return const SizedBox();
-                },
-              ),
+                      return const SizedBox();
+                    },
+                  ),
             ),
           ],
         ),
@@ -204,9 +207,9 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () => context.read<SantriReportDetailCubit>().load(
-                  widget.santri.id,
-                  joinedAt: widget.santri.tanggalMasuk,
-                ),
+              widget.santri.id,
+              joinedAt: widget.santri.tanggalMasuk,
+            ),
             child: const Text(MonthlyReportStrings.cobaLagi),
           ),
         ],
@@ -219,7 +222,11 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.assessment_outlined, size: 64, color: Colors.grey.shade300),
+          Icon(
+            Icons.assessment_outlined,
+            size: 64,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 16),
           Text(
             MonthlyReportStrings.belumAdaPenilaian,
@@ -266,8 +273,9 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider(
-          create: (_) => MonthlyReportInputCubit(repository: getIt())
-            ..loadExisting(widget.santri.id, bulan, tahun),
+          create: (_) =>
+              MonthlyReportInputCubit(repository: getIt())
+                ..loadExisting(widget.santri.id, bulan, tahun),
           child: MonthlyReportInputPage(
             santri: widget.santri,
             asatidzId: authState.user.uid,
@@ -286,32 +294,24 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
   }
 
   void _showWindowClosedDialog() {
-    showDialog(
+    showAiwaActionSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        icon: Icon(Icons.schedule_rounded,
-            color: Colors.orange.shade600, size: 36),
-        title: const Text(
-          MonthlyReportStrings.windowClosedTitle,
-          textAlign: TextAlign.center,
-        ),
-        content: const Text(
-          MonthlyReportStrings.windowClosedMessage,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(MonthlyReportStrings.mengerti),
+      title: MonthlyReportStrings.windowClosedTitle,
+      content: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.schedule_rounded, color: Colors.orange.shade600, size: 32),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              MonthlyReportStrings.windowClosedMessage,
+              style: TextStyle(height: 1.45),
             ),
           ),
         ],
       ),
+      confirmText: MonthlyReportStrings.mengerti,
+      showCancelAction: false,
     );
   }
 }

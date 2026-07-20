@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/core/constants/app_constants.dart';
@@ -261,27 +262,18 @@ class _EditSantriPageState extends State<EditSantriPage> {
   /// Konfirmasi mengeluarkan santri dari halaqah saat status diubah ke
   /// Tidak Aktif. Mengembalikan true bila admin menyetujui.
   Future<bool?> _confirmLeaveHalaqah(String halaqahName) {
-    return showDialog<bool>(
+    return showAiwaActionSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Keluarkan dari Halaqah?'),
-        content: Text(
-          'Santri ini masih terhubung dengan halaqah "$halaqahName". '
-          'Karena status diubah menjadi Tidak Aktif, santri akan dikeluarkan '
-          'dari halaqah tersebut. Lanjutkan?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Keluarkan'),
-          ),
-        ],
+      title: 'Keluarkan dari Halaqah?',
+      content: Text(
+        'Santri ini masih terhubung dengan halaqah "$halaqahName". '
+        'Karena status diubah menjadi Tidak Aktif, santri akan dikeluarkan '
+        'dari halaqah tersebut. Lanjutkan?',
       ),
+      confirmText: 'Keluarkan',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.red,
     );
   }
 

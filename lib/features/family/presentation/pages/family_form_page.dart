@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/family/data/family_repository.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.dart';
@@ -94,9 +95,11 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing
-                ? 'Keluarga berhasil diperbarui'
-                : 'Keluarga berhasil ditambahkan'),
+            content: Text(
+              _isEditing
+                  ? 'Keluarga berhasil diperbarui'
+                  : 'Keluarga berhasil ditambahkan',
+            ),
           ),
         );
         context.pop();
@@ -104,48 +107,32 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
       }
     }
   }
 
   Future<void> _deleteFamily() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAiwaActionSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Hapus Keluarga'),
-          ],
-        ),
-        content: const Text('Apakah Anda yakin ingin menghapus keluarga ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Batal', style: TextStyle(color: Colors.grey.shade600)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+      title: 'Hapus Keluarga',
+      content: const Text(
+        'Apakah Anda yakin ingin menghapus keluarga ini? Tindakan ini tidak dapat dibatalkan.',
       ),
+      confirmText: 'Hapus',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.red,
     );
 
     if (confirmed == true && mounted) {
       setState(() => _isLoading = true);
       try {
-        await context.read<FamilyCubit>().deleteFamily(widget.existing!.family.id);
+        await context.read<FamilyCubit>().deleteFamily(
+          widget.existing!.family.id,
+        );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Keluarga berhasil dihapus')),
@@ -155,9 +142,9 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
         }
       }
     }
@@ -198,7 +185,10 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                     const SizedBox(height: 4),
                     Text(
                       'Minimal 2 santri per keluarga',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (_selectedSantri.isEmpty)
@@ -215,7 +205,11 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.people_outline, size: 48, color: Colors.grey.shade400),
+                            Icon(
+                              Icons.people_outline,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'Belum ada santri dipilih',
@@ -238,25 +232,41 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                             ),
                             child: ListTile(
                               leading: CircleAvatar(
-                                backgroundColor: isMale ? Colors.blue.shade50 : Colors.pink.shade50,
+                                backgroundColor: isMale
+                                    ? Colors.blue.shade50
+                                    : Colors.pink.shade50,
                                 child: Text(
-                                  santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?',
+                                  santri.name.isNotEmpty
+                                      ? santri.name[0].toUpperCase()
+                                      : '?',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: isMale ? Colors.blue.shade700 : Colors.pink.shade700,
+                                    color: isMale
+                                        ? Colors.blue.shade700
+                                        : Colors.pink.shade700,
                                   ),
                                 ),
                               ),
                               title: Text(
                                 santri.name,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
                               ),
                               subtitle: Text(
                                 'NIS: ${santri.nis} • ${santri.kelas}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                ),
                               ),
                               trailing: IconButton(
-                                icon: Icon(Icons.close, color: Colors.red.shade400, size: 20),
+                                icon: Icon(
+                                  Icons.close,
+                                  color: Colors.red.shade400,
+                                  size: 20,
+                                ),
                                 onPressed: () => _removeSantri(santri),
                               ),
                             ),
