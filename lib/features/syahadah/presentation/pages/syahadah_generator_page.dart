@@ -472,7 +472,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                           textCapitalization: TextCapitalization.words,
                           onChanged: (val) => setState(() {}),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
 
                         const AiwaFormSectionTitle(title: 'Preview'),
                         const SizedBox(height: 12),
