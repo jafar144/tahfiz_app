@@ -3,62 +3,52 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
-import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/halaqah_deposit_list_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
-import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class HalaqahDepositListPage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
+  final String asatidzId;
 
-  const HalaqahDepositListPage({super.key, required this.activeHalaqah});
+  const HalaqahDepositListPage({
+    super.key,
+    required this.activeHalaqah,
+    required this.asatidzId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final dashboardCubit = context.read<AsatidzDashboardCubit>();
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      appBar: AiwaAppBar(title: 'Setoran Santri'),
+      body: SafeArea(
+        child: BlocBuilder<HalaqahDepositListCubit, HalaqahDepositListState>(
+          builder: (context, state) {
+            if (state is HalaqahDepositListLoading) {
+              return _buildSkeletonList();
+            }
 
-    return BlocProvider(
-      create: (context) => HalaqahDepositListCubit(
-        repository: dashboardCubit.asatidzRepository,
-        scheduleRepository: getIt(),
-        activeHalaqah: activeHalaqah,
-      )..loadData(),
-      child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
-        appBar: AiwaAppBar(title: "Setoran Santri"),
-        body: SafeArea(
-          child: BlocBuilder<HalaqahDepositListCubit, HalaqahDepositListState>(
-            builder: (context, state) {
-              if (state is HalaqahDepositListLoading) {
-                return _buildSkeletonList();
-              }
+            if (state is HalaqahDepositListError) {
+              return Center(child: Text('Error: ${state.message}'));
+            }
 
-              if (state is HalaqahDepositListError) {
-                return Center(child: Text('Error: ${state.message}'));
-              }
+            if (state is HalaqahDepositListLoaded) {
+              return ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.summaries.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final summary = state.summaries[index];
+                  return _buildSantriCard(context, summary);
+                },
+              );
+            }
 
-              if (state is HalaqahDepositListLoaded) {
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: state.summaries.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final summary = state.summaries[index];
-                    return _buildSantriCard(
-                      context,
-                      summary,
-                      dashboardCubit.asatidzId,
-                    );
-                  },
-                );
-              }
-
-              return const SizedBox.shrink();
-            },
-          ),
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );
@@ -158,12 +148,8 @@ class HalaqahDepositListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSantriCard(
-    BuildContext context,
-    SantriDepositSummary summary,
-    String asatidzId,
-  ) {
-    bool hasTodayDeposit = summary.todayDeposit != null;
+  Widget _buildSantriCard(BuildContext context, SantriDepositSummary summary) {
+    final hasTodayDeposit = summary.todayDeposit != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -181,19 +167,15 @@ class HalaqahDepositListPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () async {
-            final dashboardCubit = context.read<AsatidzDashboardCubit>();
-
             await context.pushNamed(
               RouteNames.santriSetoran,
               extra: <String, dynamic>{
-                'dashboardCubit': dashboardCubit,
                 'activeHalaqah': activeHalaqah,
                 'santri': summary.santri,
                 'asatidzId': asatidzId,
                 'asatidzName': activeHalaqah.halaqah.teacherName,
               },
             );
-            // Reload data after return
             if (context.mounted) {
               context.read<HalaqahDepositListCubit>().loadData();
             }

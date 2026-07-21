@@ -26,7 +26,7 @@ class AsatidzSantriCubit extends Cubit<AsatidzSantriState> {
           return;
         }
 
-        final allSantris = <dynamic>[];
+        final santrisById = <String, SantriEntity>{};
         for (final halaqah in halaqahs) {
           final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
             halaqah.id,
@@ -34,33 +34,30 @@ class AsatidzSantriCubit extends Cubit<AsatidzSantriState> {
           santrisResult.fold(
             ifLeft: (_) {},
             ifRight: (santris) {
-              final mapped = santris
-                  .map(
-                    (s) => SantriEntity(
-                      id: s.id,
-                      name: s.name,
-                      nis: s.nis,
-                      kelas: s.kelas,
-                      kelasFiqih: s.kelasFiqih,
-                      jenisKelamin: s.jenisKelamin,
-                      isActive: s.isActive,
-                      isFree: s.isFree,
-                      freeUntil: s.freeUntil,
-                      nomorWali: s.nomorWali,
-                      tipeKelas: s.tipeKelas,
-                      halaqahId: s.halaqahId,
-                      halaqahName: halaqah.name,
-                      pembimbing: halaqah.teacherName,
-                      tanggalMasuk: s.tanggalMasuk,
-                    ),
-                  )
-                  .toList();
-              allSantris.addAll(mapped);
+              for (final santri in santris) {
+                santrisById[santri.id] = SantriEntity(
+                  id: santri.id,
+                  name: santri.name,
+                  nis: santri.nis,
+                  kelas: santri.kelas,
+                  kelasFiqih: santri.kelasFiqih,
+                  jenisKelamin: santri.jenisKelamin,
+                  isActive: santri.isActive,
+                  isFree: santri.isFree,
+                  freeUntil: santri.freeUntil,
+                  nomorWali: santri.nomorWali,
+                  tipeKelas: santri.tipeKelas,
+                  halaqahId: santri.halaqahId,
+                  halaqahName: halaqah.name,
+                  pembimbing: halaqah.teacherName,
+                  tanggalMasuk: santri.tanggalMasuk,
+                );
+              }
             },
           );
         }
 
-        emit(AsatidzSantriLoaded(allSantris.toSet().toList().cast()));
+        emit(AsatidzSantriLoaded(santrisById.values.toList()));
       },
     );
   }

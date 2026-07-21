@@ -11,15 +11,11 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
   final AsatidzRepository repository;
   final ScheduleRepository scheduleRepository;
   final ActiveHalaqah activeHalaqah;
-  final String asatidzId;
-  final String asatidzName;
 
   SantriAttendanceCubit({
     required this.repository,
     required this.scheduleRepository,
     required this.activeHalaqah,
-    required this.asatidzId,
-    required this.asatidzName,
   }) : super(SantriAttendanceInitial());
 
   Future<void> init() async {
@@ -159,7 +155,7 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
 
           membersList.add(
             MeetingMember(
-              id: entry.key, // Use Santri ID as document ID for members
+              id: entry.key,
               santriId: entry.key,
               santriName: santri.name,
               halaqahAsalId: santri.halaqahId ?? '',

@@ -69,7 +69,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recit
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_review_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/recitation_quiz_page.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
-import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/halaqah_deposit_list_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/halaqah_deposit_list_page.dart';
@@ -454,8 +454,6 @@ class AppRouter {
               repository: getIt(),
               scheduleRepository: getIt(),
               activeHalaqah: activeHalaqah,
-              asatidzId: extras['asatidzId'] as String,
-              asatidzName: extras['asatidzName'] as String,
             )..init(),
             child: SantriAttendancePage(activeHalaqah: activeHalaqah),
           );
@@ -466,10 +464,16 @@ class AppRouter {
         name: RouteNames.halaqahDeposits,
         builder: (context, state) {
           final extras = state.extra as Map<String, dynamic>;
-          return BlocProvider.value(
-            value: extras['dashboardCubit'] as AsatidzDashboardCubit,
+          final activeHalaqah = extras['activeHalaqah'] as ActiveHalaqah;
+          return BlocProvider(
+            create: (_) => HalaqahDepositListCubit(
+              repository: getIt(),
+              scheduleRepository: getIt(),
+              activeHalaqah: activeHalaqah,
+            )..loadData(),
             child: HalaqahDepositListPage(
-              activeHalaqah: extras['activeHalaqah'] as ActiveHalaqah,
+              activeHalaqah: activeHalaqah,
+              asatidzId: extras['asatidzId'] as String,
             ),
           );
         },
@@ -481,11 +485,9 @@ class AppRouter {
           final extras = state.extra as Map<String, dynamic>;
           final activeHalaqah = extras['activeHalaqah'] as ActiveHalaqah;
           final santri = extras['santri'] as SantriEntity;
-          final dashboardCubit =
-              extras['dashboardCubit'] as AsatidzDashboardCubit;
           return BlocProvider(
             create: (_) => SantriSetoranCubit(
-              repository: dashboardCubit.asatidzRepository,
+              repository: getIt(),
               activeHalaqah: activeHalaqah,
               santri: santri,
               asatidzId: extras['asatidzId'] as String,

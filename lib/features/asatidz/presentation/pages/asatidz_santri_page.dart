@@ -14,37 +14,37 @@ class AsatidzSantriPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final teacherId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
+
     return BlocProvider(
-      create: (_) {
-        final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-        return getIt<AsatidzSantriCubit>()..loadMySantri(userId);
-      },
-      child: const _AsatidzSantriView(),
+      create: (_) => getIt<AsatidzSantriCubit>()..loadMySantri(teacherId),
+      child: _AsatidzSantriView(teacherId: teacherId),
     );
   }
 }
 
 class _AsatidzSantriView extends StatelessWidget {
-  const _AsatidzSantriView();
+  final String teacherId;
+
+  const _AsatidzSantriView({required this.teacherId});
+
+  static final skeletonSantris = List.generate(
+    5,
+    (_) => SantriEntity(
+      id: 'skeleton',
+      name: 'Nama Santri Placeholder',
+      nis: '12345',
+      kelas: 'Tahfiz 1',
+      jenisKelamin: 'L',
+      isActive: true,
+      isFree: false,
+      nomorWali: '0812...',
+      pembimbing: 'Ustadz Fulan',
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
-    // Skeleton data for loading state
-    final List<SantriEntity> skeletonData = List.generate(
-      5,
-      (index) => SantriEntity(
-        id: 'skeleton',
-        name: 'Nama Santri Placeholder',
-        nis: '12345',
-        kelas: 'Tahfiz 1',
-        jenisKelamin: 'L',
-        isActive: true,
-        isFree: false,
-        nomorWali: '0812...',
-        pembimbing: 'Ustadz Fulan',
-      ),
-    );
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AiwaAppBar(title: "Santri Saya"),
@@ -54,7 +54,7 @@ class _AsatidzSantriView extends StatelessWidget {
           final List<SantriEntity> displayList;
 
           if (isLoading) {
-            displayList = skeletonData;
+            displayList = skeletonSantris;
           } else if (state is AsatidzSantriLoaded) {
             displayList = state.santri;
           } else {
@@ -87,11 +87,9 @@ class _AsatidzSantriView extends StatelessWidget {
                   Text(state.message),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final userId =
-                          getIt<FirebaseAuth>().currentUser?.uid ?? '';
-                      context.read<AsatidzSantriCubit>().loadMySantri(userId);
-                    },
+                    onPressed: () => context
+                        .read<AsatidzSantriCubit>()
+                        .loadMySantri(teacherId),
                     child: const Text('Coba Lagi'),
                   ),
                 ],
@@ -109,11 +107,9 @@ class _AsatidzSantriView extends StatelessWidget {
                 return SantriCard(
                   displayList[index],
                   extra: const {'readOnly': true},
-                  onReturn: () {
-                    // Refresh data when returning from detail page
-                    final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-                    context.read<AsatidzSantriCubit>().loadMySantri(userId);
-                  },
+                  onReturn: () => context
+                      .read<AsatidzSantriCubit>()
+                      .loadMySantri(teacherId),
                 );
               },
             ),

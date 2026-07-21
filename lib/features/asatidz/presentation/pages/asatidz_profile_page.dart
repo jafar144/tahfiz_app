@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
+import 'package:khoirunnasyien/features/auth/data/model/user_model.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
-import 'package:go_router/go_router.dart';
 
 class AsatidzProfilePage extends StatelessWidget {
   const AsatidzProfilePage({super.key});
@@ -29,7 +31,6 @@ class AsatidzProfilePage extends StatelessWidget {
                 _buildProfileHeader(user.name, user.email, user.photoUrl),
                 const SizedBox(height: 24),
                 _buildInfoCard(context, user),
-                const SizedBox(height: 24),
                 const SizedBox(height: 24),
                 _buildMenuSection(context),
                 const SizedBox(height: 24),
@@ -119,7 +120,7 @@ class AsatidzProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, dynamic user) {
+  Widget _buildInfoCard(BuildContext context, UserModel user) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -277,30 +278,6 @@ class AsatidzProfilePage extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // _buildMenuItem(
-          //   icon: Icons.edit,
-          //   title: 'Edit Profile',
-          //   subtitle: 'Ubah informasi akun',
-          //   color: Colors.blue,
-          //   onTap: () {
-          //     ScaffoldMessenger.of(context).showSnackBar(
-          //       const SnackBar(content: Text('Fitur coming soon...')),
-          //     );
-          //   },
-          // ),
-          // const Divider(height: 1),
-          // _buildMenuItem(
-          //   icon: Icons.lock,
-          //   title: 'Ganti Password',
-          //   subtitle: 'Ubah kata sandi',
-          //   color: Colors.orange,
-          //   onTap: () {
-          //     ScaffoldMessenger.of(context).showSnackBar(
-          //       const SnackBar(content: Text('Fitur coming soon...')),
-          //     );
-          //   },
-          // ),
-          const Divider(height: 1),
           _buildMenuItem(
             icon: Icons.info,
             title: 'Tentang Aplikasi',
@@ -408,7 +385,7 @@ class AsatidzProfilePage extends StatelessWidget {
     );
     if (confirmed == true && context.mounted) {
       await context.read<AuthCubit>().logout();
-      if (context.mounted) context.go('/login');
+      if (context.mounted) context.goNamed(RouteNames.login);
     }
   }
 

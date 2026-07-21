@@ -52,16 +52,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
       body: SafeArea(
         child: BlocConsumer<AsatidzDashboardCubit, AsatidzDashboardState>(
           listener: (context, state) {
-            if (state is AsatidzDashboardSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
-              // Refresh to load the newly added santri
-              context.read<AsatidzDashboardCubit>().loadDashboard();
-            } else if (state is AsatidzDashboardError) {
+            if (state is AsatidzDashboardError) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(state.message),
@@ -95,9 +86,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
 
             if (state is AsatidzDashboardLoaded) {
               return RefreshIndicator(
-                onRefresh: () async {
-                  context.read<AsatidzDashboardCubit>().loadDashboard();
-                },
+                onRefresh: context.read<AsatidzDashboardCubit>().loadDashboard,
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
@@ -145,11 +134,6 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                             ),
                         ],
                       ),
-                      // if (state.activeHalaqah != null) ...[
-                      //   _buildActiveSessionCard(context, state),
-                      //   const SizedBox(height: 20),
-                      // ],
-                      // _buildQuickActions(context, state),
                     ],
                   ),
                 ),
