@@ -106,6 +106,12 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Info Tantangan aktif; null = sesi LATIHAN (practice).
   QuizLaunch? _launch;
 
+  /// Mencegah dua permintaan mulai berjalan bersamaan. Tanpa guard ini,
+  /// double-tap pada "Mulai" / "Main Lagi" dapat membuat request kedua selesai
+  /// setelah permainan sudah aktif dan mengganti state sesi (termasuk poin yang
+  /// baru didapat) dengan state kosong.
+  bool _startingSession = false;
+
   bool get _isChallenge => _launch != null;
   QuizSessionKind get _sessionKind =>
       _isChallenge ? QuizSessionKind.challenge : QuizSessionKind.practice;
@@ -234,6 +240,16 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// Mengambil lock 1-user + memotong 1 energi (server-side); hanya berlaku
   /// bila sesi benar-benar berhasil dimulai.
   Future<void> start(QuizSettings settings) async {
+    if (_startingSession) return;
+    _startingSession = true;
+    try {
+      await _startSession(settings);
+    } finally {
+      _startingSession = false;
+    }
+  }
+
+  Future<void> _startSession(QuizSettings settings) async {
     await _ensureRoleResolved();
     // Ingat setelan terakhir yang dipakai untuk sesi berikutnya — hanya
     // LATIHAN (setelan Tantangan dikunci kurikulum, jangan menimpa setelan
