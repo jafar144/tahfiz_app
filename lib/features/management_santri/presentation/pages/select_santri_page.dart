@@ -52,7 +52,7 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
     super.initState();
     _selectedSantri = List.from(widget.initialSelection);
     _scrollController.addListener(_onScroll);
-    
+
     // Paksa load santri yang aktif saja ketika halaman ini dibuka
     context.read<SantriCubit>().loadSantri(
       isActive: true,
@@ -114,16 +114,16 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
       backgroundColor: Colors.white,
       appBar: AiwaAppBar(title: 'Pilih Santri'),
       bottomNavigationBar: widget.isMultiSelect
-        ? SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: AiwaButton(
-                text: 'Pilih (${_selectedSantri.length})',
-                onPressed: _submit,
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: AiwaButton(
+                  text: 'Pilih (${_selectedSantri.length})',
+                  onPressed: _submit,
+                ),
               ),
-            ),
-          )
-        : null,
+            )
+          : null,
       body: BlocBuilder<SantriCubit, SantriState>(
         builder: (context, state) {
           // Determine list to show
@@ -156,12 +156,23 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
                           )
                         : ListView.separated(
                             controller: _scrollController,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            itemCount: state is SantriLoading ? 10 : santriList.length + (state is SantriLoaded && !state.hasReachedMax ? 1 : 0),
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            itemCount: state is SantriLoading
+                                ? 10
+                                : santriList.length +
+                                      (state is SantriLoaded &&
+                                              !state.hasReachedMax
+                                          ? 1
+                                          : 0),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               // Show spinner at bottom when fetching more (or if there is more data to load)
-                              if (state is! SantriLoading && index >= santriList.length) {
+                              if (state is! SantriLoading &&
+                                  index >= santriList.length) {
                                 return Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Skeletonizer(
@@ -171,31 +182,40 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
                                 );
                               }
 
-                              final santri = (state is SantriLoading || santriList.isEmpty)
+                              final santri =
+                                  (state is SantriLoading || santriList.isEmpty)
                                   ? SantriEntity.dummy()
                                   : santriList[index];
 
-                              final isSelected = _selectedSantri.any((s) => s.id == santri.id);
-                              final isDisabled = widget.disabledIds.contains(santri.id);
+                              final isSelected = _selectedSantri.any(
+                                (s) => s.id == santri.id,
+                              );
+                              final isDisabled = widget.disabledIds.contains(
+                                santri.id,
+                              );
 
                               return Opacity(
                                 opacity: isDisabled ? 0.5 : 1.0,
                                 child: SantriCard(
                                   santri,
-                                  trailing: widget.isMultiSelect 
-                                    ? Checkbox(
-                                        value: isSelected, 
-                                        onChanged: isDisabled ? null : (v) => _toggleSelection(santri),
-                                        activeColor: Colors.blue,
-                                      )
-                                    : null,
-                                  onTap: isDisabled ? null : () {
-                                    if (widget.isMultiSelect) {
-                                      _toggleSelection(santri);
-                                    } else {
-                                      context.pop(santri);
-                                    }
-                                  },
+                                  trailing: widget.isMultiSelect
+                                      ? Checkbox(
+                                          value: isSelected,
+                                          onChanged: isDisabled
+                                              ? null
+                                              : (v) => _toggleSelection(santri),
+                                          activeColor: Colors.blue,
+                                        )
+                                      : null,
+                                  onTap: isDisabled
+                                      ? null
+                                      : () {
+                                          if (widget.isMultiSelect) {
+                                            _toggleSelection(santri);
+                                          } else {
+                                            context.pop(santri);
+                                          }
+                                        },
                                 ),
                               );
                             },

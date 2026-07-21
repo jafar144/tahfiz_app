@@ -35,9 +35,7 @@ class AppTheme {
         elevation: 0,
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: AppColors.divider,
-      ),
+      dividerTheme: const DividerThemeData(color: AppColors.divider),
 
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {

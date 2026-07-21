@@ -9,6 +9,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recit
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_difficulty_badge.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -161,7 +162,7 @@ class _QuizPlayViewState extends State<QuizPlayView> {
                             _pill(context, 'Percobaan ke-2', QuizColors.gold),
                             const SizedBox(width: 8),
                           ],
-                          _DifficultyBadge(difficulty: q.difficulty),
+                          QuizDifficultyBadge(difficulty: q.difficulty),
                           if (state.phase == AnswerPhase.idle ||
                               state.phase == AnswerPhase.recording) ...[
                             const SizedBox(width: 8),
@@ -637,7 +638,7 @@ class _VoiceBonusTimerHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _DifficultyBadge(difficulty: difficulty),
+        QuizDifficultyBadge(difficulty: difficulty),
         const SizedBox(width: 10),
         _VoiceGoldRing(secondsLeft: secondsLeft, total: total),
       ],
@@ -815,37 +816,6 @@ class _PromptHint extends StatelessWidget {
             color: QuizColors.gold,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DifficultyBadge extends StatelessWidget {
-  final QuizDifficulty difficulty;
-
-  const _DifficultyBadge({required this.difficulty});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (difficulty) {
-      QuizDifficulty.easy => const Color(0xFF6EE7A8),
-      QuizDifficulty.medium => QuizColors.gold,
-      QuizDifficulty.hard => const Color(0xFFFF7B7B),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Text(
-        difficulty.label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w900,
-        ),
       ),
     );
   }

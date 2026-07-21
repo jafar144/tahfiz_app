@@ -6,7 +6,7 @@ class SantriMonthlyReportCubit extends Cubit<SantriMonthlyReportState> {
   final MonthlyReportRepository repository;
 
   SantriMonthlyReportCubit({required this.repository})
-      : super(SantriMonthlyReportInitial());
+    : super(SantriMonthlyReportInitial());
 
   Future<void> loadReports(String santriId) async {
     emit(SantriMonthlyReportLoading());

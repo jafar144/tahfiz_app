@@ -11,15 +11,38 @@ import 'dart:math' as math;
 class Muqattaat {
   /// Bentuk muqatta'at pada level ayat (sudah dinormalisasi, tanpa harakat).
   static const Set<String> forms = {
-    'الم', 'المص', 'الر', 'المر', 'كهيعص', 'طه',
-    'طسم', 'طس', 'يس', 'ص', 'حم', 'عسق', 'ق', 'ن',
+    'الم',
+    'المص',
+    'الر',
+    'المر',
+    'كهيعص',
+    'طه',
+    'طسم',
+    'طس',
+    'يس',
+    'ص',
+    'حم',
+    'عسق',
+    'ق',
+    'ن',
   };
 
   /// Peta huruf -> nama huruf (dinormalisasi) sebagaimana dieja saat dibaca.
   static const Map<String, String> _names = {
-    'ا': 'الف', 'ل': 'لام', 'م': 'ميم', 'ص': 'صاد', 'ر': 'را',
-    'ك': 'كاف', 'ه': 'ها', 'ي': 'يا', 'ع': 'عين', 'ط': 'طا',
-    'س': 'سين', 'ح': 'حا', 'ن': 'نون', 'ق': 'قاف',
+    'ا': 'الف',
+    'ل': 'لام',
+    'م': 'ميم',
+    'ص': 'صاد',
+    'ر': 'را',
+    'ك': 'كاف',
+    'ه': 'ها',
+    'ي': 'يا',
+    'ع': 'عين',
+    'ط': 'طا',
+    'س': 'سين',
+    'ح': 'حا',
+    'ن': 'نون',
+    'ق': 'قاف',
   };
 
   static bool isMuqattaat(String normalizedToken) =>

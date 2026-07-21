@@ -25,8 +25,10 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
     emit(AsatidzDashboardLoading());
 
     try {
-      final halaqahsResult = await scheduleRepository.getHalaqahsByTeacher(asatidzId);
-      
+      final halaqahsResult = await scheduleRepository.getHalaqahsByTeacher(
+        asatidzId,
+      );
+
       final halaqahs = halaqahsResult.fold(
         ifLeft: (_) => <Halaqah>[],
         ifRight: (h) => h,
@@ -38,7 +40,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
       );
 
       final activeHalaqah = await _findActiveHalaqah(halaqahs);
-      
+
       bool hasAttendedToday = false;
       if (activeHalaqah != null) {
         hasAttendedToday = await _checkAsatidzAttendance(
@@ -48,11 +50,13 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
         );
       }
 
-      emit(AsatidzDashboardLoaded(
-        totalSantri: totalSantri,
-        activeHalaqah: activeHalaqah,
-        hasAttendedToday: hasAttendedToday,
-      ));
+      emit(
+        AsatidzDashboardLoaded(
+          totalSantri: totalSantri,
+          activeHalaqah: activeHalaqah,
+          hasAttendedToday: hasAttendedToday,
+        ),
+      );
     } catch (e) {
       emit(AsatidzDashboardError(ErrorHandler.getMessage(e)));
     }
@@ -66,8 +70,10 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
       if (halaqah.status != 'Active') continue;
 
       for (final scheduleId in halaqah.scheduleIds) {
-        final scheduleResult = await scheduleRepository.getScheduleById(scheduleId);
-        
+        final scheduleResult = await scheduleRepository.getScheduleById(
+          scheduleId,
+        );
+
         final schedule = scheduleResult.fold(
           ifLeft: (_) => null,
           ifRight: (s) => s,
@@ -75,12 +81,20 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
 
         if (schedule == null || schedule.day != currentDay) continue;
 
-        final sessionStart = _parseTimeToDateTime(schedule.startTime).subtract(const Duration(minutes: AppConstants.sessionBufferMinutes));
-        final sessionEnd = _parseTimeToDateTime(schedule.endTime).add(const Duration(minutes: AppConstants.sessionBufferMinutes));
+        final sessionStart = _parseTimeToDateTime(
+          schedule.startTime,
+        ).subtract(const Duration(minutes: AppConstants.sessionBufferMinutes));
+        final sessionEnd = _parseTimeToDateTime(
+          schedule.endTime,
+        ).add(const Duration(minutes: AppConstants.sessionBufferMinutes));
 
         if (now.isAfter(sessionStart) && now.isBefore(sessionEnd)) {
-          final isCheckedIn = await _checkAsatidzAttendance(halaqah.id, scheduleId, now);
-          
+          final isCheckedIn = await _checkAsatidzAttendance(
+            halaqah.id,
+            scheduleId,
+            now,
+          );
+
           return ActiveHalaqah(
             halaqah: halaqah,
             schedule: schedule,
@@ -107,7 +121,11 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
     );
   }
 
-  Future<bool> _checkAsatidzAttendance(String halaqahId, String scheduleId, DateTime date) async {
+  Future<bool> _checkAsatidzAttendance(
+    String halaqahId,
+    String scheduleId,
+    DateTime date,
+  ) async {
     final result = await asatidzRepository.checkAttendance(
       asatidzId: asatidzId,
       halaqahId: halaqahId,
@@ -115,10 +133,7 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
       date: date,
     );
 
-    return result.fold(
-      ifLeft: (_) => false,
-      ifRight: (exists) => exists,
-    );
+    return result.fold(ifLeft: (_) => false, ifRight: (exists) => exists);
   }
 
   Future<void> checkInAsatidz(ActiveHalaqah activeHalaqah) async {
@@ -150,16 +165,20 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
           isAsatidzCheckedIn: true,
         );
 
-        emit(currentState.copyWith(
-          activeHalaqah: updatedActiveHalaqah,
-          hasAttendedToday: true,
-          isCheckingIn: false,
-        ));
+        emit(
+          currentState.copyWith(
+            activeHalaqah: updatedActiveHalaqah,
+            hasAttendedToday: true,
+            isCheckingIn: false,
+          ),
+        );
       },
     );
   }
 
-  Future<Map<String, dynamic>?> getGuestSantriParams(ActiveHalaqah activeHalaqah) async {
+  Future<Map<String, dynamic>?> getGuestSantriParams(
+    ActiveHalaqah activeHalaqah,
+  ) async {
     if (state is! AsatidzDashboardLoaded) return null;
     final currentState = state as AsatidzDashboardLoaded;
     emit(currentState.copyWith(isCheckingIn: true));
@@ -184,21 +203,29 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
         ifRight: (meeting) async {
           if (meeting == null) {
             emit(currentState.copyWith(isCheckingIn: false));
-            emit(const AsatidzDashboardError("Meeting belum dibuat. Silakan absen terlebih dahulu."));
+            emit(
+              const AsatidzDashboardError(
+                "Meeting belum dibuat. Silakan absen terlebih dahulu.",
+              ),
+            );
             emit(currentState.copyWith(isCheckingIn: false));
             return null;
           }
 
-          final membersResult = await asatidzRepository.getMeetingMembers(meeting.id);
+          final membersResult = await asatidzRepository.getMeetingMembers(
+            meeting.id,
+          );
           final disabledIds = membersResult.fold(
             ifLeft: (_) => <String>[],
             ifRight: (members) => members.map((m) => m.santriId).toList(),
           );
 
-          final programResult = await scheduleRepository.getProgramById(activeHalaqah.halaqah.programId);
+          final programResult = await scheduleRepository.getProgramById(
+            activeHalaqah.halaqah.programId,
+          );
           final gender = programResult.fold(
-            ifLeft: (_) => null, 
-            ifRight: (p) => p.gender
+            ifLeft: (_) => null,
+            ifRight: (p) => p.gender,
           );
 
           emit(currentState.copyWith(isCheckingIn: false));
@@ -246,9 +273,13 @@ class AsatidzDashboardCubit extends Cubit<AsatidzDashboardState> {
           emit(currentState.copyWith(isCheckingIn: false));
         },
         ifRight: (r) {
-           emit(currentState.copyWith(isCheckingIn: false));
-           emit(const AsatidzDashboardSuccess("Santri berhasil ditambahkan ke sesi ini."));
-           emit(currentState.copyWith(isCheckingIn: false));
+          emit(currentState.copyWith(isCheckingIn: false));
+          emit(
+            const AsatidzDashboardSuccess(
+              "Santri berhasil ditambahkan ke sesi ini.",
+            ),
+          );
+          emit(currentState.copyWith(isCheckingIn: false));
         },
       );
     } catch (e) {

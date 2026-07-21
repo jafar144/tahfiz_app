@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
@@ -10,10 +12,8 @@ import 'package:khoirunnasyien/features/management_santri/presentation/widgets/s
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_state.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_input_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/missing_report_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -269,28 +269,23 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
 
     final detailCubit = context.read<SantriReportDetailCubit>();
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => BlocProvider(
-          create: (_) =>
-              MonthlyReportInputCubit(repository: getIt())
-                ..loadExisting(widget.santri.id, bulan, tahun),
-          child: MonthlyReportInputPage(
-            santri: widget.santri,
-            asatidzId: authState.user.uid,
-            asatidzName: authState.user.name,
-            bulan: bulan,
-            tahun: tahun,
+    context
+        .pushNamed(
+          RouteNames.monthlyReportInput,
+          extra: <String, dynamic>{
+            'santri': widget.santri,
+            'asatidzId': authState.user.uid,
+            'asatidzName': authState.user.name,
+            'bulan': bulan,
+            'tahun': tahun,
+          },
+        )
+        .then(
+          (_) => detailCubit.load(
+            widget.santri.id,
+            joinedAt: widget.santri.tanggalMasuk,
           ),
-        ),
-      ),
-    ).then(
-      (_) => detailCubit.load(
-        widget.santri.id,
-        joinedAt: widget.santri.tanggalMasuk,
-      ),
-    );
+        );
   }
 
   void _showWindowClosedDialog() {

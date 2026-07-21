@@ -8,10 +8,8 @@ class AdminHomeCubit extends Cubit<AdminHomeState> {
   final AdminHomeRepository repository;
   final AuthRepository authRepository;
 
-  AdminHomeCubit(
-    this.repository,
-    this.authRepository,
-  ) : super(AdminHomeInitial());
+  AdminHomeCubit(this.repository, this.authRepository)
+    : super(AdminHomeInitial());
 
   Future<void> loadHome() async {
     try {
@@ -22,9 +20,7 @@ class AdminHomeCubit extends Cubit<AdminHomeState> {
         throw Exception('Sesi telah berakhir, silakan login kembali');
       }
 
-      final data = await repository.getHomeData(
-        adminUid: firebaseUser.uid,
-      );
+      final data = await repository.getHomeData(adminUid: firebaseUser.uid);
 
       emit(AdminHomeLoaded(data));
     } catch (e) {

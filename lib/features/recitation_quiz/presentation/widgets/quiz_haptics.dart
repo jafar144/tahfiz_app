@@ -22,8 +22,8 @@ abstract final class QuizHaptics {
   static Future<bool> get _canVibrate =>
       _hasVibrator ??= Vibration.hasVibrator().catchError((_) => false);
 
-  static Future<bool> get _canAmplitude =>
-      _hasAmplitude ??= Vibration.hasAmplitudeControl().catchError((_) => false);
+  static Future<bool> get _canAmplitude => _hasAmplitude ??=
+      Vibration.hasAmplitudeControl().catchError((_) => false);
 
   static Future<void> _vibrate({
     required int duration,

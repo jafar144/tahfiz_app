@@ -36,26 +36,26 @@ class MonthlyReport {
 
   /// Data dummy untuk keperluan skeleton loading.
   factory MonthlyReport.dummy() => MonthlyReport(
-        id: 'dummy',
-        asatidzId: '',
-        asatidzName: 'Ustadz Fulan',
-        santriId: '',
-        santriName: 'Santri',
-        bulan: 1,
-        tahun: 2024,
-        hafalanTerakhir: 'Al-Baqarah ayat 1-20',
-        nilaiPerkembangan: 4,
-        nilaiAkhlaq: 4,
-        createdAt: DateTime(2024),
-        updatedAt: DateTime(2024),
-      );
+    id: 'dummy',
+    asatidzId: '',
+    asatidzName: 'Ustadz Fulan',
+    santriId: '',
+    santriName: 'Santri',
+    bulan: 1,
+    tahun: 2024,
+    hafalanTerakhir: 'Al-Baqarah ayat 1-20',
+    nilaiPerkembangan: 4,
+    nilaiAkhlaq: 4,
+    createdAt: DateTime(2024),
+    updatedAt: DateTime(2024),
+  );
 
   /// Gelar pengajar berdasarkan gender: 'Ustadz' / 'Ustadzah' / '' (tak diketahui).
   String get asatidzTitle => switch (asatidzGender) {
-        'L' => 'Ustadz',
-        'P' => 'Ustadzah',
-        _ => '',
-      };
+    'L' => 'Ustadz',
+    'P' => 'Ustadzah',
+    _ => '',
+  };
 
   /// Nama pengajar lengkap dengan gelar, mis. "Ustadz Ja'far Assegaf".
   String get asatidzDisplayName =>
@@ -80,8 +80,19 @@ class MonthlyReport {
 
   static String getNamaBulan(int bulan) {
     const names = [
-      '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+      '',
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     return (bulan >= 1 && bulan <= 12) ? names[bulan] : '-';
   }

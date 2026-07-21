@@ -34,9 +34,18 @@ class _PaymentYearViewState extends State<PaymentYearView> {
   late int _selectedYear;
 
   static const _months = [
-    'JAN', 'FEB', 'MAR', 'APR',
-    'MEI', 'JUN', 'JUL', 'AGS',
-    'SEP', 'OKT', 'NOV', 'DES',
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MEI',
+    'JUN',
+    'JUL',
+    'AGS',
+    'SEP',
+    'OKT',
+    'NOV',
+    'DES',
   ];
 
   static const _yearsBehind = 2;
@@ -146,7 +155,8 @@ class _PaymentYearViewState extends State<PaymentYearView> {
 
         final isSelected =
             widget.selectedData[_selectedYear]?.contains(monthNumber) ?? false;
-        final canSelect = widget.selectable &&
+        final canSelect =
+            widget.selectable &&
             (status == PaymentStatus.overdue ||
                 status == PaymentStatus.upcoming);
 
@@ -161,8 +171,8 @@ class _PaymentYearViewState extends State<PaymentYearView> {
                 color: isSelected
                     ? AppColors.primary
                     : isCurrentMonth
-                        ? AppColors.primary
-                        : AppColors.textSecondary,
+                    ? AppColors.primary
+                    : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 6),
@@ -194,13 +204,21 @@ class _PaymentYearViewState extends State<PaymentYearView> {
         return _circle(
           border: AppColors.success,
           fill: AppColors.success.withValues(alpha: 0.12),
-          child: const Icon(Icons.check_rounded, color: AppColors.success, size: 22),
+          child: const Icon(
+            Icons.check_rounded,
+            color: AppColors.success,
+            size: 22,
+          ),
         );
       case PaymentStatus.overdue:
         return _circle(
           border: AppColors.error,
           fill: AppColors.error.withValues(alpha: 0.1),
-          child: const Icon(Icons.close_rounded, color: AppColors.error, size: 22),
+          child: const Icon(
+            Icons.close_rounded,
+            color: AppColors.error,
+            size: 22,
+          ),
         );
       case PaymentStatus.upcoming:
         return _circle(

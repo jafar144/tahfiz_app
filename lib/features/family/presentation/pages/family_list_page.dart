@@ -29,7 +29,7 @@ class _FamilyListPageState extends State<FamilyListPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           await context.pushNamed(RouteNames.familyForm);
-          if (mounted) context.read<FamilyCubit>().loadFamilies();
+          if (context.mounted) context.read<FamilyCubit>().loadFamilies();
         },
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
@@ -57,7 +57,7 @@ class _FamilyListPageState extends State<FamilyListPage> {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: isLoading ? 5 : families.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 if (isLoading) {
                   return _buildSkeletonCard();
@@ -111,11 +111,8 @@ class _FamilyListPageState extends State<FamilyListPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () async {
-            await context.pushNamed(
-              RouteNames.familyForm,
-              extra: item,
-            );
-            if (mounted) context.read<FamilyCubit>().loadFamilies();
+            await context.pushNamed(RouteNames.familyForm, extra: item);
+            if (context.mounted) context.read<FamilyCubit>().loadFamilies();
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

@@ -70,7 +70,11 @@ class ImageUtils {
   }
 
   /// Uploads file to Firebase Storage under the given path
-  static Future<String?> uploadImageToFirebase(File file, String path, {String? fileName}) async {
+  static Future<String?> uploadImageToFirebase(
+    File file,
+    String path, {
+    String? fileName,
+  }) async {
     try {
       final String name = fileName ?? const Uuid().v4();
       final destination = '$path/$name.jpg';

@@ -7,17 +7,12 @@ class GenderDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = gender == 'L'
-        ? Colors.blue
-        : Colors.pinkAccent;
+    final color = gender == 'L' ? Colors.blue : Colors.pinkAccent;
 
     return Container(
       width: 10,
       height: 10,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

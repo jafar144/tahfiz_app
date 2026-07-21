@@ -28,7 +28,10 @@ class SantriDepositHistoryPage extends StatelessWidget {
             ),
             Text(
               santriName,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+              ),
             ),
           ],
         ),
@@ -38,7 +41,9 @@ class SantriDepositHistoryPage extends StatelessWidget {
         elevation: 0,
       ),
       body: FutureBuilder(
-        future: getIt<AsatidzRepository>().getSetoranHistory(santriId: santriId),
+        future: getIt<AsatidzRepository>().getSetoranHistory(
+          santriId: santriId,
+        ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildSkeletonList();
@@ -74,7 +79,7 @@ class SantriDepositHistoryPage extends StatelessWidget {
               return ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: history.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final item = history[index];
                   return _buildHistoryItem(context, item);
@@ -154,10 +159,7 @@ class SantriDepositHistoryPage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     item.catatan,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade800,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
                   ),
                 ],
               ),
@@ -174,7 +176,7 @@ class SantriDepositHistoryPage extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 5,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           return Container(
             padding: const EdgeInsets.all(16),

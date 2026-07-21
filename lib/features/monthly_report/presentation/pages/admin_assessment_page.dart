@@ -58,7 +58,9 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
 
     if (rawPhone == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Nomor WhatsApp pembimbing belum tersedia')),
+        const SnackBar(
+          content: Text('Nomor WhatsApp pembimbing belum tersedia'),
+        ),
       );
       return;
     }
@@ -94,8 +96,10 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     final periode = _monthYearLabel();
     final namaBergelar = _nameWithGelar(data.asatidzName, data.gender);
     final buffer = StringBuffer()
-      ..writeln('Assalamu\'alaikum, $namaBergelar. Sekedar mengingatkan '
-          'berikut santri-santri yang belum diberikan penilaian di bulan $periode :')
+      ..writeln(
+        'Assalamu\'alaikum, $namaBergelar. Sekedar mengingatkan '
+        'berikut santri-santri yang belum diberikan penilaian di bulan $periode :',
+      )
       ..writeln();
     for (var i = 0; i < data.unassessedSantri.length; i++) {
       final s = data.unassessedSantri[i];
@@ -110,8 +114,10 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     final gelar = gender.toUpperCase() == 'P' ? 'Ustadzah' : 'Ustadz';
     final cleaned = name
         .replaceFirst(
-          RegExp(r'^\s*(ustadzah|ustadz|ustad|ustz|ust)\.?\s+',
-              caseSensitive: false),
+          RegExp(
+            r'^\s*(ustadzah|ustadz|ustad|ustz|ust)\.?\s+',
+            caseSensitive: false,
+          ),
           '',
         )
         .trim();
@@ -135,7 +141,8 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
             }
 
             final isLoading =
-                state is AdminAssessmentLoading || state is AdminAssessmentInitial;
+                state is AdminAssessmentLoading ||
+                state is AdminAssessmentInitial;
             final pembimbingList = state is AdminAssessmentLoaded
                 ? state.byGender(_gender)
                 : const <PembimbingAssessment>[];
@@ -196,10 +203,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
-        children: [
-          _genderTab('Putra', 'L'),
-          _genderTab('Putri', 'P'),
-        ],
+        children: [_genderTab('Putra', 'L'), _genderTab('Putri', 'P')],
       ),
     );
   }
@@ -238,10 +242,8 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
         physics: const NeverScrollableScrollPhysics(),
         itemCount: _skeletonData.length,
         separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (_, i) => PembimbingAssessmentCard(
-          data: _skeletonData[i],
-          onRemind: () {},
-        ),
+        itemBuilder: (_, i) =>
+            PembimbingAssessmentCard(data: _skeletonData[i], onRemind: () {}),
       ),
     );
   }

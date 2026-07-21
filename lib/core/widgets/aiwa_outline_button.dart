@@ -29,10 +29,7 @@ class AiwaOutlineButton extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: color, fontWeight: FontWeight.w600),
         ),
       ),
     );

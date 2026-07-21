@@ -23,41 +23,51 @@ class SantriSetoranCubit extends Cubit<SantriSetoranState> {
   Future<void> loadInitialData() async {
     emit(SantriSetoranLoading());
 
-    final result = await repository.getSetoranHistory(
-      santriId: santri.id,
-    );
+    final result = await repository.getSetoranHistory(santriId: santri.id);
 
     result.fold(
       ifLeft: (failure) => emit(SantriSetoranError(failure.message)),
       ifRight: (history) {
         // Sort by date descending if not already
         history.sort((a, b) => b.date.compareTo(a.date));
-        
+
         final now = DateTime.now();
         final today = DateTime(now.year, now.month, now.day);
-        
+
         SantriSetoran? todaySetoran;
         SantriSetoran? lastSetoran;
-        
+
         try {
           todaySetoran = history.firstWhere((element) {
-            final elementDate = DateTime(element.date.year, element.date.month, element.date.day);
+            final elementDate = DateTime(
+              element.date.year,
+              element.date.month,
+              element.date.day,
+            );
             return elementDate.isAtSameMomentAs(today);
           });
         } catch (_) {}
-        
+
         try {
           lastSetoran = history.firstWhere((element) {
-            final elementDate = DateTime(element.date.year, element.date.month, element.date.day);
-             if (todaySetoran != null && element.id == todaySetoran.id) return false;
+            final elementDate = DateTime(
+              element.date.year,
+              element.date.month,
+              element.date.day,
+            );
+            if (todaySetoran != null && element.id == todaySetoran.id) {
+              return false;
+            }
             return elementDate.isBefore(today);
           });
         } catch (_) {}
 
-        emit(SantriSetoranDataLoaded(
-          lastSetoran: lastSetoran,
-          todaySetoran: todaySetoran,
-        ));
+        emit(
+          SantriSetoranDataLoaded(
+            lastSetoran: lastSetoran,
+            todaySetoran: todaySetoran,
+          ),
+        );
       },
     );
   }
@@ -70,11 +80,13 @@ class SantriSetoranCubit extends Cubit<SantriSetoranState> {
     SantriSetoranDataLoaded? currentData;
     if (state is SantriSetoranDataLoaded) {
       currentData = state as SantriSetoranDataLoaded;
-      emit(SantriSetoranDataLoaded(
-        lastSetoran: currentData.lastSetoran,
-        todaySetoran: currentData.todaySetoran,
-        isSubmitting: true,
-      ));
+      emit(
+        SantriSetoranDataLoaded(
+          lastSetoran: currentData.lastSetoran,
+          todaySetoran: currentData.todaySetoran,
+          isSubmitting: true,
+        ),
+      );
     } else {
       emit(SantriSetoranLoading());
     }
@@ -91,7 +103,8 @@ class SantriSetoranCubit extends Cubit<SantriSetoranState> {
         ifLeft: (failure) {
           emit(SantriSetoranError(failure.message));
         },
-        ifRight: (_) => emit(const SantriSetoranSuccess('Setoran berhasil diperbarui')),
+        ifRight: (_) =>
+            emit(const SantriSetoranSuccess('Setoran berhasil diperbarui')),
       );
     } else {
       // Create new setoran
@@ -111,7 +124,8 @@ class SantriSetoranCubit extends Cubit<SantriSetoranState> {
         ifLeft: (failure) {
           emit(SantriSetoranError(failure.message));
         },
-        ifRight: (_) => emit(const SantriSetoranSuccess('Setoran berhasil disimpan')),
+        ifRight: (_) =>
+            emit(const SantriSetoranSuccess('Setoran berhasil disimpan')),
       );
     }
   }

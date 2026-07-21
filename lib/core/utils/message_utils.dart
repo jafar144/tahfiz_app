@@ -1,5 +1,9 @@
 class MessageUtils {
-  static String getPaymentReminderMessage(String name, String nis, String monthYear) {
+  static String getPaymentReminderMessage(
+    String name,
+    String nis,
+    String monthYear,
+  ) {
     return """Assalamualaikum warohmatullahi wabarokatuh
 
     Sehubungan akan berakhirnya bulan $monthYear

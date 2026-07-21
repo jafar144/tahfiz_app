@@ -26,7 +26,9 @@ class FormatUtils {
 
   static String _trimZero(double value) {
     final str = value.toStringAsFixed(1);
-    return str.endsWith('.0') ? str.substring(0, str.length - 2) : str.replaceAll('.', ',');
+    return str.endsWith('.0')
+        ? str.substring(0, str.length - 2)
+        : str.replaceAll('.', ',');
   }
 
   static String formatPhoneNumber(String phone) {
@@ -36,12 +38,16 @@ class FormatUtils {
     }
     return formattedPhone;
   }
+
   static String capitalize(String text) {
     if (text.isEmpty) return text;
-    return text.split(' ').map((word) {
-      if (word.isEmpty) return word;
-      if (word.length == 1) return word.toUpperCase();
-      return word[0].toUpperCase() + word.substring(1).toLowerCase();
-    }).join(' ');
+    return text
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          if (word.length == 1) return word.toUpperCase();
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 }

@@ -12,9 +12,6 @@ import 'package:khoirunnasyien/features/management_santri/presentation/cubit/san
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/switch_pembimbing_sheet.dart';
-import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
-import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
-import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposit_history_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
@@ -26,7 +23,6 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriDetailPage extends StatefulWidget {
@@ -64,7 +60,8 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
       providers: [
         BlocProvider(create: (_) => _cubit),
         BlocProvider(
-          create: (_) => getIt<SantriPaymentHistoryCubit>()..loadHistory(widget.santriId),
+          create: (_) =>
+              getIt<SantriPaymentHistoryCubit>()..loadHistory(widget.santriId),
         ),
       ],
       child: Scaffold(
@@ -148,7 +145,10 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                       if (!detail.isActive) ...[
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
@@ -170,38 +170,43 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Informasi Akademik'),
                 const SizedBox(height: 10),
-                AiwaInfoCard(children: [
-                   AiwaDetailInfoRow(
-                     icon: Icons.class_,
-                     label: 'Kelas',
-                     value: detail.kelas,
-                   ),
-                   if (detail.kelasFiqih != null)
-                     AiwaDetailInfoRow(
-                       icon: Icons.menu_book_outlined,
-                       label: 'Kelas Fiqih',
-                       value: detail.kelasFiqih!,
-                     ),
-                   AiwaDetailInfoRow(
-                     icon: Icons.category,
-                     label: 'Tipe Kelas',
-                     value: detail.tipeKelas ?? '-',
-                   ),
-                   AiwaDetailInfoRow(
-                     icon: Icons.payments,
-                     label: 'Status Biaya',
-                     value: detail.isFree 
-                        ? 'Gratis (Sampai ${detail.freeUntil != null ? DateFormat('d MMM yyyy').format(detail.freeUntil!) : '-'})' 
-                        : 'Reguler',
-                   ),
-                   AiwaDetailInfoRow(
-                     icon: Icons.calendar_today,
-                     label: 'Tanggal Masuk',
-                     value: detail.tanggalMasuk != null
-                         ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalMasuk!)
-                         : '-',
-                   ),
-                ]),
+                AiwaInfoCard(
+                  children: [
+                    AiwaDetailInfoRow(
+                      icon: Icons.class_,
+                      label: 'Kelas',
+                      value: detail.kelas,
+                    ),
+                    if (detail.kelasFiqih != null)
+                      AiwaDetailInfoRow(
+                        icon: Icons.menu_book_outlined,
+                        label: 'Kelas Fiqih',
+                        value: detail.kelasFiqih!,
+                      ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.category,
+                      label: 'Tipe Kelas',
+                      value: detail.tipeKelas ?? '-',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.payments,
+                      label: 'Status Biaya',
+                      value: detail.isFree
+                          ? 'Gratis (Sampai ${detail.freeUntil != null ? DateFormat('d MMM yyyy').format(detail.freeUntil!) : '-'})'
+                          : 'Reguler',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.calendar_today,
+                      label: 'Tanggal Masuk',
+                      value: detail.tanggalMasuk != null
+                          ? DateFormat(
+                              'dd MMMM yyyy',
+                              'id',
+                            ).format(detail.tanggalMasuk!)
+                          : '-',
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Pembimbing'),
                 const SizedBox(height: 10),
@@ -209,40 +214,51 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Informasi Pribadi'),
                 const SizedBox(height: 10),
-                AiwaInfoCard(children: [
-                   AiwaDetailInfoRow(
-                     icon: Icons.location_on,
-                     label: 'Tempat Lahir',
-                     value: detail.tempatLahir ?? '-',
-                   ),
-                   AiwaDetailInfoRow(
-                     icon: Icons.cake,
-                     label: 'Tanggal Lahir',
-                     value: detail.tanggalLahir != null
-                         ? DateFormat('dd MMMM yyyy', 'id').format(detail.tanggalLahir!)
-                         : '-',
-                   ),
-                   AiwaDetailInfoRow(
-                     icon: detail.jenisKelamin == 'L' ? Icons.male : Icons.female,
-                     label: 'Jenis Kelamin',
-                     value: detail.jenisKelamin == 'L' ? 'Laki-laki' : 'Perempuan',
-                   ),
-                ]),
+                AiwaInfoCard(
+                  children: [
+                    AiwaDetailInfoRow(
+                      icon: Icons.location_on,
+                      label: 'Tempat Lahir',
+                      value: detail.tempatLahir ?? '-',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.cake,
+                      label: 'Tanggal Lahir',
+                      value: detail.tanggalLahir != null
+                          ? DateFormat(
+                              'dd MMMM yyyy',
+                              'id',
+                            ).format(detail.tanggalLahir!)
+                          : '-',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: detail.jenisKelamin == 'L'
+                          ? Icons.male
+                          : Icons.female,
+                      label: 'Jenis Kelamin',
+                      value: detail.jenisKelamin == 'L'
+                          ? 'Laki-laki'
+                          : 'Perempuan',
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
                 const AiwaFormSectionTitle(title: 'Informasi Wali'),
                 const SizedBox(height: 10),
-                AiwaInfoCard(children: [
-                   AiwaDetailInfoRow(
-                     icon: Icons.person,
-                     label: 'Nama Wali',
-                     value: detail.namaWali ?? '-',
-                   ),
-                   AiwaDetailInfoRow(
-                     icon: Icons.phone,
-                     label: 'Nomor HP Wali',
-                     value: detail.nomorWali ?? '-',
-                   ),
-                ]),
+                AiwaInfoCard(
+                  children: [
+                    AiwaDetailInfoRow(
+                      icon: Icons.person,
+                      label: 'Nama Wali',
+                      value: detail.namaWali ?? '-',
+                    ),
+                    AiwaDetailInfoRow(
+                      icon: Icons.phone,
+                      label: 'Nomor HP Wali',
+                      value: detail.nomorWali ?? '-',
+                    ),
+                  ],
+                ),
                 // Penilaian bulanan hanya ditampilkan untuk admin.
                 if (_isAdmin) ...[
                   const SizedBox(height: 20),
@@ -286,8 +302,9 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         ),
         const SizedBox(height: 10),
         FutureBuilder(
-          future:
-              getIt<MonthlyReportRepository>().getLatestReportBySantri(detail.id),
+          future: getIt<MonthlyReportRepository>().getLatestReportBySantri(
+            detail.id,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Skeletonizer(
@@ -323,7 +340,11 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
       ),
       child: Column(
         children: [
-          Icon(Icons.assessment_outlined, size: 40, color: Colors.grey.shade300),
+          Icon(
+            Icons.assessment_outlined,
+            size: 40,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 8),
           Text(
             'Belum ada penilaian',
@@ -340,14 +361,12 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
 
   /// Buka halaman riwayat penilaian lengkap milik santri ini.
   void _openAllReports(SantriDetail detail) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SantriReportDetailPage(
-          santri: _toSantriEntity(detail),
-          viewOnly: true,
-        ),
-      ),
+    context.pushNamed(
+      RouteNames.santriReportDetail,
+      extra: <String, dynamic>{
+        'santri': _toSantriEntity(detail),
+        'viewOnly': true,
+      },
     );
   }
 
@@ -392,8 +411,11 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
               color: Colors.blue.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.supervisor_account,
-                color: Colors.blue.shade700, size: 20),
+            child: Icon(
+              Icons.supervisor_account,
+              color: Colors.blue.shade700,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -491,10 +513,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 const SizedBox(height: 2),
                 Text(
                   'Santri ini gratis, tidak ada tagihan SPP',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600),
                 ),
               ],
             ),
@@ -559,7 +578,6 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
     );
   }
 
-
   Widget _buildHeader(SantriDetail detail) {
     return Stack(
       alignment: Alignment.bottomCenter,
@@ -595,12 +613,15 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white,
-                  backgroundImage: detail.photoUrl != null && detail.photoUrl!.isNotEmpty
+                  backgroundImage:
+                      detail.photoUrl != null && detail.photoUrl!.isNotEmpty
                       ? NetworkImage(detail.photoUrl!)
                       : null,
                   child: detail.photoUrl == null || detail.photoUrl!.isEmpty
                       ? Text(
-                          detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
+                          detail.name.isNotEmpty
+                              ? detail.name[0].toUpperCase()
+                              : '?',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -616,313 +637,4 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
       ],
     );
   }
-
-
-
-  Widget _buildLastSetoranSection(SantriDetail detail) {
-    return FutureBuilder(
-      future: getIt<AsatidzRepository>().getSetoranHistory(santriId: detail.id),
-      builder: (context, snapshot) {
-        SantriSetoran? lastSetoran;
-        bool isLoading = snapshot.connectionState == ConnectionState.waiting;
-
-        if (snapshot.hasData) {
-          snapshot.data!.fold(
-            ifLeft: (_) {},
-            ifRight: (history) {
-              if (history.isNotEmpty) {
-                history.sort((a, b) => b.date.compareTo(a.date));
-                lastSetoran = history.first;
-              }
-            },
-          );
-        }
-
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade50, Colors.white],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.blue.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(Icons.menu_book, color: Colors.blue.shade800),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Hafalan Terakhir',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SantriDepositHistoryPage(
-                              santriId: detail.id,
-                              santriName: detail.name,
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Lihat Semua'),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : lastSetoran != null
-                        ? Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      lastSetoran!.surah,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      DateFormat('dd MMMM yyyy HH:mm', 'id').format(lastSetoran!.date),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    if (lastSetoran!.catatan.isNotEmpty) ...[
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: Colors.grey.shade200),
-                                        ),
-                                        child: Text(
-                                          'Catatan: ${lastSetoran!.catatan}',
-                                          style: TextStyle(
-                                            fontStyle: FontStyle.italic,
-                                            color: Colors.grey.shade700,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ]
-                                  ],
-                                ),
-                              ),
-                              Icon(Icons.chevron_right, color: Colors.grey.shade400),
-                            ],
-                          )
-                        : const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                              child: Text(
-                                'Belum ada data hafalan',
-                                style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-                              ),
-                            ),
-                          ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAttendanceSection() {
-    // Dummy Data for Preview
-    const int hadir = 22;
-    const int sakit = 1;
-    const int izin = 2;
-    const int alpha = 0;
-    const String todayStatus = "Hadir";
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.access_time_filled, color: Colors.green.shade700),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Kehadiran Bulan Ini',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                TextButton(
-                  onPressed: () {
-                    // Navigate to Attendance History Page
-                  },
-                  child: const Text('Lihat Riwayat'),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.check, color: Colors.green.shade700, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Status Hari Ini',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              todayStatus,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildAttendanceStatItem('Hadir', hadir.toString(), Colors.green),
-                    _buildAttendanceStatItem('Sakit', sakit.toString(), Colors.orange),
-                    _buildAttendanceStatItem('Izin', izin.toString(), Colors.blue),
-                    _buildAttendanceStatItem('Alpha', alpha.toString(), Colors.red),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAttendanceStatItem(String label, String count, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Text(
-            count,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-
 }

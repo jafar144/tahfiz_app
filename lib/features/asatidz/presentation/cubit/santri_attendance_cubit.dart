@@ -25,7 +25,9 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
   Future<void> init() async {
     emit(SantriAttendanceLoading());
 
-    final santrisResult = await scheduleRepository.getSantrisByHalaqahId(activeHalaqah.halaqah.id);
+    final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+      activeHalaqah.halaqah.id,
+    );
     final santris = santrisResult.fold(
       ifLeft: (_) => <SantriEntity>[],
       ifRight: (s) => List<SantriEntity>.from(s),
@@ -45,7 +47,7 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
       ifRight: (meeting) async {
         if (meeting != null) {
           final membersResult = await repository.getMeetingMembers(meeting.id);
-          
+
           membersResult.fold(
             ifLeft: (_) => _loadDefaultAttendance(santris),
             ifRight: (members) {
@@ -53,19 +55,21 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
                 final attendanceMap = <String, String>{};
                 for (final item in members) {
                   attendanceMap[item.santriId] = item.attendanceStatus;
-                  
+
                   final isGuest = !santris.any((s) => s.id == item.santriId);
                   if (isGuest) {
-                    santris.add(SantriEntity(
-                      id: item.santriId,
-                      name: item.santriName,
-                      nis: item.santriNis ?? '-',
-                      kelas: '-',
-                      jenisKelamin: '-',
-                      isActive: true,
-                      isFree: false,
-                      halaqahId: item.halaqahAsalId,
-                    ));
+                    santris.add(
+                      SantriEntity(
+                        id: item.santriId,
+                        name: item.santriName,
+                        nis: item.santriNis ?? '-',
+                        kelas: '-',
+                        jenisKelamin: '-',
+                        isActive: true,
+                        isFree: false,
+                        halaqahId: item.halaqahAsalId,
+                      ),
+                    );
                   }
                 }
 
@@ -75,16 +79,18 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
                   }
                 }
 
-                emit(SantriAttendanceLoaded(
-                  santris: santris,
-                  attendanceMap: attendanceMap,
-                  isExistingData: true,
-                  lastUpdated: members.first.createdAt,
-                ));
+                emit(
+                  SantriAttendanceLoaded(
+                    santris: santris,
+                    attendanceMap: attendanceMap,
+                    isExistingData: true,
+                    lastUpdated: members.first.createdAt,
+                  ),
+                );
               } else {
                 _loadDefaultAttendance(santris);
               }
-            }
+            },
           );
         } else {
           _loadDefaultAttendance(santris);
@@ -98,7 +104,9 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
     for (final santri in santris) {
       attendanceMap[santri.id] = 'hadir';
     }
-    emit(SantriAttendanceLoaded(santris: santris, attendanceMap: attendanceMap));
+    emit(
+      SantriAttendanceLoaded(santris: santris, attendanceMap: attendanceMap),
+    );
   }
 
   void updateAttendance(String santriId, String status) {
@@ -133,24 +141,32 @@ class SantriAttendanceCubit extends Cubit<SantriAttendanceState> {
       },
       ifRight: (meeting) async {
         if (meeting == null) {
-          emit(SantriAttendanceError('Meeting tidak ditemukan. Harap pastikan Asatidz sudah absen terlebih dahulu.'));
+          emit(
+            SantriAttendanceError(
+              'Meeting tidak ditemukan. Harap pastikan Asatidz sudah absen terlebih dahulu.',
+            ),
+          );
           emit(currentState.copyWith(isSubmitting: false));
           return;
         }
 
         final membersList = <MeetingMember>[];
         for (final entry in currentState.attendanceMap.entries) {
-          final santri = currentState.santris.where((s) => s.id == entry.key).firstOrNull;
+          final santri = currentState.santris
+              .where((s) => s.id == entry.key)
+              .firstOrNull;
           if (santri == null) continue;
 
-          membersList.add(MeetingMember(
-            id: entry.key, // Use Santri ID as document ID for members
-            santriId: entry.key,
-            santriName: santri.name,
-            halaqahAsalId: santri.halaqahId ?? '',
-            attendanceStatus: entry.value,
-            createdAt: DateTime.now(),
-          ));
+          membersList.add(
+            MeetingMember(
+              id: entry.key, // Use Santri ID as document ID for members
+              santriId: entry.key,
+              santriName: santri.name,
+              halaqahAsalId: santri.halaqahId ?? '',
+              attendanceStatus: entry.value,
+              createdAt: DateTime.now(),
+            ),
+          );
         }
 
         final saveResult = await repository.saveMeetingMembers(

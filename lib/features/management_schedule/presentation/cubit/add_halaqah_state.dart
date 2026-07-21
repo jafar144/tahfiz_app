@@ -40,7 +40,8 @@ class AddHalaqahLoaded extends AddHalaqahState {
       schedules: schedules ?? this.schedules,
       asatidzList: asatidzList ?? this.asatidzList,
       santriList: santriList ?? this.santriList,
-      unavailableTeacherIds: unavailableTeacherIds ?? this.unavailableTeacherIds,
+      unavailableTeacherIds:
+          unavailableTeacherIds ?? this.unavailableTeacherIds,
       unavailableSantriIds: unavailableSantriIds ?? this.unavailableSantriIds,
     );
   }
@@ -53,4 +54,3 @@ class AddHalaqahError extends AddHalaqahState {
 
   AddHalaqahError(this.message);
 }
-

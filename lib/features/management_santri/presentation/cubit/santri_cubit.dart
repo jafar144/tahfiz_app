@@ -38,7 +38,7 @@ class SantriCubit extends Cubit<SantriState> {
     _currentClass = kelas;
     _currentAsatidzId = asatidzId;
     _currentIsFree = isFree;
-    
+
     emit(SantriLoading());
     try {
       final result = await repository.getSantriList(
@@ -56,10 +56,7 @@ class SantriCubit extends Cubit<SantriState> {
       // sehingga pagination tidak berlaku
       final hasReachedMax = asatidzId != null || result.length < _limit;
 
-      emit(SantriLoaded(
-        result,
-        hasReachedMax: hasReachedMax,
-      ));
+      emit(SantriLoaded(result, hasReachedMax: hasReachedMax));
     } catch (e) {
       emit(SantriError(ErrorHandler.getMessage(e)));
     }
@@ -69,8 +66,6 @@ class SantriCubit extends Cubit<SantriState> {
     final currentState = state;
     if (currentState is! SantriLoaded) return;
     if (currentState.hasReachedMax || currentState.isFetchingMore) return;
-
-
 
     // Already loading more
     emit(currentState.copyWith(isFetchingMore: true));
@@ -89,11 +84,13 @@ class SantriCubit extends Cubit<SantriState> {
         lastDocumentId: lastId,
       );
 
-      emit(currentState.copyWith(
-        santri: List.of(currentState.santri)..addAll(newSantri),
-        hasReachedMax: newSantri.length < _limit,
-        isFetchingMore: false,
-      ));
+      emit(
+        currentState.copyWith(
+          santri: List.of(currentState.santri)..addAll(newSantri),
+          hasReachedMax: newSantri.length < _limit,
+          isFetchingMore: false,
+        ),
+      );
     } catch (e) {
       // On error, keep the current data but stop loading
       emit(currentState.copyWith(isFetchingMore: false));
@@ -154,6 +151,7 @@ class SantriCubit extends Cubit<SantriState> {
       emit(SantriError(ErrorHandler.getMessage(e)));
     }
   }
+
   Future<List<AsatidzEntity>> fetchAsatidzList() {
     return repository.getAsatidzList();
   }

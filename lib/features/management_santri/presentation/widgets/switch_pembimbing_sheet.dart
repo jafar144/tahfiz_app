@@ -59,8 +59,9 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
     });
     try {
       // Halaqah saat ini → untuk tahu pembimbing lama (dikecualikan dari daftar).
-      final halaqahRes =
-          await _scheduleRepo.getHalaqahBySantriId(widget.santriId);
+      final halaqahRes = await _scheduleRepo.getHalaqahBySantriId(
+        widget.santriId,
+      );
       halaqahRes.fold(
         ifLeft: (_) {},
         ifRight: (h) => _currentTeacherId = h?.teacherId,
@@ -82,14 +83,17 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
       );
 
       final all = await _santriRepo.getAsatidzList();
-      final filtered = all
-          .where((a) =>
-              a.isActive &&
-              a.jenisKelamin == widget.santriGender &&
-              a.id != _currentTeacherId &&
-              teachersWithHalaqah.contains(a.id))
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+      final filtered =
+          all
+              .where(
+                (a) =>
+                    a.isActive &&
+                    a.jenisKelamin == widget.santriGender &&
+                    a.id != _currentTeacherId &&
+                    teachersWithHalaqah.contains(a.id),
+              )
+              .toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
 
       if (!mounted) return;
       setState(() {
@@ -137,7 +141,8 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
       final pres = await _scheduleRepo.getProgramById(h.programId);
       pres.fold(
         ifLeft: (_) {},
-        ifRight: (p) => _sessionByHalaqah[h.id] = FormatUtils.capitalize(p.name),
+        ifRight: (p) =>
+            _sessionByHalaqah[h.id] = FormatUtils.capitalize(p.name),
       );
     }
 
@@ -180,9 +185,9 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
   }
 
   void _snack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -195,7 +200,8 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom +
+        bottom:
+            MediaQuery.of(context).viewInsets.bottom +
             MediaQuery.of(context).padding.bottom +
             8,
       ),
@@ -235,9 +241,9 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
               onPressed: _moving
                   ? null
                   : () => setState(() {
-                        _selectedAsatidz = null;
-                        _halaqahs = [];
-                      }),
+                      _selectedAsatidz = null;
+                      _halaqahs = [];
+                    }),
             )
           else
             const SizedBox(width: 16),

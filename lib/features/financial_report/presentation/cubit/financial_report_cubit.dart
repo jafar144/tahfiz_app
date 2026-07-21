@@ -13,7 +13,7 @@ class FinancialReportCubit extends Cubit<FinancialReportState> {
   final SantriRepository santriRepository;
 
   FinancialReportCubit(this.paymentRepository, this.santriRepository)
-      : super(FinancialReportInitial());
+    : super(FinancialReportInitial());
 
   Future<void> loadReport(DateTime date) async {
     emit(FinancialReportLoading());
@@ -25,31 +25,43 @@ class FinancialReportCubit extends Cubit<FinancialReportState> {
       // Ambil pembayaran bulan terpilih & bulan lalu secara paralel.
       final results = await Future.wait([
         paymentRepository.getPayments(
-            selected.month.toString(), selected.year.toString()),
+          selected.month.toString(),
+          selected.year.toString(),
+        ),
         paymentRepository.getPayments(
-            previous.month.toString(), previous.year.toString()),
+          previous.month.toString(),
+          previous.year.toString(),
+        ),
       ]);
       final currentPayments = results[0];
       final previousPayments = results[1];
 
       // Ambil seluruh santri aktif sekali saja.
-      final allActiveSantri =
-          await santriRepository.getSantriList(isActive: true, limit: 9999);
+      final allActiveSantri = await santriRepository.getSantriList(
+        isActive: true,
+        limit: 9999,
+      );
       final santriMap = {for (final s in allActiveSantri) s.id: s};
 
       // Hanya hitung santri yang sudah terdaftar (tanggal_masuk) pada bulan terpilih.
       final allSantri = allActiveSantri
-          .where((s) => PaymentUtils.isEnrolledInMonth(
-                tanggalMasuk: s.tanggalMasuk,
-                month: selected.month,
-                year: selected.year,
-              ))
+          .where(
+            (s) => PaymentUtils.isEnrolledInMonth(
+              tanggalMasuk: s.tanggalMasuk,
+              month: selected.month,
+              year: selected.year,
+            ),
+          )
           .toList();
 
-      final totalRevenue =
-          currentPayments.fold<int>(0, (sum, p) => sum + p.total);
-      final previousMonthRevenue =
-          previousPayments.fold<int>(0, (sum, p) => sum + p.total);
+      final totalRevenue = currentPayments.fold<int>(
+        0,
+        (sum, p) => sum + p.total,
+      );
+      final previousMonthRevenue = previousPayments.fold<int>(
+        0,
+        (sum, p) => sum + p.total,
+      );
 
       // Rincian pendapatan per kelompok (gender x sesi kelas).
       final groups = _buildGroups(currentPayments, santriMap);
@@ -72,18 +84,20 @@ class FinancialReportCubit extends Cubit<FinancialReportState> {
         }
       }
 
-      emit(FinancialReportLoaded(
-        FinancialReportData(
-          selectedDate: selected,
-          totalRevenue: totalRevenue,
-          previousMonthRevenue: previousMonthRevenue,
-          transactionCount: currentPayments.length,
-          billableCount: billableCount,
-          paidCount: paidCount,
-          unpaidStudents: unpaidStudents,
-          groups: groups,
+      emit(
+        FinancialReportLoaded(
+          FinancialReportData(
+            selectedDate: selected,
+            totalRevenue: totalRevenue,
+            previousMonthRevenue: previousMonthRevenue,
+            transactionCount: currentPayments.length,
+            billableCount: billableCount,
+            paidCount: paidCount,
+            unpaidStudents: unpaidStudents,
+            groups: groups,
+          ),
         ),
-      ));
+      );
     } catch (e) {
       emit(FinancialReportError(ErrorHandler.getMessage(e)));
     }
@@ -113,13 +127,15 @@ class FinancialReportCubit extends Cubit<FinancialReportState> {
     }
 
     final groups = revenueByKey.keys
-        .map((label) => RevenueGroup(
-              label: label,
-              gender: genderByKey[label] ?? '',
-              session: sessionByKey[label] ?? 'Lainnya',
-              revenue: revenueByKey[label] ?? 0,
-              paymentCount: countByKey[label] ?? 0,
-            ))
+        .map(
+          (label) => RevenueGroup(
+            label: label,
+            gender: genderByKey[label] ?? '',
+            session: sessionByKey[label] ?? 'Lainnya',
+            revenue: revenueByKey[label] ?? 0,
+            paymentCount: countByKey[label] ?? 0,
+          ),
+        )
         .toList();
 
     groups.sort((a, b) => b.revenue.compareTo(a.revenue));

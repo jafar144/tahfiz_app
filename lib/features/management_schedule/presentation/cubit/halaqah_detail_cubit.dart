@@ -37,9 +37,15 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
 
     emit(HalaqahDetailLoading());
     try {
-      final schedulesResult = await scheduleRepository.getSchedules(programId: currentHalaqah.programId);
-      final santrisResult = await scheduleRepository.getSantrisByHalaqahId(currentHalaqah.id);
-      final programResult = await scheduleRepository.getProgramById(currentHalaqah.programId);
+      final schedulesResult = await scheduleRepository.getSchedules(
+        programId: currentHalaqah.programId,
+      );
+      final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+        currentHalaqah.id,
+      );
+      final programResult = await scheduleRepository.getProgramById(
+        currentHalaqah.programId,
+      );
 
       final schedules = schedulesResult.fold(
         ifLeft: (_) => <ProgramSchedule>[],
@@ -56,12 +62,14 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
         ifRight: (p) => p.gender,
       );
 
-      emit(HalaqahDetailLoaded(
-        halaqah: currentHalaqah,
-        schedules: schedules,
-        santriList: santris,
-        gender: gender,
-      ));
+      emit(
+        HalaqahDetailLoaded(
+          halaqah: currentHalaqah,
+          schedules: schedules,
+          santriList: santris,
+          gender: gender,
+        ),
+      );
 
       if (currentHalaqah.scheduleIds.isNotEmpty) {
         _checkAvailability(currentHalaqah.scheduleIds.first, currentHalaqah.id);
@@ -71,30 +79,40 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
     }
   }
 
-  Future<void> _checkAvailability(String scheduleId, String currentHalaqahId) async {
+  Future<void> _checkAvailability(
+    String scheduleId,
+    String currentHalaqahId,
+  ) async {
     if (state is! HalaqahDetailLoaded) return;
 
     final result = await scheduleRepository.getHalaqahsBySchedule(scheduleId);
     result.fold(
       ifLeft: (_) {},
       ifRight: (halaqahs) async {
-        final otherHalaqahs = halaqahs.where((h) => h.id != currentHalaqahId).toList();
+        final otherHalaqahs = halaqahs
+            .where((h) => h.id != currentHalaqahId)
+            .toList();
         final busyTeachers = otherHalaqahs.map((h) => h.teacherId).toList();
 
         final busySantriIds = <String>[];
         for (final h in otherHalaqahs) {
-          final santrisResult = await scheduleRepository.getSantrisByHalaqahId(h.id);
+          final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+            h.id,
+          );
           santrisResult.fold(
             ifLeft: (_) {},
-            ifRight: (santris) => busySantriIds.addAll(santris.map((s) => s.id)),
+            ifRight: (santris) =>
+                busySantriIds.addAll(santris.map((s) => s.id)),
           );
         }
 
         if (state is HalaqahDetailLoaded) {
-          emit((state as HalaqahDetailLoaded).copyWith(
-            unavailableTeacherIds: busyTeachers,
-            unavailableSantriIds: busySantriIds,
-          ));
+          emit(
+            (state as HalaqahDetailLoaded).copyWith(
+              unavailableTeacherIds: busyTeachers,
+              unavailableSantriIds: busySantriIds,
+            ),
+          );
         }
       },
     );
@@ -131,7 +149,11 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
     );
   }
 
-  Future<void> updateHalaqah(Halaqah updatedHalaqah, List<String> newSantriIds, List<String> removedSantriIds) async {
+  Future<void> updateHalaqah(
+    Halaqah updatedHalaqah,
+    List<String> newSantriIds,
+    List<String> removedSantriIds,
+  ) async {
     final previousState = state;
 
     if (previousState is HalaqahDetailLoaded) {
@@ -140,7 +162,11 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
       emit(HalaqahDetailUpdating());
     }
 
-    final result = await scheduleRepository.updateHalaqah(updatedHalaqah, newSantriIds, removedSantriIds);
+    final result = await scheduleRepository.updateHalaqah(
+      updatedHalaqah,
+      newSantriIds,
+      removedSantriIds,
+    );
 
     result.fold(
       ifLeft: (failure) {
@@ -151,8 +177,12 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
 
         await Future.delayed(const Duration(milliseconds: 100));
 
-        final schedulesResult = await scheduleRepository.getSchedules(programId: updatedHalaqah.programId);
-        final santrisResult = await scheduleRepository.getSantrisByHalaqahId(updatedHalaqah.id);
+        final schedulesResult = await scheduleRepository.getSchedules(
+          programId: updatedHalaqah.programId,
+        );
+        final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+          updatedHalaqah.id,
+        );
 
         final schedules = schedulesResult.fold(
           ifLeft: (_) => <ProgramSchedule>[],
@@ -168,15 +198,20 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
             ? previousState.gender
             : '';
 
-        emit(HalaqahDetailLoaded(
-          halaqah: updatedHalaqah,
-          schedules: schedules,
-          santriList: santris,
-          gender: gender,
-        ));
+        emit(
+          HalaqahDetailLoaded(
+            halaqah: updatedHalaqah,
+            schedules: schedules,
+            santriList: santris,
+            gender: gender,
+          ),
+        );
 
         if (updatedHalaqah.scheduleIds.isNotEmpty) {
-          _checkAvailability(updatedHalaqah.scheduleIds.first, updatedHalaqah.id);
+          _checkAvailability(
+            updatedHalaqah.scheduleIds.first,
+            updatedHalaqah.id,
+          );
         }
       },
     );

@@ -17,7 +17,8 @@ class AiwaWheelPicker<T> extends StatelessWidget {
     required this.items,
     required this.itemBuilder,
     this.itemExtent = 40,
-    this.height = 200, // Optional height constraint if needed, but usually expanded
+    this.height =
+        200, // Optional height constraint if needed, but usually expanded
     this.highlightColor,
   });
 
@@ -34,7 +35,7 @@ class AiwaWheelPicker<T> extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        
+
         // Picker
         CupertinoPicker(
           selectionOverlay: const SizedBox(), // Hide default overlay
@@ -44,9 +45,7 @@ class AiwaWheelPicker<T> extends StatelessWidget {
           itemExtent: itemExtent,
           onSelectedItemChanged: onSelectedItemChanged,
           children: items.map((item) {
-            return Center(
-              child: itemBuilder(item),
-            );
+            return Center(child: itemBuilder(item));
           }).toList(),
         ),
       ],

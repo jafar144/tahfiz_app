@@ -31,11 +31,9 @@ class RecitationRepositoryImpl implements RecitationRepository {
     required int to,
   }) async {
     try {
-      return Right(await local.getAyatRange(
-        surahId: surahId,
-        from: from,
-        to: to,
-      ));
+      return Right(
+        await local.getAyatRange(surahId: surahId, from: from, to: to),
+      );
     } catch (e) {
       return Left(UnknownFailure('Gagal memuat ayat: $e'));
     }
@@ -48,11 +46,9 @@ class RecitationRepositoryImpl implements RecitationRepository {
     required int to,
   }) async {
     try {
-      return Right(await local.getPageAyat(
-        surahId: surahId,
-        from: from,
-        to: to,
-      ));
+      return Right(
+        await local.getPageAyat(surahId: surahId, from: from, to: to),
+      );
     } catch (e) {
       return Left(UnknownFailure('Gagal memuat halaman mushaf: $e'));
     }
@@ -90,7 +86,8 @@ class RecitationRepositoryImpl implements RecitationRepository {
       return Right(result);
     } on TranscriptionException catch (e) {
       return Left(
-          e.isNetwork ? NetworkFailure(e.message) : ServerFailure(e.message));
+        e.isNetwork ? NetworkFailure(e.message) : ServerFailure(e.message),
+      );
     } catch (e) {
       return Left(ServerFailure('Gagal memeriksa bacaan: $e'));
     }

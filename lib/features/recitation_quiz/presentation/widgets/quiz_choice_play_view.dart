@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recit
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_bonus_fx.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_difficulty_badge.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_trivia_widgets.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -22,39 +23,6 @@ final _ayahNumberTail = RegExp(r'[٠-٩ \s]+$');
 /// Buang glyph nomor ayat di akhir agar pemain tak bisa menebak urutan lewat
 /// nomornya (mode pilihan).
 String _stripAyahNumber(String text) => text.replaceAll(_ayahNumberTail, '');
-
-class _DifficultyBadge extends StatelessWidget {
-  final QuizDifficulty difficulty;
-  final bool light;
-
-  const _DifficultyBadge({required this.difficulty, this.light = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (difficulty) {
-      QuizDifficulty.easy => const Color(0xFF35A96F),
-      QuizDifficulty.medium =>
-        light ? const Color(0xFF9A6900) : QuizColors.gold,
-      QuizDifficulty.hard => const Color(0xFFE05252),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.45)),
-      ),
-      child: Text(
-        difficulty.label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
 
 /// Layar bermain mode PILIHAN: timer mundur 60 detik, kartu ayat petunjuk,
 /// lalu 6 opsi ayat. Santri memilih lanjutan yang benar (berurutan bila lebih
@@ -524,7 +492,7 @@ class _TriviaTopBar extends StatelessWidget {
             style: TextStyle(fontSize: 11.5, color: Colors.black38),
           ),
           const Spacer(),
-          _DifficultyBadge(difficulty: difficulty, light: true),
+          QuizDifficultyBadge(difficulty: difficulty, light: true),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -826,7 +794,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Spacer(),
-              _DifficultyBadge(difficulty: difficulty),
+              QuizDifficultyBadge(difficulty: difficulty),
               const SizedBox(width: 8),
               // Poin berjalan.
               Container(

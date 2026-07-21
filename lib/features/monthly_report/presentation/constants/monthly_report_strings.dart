@@ -33,7 +33,8 @@ class MonthlyReportStrings {
   static const riwayatPenilaian = 'Riwayat Penilaian';
   static const tambahPenilaian = 'Tambah Penilaian';
   static const editPenilaian = 'Edit Penilaian';
-  static const detailEmptySubtitle = 'Tekan "Tambah Penilaian" untuk menilai santri';
+  static const detailEmptySubtitle =
+      'Tekan "Tambah Penilaian" untuk menilai santri';
   static const windowClosedTitle = 'Belum Waktunya Menilai';
   static const windowClosedMessage =
       'Penilaian hanya dapat diinput dalam rentang 1 minggu sebelum akhir bulan.';
@@ -59,7 +60,8 @@ class MonthlyReportStrings {
   static const adaCatatan = 'Ada catatan dari ustadz';
   static const catatanUstadz = 'Catatan Ustadz';
 
-  static String dinilaiOleh(String namaPengajar) => 'Dinilai oleh $namaPengajar';
+  static String dinilaiOleh(String namaPengajar) =>
+      'Dinilai oleh $namaPengajar';
 
   // ── Halaman penilaian milik santri ──────────────────────────────────
   static const santriEmptySubtitle =

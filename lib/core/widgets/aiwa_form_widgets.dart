@@ -96,8 +96,10 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
                 : null,
             filled: true,
             fillColor: widget.enabled ? Colors.grey[50] : Colors.grey[200],
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -108,8 +110,10 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 1.5,
+              ),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -215,11 +219,7 @@ class AiwaSelectionCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : Colors.grey,
-              size: 28,
-            ),
+            Icon(icon, color: isSelected ? activeColor : Colors.grey, size: 28),
             const SizedBox(height: 8),
             Text(
               label,
@@ -239,10 +239,7 @@ class AiwaSelectionCard extends StatelessWidget {
 class AiwaFormSectionTitle extends StatelessWidget {
   final String title;
 
-  const AiwaFormSectionTitle({
-    super.key,
-    required this.title,
-  });
+  const AiwaFormSectionTitle({super.key, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -270,4 +267,3 @@ class AiwaFormSectionTitle extends StatelessWidget {
     );
   }
 }
-

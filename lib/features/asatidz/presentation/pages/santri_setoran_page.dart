@@ -39,12 +39,16 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
   Widget build(BuildContext context) {
     return BlocBuilder<SantriSetoranCubit, SantriSetoranState>(
       buildWhen: (prev, curr) {
-        final wasEditing = prev is SantriSetoranDataLoaded && prev.todaySetoran != null;
-        final isEditing = curr is SantriSetoranDataLoaded && curr.todaySetoran != null;
+        final wasEditing =
+            prev is SantriSetoranDataLoaded && prev.todaySetoran != null;
+        final isEditing =
+            curr is SantriSetoranDataLoaded && curr.todaySetoran != null;
         return wasEditing != isEditing;
       },
       builder: (context, titleState) {
-        final appBarTitle = (titleState is SantriSetoranDataLoaded && titleState.todaySetoran != null)
+        final appBarTitle =
+            (titleState is SantriSetoranDataLoaded &&
+                titleState.todaySetoran != null)
             ? 'Edit Setoran'
             : 'Input Setoran';
 
@@ -70,7 +74,9 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                   ),
                 );
               }
-              if (state is SantriSetoranDataLoaded && state.todaySetoran != null && !_hafalanController.text.isNotEmpty) {
+              if (state is SantriSetoranDataLoaded &&
+                  state.todaySetoran != null &&
+                  !_hafalanController.text.isNotEmpty) {
                 _hafalanController.text = state.todaySetoran!.surah;
                 _catatanController.text = state.todaySetoran!.catatan;
               }
@@ -81,7 +87,8 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               }
 
               bool isEditing = false;
-              if (state is SantriSetoranDataLoaded && state.todaySetoran != null) {
+              if (state is SantriSetoranDataLoaded &&
+                  state.todaySetoran != null) {
                 isEditing = true;
               }
 
@@ -113,7 +120,8 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                             const SizedBox(height: 20),
                             AiwaTextField(
                               label: 'Catatan Ustadz',
-                              hint: 'Tulis catatan perbaikan makhroj atau tajwid...',
+                              hint:
+                                  'Tulis catatan perbaikan makhroj atau tajwid...',
                               icon: Icons.edit_note_rounded,
                               controller: _catatanController,
                               maxLines: 4,
@@ -126,7 +134,9 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                     ),
                   ),
                   _buildSubmitSection(
-                    isSubmitting: state is SantriSetoranDataLoaded ? state.isSubmitting : false,
+                    isSubmitting: state is SantriSetoranDataLoaded
+                        ? state.isSubmitting
+                        : false,
                     isEditing: isEditing,
                   ),
                 ],
@@ -144,13 +154,18 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
   }
 
   Widget _buildHeader() {
-    final initial = widget.santri.name.isNotEmpty ? widget.santri.name[0].toUpperCase() : '?';
+    final initial = widget.santri.name.isNotEmpty
+        ? widget.santri.name[0].toUpperCase()
+        : '?';
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade50, Colors.blue.shade100.withValues(alpha: 0.4)],
+          colors: [
+            Colors.blue.shade50,
+            Colors.blue.shade100.withValues(alpha: 0.4),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -199,7 +214,10 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(6),
@@ -222,14 +240,21 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               color: Colors.white.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.menu_book_rounded, color: Colors.blue.shade400, size: 22),
+            child: Icon(
+              Icons.menu_book_rounded,
+              color: Colors.blue.shade400,
+              size: 22,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSubmitSection({required bool isSubmitting, required bool isEditing}) {
+  Widget _buildSubmitSection({
+    required bool isSubmitting,
+    required bool isEditing,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -273,7 +298,8 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               child: Row(
                 children: [
                   Container(
-                    width: 52, height: 52,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
                       color: Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(14),
@@ -283,9 +309,17 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(width: 140, height: 16, color: Colors.grey.shade300),
+                      Container(
+                        width: 140,
+                        height: 16,
+                        color: Colors.grey.shade300,
+                      ),
                       const SizedBox(height: 6),
-                      Container(width: 80, height: 12, color: Colors.grey.shade200),
+                      Container(
+                        width: 80,
+                        height: 12,
+                        color: Colors.grey.shade200,
+                      ),
                     ],
                   ),
                 ],
@@ -334,8 +368,8 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
     if (!_formKey.currentState!.validate()) return;
 
     context.read<SantriSetoranCubit>().submitSetoran(
-          surah: _hafalanController.text,
-          catatan: _catatanController.text,
-        );
+      surah: _hafalanController.text,
+      catatan: _catatanController.text,
+    );
   }
 }

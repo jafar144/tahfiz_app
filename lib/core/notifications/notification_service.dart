@@ -55,17 +55,19 @@ class NotificationService {
       },
     );
 
-    final android =
-        _localNotifications.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    final android = _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     await android?.createNotificationChannel(_channel);
     await android?.requestNotificationsPermission();
 
     // Foreground → tampilkan manual lewat local notifications.
     FirebaseMessaging.onMessage.listen(_showForeground);
     // Tap notifikasi saat app di background.
-    FirebaseMessaging.onMessageOpenedApp
-        .listen((message) => handleNotificationTap(message.data));
+    FirebaseMessaging.onMessageOpenedApp.listen(
+      (message) => handleNotificationTap(message.data),
+    );
     // Tap notifikasi yang membuka app dari keadaan terminated.
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {

@@ -17,11 +17,7 @@ abstract class MonthlyReportRemoteDataSource {
     int tahun,
   );
 
-  Future<MonthlyReportModel?> getReport(
-    String santriId,
-    int bulan,
-    int tahun,
-  );
+  Future<MonthlyReportModel?> getReport(String santriId, int bulan, int tahun);
 
   Future<MonthlyReportModel> createOrUpdateReport(MonthlyReport report);
 
@@ -29,7 +25,8 @@ abstract class MonthlyReportRemoteDataSource {
   Future<Set<String>> getReportedSantriIds(int bulan, int tahun);
 }
 
-class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource {
+class MonthlyReportRemoteDataSourceImpl
+    implements MonthlyReportRemoteDataSource {
   final FirebaseFirestore firestore;
 
   MonthlyReportRemoteDataSourceImpl({required this.firestore});
@@ -74,8 +71,11 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
   ) async {
     if (reports.isEmpty) return reports;
 
-    final ids =
-        reports.map((r) => r.asatidzId).where((id) => id.isNotEmpty).toSet().toList();
+    final ids = reports
+        .map((r) => r.asatidzId)
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
     if (ids.isEmpty) return reports;
 
     final genderById = <String, String>{};
@@ -153,7 +153,11 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
   Future<MonthlyReportModel> createOrUpdateReport(MonthlyReport report) async {
     final now = DateTime.now();
 
-    final existing = await getReport(report.santriId, report.bulan, report.tahun);
+    final existing = await getReport(
+      report.santriId,
+      report.bulan,
+      report.tahun,
+    );
 
     if (existing != null) {
       final updateData = {
@@ -164,7 +168,10 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
         'updated_at': Timestamp.fromDate(now),
       };
 
-      await firestore.collection(_collection).doc(existing.id).update(updateData);
+      await firestore
+          .collection(_collection)
+          .doc(existing.id)
+          .update(updateData);
 
       return MonthlyReportModel(
         id: existing.id,
@@ -199,7 +206,9 @@ class MonthlyReportRemoteDataSourceImpl implements MonthlyReportRemoteDataSource
       updatedAt: now,
     );
 
-    final docRef = await firestore.collection(_collection).add(model.toFirestore());
+    final docRef = await firestore
+        .collection(_collection)
+        .add(model.toFirestore());
 
     return MonthlyReportModel(
       id: docRef.id,

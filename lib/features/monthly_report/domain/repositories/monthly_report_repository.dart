@@ -9,7 +9,9 @@ abstract class MonthlyReportRepository {
     int? tahun,
   });
 
-  Future<Either<Failure, MonthlyReport?>> getLatestReportBySantri(String santriId);
+  Future<Either<Failure, MonthlyReport?>> getLatestReportBySantri(
+    String santriId,
+  );
 
   Future<Either<Failure, List<MonthlyReport>>> getReportsByAsatidz(
     String asatidzId,
@@ -23,7 +25,12 @@ abstract class MonthlyReportRepository {
     int tahun,
   );
 
-  Future<Either<Failure, MonthlyReport>> createOrUpdateReport(MonthlyReport report);
+  Future<Either<Failure, MonthlyReport>> createOrUpdateReport(
+    MonthlyReport report,
+  );
 
-  Future<Either<Failure, Set<String>>> getReportedSantriIds(int bulan, int tahun);
+  Future<Either<Failure, Set<String>>> getReportedSantriIds(
+    int bulan,
+    int tahun,
+  );
 }

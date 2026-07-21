@@ -21,26 +21,28 @@ class QuranLocalDataSource {
     final raw = await rootBundle.loadString(_assetPath);
     final decoded = json.decode(raw) as List<dynamic>;
     final rows = decoded
-        .map((e) => _Row(
-              surah: e['sora'] as int,
-              ayah: e['aya_no'] as int,
-              page: e['page'] as int,
-              text: e['aya_text'] as String,
-              surahNameAr: e['sora_name_ar'] as String,
-              surahNameEn: e['sora_name_en'] as String,
-            ))
+        .map(
+          (e) => _Row(
+            surah: e['sora'] as int,
+            ayah: e['aya_no'] as int,
+            page: e['page'] as int,
+            text: e['aya_text'] as String,
+            surahNameAr: e['sora_name_ar'] as String,
+            surahNameEn: e['sora_name_en'] as String,
+          ),
+        )
         .toList(growable: false);
     _rows = rows;
     return rows;
   }
 
   Ayah _toAyah(_Row r) => Ayah(
-        surahId: r.surah,
-        number: r.ayah,
-        text: r.text,
-        page: r.page,
-        surahName: r.surahNameAr,
-      );
+    surahId: r.surah,
+    number: r.ayah,
+    text: r.text,
+    page: r.page,
+    surahName: r.surahNameAr,
+  );
 
   Future<List<SurahInfo>> getSurahList() async {
     final cached = _surahs;
@@ -55,12 +57,14 @@ class QuranLocalDataSource {
     }
     final surahs = byId.keys.toList()..sort();
     final result = surahs
-        .map((id) => SurahInfo(
-              id: id,
-              name: byId[id]!.surahNameAr,
-              latin: byId[id]!.surahNameEn,
-              totalVerses: totals[id] ?? 0,
-            ))
+        .map(
+          (id) => SurahInfo(
+            id: id,
+            name: byId[id]!.surahNameAr,
+            latin: byId[id]!.surahNameEn,
+            totalVerses: totals[id] ?? 0,
+          ),
+        )
         .toList();
     _surahs = result;
     return result;

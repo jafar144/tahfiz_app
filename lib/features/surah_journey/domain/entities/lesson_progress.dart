@@ -61,9 +61,7 @@ class SurahProgress {
       );
 
   Map<String, dynamic> toMap() => {
-    'sections': {
-      for (final e in sections.entries) e.key: e.value.toMap(),
-    },
+    'sections': {for (final e in sections.entries) e.key: e.value.toMap()},
     'exam': {'passed': examPassed, 'best_score': examBestScore},
     'completed': completed,
   };

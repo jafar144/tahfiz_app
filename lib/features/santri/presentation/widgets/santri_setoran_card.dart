@@ -5,19 +5,16 @@ import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.d
 class SantriSetoranCard extends StatelessWidget {
   final SantriSetoran setoran;
 
-  const SantriSetoranCard({
-    super.key,
-    required this.setoran,
-  });
+  const SantriSetoranCard({super.key, required this.setoran});
 
   @override
   Widget build(BuildContext context) {
-    // Only parse the day/month for general Riwayat if we want to, 
+    // Only parse the day/month for general Riwayat if we want to,
     // but the home page used HH:mm for "Terakhir".
-    // We'll pass the full date formatting logic so the caller can decide, 
-    // but typically we'll use 'dd MMM yyyy' or 'HH:mm'. 
+    // We'll pass the full date formatting logic so the caller can decide,
+    // but typically we'll use 'dd MMM yyyy' or 'HH:mm'.
     // Let's stick to the card from Home Page, but allow DateFormat override for "Riwayat" if needed.
-    
+
     final dateStr = DateFormat('dd MMM yyyy, HH:mm').format(setoran.date);
 
     return Container(

@@ -68,12 +68,15 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             .collection('santri_profiles')
             .where('halaqah_id', whereIn: chunk);
 
-        if (isActive != null)
+        if (isActive != null) {
           query = query.where('is_active', isEqualTo: isActive);
-        if (gender != null)
+        }
+        if (gender != null) {
           query = query.where('jenis_kelamin', isEqualTo: gender);
-        if (session != null)
+        }
+        if (session != null) {
           query = query.where('tipe_kelas', isEqualTo: session);
+        }
         if (kelas != null) query = query.where('kelas', isEqualTo: kelas);
 
         final snapshot = await query.get();

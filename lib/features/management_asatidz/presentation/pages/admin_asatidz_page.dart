@@ -21,8 +21,7 @@ class AdminAsatidzPage extends StatefulWidget {
 class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
-  bool? _filterIsActive;
+
   String _searchKeyword = '';
 
   final List<AsatidzEntity> _skeletonData = List.generate(
@@ -44,17 +43,13 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
   }
 
   void _fetchData() {
-    context.read<AsatidzCubit>().loadAsatidz(
-          keyword: _searchKeyword,
-          isActive: _filterIsActive,
-        );
+    context.read<AsatidzCubit>().loadAsatidz(keyword: _searchKeyword);
   }
 
   void _resetAndFetchData() {
     setState(() {
       _searchController.clear();
       _searchKeyword = '';
-      _filterIsActive = null;
     });
     _fetchData();
   }
@@ -80,13 +75,6 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
     _fetchData();
   }
 
-  void _onFilterChanged(bool? isActive) {
-    setState(() {
-      _filterIsActive = isActive;
-    });
-    _fetchData();
-  }
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -98,9 +86,7 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: const AiwaAppBar(
-        title: 'Data Asatidz',
-      ),
+      appBar: const AiwaAppBar(title: 'Data Asatidz'),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add_asatidz_fab',
         onPressed: () async {
@@ -134,7 +120,7 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
               builder: (context, state) {
                 final isLoading = state is AsatidzLoading;
                 final List<AsatidzEntity> displayList;
-                
+
                 if (isLoading) {
                   displayList = _skeletonData;
                 } else if (state is AsatidzLoaded) {
@@ -144,20 +130,23 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
                 }
 
                 if (state is AsatidzLoaded && state.asatidz.isEmpty) {
-                   return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.person_off,
-                              size: 48, color: Colors.grey[400]),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Tidak ada data asatidz',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    );
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.person_off,
+                          size: 48,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Tidak ada data asatidz',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  );
                 }
 
                 if (state is AsatidzError) {
@@ -169,17 +158,21 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
                   child: ListView.separated(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: displayList.length + (state is AsatidzLoaded && state.isFetchingMore ? 1 : 0),
+                    itemCount:
+                        displayList.length +
+                        (state is AsatidzLoaded && state.isFetchingMore
+                            ? 1
+                            : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       if (index >= displayList.length) {
-                         return Skeletonizer(
-                           enabled: true,
-                           child: AsatidzCard(
-                             _skeletonData.first,
-                             onReturn: () {},
-                           ),
-                         );
+                        return Skeletonizer(
+                          enabled: true,
+                          child: AsatidzCard(
+                            _skeletonData.first,
+                            onReturn: () {},
+                          ),
+                        );
                       }
                       return AsatidzCard(
                         displayList[index],
@@ -192,27 +185,6 @@ class _AdminAsatidzPageState extends State<AdminAsatidzPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, bool? value) {
-    final isSelected = _filterIsActive == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => _onFilterChanged(value),
-      selectedColor: Colors.blue,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black87,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-      ),
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? Colors.transparent : Colors.grey.shade300,
-        ),
       ),
     );
   }

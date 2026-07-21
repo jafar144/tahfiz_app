@@ -47,7 +47,7 @@ class SantriAttendanceModel extends SantriAttendance {
   factory SantriAttendanceModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final attendanceListData = data['attendance_list'] as List<dynamic>? ?? [];
-    
+
     return SantriAttendanceModel(
       id: doc.id,
       halaqahId: data['halaqah_id'] ?? '',
@@ -57,7 +57,10 @@ class SantriAttendanceModel extends SantriAttendance {
       asatidzId: data['asatidz_id'] ?? '',
       asatidzName: data['asatidz_name'] ?? '',
       attendanceList: attendanceListData
-          .map((item) => SantriAttendanceItemModel.fromMap(item as Map<String, dynamic>))
+          .map(
+            (item) =>
+                SantriAttendanceItemModel.fromMap(item as Map<String, dynamic>),
+          )
           .toList(),
       totalPresent: data['total_present'] ?? 0,
       totalAbsent: data['total_absent'] ?? 0,
@@ -75,12 +78,14 @@ class SantriAttendanceModel extends SantriAttendance {
       'asatidz_id': asatidzId,
       'asatidz_name': asatidzName,
       'attendance_list': attendanceList
-          .map((item) => SantriAttendanceItemModel(
-                santriId: item.santriId,
-                santriName: item.santriName,
-                status: item.status,
-                notes: item.notes,
-              ).toMap())
+          .map(
+            (item) => SantriAttendanceItemModel(
+              santriId: item.santriId,
+              santriName: item.santriName,
+              status: item.status,
+              notes: item.notes,
+            ).toMap(),
+          )
           .toList(),
       'total_present': totalPresent,
       'total_absent': totalAbsent,

@@ -25,4 +25,3 @@ class ProgramScheduleModel extends ProgramSchedule {
     return int.tryParse(day) ?? 1;
   }
 }
-

@@ -47,8 +47,10 @@ class FamilyPaymentCubit extends Cubit<FamilyPaymentState> {
 
       final members = <FamilyMemberPayment>[];
       for (final s in santris) {
-        final history =
-            await paymentRepository.getPaymentHistoryBySantri(s.id, null);
+        final history = await paymentRepository.getPaymentHistoryBySantri(
+          s.id,
+          null,
+        );
         final paid = <int, Set<int>>{};
         for (final p in history) {
           final y = int.tryParse(p.tahun);

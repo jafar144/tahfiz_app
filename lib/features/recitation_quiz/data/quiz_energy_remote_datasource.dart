@@ -58,7 +58,10 @@ class QuizEnergyRemoteDataSource {
   /// Lepas lock; abaikan kegagalan (best-effort).
   Future<void> endSession() => _callVoid('endQuizSession');
 
-  Future<QuizEnergy> _callEnergy(String name, [Map<String, dynamic>? params]) async {
+  Future<QuizEnergy> _callEnergy(
+    String name, [
+    Map<String, dynamic>? params,
+  ]) async {
     final callable = functions.httpsCallable(
       name,
       options: HttpsCallableOptions(timeout: const Duration(seconds: 30)),

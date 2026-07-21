@@ -21,8 +21,14 @@ class PaymentExistsBottomSheet extends StatelessWidget {
       symbol: 'Rp ',
       decimalDigits: 0,
     );
-    final dateStr = DateFormat('d MMMM yyyy, HH:mm', 'id_ID').format(payment.createdAt);
-    final monthName = DateFormat('MMMM', 'id_ID').format(DateTime(2024, int.tryParse(payment.bulan) ?? 1));
+    final dateStr = DateFormat(
+      'd MMMM yyyy, HH:mm',
+      'id_ID',
+    ).format(payment.createdAt);
+    final monthName = DateFormat(
+      'MMMM',
+      'id_ID',
+    ).format(DateTime(2024, int.tryParse(payment.bulan) ?? 1));
 
     return SafeArea(
       child: Container(
@@ -41,15 +47,16 @@ class PaymentExistsBottomSheet extends StatelessWidget {
                 color: Colors.orange.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.info_outline, color: Colors.orange, size: 32),
+              child: const Icon(
+                Icons.info_outline,
+                color: Colors.orange,
+                size: 32,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
               'Pembayaran Sudah Ada',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
@@ -63,7 +70,7 @@ class PaymentExistsBottomSheet extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 24),
-            
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -73,7 +80,10 @@ class PaymentExistsBottomSheet extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildDetailRow('Nominal', formatCurrency.format(payment.total)),
+                  _buildDetailRow(
+                    'Nominal',
+                    formatCurrency.format(payment.total),
+                  ),
                   const SizedBox(height: 8),
                   _buildDetailRow('Tanggal Bayar', dateStr),
                   const SizedBox(height: 8),
@@ -81,7 +91,7 @@ class PaymentExistsBottomSheet extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -108,10 +118,7 @@ class PaymentExistsBottomSheet extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-        ),
+        Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
         Text(
           value,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),

@@ -29,8 +29,9 @@ class _LoginPageState extends State<LoginPage> {
           if (state is AuthAuthenticated) {
             context.goNamed(RouteNames.home);
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(state.message)));
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(state.message)));
           }
         },
         builder: (context, state) {
@@ -59,79 +60,77 @@ class _LoginPageState extends State<LoginPage> {
                       textAlign: TextAlign.center,
                       style: AppTextStyles.titleBlack,
                     ),
-                  const SizedBox(height: 32),
-                  AiwaTextField(
-                    label: 'NIS',
-                    hint: 'Masukkan NIS',
-                    icon: Icons.person_outline,
-                    controller: nisController,
-                  ),
-                  const SizedBox(height: 16),
-                  AiwaTextField(
-                    label: 'Password',
-                    hint: 'Masukkan Password',
-                    icon: Icons.lock_outline,
-                    controller: passwordController,
-                    obscureText: true,
-                    textCapitalization: TextCapitalization.none,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                              height: 1.4,
-                            ),
-                            children: [
-                              TextSpan(
-                                text:
-                                    'Password = Tanggal Lahir, mis. ',
-                              ),
-                              TextSpan(
-                                text: '12 April 2015, maka',
-                                
-                              ),
-                              TextSpan(text: ' 20150412',
+                    const SizedBox(height: 32),
+                    AiwaTextField(
+                      label: 'NIS',
+                      hint: 'Masukkan NIS',
+                      icon: Icons.person_outline,
+                      controller: nisController,
+                    ),
+                    const SizedBox(height: 16),
+                    AiwaTextField(
+                      label: 'Password',
+                      hint: 'Masukkan Password',
+                      icon: Icons.lock_outline,
+                      controller: passwordController,
+                      obscureText: true,
+                      textCapitalization: TextCapitalization.none,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: RichText(
+                            text: const TextSpan(
                               style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black54,
-                                ),),
-                            ],
+                                fontSize: 11,
+                                color: Colors.grey,
+                                height: 1.4,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'Password = Tanggal Lahir, mis. ',
+                                ),
+                                TextSpan(text: '12 April 2015, maka'),
+                                TextSpan(
+                                  text: ' 20150412',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                  AiwaButton(
-                    text: 'Login',
-                    onPressed: () {
-                      context.read<AuthCubit>().login(
-                        nisController.text,
-                        passwordController.text,
-                      );
-                    },
-                    isLoading: isLoading,
-                  ),
-                  const Spacer(flex: 2),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    AiwaButton(
+                      text: 'Login',
+                      onPressed: () {
+                        context.read<AuthCubit>().login(
+                          nisController.text,
+                          passwordController.text,
+                        );
+                      },
+                      isLoading: isLoading,
+                    ),
+                    const Spacer(flex: 2),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    ),
-   );
+          );
+        },
+      ),
+    );
   }
 }

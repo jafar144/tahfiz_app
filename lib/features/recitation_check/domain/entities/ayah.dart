@@ -2,7 +2,8 @@
 class Ayah {
   final int surahId;
   final int number; // nomor ayat (1-based)
-  final String text; // teks Arab rasm Utsmani (dengan harakat + glyph nomor ayat)
+  final String
+  text; // teks Arab rasm Utsmani (dengan harakat + glyph nomor ayat)
   final int page; // halaman mushaf Madinah (1..604)
   final String surahName; // nama surah (Arab), untuk header halaman
 
@@ -33,8 +34,7 @@ class SurahInfo {
   });
 
   @override
-  bool operator ==(Object other) =>
-      other is SurahInfo && other.id == id;
+  bool operator ==(Object other) => other is SurahInfo && other.id == id;
 
   @override
   int get hashCode => id.hashCode;

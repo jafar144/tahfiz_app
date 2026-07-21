@@ -58,12 +58,10 @@ class RecitationResult {
 
   int get correctCount =>
       diffs.where((d) => d.status == WordStatus.correct).length;
-  int get wrongCount =>
-      diffs.where((d) => d.status == WordStatus.wrong).length;
+  int get wrongCount => diffs.where((d) => d.status == WordStatus.wrong).length;
   int get missingCount =>
       diffs.where((d) => d.status == WordStatus.missing).length;
-  int get extraCount =>
-      diffs.where((d) => d.status == WordStatus.extra).length;
+  int get extraCount => diffs.where((d) => d.status == WordStatus.extra).length;
 
   /// Persentase 0..100 untuk ditampilkan.
   int get accuracyPercent => (accuracy * 100).round();

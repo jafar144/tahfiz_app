@@ -66,7 +66,9 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
       final targetTahun = getTargetTahun(now);
       final daysRemaining = getDaysRemaining(now);
 
-      final halaqahsResult = await scheduleRepository.getHalaqahsByTeacher(asatidzId);
+      final halaqahsResult = await scheduleRepository.getHalaqahsByTeacher(
+        asatidzId,
+      );
 
       final allSantris = <SantriEntity>[];
 
@@ -76,27 +78,32 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
         },
         ifRight: (halaqahs) async {
           for (final halaqah in halaqahs) {
-            final santrisResult = await scheduleRepository.getSantrisByHalaqahId(halaqah.id);
+            final santrisResult = await scheduleRepository
+                .getSantrisByHalaqahId(halaqah.id);
             santrisResult.fold(
               ifLeft: (_) {},
               ifRight: (santris) {
-                final mapped = santris.map((s) => SantriEntity(
-                  id: s.id,
-                  name: s.name,
-                  nis: s.nis,
-                  kelas: s.kelas,
-                  kelasFiqih: s.kelasFiqih,
-                  jenisKelamin: s.jenisKelamin,
-                  isActive: s.isActive,
-                  isFree: s.isFree,
-                  freeUntil: s.freeUntil,
-                  nomorWali: s.nomorWali,
-                  tipeKelas: s.tipeKelas,
-                  halaqahId: s.halaqahId,
-                  halaqahName: halaqah.name,
-                  pembimbing: halaqah.teacherName,
-                  tanggalMasuk: s.tanggalMasuk,
-                )).toList();
+                final mapped = santris
+                    .map(
+                      (s) => SantriEntity(
+                        id: s.id,
+                        name: s.name,
+                        nis: s.nis,
+                        kelas: s.kelas,
+                        kelasFiqih: s.kelasFiqih,
+                        jenisKelamin: s.jenisKelamin,
+                        isActive: s.isActive,
+                        isFree: s.isFree,
+                        freeUntil: s.freeUntil,
+                        nomorWali: s.nomorWali,
+                        tipeKelas: s.tipeKelas,
+                        halaqahId: s.halaqahId,
+                        halaqahName: halaqah.name,
+                        pembimbing: halaqah.teacherName,
+                        tanggalMasuk: s.tanggalMasuk,
+                      ),
+                    )
+                    .toList();
                 allSantris.addAll(mapped);
               },
             );
@@ -106,10 +113,9 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
 
       if (state is MonthlyReportError) return;
 
-      final uniqueSantris = {for (var s in allSantris) s.id: s}
-          .values
-          .where((s) => s.isActive)
-          .toList();
+      final uniqueSantris = {
+        for (var s in allSantris) s.id: s,
+      }.values.where((s) => s.isActive).toList();
 
       final reportsResult = await reportRepository.getReportsByAsatidz(
         asatidzId,
@@ -132,11 +138,11 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
       final periods = backfillPeriods(now);
       final reportedByPeriod = <({int bulan, int tahun}), Set<String>>{};
       for (final p in periods) {
-        final res = await reportRepository.getReportedSantriIds(p.bulan, p.tahun);
-        res.fold(
-          ifLeft: (_) {},
-          ifRight: (ids) => reportedByPeriod[p] = ids,
+        final res = await reportRepository.getReportedSantriIds(
+          p.bulan,
+          p.tahun,
         );
+        res.fold(ifLeft: (_) {}, ifRight: (ids) => reportedByPeriod[p] = ids);
       }
 
       final tertunggakBySantri = <String, int>{};
@@ -145,7 +151,8 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
         for (final p in periods) {
           final pd = DateTime(p.tahun, p.bulan);
           final joined = s.tanggalMasuk;
-          if (joined != null && pd.isBefore(DateTime(joined.year, joined.month))) {
+          if (joined != null &&
+              pd.isBefore(DateTime(joined.year, joined.month))) {
             continue;
           }
           final reported = reportedByPeriod[p] ?? const <String>{};
@@ -156,15 +163,17 @@ class MonthlyReportCubit extends Cubit<MonthlyReportState> {
 
       if (isClosed) return;
 
-      emit(MonthlyReportLoaded(
-        santriList: uniqueSantris,
-        reportMap: reportMap,
-        isInWindow: isInWindow,
-        targetBulan: targetBulan,
-        targetTahun: targetTahun,
-        daysRemaining: daysRemaining,
-        tertunggakBySantri: tertunggakBySantri,
-      ));
+      emit(
+        MonthlyReportLoaded(
+          santriList: uniqueSantris,
+          reportMap: reportMap,
+          isInWindow: isInWindow,
+          targetBulan: targetBulan,
+          targetTahun: targetTahun,
+          daysRemaining: daysRemaining,
+          tertunggakBySantri: tertunggakBySantri,
+        ),
+      );
     } catch (e) {
       if (isClosed) return;
       emit(MonthlyReportError(e.toString()));

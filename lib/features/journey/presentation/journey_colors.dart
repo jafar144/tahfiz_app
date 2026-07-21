@@ -20,8 +20,8 @@ class JourneyColors {
 
   /// Warna aksen utama untuk status tertentu.
   static Color accentFor(JourneyStatus status) => switch (status) {
-        JourneyStatus.completed => gold,
-        JourneyStatus.active => primaryDeep,
-        JourneyStatus.locked => muted,
-      };
+    JourneyStatus.completed => gold,
+    JourneyStatus.active => primaryDeep,
+    JourneyStatus.locked => muted,
+  };
 }

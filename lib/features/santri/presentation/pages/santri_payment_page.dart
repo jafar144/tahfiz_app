@@ -5,7 +5,6 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_paymen
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_state.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_year_view.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriPaymentPage extends StatefulWidget {
   final DateTime? startDate;
@@ -95,7 +94,7 @@ class _SantriPaymentPageState extends State<SantriPaymentPage> {
     for (var payment in payments) {
       final year = int.tryParse(payment.tahun) ?? 0;
       final month = int.tryParse(payment.bulan) ?? 0;
-      
+
       if (year > 0 && month > 0) {
         paidData.putIfAbsent(year, () => <int>{});
         paidData[year]!.add(month);

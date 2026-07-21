@@ -6,13 +6,17 @@ import 'package:khoirunnasyien/core/utils/error_handler.dart';
 class SantriPaymentHistoryCubit extends Cubit<SantriPaymentHistoryState> {
   final PaymentRepository paymentRepository;
 
-  SantriPaymentHistoryCubit(this.paymentRepository) : super(SantriPaymentHistoryInitial());
+  SantriPaymentHistoryCubit(this.paymentRepository)
+    : super(SantriPaymentHistoryInitial());
 
   Future<void> loadHistory(String santriId) async {
     emit(SantriPaymentHistoryLoading());
 
     try {
-      final history = await paymentRepository.getPaymentHistoryBySantri(santriId, null);
+      final history = await paymentRepository.getPaymentHistoryBySantri(
+        santriId,
+        null,
+      );
       emit(SantriPaymentHistoryLoaded(history));
     } catch (e) {
       emit(SantriPaymentHistoryError(ErrorHandler.getMessage(e)));

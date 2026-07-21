@@ -47,12 +47,12 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AiwaAppBar(
-        title: MonthlyReportStrings.inputTitle,
-      ),
+      appBar: AiwaAppBar(title: MonthlyReportStrings.inputTitle),
       body: BlocConsumer<MonthlyReportInputCubit, MonthlyReportInputState>(
         listener: (context, state) {
-          if (state is MonthlyReportInputReady && state.existingReport != null && _hafalanController.text.isEmpty) {
+          if (state is MonthlyReportInputReady &&
+              state.existingReport != null &&
+              _hafalanController.text.isEmpty) {
             final r = state.existingReport!;
             _hafalanController.text = r.hafalanTerakhir;
             _notesController.text = r.notes;
@@ -85,7 +85,8 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           }
 
           final isSaving = state is MonthlyReportInputReady && state.isSaving;
-          final isUpdate = state is MonthlyReportInputReady && state.existingReport != null;
+          final isUpdate =
+              state is MonthlyReportInputReady && state.existingReport != null;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -101,20 +102,32 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                       state.latestReport != null) ...[
                     const SizedBox(height: 20),
                     _buildSectionLabel(
-                        MonthlyReportStrings.penilaianTerakhir, Icons.history_rounded),
+                      MonthlyReportStrings.penilaianTerakhir,
+                      Icons.history_rounded,
+                    ),
                     const SizedBox(height: 10),
                     MonthlyReportCard(report: state.latestReport!),
                   ],
                   const SizedBox(height: 24),
                   _buildHafalanField(),
                   const SizedBox(height: 24),
-                  _buildNilaiSection(MonthlyReportStrings.perkembangan, _nilaiPerkembangan, Icons.trending_up_rounded, (val) {
-                    setState(() => _nilaiPerkembangan = val);
-                  }),
+                  _buildNilaiSection(
+                    MonthlyReportStrings.perkembangan,
+                    _nilaiPerkembangan,
+                    Icons.trending_up_rounded,
+                    (val) {
+                      setState(() => _nilaiPerkembangan = val);
+                    },
+                  ),
                   const SizedBox(height: 24),
-                  _buildNilaiSection(MonthlyReportStrings.akhlaq, _nilaiAkhlaq, Icons.favorite_rounded, (val) {
-                    setState(() => _nilaiAkhlaq = val);
-                  }),
+                  _buildNilaiSection(
+                    MonthlyReportStrings.akhlaq,
+                    _nilaiAkhlaq,
+                    Icons.favorite_rounded,
+                    (val) {
+                      setState(() => _nilaiAkhlaq = val);
+                    },
+                  ),
                   const SizedBox(height: 24),
                   _buildNotesField(),
                   const SizedBox(height: 32),
@@ -187,10 +200,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                 const SizedBox(height: 2),
                 Text(
                   widget.santri.nis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -209,7 +219,9 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           const SizedBox(width: 6),
           Text(
             MonthlyReportStrings.periode(
-                MonthlyReport.getNamaBulan(widget.bulan), widget.tahun),
+              MonthlyReport.getNamaBulan(widget.bulan),
+              widget.tahun,
+            ),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade500,
@@ -225,7 +237,10 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel(MonthlyReportStrings.hafalanTerakhir, Icons.menu_book_rounded),
+        _buildSectionLabel(
+          MonthlyReportStrings.hafalanTerakhir,
+          Icons.menu_book_rounded,
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _hafalanController,
@@ -248,17 +263,30 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
-          validator: (val) => (val == null || val.trim().isEmpty) ? MonthlyReportStrings.wajibDiisi : null,
+          validator: (val) => (val == null || val.trim().isEmpty)
+              ? MonthlyReportStrings.wajibDiisi
+              : null,
         ),
       ],
     );
   }
 
-  Widget _buildNilaiSection(String label, int currentValue, IconData icon, ValueChanged<int> onChanged) {
+  Widget _buildNilaiSection(
+    String label,
+    int currentValue,
+    IconData icon,
+    ValueChanged<int> onChanged,
+  ) {
     final primary = Theme.of(context).primaryColor;
 
     return Column(
@@ -291,7 +319,13 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                       color: isSelected ? primary : Colors.transparent,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: isSelected
-                          ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))]
+                          ? [
+                              BoxShadow(
+                                color: primary.withValues(alpha: 0.3),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
                           : null,
                     ),
                     child: Text(
@@ -312,14 +346,21 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
         currentValue == 0
             ? Text(
                 MonthlyReportStrings.pilihNilai,
-                style: TextStyle(fontSize: 12, color: Colors.red.shade400, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.red.shade400,
+                  fontWeight: FontWeight.w500,
+                ),
               )
             : Row(
                 children: [
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: BoxDecoration(color: _getNilaiColor(currentValue), shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: _getNilaiColor(currentValue),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -340,7 +381,10 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel(MonthlyReportStrings.catatanOpsional, Icons.notes_rounded),
+        _buildSectionLabel(
+          MonthlyReportStrings.catatanOpsional,
+          Icons.notes_rounded,
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _notesController,
@@ -360,7 +404,10 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
             ),
             contentPadding: const EdgeInsets.all(16),
           ),
@@ -414,12 +461,18 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
 
   Color _getNilaiColor(int nilai) {
     switch (nilai) {
-      case 5: return const Color(0xFF16A34A);
-      case 4: return const Color(0xFF22C55E);
-      case 3: return const Color(0xFFEAB308);
-      case 2: return const Color(0xFFF97316);
-      case 1: return const Color(0xFFEF4444);
-      default: return Colors.grey;
+      case 5:
+        return const Color(0xFF16A34A);
+      case 4:
+        return const Color(0xFF22C55E);
+      case 3:
+        return const Color(0xFFEAB308);
+      case 2:
+        return const Color(0xFFF97316);
+      case 1:
+        return const Color(0xFFEF4444);
+      default:
+        return Colors.grey;
     }
   }
 

@@ -11,10 +11,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 class SantriAttendancePage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
 
-  const SantriAttendancePage({
-    super.key,
-    required this.activeHalaqah,
-  });
+  const SantriAttendancePage({super.key, required this.activeHalaqah});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +25,10 @@ class SantriAttendancePage extends StatelessWidget {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
-              DateFormat('EEEE, d MMMM • HH:mm', 'id_ID').format(DateTime.now()),
+              DateFormat(
+                'EEEE, d MMMM • HH:mm',
+                'id_ID',
+              ).format(DateTime.now()),
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ],
@@ -69,9 +69,7 @@ class SantriAttendancePage extends StatelessWidget {
               children: [
                 if (state.isExistingData)
                   _buildExistingDataInfo(state.lastUpdated),
-                Expanded(
-                  child: _buildAttendanceList(context, state),
-                ),
+                Expanded(child: _buildAttendanceList(context, state)),
                 _buildSubmitButton(context, state),
               ],
             );
@@ -89,7 +87,7 @@ class SantriAttendancePage extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 6,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           return Container(
             decoration: BoxDecoration(
@@ -146,7 +144,7 @@ class SantriAttendancePage extends StatelessWidget {
   }
 
   Widget _buildExistingDataInfo(DateTime? lastUpdated) {
-    final dateStr = lastUpdated != null 
+    final dateStr = lastUpdated != null
         ? DateFormat('d MMM yyyy • HH:mm', 'id_ID').format(lastUpdated)
         : '';
 
@@ -178,10 +176,7 @@ class SantriAttendancePage extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Terakhir: $dateStr',
-                    style: TextStyle(
-                      color: Colors.blue.shade700,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.blue.shade700, fontSize: 12),
                   ),
                 ],
               ],
@@ -192,7 +187,10 @@ class SantriAttendancePage extends StatelessWidget {
     );
   }
 
-  Widget _buildAttendanceList(BuildContext context, SantriAttendanceLoaded state) {
+  Widget _buildAttendanceList(
+    BuildContext context,
+    SantriAttendanceLoaded state,
+  ) {
     final santris = state.santris;
 
     return ListView.separated(
@@ -202,7 +200,9 @@ class SantriAttendancePage extends StatelessWidget {
       itemBuilder: (context, index) {
         final santri = santris[index];
         final status = state.attendanceMap[santri.id] ?? 'hadir';
-        final initial = santri.name.isNotEmpty ? santri.name[0].toUpperCase() : '?';
+        final initial = santri.name.isNotEmpty
+            ? santri.name[0].toUpperCase()
+            : '?';
         final isGuest = santri.halaqahId != activeHalaqah.halaqah.id;
 
         return Container(
@@ -265,11 +265,16 @@ class SantriAttendancePage extends StatelessWidget {
                           if (isGuest) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.orange.shade200),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
                               ),
                               child: Text(
                                 'Tamu',
@@ -281,7 +286,7 @@ class SantriAttendancePage extends StatelessWidget {
                               ),
                             ),
                           ],
-                        ]
+                        ],
                       ),
                       if (status != 'hadir') ...[
                         const SizedBox(height: 4),
@@ -327,7 +332,11 @@ class SantriAttendancePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusToggle(BuildContext context, String santriId, String currentStatus) {
+  Widget _buildStatusToggle(
+    BuildContext context,
+    String santriId,
+    String currentStatus,
+  ) {
     final isPresent = currentStatus == 'hadir';
 
     return GestureDetector(
@@ -335,7 +344,10 @@ class SantriAttendancePage extends StatelessWidget {
         if (isPresent) {
           _showStatusBottomSheet(context, santriId);
         } else {
-          context.read<SantriAttendanceCubit>().updateAttendance(santriId, 'hadir');
+          context.read<SantriAttendanceCubit>().updateAttendance(
+            santriId,
+            'hadir',
+          );
         }
       },
       child: Column(
@@ -351,7 +363,9 @@ class SantriAttendancePage extends StatelessWidget {
               children: [
                 AnimatedAlign(
                   duration: const Duration(milliseconds: 200),
-                  alignment: isPresent ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment: isPresent
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
                   child: Container(
                     width: 28,
                     height: 28,
@@ -450,7 +464,10 @@ class SantriAttendancePage extends StatelessWidget {
   ) {
     return InkWell(
       onTap: () {
-        context.read<SantriAttendanceCubit>().updateAttendance(santriId, status);
+        context.read<SantriAttendanceCubit>().updateAttendance(
+          santriId,
+          status,
+        );
         Navigator.pop(context);
       },
       child: Padding(
@@ -468,10 +485,7 @@ class SantriAttendancePage extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -479,7 +493,10 @@ class SantriAttendancePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSubmitButton(BuildContext context, SantriAttendanceLoaded state) {
+  Widget _buildSubmitButton(
+    BuildContext context,
+    SantriAttendanceLoaded state,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

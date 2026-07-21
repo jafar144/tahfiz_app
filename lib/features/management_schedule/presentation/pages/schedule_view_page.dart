@@ -69,14 +69,18 @@ class ScheduleViewPage extends StatelessWidget {
             child: SafeArea(
               child: Column(
                 children: [
-                _buildGenderSelector(context, selectedGender),
-                Expanded(
-                  child: _buildAsatidzList(
-                      context, selectedGender, halaqahs, programs),
-                ),
-              ],
+                  _buildGenderSelector(context, selectedGender),
+                  Expanded(
+                    child: _buildAsatidzList(
+                      context,
+                      selectedGender,
+                      halaqahs,
+                      programs,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
           );
         },
       ),
@@ -115,7 +119,11 @@ class ScheduleViewPage extends StatelessWidget {
   }
 
   Widget _buildGenderOption(
-      BuildContext context, String label, String value, String selected) {
+    BuildContext context,
+    String label,
+    String value,
+    String selected,
+  ) {
     final isSelected = selected == value;
     return Expanded(
       child: GestureDetector(
@@ -154,7 +162,6 @@ class ScheduleViewPage extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildAsatidzList(
     BuildContext context,
@@ -220,11 +227,12 @@ class ScheduleViewPage extends StatelessWidget {
     // Sesi unik (terurut pagi→sore→malam) untuk badge overview.
     String sessionOf(Halaqah h) {
       final program = programs.cast<ScheduleProgram?>().firstWhere(
-            (p) => p?.id == h.programId,
-            orElse: () => null,
-          );
-      final name =
-          (program?.name.isNotEmpty ?? false) ? program!.name : 'Regular';
+        (p) => p?.id == h.programId,
+        orElse: () => null,
+      );
+      final name = (program?.name.isNotEmpty ?? false)
+          ? program!.name
+          : 'Regular';
       return _capitalize(name);
     }
 

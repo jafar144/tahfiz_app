@@ -7,11 +7,7 @@ class LevelDetailSheet extends StatelessWidget {
   final JourneyLevel level;
   final int total;
 
-  const LevelDetailSheet({
-    super.key,
-    required this.level,
-    required this.total,
-  });
+  const LevelDetailSheet({super.key, required this.level, required this.total});
 
   static void show(BuildContext context, JourneyLevel level, int total) {
     showModalBottomSheet(
@@ -42,8 +38,8 @@ class LevelDetailSheet extends StatelessWidget {
     final badgeColors = level.isCompleted
         ? const [JourneyColors.gold, JourneyColors.goldLight]
         : level.isActive
-            ? const [JourneyColors.primaryDeep, JourneyColors.primaryMid]
-            : const [JourneyColors.lockedBg, JourneyColors.lockedBg];
+        ? const [JourneyColors.primaryDeep, JourneyColors.primaryMid]
+        : const [JourneyColors.lockedBg, JourneyColors.lockedBg];
 
     return SafeArea(
       child: Container(
@@ -90,8 +86,8 @@ class LevelDetailSheet extends StatelessWidget {
                 color: level.isCompleted
                     ? JourneyColors.primaryDeep
                     : level.isActive
-                        ? Colors.white
-                        : JourneyColors.muted,
+                    ? Colors.white
+                    : JourneyColors.muted,
               ),
             ),
             const SizedBox(height: 16),
@@ -182,8 +178,8 @@ class LevelDetailSheet extends StatelessWidget {
                     level.isCompleted
                         ? Icons.verified_rounded
                         : level.isActive
-                            ? Icons.auto_awesome_rounded
-                            : Icons.lock_clock_rounded,
+                        ? Icons.auto_awesome_rounded
+                        : Icons.lock_clock_rounded,
                     size: 18,
                     color: statusColor,
                   ),

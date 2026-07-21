@@ -29,10 +29,7 @@ class AiwaSearch extends StatelessWidget {
               style: const TextStyle(fontSize: 13),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
                 prefixIcon: const Icon(
                   Icons.search,
                   color: Colors.grey,
@@ -55,10 +52,7 @@ class AiwaSearch extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(
-                    color: Colors.blue,
-                    width: 1,
-                  ),
+                  borderSide: const BorderSide(color: Colors.blue, width: 1),
                 ),
               ),
             ),

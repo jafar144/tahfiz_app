@@ -36,11 +36,13 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
       );
       final asatidzById = {for (final a in asatidzList) a.id: a};
       if (asatidzById.isEmpty) {
-        emit(AdminAssessmentLoaded(
-          bulan: bulan,
-          tahun: tahun,
-          pembimbingList: const [],
-        ));
+        emit(
+          AdminAssessmentLoaded(
+            bulan: bulan,
+            tahun: tahun,
+            pembimbingList: const [],
+          ),
+        );
         return;
       }
 
@@ -58,8 +60,10 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
       );
 
       // 3. Santri yang sudah dinilai bulan ini (sekali query).
-      final reportedResult =
-          await reportRepository.getReportedSantriIds(bulan, tahun);
+      final reportedResult = await reportRepository.getReportedSantriIds(
+        bulan,
+        tahun,
+      );
       final reportedIds = reportedResult.fold(
         ifLeft: (_) => <String>{},
         ifRight: (ids) => ids,
@@ -73,8 +77,9 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
 
         final santriById = <String, SantriEntity>{};
         for (final halaqah in entry.value) {
-          final santrisResult =
-              await scheduleRepository.getSantrisByHalaqahId(halaqah.id);
+          final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+            halaqah.id,
+          );
           santrisResult.fold(
             ifLeft: (_) {},
             ifRight: (santris) {
@@ -87,33 +92,44 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
 
         if (santriById.isEmpty) continue;
 
-        final unassessed = santriById.values
-            .where((s) => !reportedIds.contains(s.id))
-            .map((s) => UnassessedSantri(id: s.id, name: s.name, nis: s.nis))
-            .toList()
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        final unassessed =
+            santriById.values
+                .where((s) => !reportedIds.contains(s.id))
+                .map(
+                  (s) => UnassessedSantri(id: s.id, name: s.name, nis: s.nis),
+                )
+                .toList()
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
 
-        pembimbingList.add(PembimbingAssessment(
-          asatidzId: teacherId,
-          asatidzName: asatidz.name,
-          gender: asatidz.jenisKelamin,
-          totalSantri: santriById.length,
-          unassessedSantri: unassessed,
-        ));
+        pembimbingList.add(
+          PembimbingAssessment(
+            asatidzId: teacherId,
+            asatidzName: asatidz.name,
+            gender: asatidz.jenisKelamin,
+            totalSantri: santriById.length,
+            unassessedSantri: unassessed,
+          ),
+        );
       }
 
       // Yang belum lengkap tampil di atas, lalu urut nama.
       pembimbingList.sort((a, b) {
         if (a.isComplete != b.isComplete) return a.isComplete ? 1 : -1;
-        return a.asatidzName.toLowerCase().compareTo(b.asatidzName.toLowerCase());
+        return a.asatidzName.toLowerCase().compareTo(
+          b.asatidzName.toLowerCase(),
+        );
       });
 
       if (isClosed) return;
-      emit(AdminAssessmentLoaded(
-        bulan: bulan,
-        tahun: tahun,
-        pembimbingList: pembimbingList,
-      ));
+      emit(
+        AdminAssessmentLoaded(
+          bulan: bulan,
+          tahun: tahun,
+          pembimbingList: pembimbingList,
+        ),
+      );
     } catch (e) {
       if (isClosed) return;
       emit(AdminAssessmentError(e.toString()));

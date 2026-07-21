@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
@@ -9,7 +11,6 @@ import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_r
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_state.dart';
-import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class MonthlyReportListPage extends StatelessWidget {
@@ -55,7 +56,8 @@ class _MonthlyReportListView extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
+                      final userId =
+                          getIt<FirebaseAuth>().currentUser?.uid ?? '';
                       context.read<MonthlyReportCubit>().loadData(userId);
                     },
                     child: const Text(MonthlyReportStrings.cobaLagi),
@@ -65,10 +67,13 @@ class _MonthlyReportListView extends StatelessWidget {
             );
           }
 
-          final MonthlyReportLoaded? loadedState =
-              state is MonthlyReportLoaded ? state : null;
+          final MonthlyReportLoaded? loadedState = state is MonthlyReportLoaded
+              ? state
+              : null;
 
-          final displayList = isLoading ? skeletonData : (loadedState?.santriList ?? []);
+          final displayList = isLoading
+              ? skeletonData
+              : (loadedState?.santriList ?? []);
 
           return SafeArea(
             child: Column(
@@ -84,12 +89,18 @@ class _MonthlyReportListView extends StatelessWidget {
                           child: ListView.separated(
                             padding: const EdgeInsets.all(16),
                             itemCount: displayList.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final santri = displayList[index];
-                              final isGraded = loadedState?.reportMap.containsKey(santri.id) ?? false;
+                              final isGraded =
+                                  loadedState?.reportMap.containsKey(
+                                    santri.id,
+                                  ) ??
+                                  false;
                               final tertunggak =
-                                  loadedState?.tertunggakBySantri[santri.id] ?? 0;
+                                  loadedState?.tertunggakBySantri[santri.id] ??
+                                  0;
 
                               return _SantriReportCard(
                                 santri: santri,
@@ -119,14 +130,18 @@ class _MonthlyReportListView extends StatelessWidget {
         color: state.isInWindow ? Colors.green.shade50 : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: state.isInWindow ? Colors.green.shade200 : Colors.orange.shade200,
+          color: state.isInWindow
+              ? Colors.green.shade200
+              : Colors.orange.shade200,
         ),
       ),
       child: Row(
         children: [
           Icon(
             state.isInWindow ? Icons.edit_note_rounded : Icons.schedule_rounded,
-            color: state.isInWindow ? Colors.green.shade700 : Colors.orange.shade700,
+            color: state.isInWindow
+                ? Colors.green.shade700
+                : Colors.orange.shade700,
             size: 22,
           ),
           const SizedBox(width: 12),
@@ -147,7 +162,9 @@ class _MonthlyReportListView extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   state.isInWindow
-                      ? MonthlyReportStrings.penilaianTerbuka(state.daysRemaining)
+                      ? MonthlyReportStrings.penilaianTerbuka(
+                          state.daysRemaining,
+                        )
                       : MonthlyReportStrings.menungguPeriode,
                   style: TextStyle(
                     fontSize: 12,
@@ -176,8 +193,11 @@ class _MonthlyReportListView extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded,
-              color: Colors.red.shade700, size: 22),
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.red.shade700,
+            size: 22,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -232,8 +252,8 @@ class _SantriReportCard extends StatelessWidget {
     final Border? border = hasTertunggak
         ? Border.all(color: Colors.red.shade300, width: 2)
         : isGraded
-            ? Border.all(color: Colors.green.shade400, width: 2)
-            : null;
+        ? Border.all(color: Colors.green.shade400, width: 2)
+        : null;
 
     return Container(
       decoration: BoxDecoration(
@@ -249,8 +269,7 @@ class _SantriReportCard extends StatelessWidget {
           children: [
             if (hasTertunggak) ...[
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -259,8 +278,11 @@ class _SantriReportCard extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        size: 13, color: Colors.red.shade600),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 13,
+                      color: Colors.red.shade600,
+                    ),
                     const SizedBox(width: 3),
                     Text(
                       MonthlyReportStrings.tertunggakBadge(tertunggakCount),
@@ -276,10 +298,16 @@ class _SantriReportCard extends StatelessWidget {
               const SizedBox(height: 6),
             ],
             isGraded
-                ? Icon(Icons.check_circle,
-                    color: Colors.green.shade400, size: 24)
-                : Icon(Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400, size: 24),
+                ? Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade400,
+                    size: 24,
+                  )
+                : Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.grey.shade400,
+                    size: 24,
+                  ),
           ],
         ),
       ),
@@ -289,14 +317,14 @@ class _SantriReportCard extends StatelessWidget {
   void _onTap(BuildContext context) {
     final cubit = context.read<MonthlyReportCubit>();
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SantriReportDetailPage(santri: santri),
-      ),
-    ).then((_) {
-      final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-      cubit.loadData(userId);
-    });
+    context
+        .pushNamed(
+          RouteNames.santriReportDetail,
+          extra: <String, dynamic>{'santri': santri},
+        )
+        .then((_) {
+          final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
+          cubit.loadData(userId);
+        });
   }
 }

@@ -43,14 +43,14 @@ class AiwaChip extends StatelessWidget {
                 Icons.keyboard_arrow_down,
                 size: 16,
                 color: Colors.white,
-              )
+              ),
             ] else ...[
-               const SizedBox(width: 4),
+              const SizedBox(width: 4),
               Icon(
                 Icons.keyboard_arrow_down,
                 size: 16,
                 color: Colors.grey.shade600,
-              )
+              ),
             ],
           ],
         ),
@@ -84,7 +84,10 @@ class AiwaChoiceChip extends StatelessWidget {
         fontSize: 12, // Reduced font size
       ),
       visualDensity: VisualDensity.compact, // Make it compact
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), // Reduce padding
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 2,
+      ), // Reduce padding
       showCheckmark: false,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(

@@ -1,4 +1,3 @@
-
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';

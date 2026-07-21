@@ -85,7 +85,7 @@ class _AdminPaymentHistoryViewState extends State<AdminPaymentHistoryView> {
               itemCount: state.hasReachedMax
                   ? state.payments.length
                   : state.payments.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(
+              separatorBuilder: (_, _) => const SizedBox(
                 height: 8,
               ), // Replaced Divider with SizedBox for cleaner look or consistent with AdminPaymentPage which uses SizedBox(height: 16)
               itemBuilder: (context, index) {
@@ -192,8 +192,8 @@ class _AdminPaymentHistoryViewState extends State<AdminPaymentHistoryView> {
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: 10,
-        separatorBuilder: (_, __) => const SizedBox(height: 16),
-        itemBuilder: (_, __) {
+        separatorBuilder: (_, _) => const SizedBox(height: 16),
+        itemBuilder: (_, _) {
           // Mock data for skeleton
           final mockPayment = PaymentEntity(
             id: '1',

@@ -98,7 +98,10 @@ class ArenaStatsPage extends StatelessWidget {
                         child: Text(
                           'Rincian riwayat XP & energi segera hadir. '
                           'Terus kumpulkan, ya!',
-                          style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12.5,
+                          ),
                         ),
                       ),
                     ],

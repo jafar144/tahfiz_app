@@ -48,8 +48,11 @@ import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.d
 import 'package:khoirunnasyien/features/family/presentation/pages/family_list_page.dart';
 import 'package:khoirunnasyien/features/family/presentation/pages/family_form_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_assessment_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_input_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_list_page.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_monthly_report_page.dart';
 import 'package:khoirunnasyien/features/journey/presentation/pages/journey_page.dart';
 import 'package:khoirunnasyien/features/recitation_check/presentation/cubit/recitation_check_cubit.dart';
@@ -59,9 +62,20 @@ import 'package:khoirunnasyien/features/arena/presentation/pages/arena_page.dart
 import 'package:khoirunnasyien/features/arena/presentation/pages/arena_stats_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_review_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/recitation_quiz_page.dart';
+import 'package:khoirunnasyien/features/asatidz/domain/entities/active_halaqah.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/asatidz_dashboard_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_attendance_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_cubit.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/pages/halaqah_deposit_list_page.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_attendance_page.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_deposit_history_page.dart';
+import 'package:khoirunnasyien/features/asatidz/presentation/pages/santri_setoran_page.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/entities/surah_lesson.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
@@ -397,6 +411,105 @@ class AppRouter {
         builder: (context, state) => const MonthlyReportListPage(),
       ),
       GoRoute(
+        path: RoutePaths.santriReportDetail,
+        name: RouteNames.santriReportDetail,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return SantriReportDetailPage(
+            santri: extras['santri'] as SantriEntity,
+            viewOnly: extras['viewOnly'] as bool? ?? false,
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.monthlyReportInput,
+        name: RouteNames.monthlyReportInput,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          final santri = extras['santri'] as SantriEntity;
+          final bulan = extras['bulan'] as int;
+          final tahun = extras['tahun'] as int;
+          return BlocProvider(
+            create: (_) =>
+                MonthlyReportInputCubit(repository: getIt())
+                  ..loadExisting(santri.id, bulan, tahun),
+            child: MonthlyReportInputPage(
+              santri: santri,
+              asatidzId: extras['asatidzId'] as String,
+              asatidzName: extras['asatidzName'] as String,
+              bulan: bulan,
+              tahun: tahun,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.santriAttendance,
+        name: RouteNames.santriAttendance,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          final activeHalaqah = extras['activeHalaqah'] as ActiveHalaqah;
+          return BlocProvider(
+            create: (_) => SantriAttendanceCubit(
+              repository: getIt(),
+              scheduleRepository: getIt(),
+              activeHalaqah: activeHalaqah,
+              asatidzId: extras['asatidzId'] as String,
+              asatidzName: extras['asatidzName'] as String,
+            )..init(),
+            child: SantriAttendancePage(activeHalaqah: activeHalaqah),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.halaqahDeposits,
+        name: RouteNames.halaqahDeposits,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return BlocProvider.value(
+            value: extras['dashboardCubit'] as AsatidzDashboardCubit,
+            child: HalaqahDepositListPage(
+              activeHalaqah: extras['activeHalaqah'] as ActiveHalaqah,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.santriSetoran,
+        name: RouteNames.santriSetoran,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          final activeHalaqah = extras['activeHalaqah'] as ActiveHalaqah;
+          final santri = extras['santri'] as SantriEntity;
+          final dashboardCubit =
+              extras['dashboardCubit'] as AsatidzDashboardCubit;
+          return BlocProvider(
+            create: (_) => SantriSetoranCubit(
+              repository: dashboardCubit.asatidzRepository,
+              activeHalaqah: activeHalaqah,
+              santri: santri,
+              asatidzId: extras['asatidzId'] as String,
+              asatidzName: extras['asatidzName'] as String,
+            )..loadInitialData(),
+            child: SantriSetoranPage(
+              activeHalaqah: activeHalaqah,
+              santri: santri,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.santriDepositHistory,
+        name: RouteNames.santriDepositHistory,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return SantriDepositHistoryPage(
+            santriId: extras['santriId'] as String,
+            santriName: extras['santriName'] as String,
+          );
+        },
+      ),
+      GoRoute(
         path: RoutePaths.journey,
         name: RouteNames.journey,
         builder: (context, state) =>
@@ -437,6 +550,17 @@ class AppRouter {
                   getIt<RecitationQuizCubit>()..init(challenge: launch),
               child: const RecitationQuizPage(),
             ),
+          );
+        },
+      ),
+      GoRoute(
+        path: RoutePaths.quizReview,
+        name: RouteNames.quizReview,
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          return QuizReviewPage(
+            items: extras['items'] as List<QuizReviewItem>,
+            mode: extras['mode'] as QuizMode,
           );
         },
       ),

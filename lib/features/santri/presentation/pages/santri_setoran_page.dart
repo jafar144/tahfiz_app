@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/santri/presentation/widgets/santri_setoran_card.dart';
@@ -20,9 +19,7 @@ class SantriSetoranPage extends StatelessWidget {
       body: Column(
         children: [
           _buildFilterSection(context),
-          Expanded(
-            child: _buildListSection(),
-          ),
+          Expanded(child: _buildListSection()),
         ],
       ),
     );
@@ -64,7 +61,10 @@ class SantriSetoranPage extends StatelessWidget {
     }
   }
 
-  void _showFilterBottomSheet(BuildContext context, SetoranFilter currentFilter) {
+  void _showFilterBottomSheet(
+    BuildContext context,
+    SetoranFilter currentFilter,
+  ) {
     final cubit = context.read<SantriSetoranCubit>();
     SetoranFilter selectedFilter = currentFilter;
 
@@ -77,45 +77,47 @@ class SantriSetoranPage extends StatelessWidget {
           return AiwaBottomSheet(
             title: 'Filter Waktu',
             onReset: () {
-               setState(() {
-                 selectedFilter = SetoranFilter.bulanIni;
-               });
+              setState(() {
+                selectedFilter = SetoranFilter.bulanIni;
+              });
             },
             onApply: () {
-               Navigator.pop(childContext);
-               cubit.loadSetoran(filter: selectedFilter);
+              Navigator.pop(childContext);
+              cubit.loadSetoran(filter: selectedFilter);
             },
             content: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: SetoranFilter.values.map((filter) {
-                    final isSelected = filter == selectedFilter;
-                    return ChoiceChip(
-                      label: Text(_getFilterLabel(filter)),
-                      selected: isSelected,
-                       onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            selectedFilter = filter;
-                          }
-                        });
-                      },
-                      selectedColor: Colors.blue.shade100,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.blue.shade800 : Colors.black87,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                      backgroundColor: Colors.white,
-                      showCheckmark: false,
-                        shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: isSelected ? Colors.blue : Colors.grey.shade300,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+              spacing: 8,
+              runSpacing: 8,
+              children: SetoranFilter.values.map((filter) {
+                final isSelected = filter == selectedFilter;
+                return ChoiceChip(
+                  label: Text(_getFilterLabel(filter)),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      if (selected) {
+                        selectedFilter = filter;
+                      }
+                    });
+                  },
+                  selectedColor: Colors.blue.shade100,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                  backgroundColor: Colors.white,
+                  showCheckmark: false,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color: isSelected ? Colors.blue : Colors.grey.shade300,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           );
         },
       ),
@@ -129,7 +131,8 @@ class SantriSetoranPage extends StatelessWidget {
           return _buildSkeletonList();
         }
 
-        if (state.status == SantriSetoranStatus.failure && state.setoranList.isEmpty) {
+        if (state.status == SantriSetoranStatus.failure &&
+            state.setoranList.isEmpty) {
           return Center(child: Text('Error: ${state.errorMessage}'));
         }
 
@@ -152,7 +155,11 @@ class SantriSetoranPage extends StatelessWidget {
                           color: Colors.blue.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.menu_book_rounded, size: 48, color: Colors.blue.shade300),
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          size: 48,
+                          color: Colors.blue.shade300,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Text(
@@ -224,7 +231,8 @@ class SantriSetoranPage extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 42, height: 42,
+                      width: 42,
+                      height: 42,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
@@ -235,9 +243,17 @@ class SantriSetoranPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(width: 140, height: 14, color: Colors.grey.shade300),
+                          Container(
+                            width: 140,
+                            height: 14,
+                            color: Colors.grey.shade300,
+                          ),
                           const SizedBox(height: 6),
-                          Container(width: 90, height: 12, color: Colors.grey.shade200),
+                          Container(
+                            width: 90,
+                            height: 12,
+                            color: Colors.grey.shade200,
+                          ),
                         ],
                       ),
                     ),

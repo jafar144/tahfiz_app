@@ -50,19 +50,27 @@ class FinancialReportView extends StatelessWidget {
           child: Column(
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton(
                       onPressed: () => ctx.pop(),
-                      child: const Text('Batal',
-                          style: TextStyle(color: Colors.red)),
+                      child: const Text(
+                        'Batal',
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
-                    const Text('Pilih Bulan & Tahun',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Pilih Bulan & Tahun',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     TextButton(
                       onPressed: () {
                         final newDate = DateTime(
@@ -70,10 +78,14 @@ class FinancialReportView extends StatelessWidget {
                           months[selectedMonthIndex],
                         );
                         ctx.pop();
-                        context.read<FinancialReportCubit>().loadReport(newDate);
+                        context.read<FinancialReportCubit>().loadReport(
+                          newDate,
+                        );
                       },
-                      child: const Text('Pilih',
-                          style: TextStyle(color: Colors.blue)),
+                      child: const Text(
+                        'Pilih',
+                        style: TextStyle(color: Colors.blue),
+                      ),
                     ),
                   ],
                 ),
@@ -91,10 +103,11 @@ class FinancialReportView extends StatelessWidget {
                         onSelectedItemChanged: (index) =>
                             selectedMonthIndex = index,
                         itemBuilder: (m) => Text(
-                          DateFormat('MMMM', 'id_ID')
-                              .format(DateTime(2024, m)),
+                          DateFormat('MMMM', 'id_ID').format(DateTime(2024, m)),
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
@@ -110,7 +123,9 @@ class FinancialReportView extends StatelessWidget {
                         itemBuilder: (y) => Text(
                           y.toString(),
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w500),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ),
@@ -137,8 +152,10 @@ class FinancialReportView extends StatelessWidget {
           return StudentPaymentListBottomSheet(
             title: 'Belum Bayar',
             students: data.unpaidStudents,
-            monthYear:
-                DateFormat('MMMM yyyy', 'id_ID').format(data.selectedDate),
+            monthYear: DateFormat(
+              'MMMM yyyy',
+              'id_ID',
+            ).format(data.selectedDate),
           );
         },
       ),
@@ -157,7 +174,8 @@ class FinancialReportView extends StatelessWidget {
           }
 
           final isLoading =
-              state is FinancialReportLoading || state is FinancialReportInitial;
+              state is FinancialReportLoading ||
+              state is FinancialReportInitial;
           final data = state is FinancialReportLoaded
               ? state.data
               : _mockData();
@@ -165,10 +183,9 @@ class FinancialReportView extends StatelessWidget {
           return Skeletonizer(
             enabled: isLoading,
             child: RefreshIndicator(
-              onRefresh: () =>
-                  context.read<FinancialReportCubit>().loadReport(
-                        data.selectedDate,
-                      ),
+              onRefresh: () => context.read<FinancialReportCubit>().loadReport(
+                data.selectedDate,
+              ),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
@@ -219,7 +236,10 @@ class FinancialReportView extends StatelessWidget {
   }
 
   Widget _buildMonthSelector(
-      BuildContext context, DateTime date, bool isLoading) {
+    BuildContext context,
+    DateTime date,
+    bool isLoading,
+  ) {
     final label = DateFormat('MMMM yyyy', 'id_ID').format(date);
     return Center(
       child: InkWell(
@@ -266,9 +286,9 @@ class FinancialReportView extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context
-                  .read<FinancialReportCubit>()
-                  .loadReport(DateTime.now()),
+              onPressed: () => context.read<FinancialReportCubit>().loadReport(
+                DateTime.now(),
+              ),
               child: const Text('Coba Lagi'),
             ),
           ],
@@ -290,17 +310,19 @@ class FinancialReportView extends StatelessWidget {
       unpaidStudents: const [],
       groups: const [
         RevenueGroup(
-            label: 'Putra Sore',
-            gender: 'L',
-            session: 'Sore',
-            revenue: 10000000,
-            paymentCount: 80),
+          label: 'Putra Sore',
+          gender: 'L',
+          session: 'Sore',
+          revenue: 10000000,
+          paymentCount: 80,
+        ),
         RevenueGroup(
-            label: 'Putri Pagi',
-            gender: 'P',
-            session: 'Pagi',
-            revenue: 5000000,
-            paymentCount: 40),
+          label: 'Putri Pagi',
+          gender: 'P',
+          session: 'Pagi',
+          revenue: 5000000,
+          paymentCount: 40,
+        ),
       ],
     );
   }

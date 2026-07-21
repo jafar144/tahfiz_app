@@ -51,8 +51,10 @@ class AsatidzAttendanceModel extends AsatidzAttendance {
       'status': status,
       'notes': notes,
       'created_at': Timestamp.fromDate(createdAt),
-      if (substituteAsatidzId != null) 'substitute_asatidz_id': substituteAsatidzId,
-      if (substituteAsatidzName != null) 'substitute_asatidz_name': substituteAsatidzName,
+      if (substituteAsatidzId != null)
+        'substitute_asatidz_id': substituteAsatidzId,
+      if (substituteAsatidzName != null)
+        'substitute_asatidz_name': substituteAsatidzName,
       'triggered_by_role': triggeredByRole,
     };
   }

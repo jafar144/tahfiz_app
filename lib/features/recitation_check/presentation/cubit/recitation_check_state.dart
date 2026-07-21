@@ -73,14 +73,14 @@ class RecitationCheckState extends Equatable {
 
   @override
   List<Object?> get props => [
-        status,
-        surahs,
-        selectedSurah,
-        fromAyah,
-        toAyah,
-        result,
-        targetAyat,
-        pageAyat,
-        errorMessage,
-      ];
+    status,
+    surahs,
+    selectedSurah,
+    fromAyah,
+    toAyah,
+    result,
+    targetAyat,
+    pageAyat,
+    errorMessage,
+  ];
 }

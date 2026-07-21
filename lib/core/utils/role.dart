@@ -1,8 +1,4 @@
-enum UserRole {
-  admin,
-  santri,
-  asatidz,
-}
+enum UserRole { admin, santri, asatidz }
 
 extension StringToRoleExtension on String {
   UserRole toRole() {
@@ -31,8 +27,3 @@ extension RoleToStringExtension on UserRole {
     }
   }
 }
-
-
-
-
-

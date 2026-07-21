@@ -92,8 +92,10 @@ class InputPaymentCubit extends Cubit<InputPaymentState> {
 
     try {
       // Safety net: lewati bulan yang sudah dibayar untuk mencegah double charge.
-      final existing =
-          await paymentRepository.getPaymentHistoryBySantri(santriId, null);
+      final existing = await paymentRepository.getPaymentHistoryBySantri(
+        santriId,
+        null,
+      );
       final paidKeys = existing
           .map((p) => '${int.tryParse(p.tahun)}-${int.tryParse(p.bulan)}')
           .toSet();
@@ -103,16 +105,18 @@ class InputPaymentCubit extends Cubit<InputPaymentState> {
         final key = '${period.year}-${period.month}';
         if (paidKeys.contains(key)) continue;
 
-        payments.add(PaymentEntity(
-          id: '',
-          santriId: santriId,
-          bulan: period.month.toString(),
-          tahun: period.year.toString(),
-          total: totalPerMonth,
-          method: 'Manual',
-          createdAt: date,
-          createdBy: createdBy,
-        ));
+        payments.add(
+          PaymentEntity(
+            id: '',
+            santriId: santriId,
+            bulan: period.month.toString(),
+            tahun: period.year.toString(),
+            total: totalPerMonth,
+            method: 'Manual',
+            createdAt: date,
+            createdBy: createdBy,
+          ),
+        );
       }
 
       if (payments.isEmpty) {
@@ -167,16 +171,18 @@ class InputPaymentCubit extends Cubit<InputPaymentState> {
           final key = '${period.year}-${period.month}';
           if (paidKeys.contains(key)) continue;
 
-          payments.add(PaymentEntity(
-            id: '',
-            santriId: child.santriId,
-            bulan: period.month.toString(),
-            tahun: period.year.toString(),
-            total: child.totalPerMonth,
-            method: 'Manual',
-            createdAt: date,
-            createdBy: createdBy,
-          ));
+          payments.add(
+            PaymentEntity(
+              id: '',
+              santriId: child.santriId,
+              bulan: period.month.toString(),
+              tahun: period.year.toString(),
+              total: child.totalPerMonth,
+              method: 'Manual',
+              createdAt: date,
+              createdBy: createdBy,
+            ),
+          );
         }
       }
 

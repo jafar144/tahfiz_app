@@ -22,12 +22,14 @@ class ScheduleCubit extends Cubit<ScheduleState> {
 
         // Check if no programs found
         if (programs.isEmpty) {
-           emit(ScheduleLoaded(
-            selectedGender: gender,
-            programs: const [],
-            schedules: const [],
-            halaqahs: const [],
-          ));
+          emit(
+            ScheduleLoaded(
+              selectedGender: gender,
+              programs: const [],
+              schedules: const [],
+              halaqahs: const [],
+            ),
+          );
           return;
         }
 
@@ -35,21 +37,27 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         String errorMessage = '';
 
         for (var program in programs) {
-          final scheduleResult = await repository.getSchedules(programId: program.id);
-          
+          final scheduleResult = await repository.getSchedules(
+            programId: program.id,
+          );
+
           List<ProgramSchedule> currentProgramSchedules = [];
           scheduleResult.fold(
-            ifLeft: (l) { hasError = true; errorMessage = l.message; },
+            ifLeft: (l) {
+              hasError = true;
+              errorMessage = l.message;
+            },
             ifRight: (r) => currentProgramSchedules = r,
           );
 
           if (hasError) break;
           allSchedules.addAll(currentProgramSchedules);
 
-          final halaqahResult = await repository.getHalaqahs(programId: program.id);
+          final halaqahResult = await repository.getHalaqahs(
+            programId: program.id,
+          );
           halaqahResult.fold(
-            ifLeft: (l) { 
-            },
+            ifLeft: (l) {},
             ifRight: (r) => allHalaqahs.addAll(r),
           );
         }
@@ -57,12 +65,14 @@ class ScheduleCubit extends Cubit<ScheduleState> {
         if (hasError) {
           emit(ScheduleError(errorMessage));
         } else {
-          emit(ScheduleLoaded(
-            selectedGender: gender,
-            programs: programs,
-            schedules: allSchedules,
-            halaqahs: allHalaqahs,
-          ));
+          emit(
+            ScheduleLoaded(
+              selectedGender: gender,
+              programs: programs,
+              schedules: allSchedules,
+              halaqahs: allHalaqahs,
+            ),
+          );
         }
       },
     );

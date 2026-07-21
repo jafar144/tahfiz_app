@@ -35,11 +35,19 @@ abstract class RoutePaths {
 
   static const adminAssessment = '/admin_assessment';
   static const monthlyReport = '/monthly_report';
+  static const santriReportDetail = '/santri_report_detail';
+  static const monthlyReportInput = '/monthly_report_input';
+
+  static const santriAttendance = '/santri_attendance';
+  static const halaqahDeposits = '/halaqah_deposits';
+  static const santriSetoran = '/santri_setoran';
+  static const santriDepositHistory = '/santri_deposit_history';
 
   static const journey = '/journey';
 
   static const recitationCheck = '/recitation_check';
   static const recitationQuiz = '/recitation_quiz';
+  static const quizReview = '/quiz_review';
 
   static const surahJourney = '/surah_journey';
   static const surahLesson = '/surah_lesson';

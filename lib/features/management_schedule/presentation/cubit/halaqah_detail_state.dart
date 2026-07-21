@@ -54,7 +54,8 @@ class HalaqahDetailLoaded extends HalaqahDetailState {
       schedules: schedules ?? this.schedules,
       asatidzList: asatidzList ?? this.asatidzList,
       santriList: santriList ?? this.santriList,
-      unavailableTeacherIds: unavailableTeacherIds ?? this.unavailableTeacherIds,
+      unavailableTeacherIds:
+          unavailableTeacherIds ?? this.unavailableTeacherIds,
       unavailableSantriIds: unavailableSantriIds ?? this.unavailableSantriIds,
       gender: gender ?? this.gender,
       isSubmitting: isSubmitting ?? this.isSubmitting,

@@ -6,11 +6,7 @@ class MonthlyReportCard extends StatelessWidget {
   final MonthlyReport report;
   final VoidCallback? onTap;
 
-  const MonthlyReportCard({
-    super.key,
-    required this.report,
-    this.onTap,
-  });
+  const MonthlyReportCard({super.key, required this.report, this.onTap});
 
   // Palet warna mengikuti desain referensi.
   static const _ink = Color(0xFF111827);
@@ -75,11 +71,16 @@ class MonthlyReportCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildNilaiColumn(
-                      MonthlyReportStrings.perkembangan, report.nilaiPerkembangan),
+                    MonthlyReportStrings.perkembangan,
+                    report.nilaiPerkembangan,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildNilaiColumn(MonthlyReportStrings.akhlaq, report.nilaiAkhlaq),
+                  child: _buildNilaiColumn(
+                    MonthlyReportStrings.akhlaq,
+                    report.nilaiAkhlaq,
+                  ),
                 ),
               ],
             ),
@@ -93,8 +94,11 @@ class MonthlyReportCard extends StatelessWidget {
             // Penilai
             Row(
               children: [
-                const Icon(Icons.person_outline_rounded,
-                    size: 14, color: _muted),
+                const Icon(
+                  Icons.person_outline_rounded,
+                  size: 14,
+                  color: _muted,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -132,8 +136,10 @@ class MonthlyReportCard extends StatelessWidget {
 
   Widget _buildStatusChip(int nilai) {
     if (nilai < 1 || nilai > 5) {
-      return const Text(MonthlyReportStrings.nilaiKosong,
-          style: TextStyle(fontSize: 13, color: _muted));
+      return const Text(
+        MonthlyReportStrings.nilaiKosong,
+        style: TextStyle(fontSize: 13, color: _muted),
+      );
     }
     final style = _statusStyle(nilai);
     return Container(
@@ -256,8 +262,11 @@ class _NotesBottomSheet extends StatelessWidget {
                     color: const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.sticky_note_2_outlined,
-                      size: 18, color: Color(0xFF6B7280)),
+                  child: const Icon(
+                    Icons.sticky_note_2_outlined,
+                    size: 18,
+                    color: Color(0xFF6B7280),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -275,7 +284,9 @@ class _NotesBottomSheet extends StatelessWidget {
                       Text(
                         '${MonthlyReport.getNamaBulan(report.bulan)} ${report.tahun}',
                         style: const TextStyle(
-                            fontSize: 12, color: Color(0xFF9CA3AF)),
+                          fontSize: 12,
+                          color: Color(0xFF9CA3AF),
+                        ),
                       ),
                     ],
                   ),
@@ -298,14 +309,19 @@ class _NotesBottomSheet extends StatelessWidget {
             const SizedBox(height: 18),
             Row(
               children: [
-                const Icon(Icons.person_outline_rounded,
-                    size: 14, color: Color(0xFF9CA3AF)),
+                const Icon(
+                  Icons.person_outline_rounded,
+                  size: 14,
+                  color: Color(0xFF9CA3AF),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     MonthlyReportStrings.dinilaiOleh(report.asatidzDisplayName),
                     style: const TextStyle(
-                        fontSize: 12, color: Color(0xFF6B7280)),
+                      fontSize: 12,
+                      color: Color(0xFF6B7280),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

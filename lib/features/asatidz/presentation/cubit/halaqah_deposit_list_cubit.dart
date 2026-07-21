@@ -49,7 +49,9 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
   Future<void> loadData() async {
     emit(HalaqahDepositListLoading());
     try {
-      final santrisResult = await scheduleRepository.getSantrisByHalaqahId(activeHalaqah.halaqah.id);
+      final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
+        activeHalaqah.halaqah.id,
+      );
       final santris = santrisResult.fold(
         ifLeft: (_) => <SantriEntity>[],
         ifRight: (s) => List<SantriEntity>.from(s),
@@ -64,7 +66,10 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
         date: dateStr,
       );
 
-      final meeting = meetingResult.fold(ifLeft: (l) => null, ifRight: (r) => r);
+      final meeting = meetingResult.fold(
+        ifLeft: (l) => null,
+        ifRight: (r) => r,
+      );
       if (meeting != null) {
         final membersResult = await repository.getMeetingMembers(meeting.id);
         membersResult.fold(
@@ -73,19 +78,21 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
             for (final member in members) {
               final isGuest = !santris.any((s) => s.id == member.santriId);
               if (isGuest) {
-                santris.add(SantriEntity(
-                  id: member.santriId,
-                  name: member.santriName,
-                  nis: member.santriNis ?? '-',
-                  kelas: '-',
-                  jenisKelamin: '-',
-                  isActive: true,
-                  isFree: false,
-                  halaqahId: member.halaqahAsalId,
-                ));
+                santris.add(
+                  SantriEntity(
+                    id: member.santriId,
+                    name: member.santriName,
+                    nis: member.santriNis ?? '-',
+                    kelas: '-',
+                    jenisKelamin: '-',
+                    isActive: true,
+                    isFree: false,
+                    halaqahId: member.halaqahAsalId,
+                  ),
+                );
               }
             }
-          }
+          },
         );
       }
 
@@ -106,25 +113,35 @@ class HalaqahDepositListCubit extends Cubit<HalaqahDepositListState> {
 
             try {
               todayDeposit = history.firstWhere((element) {
-                final elementDate = DateTime(element.date.year, element.date.month, element.date.day);
+                final elementDate = DateTime(
+                  element.date.year,
+                  element.date.month,
+                  element.date.day,
+                );
                 return elementDate.isAtSameMomentAs(today);
               });
             } catch (_) {}
 
             try {
               lastDeposit = history.firstWhere((element) {
-                final elementDate = DateTime(element.date.year, element.date.month, element.date.day);
+                final elementDate = DateTime(
+                  element.date.year,
+                  element.date.month,
+                  element.date.day,
+                );
                 return elementDate.isBefore(today);
               });
             } catch (_) {}
           },
         );
 
-        summaries.add(SantriDepositSummary(
-          santri: santri,
-          lastDeposit: lastDeposit,
-          todayDeposit: todayDeposit,
-        ));
+        summaries.add(
+          SantriDepositSummary(
+            santri: santri,
+            lastDeposit: lastDeposit,
+            todayDeposit: todayDeposit,
+          ),
+        );
       }
 
       emit(HalaqahDepositListLoaded(summaries));

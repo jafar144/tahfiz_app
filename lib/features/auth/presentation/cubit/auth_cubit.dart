@@ -17,15 +17,14 @@ class AuthCubit extends Cubit<AuthState> {
   final NotificationService notificationService;
 
   AuthCubit(this.authRepository, this.userRepository, this.notificationService)
-      : super(AuthInitial());
+    : super(AuthInitial());
 
   /// Daftarkan token perangkat untuk user (role dipakai untuk penargetan
   /// notifikasi di server). Fire-and-forget agar tidak menunda navigasi.
   void _registerNotifications(UserRole role, String uid) {
-    unawaited(notificationService.registerForUser(
-      uid: uid,
-      role: role.toRoleString(),
-    ));
+    unawaited(
+      notificationService.registerForUser(uid: uid, role: role.toRoleString()),
+    );
   }
 
   Future<String> getVersion() async {
@@ -68,7 +67,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       emit(AuthLoading());
       await authRepository.login(nis, password);
-      
+
       final firebaseUser = authRepository.currentUser();
       if (firebaseUser == null) {
         throw Exception('Proses login gagal, silakan periksa kredensial Anda.');
@@ -144,7 +143,7 @@ class AuthCubit extends Cubit<AuthState> {
       try {
         emit(AuthLoading());
         await userRepository.updateUserRole(currentUser.uid, newRole);
-        
+
         final user = await userRepository.getUserByUid(currentUser.uid);
         _registerNotifications(user.role, user.uid);
         emit(AuthAuthenticated(user));

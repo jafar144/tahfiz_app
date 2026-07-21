@@ -95,11 +95,11 @@ class MushafView extends StatelessWidget {
       a.surahId == targetSurahId && a.number >= fromAyah && a.number <= toAyah;
 
   TextStyle _root(double size, Color color) => TextStyle(
-        fontFamily: _fontFamily,
-        fontSize: size,
-        height: _lineHeight,
-        color: color,
-      );
+    fontFamily: _fontFamily,
+    fontSize: size,
+    height: _lineHeight,
+    color: color,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -113,17 +113,24 @@ class MushafView extends StatelessWidget {
       builder: (context, c) {
         const hPad = 6.0;
         final width = (c.maxWidth - hPad * 2).clamp(0.0, double.infinity);
-        final availH = (c.maxHeight - bottomReserve).clamp(0.0, double.infinity);
+        final availH = (c.maxHeight - bottomReserve).clamp(
+          0.0,
+          double.infinity,
+        );
 
-        final size = _fitFontSize(blocks, width, availH, scheme.onSurface, textScaler);
+        final size = _fitFontSize(
+          blocks,
+          width,
+          availH,
+          scheme.onSurface,
+          textScaler,
+        );
         final content = SizedBox(
           width: width,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final b in blocks) _renderBlock(b, size, scheme),
-            ],
+            children: [for (final b in blocks) _renderBlock(b, size, scheme)],
           ),
         );
 
@@ -158,7 +165,9 @@ class MushafView extends StatelessWidget {
       if (a.isSurahStart) {
         flush();
         blocks.add(_HeaderBlock(a.surahName));
-        if (a.surahId != 1 && a.surahId != 9) blocks.add(const _BasmalahBlock());
+        if (a.surahId != 1 && a.surahId != 9) {
+          blocks.add(const _BasmalahBlock());
+        }
       }
       final slice = coloredWords?['${a.surahId}:${a.number}'];
       if (_isTarget(a) && slice != null) {
@@ -181,23 +190,27 @@ class MushafView extends StatelessWidget {
       if (d.status == WordStatus.extra) {
         final w = d.spokenWord ?? '';
         if (w.isEmpty) continue;
-        out.add(TextSpan(
-          text: '$w ',
-          style: const TextStyle(
-            color: _extraColor,
-            decoration: TextDecoration.underline,
-            decorationColor: _extraColor,
+        out.add(
+          TextSpan(
+            text: '$w ',
+            style: const TextStyle(
+              color: _extraColor,
+              decoration: TextDecoration.underline,
+              decorationColor: _extraColor,
+            ),
           ),
-        ));
+        );
         continue;
       }
       final text = d.referenceWordDisplay ?? d.referenceWord ?? '';
       out.add(TextSpan(text: '$text ', style: _styleFor(d.status)));
     }
-    out.add(TextSpan(
-      text: '${_ayahNumberGlyph(a.text)} ',
-      style: TextStyle(color: scheme.primary),
-    ));
+    out.add(
+      TextSpan(
+        text: '${_ayahNumberGlyph(a.text)} ',
+        style: TextStyle(color: scheme.primary),
+      ),
+    );
   }
 
   TextStyle? _styleFor(WordStatus status) {
@@ -258,9 +271,17 @@ class MushafView extends StatelessWidget {
       if (b is _HeaderBlock) {
         h += size * 1.4 + 36; // kotak header (perkiraan konservatif)
       } else if (b is _BasmalahBlock) {
-        h += _measureSpan(TextSpan(text: _basmalah, style: root), width, textScaler);
+        h += _measureSpan(
+          TextSpan(text: _basmalah, style: root),
+          width,
+          textScaler,
+        );
       } else if (b is _TextBlock) {
-        h += _measureSpan(TextSpan(children: b.spans, style: root), width, textScaler);
+        h += _measureSpan(
+          TextSpan(children: b.spans, style: root),
+          width,
+          textScaler,
+        );
       }
       h += 8; // jarak antar blok
     }

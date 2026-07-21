@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_result.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_review.dart';
-import 'package:khoirunnasyien/features/recitation_quiz/presentation/pages/quiz_review_page.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
@@ -148,11 +149,12 @@ class QuizResultView extends StatelessWidget {
                         horizontal: 12,
                       ),
                       borderRadius: 14,
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              QuizReviewPage(items: review, mode: result.mode),
-                        ),
+                      onPressed: () => context.pushNamed(
+                        RouteNames.quizReview,
+                        extra: <String, dynamic>{
+                          'items': review,
+                          'mode': result.mode,
+                        },
                       ),
                     ),
                   ),

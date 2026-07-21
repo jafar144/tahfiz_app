@@ -48,7 +48,11 @@ class _RankRevealBody extends StatefulWidget {
   final QuizRankReveal reveal;
   final VoidCallback onContinue;
 
-  const _RankRevealBody({super.key, required this.reveal, required this.onContinue});
+  const _RankRevealBody({
+    super.key,
+    required this.reveal,
+    required this.onContinue,
+  });
 
   @override
   State<_RankRevealBody> createState() => _RankRevealBodyState();
@@ -121,13 +125,17 @@ class _RankRevealBodyState extends State<_RankRevealBody>
     _pulseScale = _pulse.drive(
       TweenSequence<double>([
         TweenSequenceItem(
-          tween: Tween(begin: 1.0, end: 1.06)
-              .chain(CurveTween(curve: Curves.easeOut)),
+          tween: Tween(
+            begin: 1.0,
+            end: 1.06,
+          ).chain(CurveTween(curve: Curves.easeOut)),
           weight: 1,
         ),
         TweenSequenceItem(
-          tween: Tween(begin: 1.06, end: 1.0)
-              .chain(CurveTween(curve: Curves.elasticOut)),
+          tween: Tween(
+            begin: 1.06,
+            end: 1.0,
+          ).chain(CurveTween(curve: Curves.elasticOut)),
           weight: 2,
         ),
       ]),

@@ -34,7 +34,9 @@ abstract class AsatidzRepository {
     required String date,
   });
 
-  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(String meetingId);
+  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(
+    String meetingId,
+  );
 
   Future<Either<Failure, void>> saveMeetingMembers({
     required String meetingId,

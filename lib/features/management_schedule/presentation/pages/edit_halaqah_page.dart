@@ -38,30 +38,38 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
 
   void _populateData(Halaqah halaqah, HalaqahDetailLoaded state) {
     if (_nameController.text.isEmpty) {
-        _nameController.text = halaqah.name;
-        _roomController.text = halaqah.room;
-        _selectedTeacherId = halaqah.teacherId;
-        _selectedTeacherName = halaqah.teacherName;
-        _status = halaqah.status;
-        _selectedSantris = List.from(state.santriList);
-        _selectedScheduleIds = List.from(halaqah.scheduleIds);
-        
-        _selectedScheduleDisplays = halaqah.scheduleIds.map((scheduleId) {
-          try {
-            final schedule = state.schedules.firstWhere(
-              (s) => s.id == scheduleId,
-            );
-            final dayName = _getDayName(schedule.day);
-            return '$dayName, ${schedule.startTime} - ${schedule.endTime}';
-          } catch (e) {
-            return 'Jadwal tidak ditemukan';
-          }
-        }).toList();
+      _nameController.text = halaqah.name;
+      _roomController.text = halaqah.room;
+      _selectedTeacherId = halaqah.teacherId;
+      _selectedTeacherName = halaqah.teacherName;
+      _status = halaqah.status;
+      _selectedSantris = List.from(state.santriList);
+      _selectedScheduleIds = List.from(halaqah.scheduleIds);
+
+      _selectedScheduleDisplays = halaqah.scheduleIds.map((scheduleId) {
+        try {
+          final schedule = state.schedules.firstWhere(
+            (s) => s.id == scheduleId,
+          );
+          final dayName = _getDayName(schedule.day);
+          return '$dayName, ${schedule.startTime} - ${schedule.endTime}';
+        } catch (e) {
+          return 'Jadwal tidak ditemukan';
+        }
+      }).toList();
     }
   }
 
   String _getDayName(int day) {
-    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
     if (day >= 1 && day <= 7) return days[day - 1];
     return '';
   }
@@ -87,9 +95,9 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
           context.pop();
         }
         if (state is HalaqahDetailError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         }
       },
       builder: (context, state) {
@@ -116,25 +124,25 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
           ),
           body: SafeArea(
             child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailInfo(),
-                const SizedBox(height: 24),
-                _buildScheduleSection(state),
-                const SizedBox(height: 24),
-                _buildPengajarSection(state),
-                const SizedBox(height: 24),
-                _buildSantriSection(state),
-                const SizedBox(height: 24),
-                _buildStatusSection(),
-                const SizedBox(height: 32),
-                _buildSaveButton(state),
-              ],
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDetailInfo(),
+                  const SizedBox(height: 24),
+                  _buildScheduleSection(state),
+                  const SizedBox(height: 24),
+                  _buildPengajarSection(state),
+                  const SizedBox(height: 24),
+                  _buildSantriSection(state),
+                  const SizedBox(height: 24),
+                  _buildStatusSection(),
+                  const SizedBox(height: 32),
+                  _buildSaveButton(state),
+                ],
+              ),
             ),
           ),
-        ),
         );
       },
     );
@@ -182,8 +190,11 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             if (_selectedScheduleIds.isNotEmpty)
               Text(
                 '${_selectedScheduleIds.length} dipilih',
-                style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold),
-              )
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -201,34 +212,49 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                         const Padding(
+                        const Padding(
                           padding: EdgeInsets.all(16.0),
-                          child: Text("Pilih Jadwal", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          child: Text(
+                            "Pilih Jadwal",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                         const Divider(height: 1),
                         Flexible(
                           child: ListView.separated(
                             shrinkWrap: true,
                             itemCount: state.schedules.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1),
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
                             itemBuilder: (ctx, index) {
                               final schedule = state.schedules[index];
                               final dayName = _getDayName(schedule.day);
-                              final display = '$dayName, ${schedule.startTime} - ${schedule.endTime}';
-                              final isSelected = _selectedScheduleIds.contains(schedule.id);
-                              
+                              final display =
+                                  '$dayName, ${schedule.startTime} - ${schedule.endTime}';
+                              final isSelected = _selectedScheduleIds.contains(
+                                schedule.id,
+                              );
+
                               return ListTile(
                                 title: Text(display),
-                                trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.blue) : null,
+                                trailing: isSelected
+                                    ? const Icon(
+                                        Icons.check_circle,
+                                        color: Colors.blue,
+                                      )
+                                    : null,
                                 onTap: () {
-                                   if (isSelected) {
-                                     _selectedScheduleIds.remove(schedule.id);
-                                     _selectedScheduleDisplays.remove(display);
-                                   } else {
-                                     _selectedScheduleIds.add(schedule.id);
-                                     _selectedScheduleDisplays.add(display);
-                                   }
-                                   setModalState(() {});
+                                  if (isSelected) {
+                                    _selectedScheduleIds.remove(schedule.id);
+                                    _selectedScheduleDisplays.remove(display);
+                                  } else {
+                                    _selectedScheduleIds.add(schedule.id);
+                                    _selectedScheduleDisplays.add(display);
+                                  }
+                                  setModalState(() {});
                                 },
                               );
                             },
@@ -247,7 +273,9 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
                               ),
-                              child: Text('Selesai (${_selectedScheduleIds.length} dipilih)'),
+                              child: Text(
+                                'Selesai (${_selectedScheduleIds.length} dipilih)',
+                              ),
                             ),
                           ),
                         ),
@@ -255,7 +283,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
                     );
                   },
                 );
-              }
+              },
             );
           },
           borderRadius: BorderRadius.circular(12),
@@ -276,12 +304,18 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
                         ? 'Pilih Jadwal'
                         : '${_selectedScheduleIds.length} jadwal dipilih',
                     style: TextStyle(
-                      color: _selectedScheduleIds.isEmpty ? Colors.grey : Colors.black87,
+                      color: _selectedScheduleIds.isEmpty
+                          ? Colors.grey
+                          : Colors.black87,
                       fontSize: 14,
                     ),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey,
+                ),
               ],
             ),
           ),
@@ -331,7 +365,7 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             final result = await context.pushNamed(
               RouteNames.selectAsatidz,
               extra: {
-                'gender': null, 
+                'gender': null,
                 'initialSelectedId': _selectedTeacherId,
                 'disabledIds': unavailable,
               },
@@ -356,15 +390,18 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-             const Text(
+            const Text(
               'Santri',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             if (_selectedSantris.isNotEmpty)
               Text(
                 '${_selectedSantris.length} dipilih',
-                style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold),
-              )
+                style: TextStyle(
+                  color: Colors.blue.shade700,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -401,20 +438,26 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
             child: Row(
               children: [
                 const Icon(Icons.people_outline, color: Colors.grey),
-                 const SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     _selectedSantris.isEmpty
                         ? 'Pilih Santri'
                         : _selectSantrisPreview(),
                     style: TextStyle(
-                      color: _selectedSantris.isEmpty ? Colors.grey : Colors.black87,
+                      color: _selectedSantris.isEmpty
+                          ? Colors.grey
+                          : Colors.black87,
                       fontSize: 14,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey,
+                ),
               ],
             ),
           ),
@@ -507,17 +550,21 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
   void _submit() {
     final cubit = context.read<HalaqahDetailCubit>();
     if (cubit.state is! HalaqahDetailLoaded) return;
-    
+
     final currentState = cubit.state as HalaqahDetailLoaded;
     final halaqah = currentState.halaqah;
 
     if (_nameController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama halaqah wajib diisi')));
-        return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Nama halaqah wajib diisi')));
+      return;
     }
 
     if (_selectedScheduleIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pilih minimal satu jadwal')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Pilih minimal satu jadwal')),
+      );
       return;
     }
 

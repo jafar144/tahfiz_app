@@ -22,7 +22,8 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
     required DateTime date,
   }) async {
     try {
-      final dateStr = "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      final dateStr =
+          "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
       final result = await remoteDataSource.checkAttendance(
         asatidzId: asatidzId,
         halaqahId: halaqahId,
@@ -45,7 +46,8 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   }) async {
     try {
       final asatidzName = 'Asatidz'; // TODO: Get from auth/user data
-      final dateStr = "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      final dateStr =
+          "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
       final result = await remoteDataSource.createAttendance(
         asatidzId: asatidzId,
         asatidzName: asatidzName,
@@ -97,7 +99,9 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   }
 
   @override
-  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(String meetingId) async {
+  Future<Either<Failure, List<MeetingMember>>> getMeetingMembers(
+    String meetingId,
+  ) async {
     try {
       final result = await remoteDataSource.getMeetingMembers(meetingId);
       return Right(result);
@@ -112,18 +116,22 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
     required List<MeetingMember> members,
   }) async {
     try {
-      final memberModels = members.map((m) => MeetingMemberModel(
-        id: m.id,
-        santriId: m.santriId,
-        santriName: m.santriName,
-        santriNis: m.santriNis,
-        halaqahAsalId: m.halaqahAsalId,
-        attendanceStatus: m.attendanceStatus,
-        setoranValue: m.setoranValue,
-        setoranNotes: m.setoranNotes,
-        createdAt: m.createdAt,
-      )).toList();
-      
+      final memberModels = members
+          .map(
+            (m) => MeetingMemberModel(
+              id: m.id,
+              santriId: m.santriId,
+              santriName: m.santriName,
+              santriNis: m.santriNis,
+              halaqahAsalId: m.halaqahAsalId,
+              attendanceStatus: m.attendanceStatus,
+              setoranValue: m.setoranValue,
+              setoranNotes: m.setoranNotes,
+              createdAt: m.createdAt,
+            ),
+          )
+          .toList();
+
       await remoteDataSource.saveMeetingMembers(
         meetingId: meetingId,
         members: memberModels,
@@ -155,11 +163,7 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
         attendanceList: attendanceList,
       );
       return Right(result);
-    } catch (e, stackTrace) {
-      print('=== ATTENDANCE ERROR ===');
-      print('Error: $e');
-      print('Stack trace: $stackTrace');
-      print('========================');
+    } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
   }

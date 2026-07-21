@@ -77,8 +77,11 @@ class JourneySummaryCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.nights_stay_rounded,
-                              size: 15, color: JourneyColors.goldLight),
+                          const Icon(
+                            Icons.nights_stay_rounded,
+                            size: 15,
+                            color: JourneyColors.goldLight,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             'PERJALANAN TAHFIZ',
@@ -86,13 +89,17 @@ class JourneySummaryCard extends StatelessWidget {
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 1.5,
-                              color: JourneyColors.goldLight.withValues(alpha: 0.9),
+                              color: JourneyColors.goldLight.withValues(
+                                alpha: 0.9,
+                              ),
                             ),
                           ),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(20),
@@ -149,11 +156,16 @@ class JourneySummaryCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
-                              color: JourneyColors.goldLight.withValues(alpha: 0.95),
+                              color: JourneyColors.goldLight.withValues(
+                                alpha: 0.95,
+                              ),
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_rounded,
-                              size: 16, color: JourneyColors.goldLight),
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 16,
+                            color: JourneyColors.goldLight,
+                          ),
                         ],
                       ),
                     ],

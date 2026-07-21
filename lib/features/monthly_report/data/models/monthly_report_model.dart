@@ -41,21 +41,21 @@ class MonthlyReportModel extends MonthlyReport {
 
   /// Salinan model dengan gender pengajar terisi (dipakai saat join ke profil asatidz).
   MonthlyReportModel withAsatidzGender(String gender) => MonthlyReportModel(
-        id: id,
-        asatidzId: asatidzId,
-        asatidzName: asatidzName,
-        asatidzGender: gender,
-        santriId: santriId,
-        santriName: santriName,
-        bulan: bulan,
-        tahun: tahun,
-        hafalanTerakhir: hafalanTerakhir,
-        nilaiPerkembangan: nilaiPerkembangan,
-        nilaiAkhlaq: nilaiAkhlaq,
-        notes: notes,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
+    id: id,
+    asatidzId: asatidzId,
+    asatidzName: asatidzName,
+    asatidzGender: gender,
+    santriId: santriId,
+    santriName: santriName,
+    bulan: bulan,
+    tahun: tahun,
+    hafalanTerakhir: hafalanTerakhir,
+    nilaiPerkembangan: nilaiPerkembangan,
+    nilaiAkhlaq: nilaiAkhlaq,
+    notes: notes,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
 
   Map<String, dynamic> toFirestore() {
     return {

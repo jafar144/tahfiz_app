@@ -1,9 +1,9 @@
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
-import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart' as mgmt_asatidz_domain;
+import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart'
+    as mgmt_asatidz_domain;
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart';
@@ -45,31 +45,36 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     try {
       // 1. Fetch Santri Profile
       final santri = await santriRepository.getSantriDetail(santriId);
-      
+
       // 2. Fetch Payment Status (Full History)
       final now = DateTime.now();
-      final paymentHistory = await paymentRepository.getPaymentHistoryBySantri(santriId, null);
-      
+      final paymentHistory = await paymentRepository.getPaymentHistoryBySantri(
+        santriId,
+        null,
+      );
+
       // Calculate overdue months from startDate up to now.
       int overdueMonthsCount = 0;
       final startDate = PaymentUtils.resolveStartDate(
         freeUntil: santri.freeUntil,
         tanggalMasuk: santri.tanggalMasuk,
       );
-      
+
       if (startDate != null) {
         DateTime current = DateTime(startDate.year, startDate.month);
         final end = DateTime(now.year, now.month);
-        
+
         while (!current.isAfter(end)) {
           final monthStr = current.month.toString();
           final yearStr = current.year.toString();
-          
-          final isPaid = paymentHistory.any((p) => p.bulan == monthStr && p.tahun == yearStr);
+
+          final isPaid = paymentHistory.any(
+            (p) => p.bulan == monthStr && p.tahun == yearStr,
+          );
           if (!isPaid) {
             overdueMonthsCount++;
           }
-          
+
           // Move to next month
           current = DateTime(current.year, current.month + 1);
         }
@@ -77,11 +82,11 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
 
       // 3. Fetch Latest Setoran
       SantriSetoran? latestSetoran;
-      
+
       final setoranResult = await asatidzRepository.getSetoranHistory(
         santriId: santriId,
       );
-      
+
       setoranResult.fold(
         ifLeft: (l) {}, // Ignore error for now
         ifRight: (r) {
@@ -98,7 +103,9 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       String? pembimbingPhone;
       String? pembimbingGender;
 
-      final halaqahResult = await scheduleRepository.getHalaqahBySantriId(santriId);
+      final halaqahResult = await scheduleRepository.getHalaqahBySantriId(
+        santriId,
+      );
 
       await halaqahResult.fold(
         ifLeft: (l) async {},
@@ -107,7 +114,8 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
             pembimbingName = r.teacherName;
             // Fetch phone & gender from AsatidzDetail
             try {
-              final asatidzDetail = await mgmtAsatidzRepository.getAsatidzDetail(r.teacherId);
+              final asatidzDetail = await mgmtAsatidzRepository
+                  .getAsatidzDetail(r.teacherId);
               pembimbingPhone = asatidzDetail.phone;
               pembimbingGender = asatidzDetail.jenisKelamin;
             } catch (e) {
@@ -119,19 +127,18 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
 
       // 5. Fetch Latest Monthly Report
       MonthlyReport? latestReport;
-      final reportResult = await monthlyReportRepository.getLatestReportBySantri(santriId);
-      reportResult.fold(
-        ifLeft: (_) {},
-        ifRight: (r) => latestReport = r,
-      );
+      final reportResult = await monthlyReportRepository
+          .getLatestReportBySantri(santriId);
+      reportResult.fold(ifLeft: (_) {}, ifRight: (r) => latestReport = r);
 
       // 6. Fetch saudara (akun lain dalam satu keluarga) untuk fitur ganti akun.
       final List<SantriDetail> familyMembers = [];
       try {
         final family = await familyRepository.getFamilyBySantriId(santriId);
         if (family != null && family.santriIds.length >= 2) {
-          final otherIds =
-              family.santriIds.where((id) => id != santriId).toList();
+          final otherIds = family.santriIds
+              .where((id) => id != santriId)
+              .toList();
           for (final id in otherIds) {
             try {
               familyMembers.add(await santriRepository.getSantriDetail(id));
@@ -142,25 +149,25 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
 
       if (isClosed) return;
 
-      emit(state.copyWith(
-        status: SantriHomeStatus.success,
-        santri: santri,
-        overdueMonthsCount: overdueMonthsCount,
-        paymentHistory: paymentHistory,
-        latestSetoran: latestSetoran,
-        pembimbingName: pembimbingName,
-        pembimbingPhone: pembimbingPhone,
-        pembimbingGender: pembimbingGender,
-        latestReport: latestReport,
-        familyMembers: familyMembers,
-      ));
+      emit(
+        state.copyWith(
+          status: SantriHomeStatus.success,
+          santri: santri,
+          overdueMonthsCount: overdueMonthsCount,
+          paymentHistory: paymentHistory,
+          latestSetoran: latestSetoran,
+          pembimbingName: pembimbingName,
+          pembimbingPhone: pembimbingPhone,
+          pembimbingGender: pembimbingGender,
+          latestReport: latestReport,
+          familyMembers: familyMembers,
+        ),
+      );
     } catch (e) {
       if (isClosed) return;
-      emit(state.copyWith(
-        status: SantriHomeStatus.failure,
-        message: e.toString(),
-      ));
+      emit(
+        state.copyWith(status: SantriHomeStatus.failure, message: e.toString()),
+      );
     }
   }
-
 }

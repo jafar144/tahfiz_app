@@ -81,8 +81,9 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
       List<Halaqah> halaqahs = [];
       halaqahRes.fold(
         ifLeft: (f) => throw Exception(f.message),
-        ifRight: (list) => halaqahs =
-            list.where((h) => _programById.containsKey(h.programId)).toList(),
+        ifRight: (list) => halaqahs = list
+            .where((h) => _programById.containsKey(h.programId))
+            .toList(),
       );
 
       // Jadwal tiap program & santri tiap halaqah.
@@ -115,8 +116,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
         final sa = _sessionName(a).toLowerCase();
         final sb = _sessionName(b).toLowerCase();
         final order = {'pagi': 0, 'sore': 1, 'malam': 2};
-        final bySession =
-            (order[sa] ?? 99).compareTo(order[sb] ?? 99);
+        final bySession = (order[sa] ?? 99).compareTo(order[sb] ?? 99);
         if (bySession != 0) return bySession;
         return a.name.compareTo(b.name);
       });
@@ -277,9 +277,11 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(_getSessionIcon(session),
-                      size: 14,
-                      color: selected ? color : Colors.grey.shade600),
+                  Icon(
+                    _getSessionIcon(session),
+                    size: 14,
+                    color: selected ? color : Colors.grey.shade600,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     session,
@@ -350,8 +352,10 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _statChip(Icons.groups_2_rounded,
-                        '${_halaqahs.length} Halaqah'),
+                    _statChip(
+                      Icons.groups_2_rounded,
+                      '${_halaqahs.length} Halaqah',
+                    ),
                     _statChip(Icons.people_alt_rounded, '$_totalSantri Santri'),
                     _statChip(
                       Icons.person,
@@ -415,15 +419,16 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
   Widget _buildHalaqahSection(Halaqah halaqah) {
     final session = _sessionName(halaqah);
     final santriList = _santriByHalaqah[halaqah.id] ?? [];
-    final schedules = halaqah.scheduleIds
-        .map((id) => _scheduleById[id])
-        .whereType<ProgramSchedule>()
-        .toList()
-      ..sort((a, b) {
-        final byDay = a.day.compareTo(b.day);
-        if (byDay != 0) return byDay;
-        return a.startTime.compareTo(b.startTime);
-      });
+    final schedules =
+        halaqah.scheduleIds
+            .map((id) => _scheduleById[id])
+            .whereType<ProgramSchedule>()
+            .toList()
+          ..sort((a, b) {
+            final byDay = a.day.compareTo(b.day);
+            if (byDay != 0) return byDay;
+            return a.startTime.compareTo(b.startTime);
+          });
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
@@ -476,13 +481,18 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.door_sliding_outlined,
-                        size: 15, color: Colors.grey.shade500),
+                    Icon(
+                      Icons.door_sliding_outlined,
+                      size: 15,
+                      color: Colors.grey.shade500,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Ruang ${halaqah.room}',
                       style: TextStyle(
-                          fontSize: 13, color: Colors.grey.shade600),
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
@@ -492,8 +502,11 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: schedules
-                        .map((s) => _scheduleChip(
-                            '${_dayName(s.day)} · ${s.startTime}-${s.endTime}'))
+                        .map(
+                          (s) => _scheduleChip(
+                            '${_dayName(s.day)} · ${s.startTime}-${s.endTime}',
+                          ),
+                        )
                         .toList(),
                   ),
                 ],
@@ -516,8 +529,10 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(10),
@@ -656,7 +671,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
       'Kamis',
       'Jumat',
       'Sabtu',
-      'Minggu'
+      'Minggu',
     ];
     if (day >= 1 && day <= 7) return days[day - 1];
     return '';

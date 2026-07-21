@@ -7,17 +7,20 @@ class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
   final PaymentRepository repository;
   static const int _limit = 15;
 
-  AdminPaymentHistoryCubit(this.repository) : super(AdminPaymentHistoryInitial());
+  AdminPaymentHistoryCubit(this.repository)
+    : super(AdminPaymentHistoryInitial());
 
   Future<void> loadHistory() async {
     try {
       emit(AdminPaymentHistoryLoading());
       final payments = await repository.getPaymentHistory(limit: _limit);
-      
-      emit(AdminPaymentHistoryLoaded(
-        payments: payments,
-        hasReachedMax: payments.length < _limit,
-      ));
+
+      emit(
+        AdminPaymentHistoryLoaded(
+          payments: payments,
+          hasReachedMax: payments.length < _limit,
+        ),
+      );
     } catch (e) {
       emit(AdminPaymentHistoryError(ErrorHandler.getMessage(e)));
     }
@@ -25,21 +28,25 @@ class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
 
   Future<void> loadMore() async {
     final currentState = state;
-    if (currentState is AdminPaymentHistoryLoaded && !currentState.hasReachedMax && !currentState.isFetchingMore) {
+    if (currentState is AdminPaymentHistoryLoaded &&
+        !currentState.hasReachedMax &&
+        !currentState.isFetchingMore) {
       try {
         emit(currentState.copyWith(isFetchingMore: true));
-        
+
         final lastPayment = currentState.payments.last;
         final newPayments = await repository.getPaymentHistory(
           limit: _limit,
           lastDocumentId: lastPayment.id,
         );
-        
-        emit(currentState.copyWith(
-          payments: currentState.payments + newPayments,
-          hasReachedMax: newPayments.length < _limit,
-          isFetchingMore: false,
-        ));
+
+        emit(
+          currentState.copyWith(
+            payments: currentState.payments + newPayments,
+            hasReachedMax: newPayments.length < _limit,
+            isFetchingMore: false,
+          ),
+        );
       } catch (e) {
         // On error during pagination, just stop fetching more but keep list
         emit(currentState.copyWith(isFetchingMore: false));
@@ -52,9 +59,10 @@ class AdminPaymentHistoryCubit extends Cubit<AdminPaymentHistoryState> {
     if (currentState is AdminPaymentHistoryLoaded) {
       try {
         await repository.deletePayment(paymentId);
-        
+
         // Optimistically remove from list
-        final updatedList = List.of(currentState.payments)..removeWhere((p) => p.id == paymentId);
+        final updatedList = List.of(currentState.payments)
+          ..removeWhere((p) => p.id == paymentId);
         emit(currentState.copyWith(payments: updatedList));
       } catch (e) {
         // Just reload in case of error mismatch

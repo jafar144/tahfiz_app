@@ -19,7 +19,7 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
   bool _currentMonthFilled = false;
 
   SantriReportDetailCubit({required this.repository})
-      : super(SantriReportDetailLoading());
+    : super(SantriReportDetailLoading());
 
   Future<void> load(String santriId, {DateTime? joinedAt}) async {
     emit(SantriReportDetailLoading());
@@ -40,16 +40,20 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
             now,
             joinedAt: joinedAt,
           ).where((p) => !existing.contains(p)).toList();
-          _currentMonthFilled =
-              existing.contains((bulan: now.month, tahun: now.year));
+          _currentMonthFilled = existing.contains((
+            bulan: now.month,
+            tahun: now.year,
+          ));
 
           final firstPage = _all.take(_pageSize).toList();
-          emit(SantriReportDetailLoaded(
-            reports: firstPage,
-            hasMore: _all.length > firstPage.length,
-            missingPeriods: _missingPeriods,
-            currentMonthFilled: _currentMonthFilled,
-          ));
+          emit(
+            SantriReportDetailLoaded(
+              reports: firstPage,
+              hasMore: _all.length > firstPage.length,
+              missingPeriods: _missingPeriods,
+              currentMonthFilled: _currentMonthFilled,
+            ),
+          );
         },
       );
     } catch (e) {
@@ -68,15 +72,19 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
     await Future.delayed(const Duration(milliseconds: 400));
     if (isClosed) return;
 
-    final nextCount =
-        (current.reports.length + _pageSize).clamp(0, _all.length);
+    final nextCount = (current.reports.length + _pageSize).clamp(
+      0,
+      _all.length,
+    );
     final nextPage = _all.take(nextCount).toList();
-    emit(SantriReportDetailLoaded(
-      reports: nextPage,
-      hasMore: _all.length > nextPage.length,
-      isLoadingMore: false,
-      missingPeriods: _missingPeriods,
-      currentMonthFilled: _currentMonthFilled,
-    ));
+    emit(
+      SantriReportDetailLoaded(
+        reports: nextPage,
+        hasMore: _all.length > nextPage.length,
+        isLoadingMore: false,
+        missingPeriods: _missingPeriods,
+        currentMonthFilled: _currentMonthFilled,
+      ),
+    );
   }
 }

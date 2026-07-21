@@ -52,8 +52,11 @@ class FinanceStatCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 if (onTap != null)
-                  Icon(Icons.chevron_right_rounded,
-                      color: Colors.grey.shade400, size: 20),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.grey.shade400,
+                    size: 20,
+                  ),
               ],
             ),
             const SizedBox(height: 12),

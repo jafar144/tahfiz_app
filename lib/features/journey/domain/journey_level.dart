@@ -82,8 +82,9 @@ class JourneyBuilder {
 
   static JourneyInfo build(String? currentKelas) {
     final classes = AppConstants.santriClasses;
-    final currentIndex =
-        currentKelas == null ? -1 : classes.indexOf(currentKelas.trim());
+    final currentIndex = currentKelas == null
+        ? -1
+        : classes.indexOf(currentKelas.trim());
 
     final levels = <JourneyLevel>[];
     for (var i = 0; i < classes.length; i++) {
@@ -98,13 +99,15 @@ class JourneyBuilder {
         status = JourneyStatus.locked;
       }
 
-      levels.add(JourneyLevel(
-        index: i,
-        name: classes[i],
-        description: i < _descriptions.length ? _descriptions[i] : '',
-        icon: i < _icons.length ? _icons[i] : Icons.menu_book_rounded,
-        status: status,
-      ));
+      levels.add(
+        JourneyLevel(
+          index: i,
+          name: classes[i],
+          description: i < _descriptions.length ? _descriptions[i] : '',
+          icon: i < _icons.length ? _icons[i] : Icons.menu_book_rounded,
+          status: status,
+        ),
+      );
     }
 
     return JourneyInfo(levels: levels, currentIndex: currentIndex);

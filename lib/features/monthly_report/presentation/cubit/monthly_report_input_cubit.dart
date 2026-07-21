@@ -8,7 +8,7 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
   final MonthlyReportRepository repository;
 
   MonthlyReportInputCubit({required this.repository})
-      : super(MonthlyReportInputInitial());
+    : super(MonthlyReportInputInitial());
 
   Future<void> loadExisting(String santriId, int bulan, int tahun) async {
     emit(MonthlyReportInputLoading());
@@ -35,10 +35,12 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
             }
           }
 
-          emit(MonthlyReportInputReady(
-            existingReport: existing,
-            latestReport: latestPrevious,
-          ));
+          emit(
+            MonthlyReportInputReady(
+              existingReport: existing,
+              latestReport: latestPrevious,
+            ),
+          );
         },
       );
     } catch (e) {
@@ -89,7 +91,11 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
           emit(currentState.copyWith(isSaving: false));
         },
         ifRight: (_) {
-          emit(const MonthlyReportInputSuccess(MonthlyReportStrings.berhasilDisimpan));
+          emit(
+            const MonthlyReportInputSuccess(
+              MonthlyReportStrings.berhasilDisimpan,
+            ),
+          );
         },
       );
     } catch (e) {

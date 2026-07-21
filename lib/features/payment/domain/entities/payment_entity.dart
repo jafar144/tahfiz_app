@@ -1,5 +1,3 @@
-
-
 class PaymentEntity {
   final String id;
   final String santriId;

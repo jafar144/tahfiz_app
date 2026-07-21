@@ -76,8 +76,11 @@ class RevenueBreakdownCard extends StatelessWidget {
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(Icons.pie_chart_outline_rounded,
-              size: 40, color: Colors.grey.shade300),
+          Icon(
+            Icons.pie_chart_outline_rounded,
+            size: 40,
+            color: Colors.grey.shade300,
+          ),
           const SizedBox(height: 8),
           Text(
             'Belum ada pemasukan bulan ini',
@@ -175,7 +178,9 @@ class RevenueBreakdownCard extends StatelessWidget {
                       Text(
                         '${data.groups[i].paymentCount} pembayaran',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade500),
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ],
                   ),
@@ -196,7 +201,9 @@ class RevenueBreakdownCard extends StatelessWidget {
                           ? '0%'
                           : '${(data.groups[i].revenue / total * 100).toStringAsFixed(0)}%',
                       style: TextStyle(
-                          fontSize: 11, color: Colors.grey.shade500),
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
                     ),
                   ],
                 ),

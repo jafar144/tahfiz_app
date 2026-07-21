@@ -16,34 +16,39 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
   /// Muat daftar surah saat halaman dibuka.
   Future<void> init() async {
     if (state.surahs.isNotEmpty) return;
-    emit(state.copyWith(status: RecitationStatus.loadingSurah, clearError: true));
+    emit(
+      state.copyWith(status: RecitationStatus.loadingSurah, clearError: true),
+    );
     final res = await repository.getSurahList();
     await res.fold(
-      ifLeft: (f) async => emit(state.copyWith(
-        status: RecitationStatus.error,
-        errorMessage: f.message,
-      )),
+      ifLeft: (f) async => emit(
+        state.copyWith(status: RecitationStatus.error, errorMessage: f.message),
+      ),
       ifRight: (surahs) async {
-        emit(state.copyWith(
-          status: RecitationStatus.ready,
-          surahs: surahs,
-          selectedSurah: surahs.isNotEmpty ? surahs.first : null,
-          fromAyah: 1,
-          toAyah: 1,
-          clearResult: true,
-        ));
+        emit(
+          state.copyWith(
+            status: RecitationStatus.ready,
+            surahs: surahs,
+            selectedSurah: surahs.isNotEmpty ? surahs.first : null,
+            fromAyah: 1,
+            toAyah: 1,
+            clearResult: true,
+          ),
+        );
         await _refreshTargetAyat();
       },
     );
   }
 
   Future<void> selectSurah(SurahInfo surah) async {
-    emit(state.copyWith(
-      selectedSurah: surah,
-      fromAyah: 1,
-      toAyah: 1,
-      clearResult: true,
-    ));
+    emit(
+      state.copyWith(
+        selectedSurah: surah,
+        fromAyah: 1,
+        toAyah: 1,
+        clearResult: true,
+      ),
+    );
     await _refreshTargetAyat();
   }
 
@@ -74,19 +79,23 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
       from: state.fromAyah,
       to: state.toAyah,
     );
-    emit(state.copyWith(
-      targetAyat: targetRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
-      pageAyat: pageRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
-    ));
+    emit(
+      state.copyWith(
+        targetAyat: targetRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
+        pageAyat: pageRes.fold(ifLeft: (_) => const [], ifRight: (a) => a),
+      ),
+    );
   }
 
   Future<void> startRecording() async {
     try {
       if (!await _recorder.hasPermission()) {
-        emit(state.copyWith(
-          status: RecitationStatus.error,
-          errorMessage: 'Izin mikrofon ditolak. Aktifkan di pengaturan.',
-        ));
+        emit(
+          state.copyWith(
+            status: RecitationStatus.error,
+            errorMessage: 'Izin mikrofon ditolak. Aktifkan di pengaturan.',
+          ),
+        );
         return;
       }
       final dir = await getTemporaryDirectory();
@@ -101,16 +110,20 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
         path: path,
       );
       _recordPath = path;
-      emit(state.copyWith(
-        status: RecitationStatus.recording,
-        clearResult: true,
-        clearError: true,
-      ));
+      emit(
+        state.copyWith(
+          status: RecitationStatus.recording,
+          clearResult: true,
+          clearError: true,
+        ),
+      );
     } catch (e) {
-      emit(state.copyWith(
-        status: RecitationStatus.error,
-        errorMessage: 'Gagal memulai rekaman: $e',
-      ));
+      emit(
+        state.copyWith(
+          status: RecitationStatus.error,
+          errorMessage: 'Gagal memulai rekaman: $e',
+        ),
+      );
     }
   }
 
@@ -122,14 +135,18 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
       final stopped = await _recorder.stop();
       final filePath = stopped ?? _recordPath;
       if (filePath == null) {
-        emit(state.copyWith(
-          status: RecitationStatus.error,
-          errorMessage: 'Rekaman tidak tersimpan.',
-        ));
+        emit(
+          state.copyWith(
+            status: RecitationStatus.error,
+            errorMessage: 'Rekaman tidak tersimpan.',
+          ),
+        );
         return;
       }
 
-      emit(state.copyWith(status: RecitationStatus.processing, clearError: true));
+      emit(
+        state.copyWith(status: RecitationStatus.processing, clearError: true),
+      );
 
       var ayat = state.targetAyat;
       if (ayat.isEmpty) {
@@ -144,10 +161,12 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
         );
       }
       if (ayat.isEmpty) {
-        emit(state.copyWith(
-          status: RecitationStatus.error,
-          errorMessage: 'Ayat target tidak ditemukan.',
-        ));
+        emit(
+          state.copyWith(
+            status: RecitationStatus.error,
+            errorMessage: 'Ayat target tidak ditemukan.',
+          ),
+        );
         return;
       }
 
@@ -157,21 +176,27 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
         mimeType: 'audio/mp4',
       );
       res.fold(
-        ifLeft: (f) => emit(state.copyWith(
-          status: RecitationStatus.error,
-          errorMessage: f.message,
-        )),
-        ifRight: (result) => emit(state.copyWith(
-          status: RecitationStatus.done,
-          result: result,
-          targetAyat: ayat,
-        )),
+        ifLeft: (f) => emit(
+          state.copyWith(
+            status: RecitationStatus.error,
+            errorMessage: f.message,
+          ),
+        ),
+        ifRight: (result) => emit(
+          state.copyWith(
+            status: RecitationStatus.done,
+            result: result,
+            targetAyat: ayat,
+          ),
+        ),
       );
     } catch (e) {
-      emit(state.copyWith(
-        status: RecitationStatus.error,
-        errorMessage: 'Gagal memproses bacaan: $e',
-      ));
+      emit(
+        state.copyWith(
+          status: RecitationStatus.error,
+          errorMessage: 'Gagal memproses bacaan: $e',
+        ),
+      );
     }
   }
 
@@ -179,19 +204,23 @@ class RecitationCheckCubit extends Cubit<RecitationCheckState> {
     try {
       await _recorder.stop();
     } catch (_) {}
-    emit(state.copyWith(
-      status: RecitationStatus.ready,
-      clearResult: true,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        status: RecitationStatus.ready,
+        clearResult: true,
+        clearError: true,
+      ),
+    );
   }
 
   void backToReady() {
-    emit(state.copyWith(
-      status: RecitationStatus.ready,
-      clearResult: true,
-      clearError: true,
-    ));
+    emit(
+      state.copyWith(
+        status: RecitationStatus.ready,
+        clearResult: true,
+        clearError: true,
+      ),
+    );
   }
 
   @override

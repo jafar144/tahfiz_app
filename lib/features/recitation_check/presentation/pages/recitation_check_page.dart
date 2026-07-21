@@ -58,7 +58,10 @@ class _TargetTitle extends StatelessWidget {
                   Text(
                     title,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     'Ayat ${state.fromAyah}–${state.toAyah}',
@@ -83,7 +86,8 @@ void _openTargetSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
-    builder: (_) => BlocProvider.value(value: cubit, child: const _TargetSheet()),
+    builder: (_) =>
+        BlocProvider.value(value: cubit, child: const _TargetSheet()),
   );
 }
 
@@ -105,8 +109,10 @@ class _TargetSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Target Setoran',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Target Setoran',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 16),
             DropdownButtonFormField<SurahInfo>(
               initialValue: surah,
@@ -117,7 +123,10 @@ class _TargetSheet extends StatelessWidget {
               ),
               items: [
                 for (final s in state.surahs)
-                  DropdownMenuItem(value: s, child: Text('${s.id}. ${s.latin}')),
+                  DropdownMenuItem(
+                    value: s,
+                    child: Text('${s.id}. ${s.latin}'),
+                  ),
               ],
               onChanged: busy
                   ? null
@@ -245,8 +254,8 @@ class _MushafBodyState extends State<_MushafBody> {
 
     final coloredWords =
         (state.status == RecitationStatus.done && state.result != null)
-            ? buildTargetColoring(state.targetAyat, state.result!)
-            : null;
+        ? buildTargetColoring(state.targetAyat, state.result!)
+        : null;
 
     // reverse: true -> geser dari kanan ke kiri seperti membaca mushaf.
     return PageView.builder(
@@ -362,8 +371,9 @@ class _ResultSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final issues =
-        result.diffs.where((d) => d.status != WordStatus.correct).toList();
+    final issues = result.diffs
+        .where((d) => d.status != WordStatus.correct)
+        .toList();
     final maxHeight = MediaQuery.sizeOf(context).height * 0.8;
 
     return SafeArea(
@@ -375,8 +385,10 @@ class _ResultSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Hasil Pemeriksaan',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                'Hasil Pemeriksaan',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -408,8 +420,10 @@ class _ResultSheet extends StatelessWidget {
               const Divider(height: 24),
               const _Legend(),
               const SizedBox(height: 16),
-              Text('Detail koreksi',
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'Detail koreksi',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Flexible(
                 child: SingleChildScrollView(
@@ -463,8 +477,10 @@ class _IssueRow extends StatelessWidget {
           spacing: 8,
           children: [
             _ArabicWord(ref, color),
-            const Text('terdengar:',
-                style: TextStyle(fontSize: 12, color: Colors.black54)),
+            const Text(
+              'terdengar:',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
             _ArabicWord(heard, _ResultSheet._extraColor),
           ],
         );
@@ -476,8 +492,10 @@ class _IssueRow extends StatelessWidget {
           children: [
             _ArabicWord(ref, color, strike: true),
             const SizedBox(width: 8),
-            const Text('tidak terbaca',
-                style: TextStyle(fontSize: 12, color: Colors.black54)),
+            const Text(
+              'tidak terbaca',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
           ],
         );
       case WordStatus.extra:
@@ -486,8 +504,10 @@ class _IssueRow extends StatelessWidget {
         content = Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('terdengar:',
-                style: TextStyle(fontSize: 12, color: Colors.black54)),
+            const Text(
+              'terdengar:',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
             const SizedBox(width: 8),
             _ArabicWord(heard, color),
           ],
@@ -550,10 +570,12 @@ class _HeardText extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Yang ditangkap sistem',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                )),
+        Text(
+          'Yang ditangkap sistem',
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerRight,
@@ -584,7 +606,10 @@ class _CountChip extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       backgroundColor: color.withValues(alpha: 0.12),
       side: BorderSide(color: color.withValues(alpha: 0.4)),
-      label: Text('$label: $count', style: TextStyle(color: color, fontSize: 12)),
+      label: Text(
+        '$label: $count',
+        style: TextStyle(color: color, fontSize: 12),
+      ),
     );
   }
 }
@@ -598,10 +623,16 @@ class _Legend extends StatelessWidget {
       spacing: 12,
       runSpacing: 4,
       children: [
-        _LegendItem(color: Theme.of(context).colorScheme.onSurface, label: 'Benar'),
+        _LegendItem(
+          color: Theme.of(context).colorScheme.onSurface,
+          label: 'Benar',
+        ),
         const _LegendItem(color: Color(0xFFE65100), label: 'Salah baca'),
         const _LegendItem(color: Color(0xFFC62828), label: 'Kelewat (coret)'),
-        const _LegendItem(color: Colors.blueGrey, label: 'Tambahan (garis bawah)'),
+        const _LegendItem(
+          color: Colors.blueGrey,
+          label: 'Tambahan (garis bawah)',
+        ),
       ],
     );
   }

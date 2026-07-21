@@ -25,7 +25,7 @@ class AdminSantriPage extends StatefulWidget {
 
 class _AdminSantriPageState extends State<AdminSantriPage> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Filter States
   String? _selectedSession; // Pagi, Sore, Malam
   String? _selectedGender; // L, P
@@ -34,7 +34,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   String? _selectedAsatidzName; // For display
   bool? _selectedIsFree;
   bool? _selectedIsActive = true;
-  
+
   List<AsatidzEntity> _asatidzList = [];
 
   String _searchKeyword = '';
@@ -42,7 +42,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   void _fetchData() {
     context.read<SantriCubit>().loadSantri(
       keyword: _searchKeyword,
-      isActive: _selectedIsActive, 
+      isActive: _selectedIsActive,
       session: _selectedSession,
       gender: _selectedGender,
       kelas: _selectedClass,
@@ -88,7 +88,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       nomorWali: '0812...',
       pembimbing: 'Ustadz Fulan',
     ),
-  ); 
+  );
 
   @override
   void initState() {
@@ -197,9 +197,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: const AiwaAppBar(
-        title: 'Data Santri',
-      ),
+      appBar: const AiwaAppBar(title: 'Data Santri'),
       floatingActionButton: FloatingActionButton(
         heroTag: 'add_santri_fab',
         onPressed: () async {
@@ -231,8 +229,9 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                   child: Row(
                     children: [
                       AiwaChip(
-                        label: _getSessionLabel(), 
-                        isSelected: _selectedSession != null || _selectedGender != null,
+                        label: _getSessionLabel(),
+                        isSelected:
+                            _selectedSession != null || _selectedGender != null,
                         onTap: () => _showSessionFilter(context),
                       ),
                       AiwaChip(
@@ -241,20 +240,20 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                         onTap: () => _showClassFilter(context),
                       ),
                       AiwaChip(
-                        label: _selectedAsatidzName ?? 'Asatidz', 
+                        label: _selectedAsatidzName ?? 'Asatidz',
                         isSelected: _selectedAsatidzId != null,
                         onTap: () => _showAsatidzFilter(context),
                       ),
                       AiwaChip(
-                        label: _selectedIsFree == null 
-                            ? 'Status Bayar' 
+                        label: _selectedIsFree == null
+                            ? 'Status Bayar'
                             : (_selectedIsFree! ? 'Gratis' : 'Reguler'),
                         isSelected: _selectedIsFree != null,
                         onTap: () => _showStatusFilter(context),
                       ),
                       AiwaChip(
-                        label: _selectedIsActive == null 
-                            ? 'Semua Status' 
+                        label: _selectedIsActive == null
+                            ? 'Semua Status'
                             : (_selectedIsActive! ? 'Aktif' : 'Tidak Aktif'),
                         isSelected: _selectedIsActive != null,
                         onTap: () => _showActiveStatusFilter(context),
@@ -372,12 +371,16 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                     _buildModalChip(
                       'Reguler',
                       tempIsFree == false,
-                      () => setModalState(() => tempIsFree = tempIsFree == false ? null : false),
+                      () => setModalState(
+                        () => tempIsFree = tempIsFree == false ? null : false,
+                      ),
                     ),
                     _buildModalChip(
                       'Gratis',
                       tempIsFree == true,
-                      () => setModalState(() => tempIsFree = tempIsFree == true ? null : true),
+                      () => setModalState(
+                        () => tempIsFree = tempIsFree == true ? null : true,
+                      ),
                     ),
                   ],
                 ),
@@ -492,12 +495,16 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                     _buildModalChip(
                       'Putra',
                       tempGender == 'L',
-                      () => setModalState(() => tempGender = tempGender == 'L' ? null : 'L'),
+                      () => setModalState(
+                        () => tempGender = tempGender == 'L' ? null : 'L',
+                      ),
                     ),
                     _buildModalChip(
                       'Putri',
                       tempGender == 'P',
-                      () => setModalState(() => tempGender = tempGender == 'P' ? null : 'P'),
+                      () => setModalState(
+                        () => tempGender = tempGender == 'P' ? null : 'P',
+                      ),
                     ),
                   ],
                 ),
@@ -510,7 +517,9 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                     return _buildModalChip(
                       type,
                       tempSession == type,
-                      () => setModalState(() => tempSession = tempSession == type ? null : type),
+                      () => setModalState(
+                        () => tempSession = tempSession == type ? null : type,
+                      ),
                     );
                   }).toList(),
                 ),
@@ -555,7 +564,9 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
                     return _buildModalChip(
                       cls,
                       tempClass == cls,
-                      () => setModalState(() => tempClass = tempClass == cls ? null : cls),
+                      () => setModalState(
+                        () => tempClass = tempClass == cls ? null : cls,
+                      ),
                     );
                   }).toList(),
                 ),
@@ -568,10 +579,6 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   }
 
   Widget _buildModalChip(String label, bool isSelected, VoidCallback onTap) {
-    return AiwaChoiceChip(
-      label: label,
-      isSelected: isSelected,
-      onTap: onTap,
-    );
+    return AiwaChoiceChip(label: label, isSelected: isSelected, onTap: onTap);
   }
 }

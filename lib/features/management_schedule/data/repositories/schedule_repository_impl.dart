@@ -14,7 +14,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   ScheduleRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<Failure, List<Halaqah>>> getHalaqahs({required String programId}) async {
+  Future<Either<Failure, List<Halaqah>>> getHalaqahs({
+    required String programId,
+  }) async {
     try {
       final result = await remoteDataSource.getHalaqahs(programId);
       return Either.right(result);
@@ -24,7 +26,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<Halaqah>>> getHalaqahsBySchedule(String scheduleId) async {
+  Future<Either<Failure, List<Halaqah>>> getHalaqahsBySchedule(
+    String scheduleId,
+  ) async {
     try {
       final result = await remoteDataSource.getHalaqahsBySchedule(scheduleId);
       return Either.right(result);
@@ -34,7 +38,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<ScheduleProgram>>> getPrograms({required String gender}) async {
+  Future<Either<Failure, List<ScheduleProgram>>> getPrograms({
+    required String gender,
+  }) async {
     try {
       final result = await remoteDataSource.getPrograms(gender);
       return Either.right(result);
@@ -44,7 +50,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, ScheduleProgram>> getProgramById(String programId) async {
+  Future<Either<Failure, ScheduleProgram>> getProgramById(
+    String programId,
+  ) async {
     try {
       final result = await remoteDataSource.getProgramById(programId);
       final entity = ScheduleProgram(
@@ -59,7 +67,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<ProgramSchedule>>> getSchedules({required String programId}) async {
+  Future<Either<Failure, List<ProgramSchedule>>> getSchedules({
+    required String programId,
+  }) async {
     try {
       final result = await remoteDataSource.getSchedules(programId);
       return Either.right(result);
@@ -69,7 +79,11 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, void>> updateHalaqah(Halaqah halaqah, List<String> newSantriIds, List<String> removedSantriIds) async {
+  Future<Either<Failure, void>> updateHalaqah(
+    Halaqah halaqah,
+    List<String> newSantriIds,
+    List<String> removedSantriIds,
+  ) async {
     try {
       final model = HalaqahModel(
         id: halaqah.id,
@@ -82,7 +96,11 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         status: halaqah.status,
         santriCount: newSantriIds.length,
       );
-      await remoteDataSource.updateHalaqah(model, newSantriIds, removedSantriIds);
+      await remoteDataSource.updateHalaqah(
+        model,
+        newSantriIds,
+        removedSantriIds,
+      );
       return const Either.right(null);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
@@ -90,7 +108,10 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, void>> createHalaqah(Halaqah halaqah, List<String> santriIds) async {
+  Future<Either<Failure, void>> createHalaqah(
+    Halaqah halaqah,
+    List<String> santriIds,
+  ) async {
     try {
       final model = HalaqahModel(
         id: halaqah.id,
@@ -121,7 +142,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, ProgramSchedule>> getScheduleById(String scheduleId) async {
+  Future<Either<Failure, ProgramSchedule>> getScheduleById(
+    String scheduleId,
+  ) async {
     try {
       final result = await remoteDataSource.getScheduleById(scheduleId);
       return Either.right(result);
@@ -131,7 +154,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<Halaqah>>> getHalaqahsByTeacher(String teacherId) async {
+  Future<Either<Failure, List<Halaqah>>> getHalaqahsByTeacher(
+    String teacherId,
+  ) async {
     try {
       final result = await remoteDataSource.getHalaqahsByTeacher(teacherId);
       return Either.right(result);
@@ -151,7 +176,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(String santriId) async {
+  Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(
+    String santriId,
+  ) async {
     try {
       final result = await remoteDataSource.getHalaqahBySantriId(santriId);
       return Either.right(result);
@@ -189,7 +216,9 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(String halaqahId) async {
+  Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(
+    String halaqahId,
+  ) async {
     try {
       final result = await remoteDataSource.getSantrisByHalaqahId(halaqahId);
       return Either.right(result);

@@ -17,16 +17,22 @@ class SantriPaymentHistoryWidget extends StatelessWidget {
         }
 
         if (state is SantriPaymentHistoryError) {
-          return Text('Gagal memuat history: ${state.message}',
-              style: const TextStyle(color: Colors.red));
+          return Text(
+            'Gagal memuat history: ${state.message}',
+            style: const TextStyle(color: Colors.red),
+          );
         }
 
         final isLoading = state is SantriPaymentHistoryLoading;
-        final payments = state is SantriPaymentHistoryLoaded ? state.payments : [];
+        final payments = state is SantriPaymentHistoryLoaded
+            ? state.payments
+            : [];
 
         if (!isLoading && payments.isEmpty) {
-          return const Text('Belum ada riwayat pembayaran',
-              style: TextStyle(color: Colors.grey));
+          return const Text(
+            'Belum ada riwayat pembayaran',
+            style: TextStyle(color: Colors.grey),
+          );
         }
 
         return Column(
@@ -63,7 +69,7 @@ class SantriPaymentHistoryWidget extends StatelessWidget {
                   }
 
                   final payment = payments[index];
-                  
+
                   return Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -71,18 +77,31 @@ class SantriPaymentHistoryWidget extends StatelessWidget {
                     ),
                     child: ListTile(
                       dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 0,
+                      ),
                       title: Text(
                         '${DateFormat('MMMM', 'id_ID').format(DateTime(2024, int.tryParse(payment.bulan) ?? 1))} ${payment.tahun}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(payment.createdAt),
-                        style: const TextStyle(fontSize: 12),  
+                        DateFormat(
+                          'dd MMM yyyy, HH:mm',
+                          'id_ID',
+                        ).format(payment.createdAt),
+                        style: const TextStyle(fontSize: 12),
                       ),
                       trailing: Text(
-                        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(payment.total),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        NumberFormat.currency(
+                          locale: 'id_ID',
+                          symbol: 'Rp ',
+                          decimalDigits: 0,
+                        ).format(payment.total),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
                       ),
                     ),
                   );
@@ -97,8 +116,12 @@ class SantriPaymentHistoryWidget extends StatelessWidget {
 
   BorderRadius _getBorderRadius(int index, int length) {
     if (length == 1) return BorderRadius.circular(12);
-    if (index == 0) return const BorderRadius.vertical(top: Radius.circular(12));
-    if (index == length - 1) return const BorderRadius.vertical(bottom: Radius.circular(12));
+    if (index == 0) {
+      return const BorderRadius.vertical(top: Radius.circular(12));
+    }
+    if (index == length - 1) {
+      return const BorderRadius.vertical(bottom: Radius.circular(12));
+    }
     return BorderRadius.zero;
   }
 }

@@ -7,21 +7,17 @@ class PaymentListItem extends StatelessWidget {
   final PaymentEntity payment;
   final VoidCallback? onTap;
 
-  const PaymentListItem({
-    super.key,
-    required this.payment,
-    this.onTap,
-  });
+  const PaymentListItem({super.key, required this.payment, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final name = payment.santriName ?? 'Unknown';
     final amount = payment.total;
     final date = payment.createdAt;
-    
+
     // Safety check for int parsing if month is string number
     final monthInt = int.tryParse(payment.bulan) ?? 1;
-    
+
     final formatCurrency = NumberFormat.currency(
       locale: 'id_ID',
       symbol: '+Rp ',
@@ -29,7 +25,10 @@ class PaymentListItem extends StatelessWidget {
     );
     final timeStr = DateFormat('HH:mm').format(date);
     final dateStr = DateFormat('d MMM').format(date);
-    final monthName = DateFormat('MMMM', 'id_ID').format(DateTime(2024, monthInt));
+    final monthName = DateFormat(
+      'MMMM',
+      'id_ID',
+    ).format(DateTime(2024, monthInt));
     final year = DateFormat('yyyy').format(date);
 
     return InkWell(
@@ -68,10 +67,7 @@ class PaymentListItem extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'SPP $monthName $year',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 10,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 10),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -91,10 +87,7 @@ class PaymentListItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$dateStr • $timeStr',
-                  style: TextStyle(
-                    color: Colors.grey[400],
-                    fontSize: 10,
-                  ),
+                  style: TextStyle(color: Colors.grey[400], fontSize: 10),
                 ),
               ],
             ),

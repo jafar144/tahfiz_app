@@ -28,7 +28,9 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
   }
 
   @override
-  Future<Either<Failure, MonthlyReport?>> getLatestReportBySantri(String santriId) async {
+  Future<Either<Failure, MonthlyReport?>> getLatestReportBySantri(
+    String santriId,
+  ) async {
     try {
       final result = await remoteDataSource.getLatestReportBySantri(santriId);
       return Right(result);
@@ -44,7 +46,11 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
     int tahun,
   ) async {
     try {
-      final result = await remoteDataSource.getReportsByAsatidz(asatidzId, bulan, tahun);
+      final result = await remoteDataSource.getReportsByAsatidz(
+        asatidzId,
+        bulan,
+        tahun,
+      );
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -66,7 +72,9 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
   }
 
   @override
-  Future<Either<Failure, MonthlyReport>> createOrUpdateReport(MonthlyReport report) async {
+  Future<Either<Failure, MonthlyReport>> createOrUpdateReport(
+    MonthlyReport report,
+  ) async {
     try {
       final result = await remoteDataSource.createOrUpdateReport(report);
       return Right(result);
@@ -76,7 +84,10 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
   }
 
   @override
-  Future<Either<Failure, Set<String>>> getReportedSantriIds(int bulan, int tahun) async {
+  Future<Either<Failure, Set<String>>> getReportedSantriIds(
+    int bulan,
+    int tahun,
+  ) async {
     try {
       final result = await remoteDataSource.getReportedSantriIds(bulan, tahun);
       return Right(result);

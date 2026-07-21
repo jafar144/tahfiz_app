@@ -72,53 +72,54 @@ class PaymentSantriCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // Content
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              santri.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (status != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                  status!,
+                                ).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                               child: Text(
-                                santri.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: Colors.black87,
+                                status!,
+                                style: TextStyle(
+                                  color: _getStatusColor(status!),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 10,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            if (status != null) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(status!)
-                                      .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  status!,
-                                  style: TextStyle(
-                                    color: _getStatusColor(status!),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
-                        ),
-                      
+                        ],
+                      ),
+
                       // NIS (Tanpa Label ID:)
                       Text(
                         santri.nis,
@@ -127,9 +128,9 @@ class PaymentSantriCard extends StatelessWidget {
                           fontSize: 12,
                         ),
                       ),
-                      
+
                       const SizedBox(height: 4),
-                      
+
                       // Footer: Badge Kelas Only
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -165,10 +166,7 @@ class PaymentSantriCard extends StatelessWidget {
                   ),
                 ),
 
-                if (trailing != null) ...[
-                  const SizedBox(width: 8),
-                  trailing!,
-                ],
+                if (trailing != null) ...[const SizedBox(width: 8), trailing!],
               ],
             ),
           ),

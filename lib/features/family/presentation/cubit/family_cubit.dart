@@ -9,10 +9,8 @@ class FamilyCubit extends Cubit<FamilyState> {
   final FamilyRepository familyRepository;
   final SantriRepository santriRepository;
 
-  FamilyCubit({
-    required this.familyRepository,
-    required this.santriRepository,
-  }) : super(FamilyInitial());
+  FamilyCubit({required this.familyRepository, required this.santriRepository})
+    : super(FamilyInitial());
 
   Future<void> loadFamilies() async {
     emit(FamilyLoading());

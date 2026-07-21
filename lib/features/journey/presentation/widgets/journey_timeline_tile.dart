@@ -97,11 +97,26 @@ class JourneyTimelineTile extends StatelessWidget {
     final isActive = level.isActive;
     final isLocked = level.isLocked;
 
-    final (String eyebrow, IconData eyebrowIcon, Color eyebrowColor) =
-        switch (level.status) {
-      JourneyStatus.completed => ('SELESAI', Icons.verified_rounded, JourneyColors.sage),
-      JourneyStatus.active => ('SEDANG DIJALANI', Icons.play_arrow_rounded, JourneyColors.gold),
-      JourneyStatus.locked => ('TERKUNCI', Icons.lock_outline_rounded, JourneyColors.muted),
+    final (
+      String eyebrow,
+      IconData eyebrowIcon,
+      Color eyebrowColor,
+    ) = switch (level.status) {
+      JourneyStatus.completed => (
+        'SELESAI',
+        Icons.verified_rounded,
+        JourneyColors.sage,
+      ),
+      JourneyStatus.active => (
+        'SEDANG DIJALANI',
+        Icons.play_arrow_rounded,
+        JourneyColors.gold,
+      ),
+      JourneyStatus.locked => (
+        'TERKUNCI',
+        Icons.lock_outline_rounded,
+        JourneyColors.muted,
+      ),
     };
 
     return GestureDetector(
@@ -119,8 +134,9 @@ class JourneyTimelineTile extends StatelessWidget {
               ? null
               : [
                   BoxShadow(
-                    color: (isActive ? JourneyColors.gold : JourneyColors.charcoal)
-                        .withValues(alpha: isActive ? 0.15 : 0.05),
+                    color:
+                        (isActive ? JourneyColors.gold : JourneyColors.charcoal)
+                            .withValues(alpha: isActive ? 0.15 : 0.05),
                     blurRadius: isActive ? 14 : 8,
                     offset: const Offset(0, 4),
                   ),
@@ -229,8 +245,7 @@ class _NodeCircle extends StatelessWidget {
             ),
             child: Icon(icon, size: 22, color: iconColor),
           ),
-          if (badge != null)
-            Positioned(bottom: -2, right: -2, child: badge!),
+          if (badge != null) Positioned(bottom: -2, right: -2, child: badge!),
         ],
       ),
     );
@@ -257,7 +272,11 @@ class _ConnectorPainter extends CustomPainter {
       const gap = 6.0;
       double y = 0;
       while (y < size.height) {
-        canvas.drawLine(Offset(x, y), Offset(x, (y + dash).clamp(0, size.height)), paint);
+        canvas.drawLine(
+          Offset(x, y),
+          Offset(x, (y + dash).clamp(0, size.height)),
+          paint,
+        );
         y += dash + gap;
       }
     }

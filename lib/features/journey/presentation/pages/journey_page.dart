@@ -143,8 +143,10 @@ class _Banner extends StatelessWidget {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.of(context).maybePop(),
-                          icon: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                          ),
                         ),
                         const Expanded(
                           child: Text(
@@ -156,8 +158,11 @@ class _Banner extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const Icon(Icons.mosque_rounded,
-                            color: JourneyColors.goldLight, size: 22),
+                        const Icon(
+                          Icons.mosque_rounded,
+                          color: JourneyColors.goldLight,
+                          size: 22,
+                        ),
                         const SizedBox(width: 8),
                       ],
                     ),
@@ -182,20 +187,24 @@ class _Banner extends StatelessWidget {
                                     gradient: const LinearGradient(
                                       colors: [
                                         JourneyColors.gold,
-                                        JourneyColors.goldLight
+                                        JourneyColors.goldLight,
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: JourneyColors.gold
-                                            .withValues(alpha: 0.4),
+                                        color: JourneyColors.gold.withValues(
+                                          alpha: 0.4,
+                                        ),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
                                       ),
                                     ],
                                   ),
-                                  child: Icon(current.icon,
-                                      color: JourneyColors.primaryDeep, size: 26),
+                                  child: Icon(
+                                    current.icon,
+                                    color: JourneyColors.primaryDeep,
+                                    size: 26,
+                                  ),
                                 ),
                                 const SizedBox(width: 14),
                                 Expanded(

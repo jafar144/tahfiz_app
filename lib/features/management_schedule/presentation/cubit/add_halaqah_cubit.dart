@@ -20,17 +20,21 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
   Future<void> loadInitialData(String gender) async {
     emit(AddHalaqahLoading());
     try {
-      final sessionsResult = await scheduleRepository.getPrograms(gender: gender);
-      
+      final sessionsResult = await scheduleRepository.getPrograms(
+        gender: gender,
+      );
+
       sessionsResult.fold(
         ifLeft: (failure) => emit(AddHalaqahError(failure.message)),
         ifRight: (sessions) async {
-          emit(AddHalaqahLoaded(
-            sessions: sessions,
-            schedules: [],
-            asatidzList: [],
-            santriList: [],
-          ));
+          emit(
+            AddHalaqahLoaded(
+              sessions: sessions,
+              schedules: [],
+              asatidzList: [],
+              santriList: [],
+            ),
+          );
         },
       );
     } catch (e) {
@@ -39,97 +43,94 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
   }
 
   Future<void> loadSchedules(String sessionId) async {
-    print('DEBUG: loadSchedules called with sessionId: $sessionId');
     if (state is! AddHalaqahLoaded) {
-      print('DEBUG: State is not AddHalaqahLoaded, returning');
       return;
     }
-    
+
     final currentState = state as AddHalaqahLoaded;
     try {
-      final schedulesResult = await scheduleRepository.getSchedules(programId: sessionId);
-      
+      final schedulesResult = await scheduleRepository.getSchedules(
+        programId: sessionId,
+      );
+
       schedulesResult.fold(
         ifLeft: (failure) {
-          print('DEBUG: loadSchedules FAILED: ${failure.message}');
           emit(AddHalaqahError(failure.message));
         },
         ifRight: (schedules) {
-          print('DEBUG: loadSchedules SUCCESS: ${schedules.length} schedules loaded');
           emit(currentState.copyWith(schedules: schedules));
         },
       );
     } catch (e) {
-      print('DEBUG: loadSchedules ERROR: $e');
       emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
   Future<void> loadSchedulesAndPeople(String sessionId, String gender) async {
-    print('DEBUG: loadSchedulesAndPeople called with sessionId: $sessionId, gender: $gender');
     if (state is! AddHalaqahLoaded) {
-      print('DEBUG: State is not AddHalaqahLoaded, returning');
       return;
     }
-    
+
     final currentState = state as AddHalaqahLoaded;
     try {
-      final schedulesResult = await scheduleRepository.getSchedules(programId: sessionId);
-      final asatidzList = await asatidzRepository.getAsatidzList(isActive: true);
+      final schedulesResult = await scheduleRepository.getSchedules(
+        programId: sessionId,
+      );
+      final asatidzList = await asatidzRepository.getAsatidzList(
+        isActive: true,
+      );
       final santriList = await santriRepository.getSantriList(isActive: true);
-      
-      print('DEBUG: Total Asatidz: ${asatidzList.length}');
-      print('DEBUG: Total Santri: ${santriList.length}');
-      
-      final filteredAsatidz = asatidzList.where((a) => a.jenisKelamin == gender).toList();
-      final filteredSantri = santriList.where((s) => s.jenisKelamin == gender).toList();
-      
-      print('DEBUG: Filtered Asatidz ($gender): ${filteredAsatidz.length}');
-      print('DEBUG: Filtered Santri ($gender): ${filteredSantri.length}');
-      
+
+      final filteredAsatidz = asatidzList
+          .where((a) => a.jenisKelamin == gender)
+          .toList();
+      final filteredSantri = santriList
+          .where((s) => s.jenisKelamin == gender)
+          .toList();
+
       schedulesResult.fold(
         ifLeft: (failure) {
-          print('DEBUG: loadSchedules FAILED: ${failure.message}');
           emit(AddHalaqahError(failure.message));
         },
         ifRight: (schedules) {
-          print('DEBUG: loadSchedules SUCCESS: ${schedules.length} schedules loaded');
-          emit(currentState.copyWith(
-            schedules: schedules,
-            asatidzList: filteredAsatidz,
-            santriList: filteredSantri,
-          ));
+          emit(
+            currentState.copyWith(
+              schedules: schedules,
+              asatidzList: filteredAsatidz,
+              santriList: filteredSantri,
+            ),
+          );
         },
       );
     } catch (e) {
-      print('DEBUG: loadSchedulesAndPeople ERROR: $e');
       emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
 
   Future<void> loadAsatidzAndSantri(String gender) async {
     if (state is! AddHalaqahLoaded) return;
-    
+
     final currentState = state as AddHalaqahLoaded;
     try {
-      final asatidzList = await asatidzRepository.getAsatidzList(isActive: true);
+      final asatidzList = await asatidzRepository.getAsatidzList(
+        isActive: true,
+      );
       final santriList = await santriRepository.getSantriList(isActive: true);
-      
-      print('DEBUG: Total Asatidz: ${asatidzList.length}');
-      print('DEBUG: Total Santri: ${santriList.length}');
-      
-      final filteredAsatidz = asatidzList.where((a) => a.jenisKelamin == gender).toList();
-      final filteredSantri = santriList.where((s) => s.jenisKelamin == gender).toList();
-      
-      print('DEBUG: Filtered Asatidz ($gender): ${filteredAsatidz.length}');
-      print('DEBUG: Filtered Santri ($gender): ${filteredSantri.length}');
-      
-      emit(currentState.copyWith(
-        asatidzList: filteredAsatidz,
-        santriList: filteredSantri,
-      ));
+
+      final filteredAsatidz = asatidzList
+          .where((a) => a.jenisKelamin == gender)
+          .toList();
+      final filteredSantri = santriList
+          .where((s) => s.jenisKelamin == gender)
+          .toList();
+
+      emit(
+        currentState.copyWith(
+          asatidzList: filteredAsatidz,
+          santriList: filteredSantri,
+        ),
+      );
     } catch (e) {
-      print('DEBUG ERROR loadAsatidzAndSantri: $e');
       emit(AddHalaqahError(ErrorHandler.getMessage(e)));
     }
   }
@@ -140,39 +141,39 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
 
     try {
       final result = await scheduleRepository.getHalaqahsBySchedule(scheduleId);
-      
+
       result.fold(
-        ifLeft: (failure) {
-          print('Availability check failed: ${failure.message}');
-        },
+        ifLeft: (_) {},
         ifRight: (halaqahs) async {
           final busyTeachers = halaqahs.map((h) => h.teacherId).toList();
-          
+
           final busySantriIds = <String>[];
           for (final h in halaqahs) {
-            final santrisResult = await scheduleRepository.getSantrisByHalaqahId(h.id);
+            final santrisResult = await scheduleRepository
+                .getSantrisByHalaqahId(h.id);
             santrisResult.fold(
               ifLeft: (_) {},
-              ifRight: (santris) => busySantriIds.addAll(santris.map((s) => s.id)),
+              ifRight: (santris) =>
+                  busySantriIds.addAll(santris.map((s) => s.id)),
             );
           }
-          
-          emit(currentState.copyWith(
-            unavailableTeacherIds: busyTeachers,
-            unavailableSantriIds: busySantriIds,
-          ));
+
+          emit(
+            currentState.copyWith(
+              unavailableTeacherIds: busyTeachers,
+              unavailableSantriIds: busySantriIds,
+            ),
+          );
         },
       );
-    } catch (e) {
-      print('Availability check error: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> createHalaqah(Halaqah halaqah, List<String> santriIds) async {
     emit(AddHalaqahLoading());
     try {
       final result = await scheduleRepository.createHalaqah(halaqah, santriIds);
-      
+
       result.fold(
         ifLeft: (failure) => emit(AddHalaqahError(failure.message)),
         ifRight: (_) => emit(AddHalaqahSuccess()),

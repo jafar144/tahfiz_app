@@ -88,7 +88,8 @@ class _AsatidzSantriView extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
+                      final userId =
+                          getIt<FirebaseAuth>().currentUser?.uid ?? '';
                       context.read<AsatidzSantriCubit>().loadMySantri(userId);
                     },
                     child: const Text('Coba Lagi'),
@@ -103,15 +104,15 @@ class _AsatidzSantriView extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: displayList.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 return SantriCard(
                   displayList[index],
                   extra: const {'readOnly': true},
                   onReturn: () {
-                     // Refresh data when returning from detail page
-                     final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
-                     context.read<AsatidzSantriCubit>().loadMySantri(userId);
+                    // Refresh data when returning from detail page
+                    final userId = getIt<FirebaseAuth>().currentUser?.uid ?? '';
+                    context.read<AsatidzSantriCubit>().loadMySantri(userId);
                   },
                 );
               },

@@ -44,11 +44,7 @@ void main() {
 
     expect(result, isNull);
     expect(
-      PaymentUtils.isEnrolledInMonth(
-        tanggalMasuk: null,
-        month: 7,
-        year: 2026,
-      ),
+      PaymentUtils.isEnrolledInMonth(tanggalMasuk: null, month: 7, year: 2026),
       isFalse,
     );
     expect(

@@ -32,7 +32,9 @@ class FamilyRepository {
   CollectionReference get _collection => _firestore.collection('families');
 
   Future<List<FamilyEntity>> getFamilies() async {
-    final snap = await _collection.orderBy('created_at', descending: true).get();
+    final snap = await _collection
+        .orderBy('created_at', descending: true)
+        .get();
     return snap.docs.map((doc) => FamilyEntity.fromDoc(doc)).toList();
   }
 

@@ -34,8 +34,11 @@ class MissingReportCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: Colors.red.shade600, size: 24),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red.shade600,
+                size: 24,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -70,8 +73,11 @@ class MissingReportCard extends StatelessWidget {
                       color: Colors.red.shade700,
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      color: Colors.red.shade400, size: 22),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.red.shade400,
+                    size: 22,
+                  ),
                 ],
               ),
             ],
