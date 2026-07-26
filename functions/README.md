@@ -134,7 +134,8 @@ Tambahkan `--apply` hanya setelah output dry-run ditinjau.
 
 ## Pengujian
 
-Gunakan Node 22 dan Java 17+:
+Gunakan Node 22 dan Java 21+ untuk Firebase emulator. Build Android tetap
+memakai Java 17:
 
 ```powershell
 npm ci

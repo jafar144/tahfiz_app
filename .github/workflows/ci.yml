@@ -15,11 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Java
+      - name: Set up Java for Firebase emulators
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
           cache: gradle
 
       - name: Set up Node
@@ -63,6 +63,13 @@ jobs:
       - name: Run Firestore and Storage Rules tests
         working-directory: functions
         run: npm run test:rules
+
+      - name: Set up Java for Android build
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
 
       - name: Compile every Android flavor
         shell: bash
