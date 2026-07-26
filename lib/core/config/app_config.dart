@@ -3,6 +3,22 @@ import 'package:khoirunnasyien/core/institution/domain/institution_curriculum.da
 
 typedef FirebaseOptionsProvider = FirebaseOptions Function();
 
+class InstitutionPaymentConfig {
+  final String bankName;
+  final String accountNumber;
+  final String accountHolder;
+
+  const InstitutionPaymentConfig({
+    required this.bankName,
+    required this.accountNumber,
+    required this.accountHolder,
+  });
+
+  String get transferInstruction =>
+      'Pembayaran bisa via transfer: Bank $bankName '
+      '$accountNumber a.n. $accountHolder';
+}
+
 /// Konfigurasi runtime untuk satu hasil build white-label.
 ///
 /// Nilainya dipasang sekali di composition root `main_<flavor>.dart`, sehingga
@@ -16,6 +32,8 @@ class AppConfig {
   final String logoAsset;
   final String syahadahLogoAsset;
   final String functionsRegion;
+  final String authEmailDomain;
+  final InstitutionPaymentConfig payment;
   final InstitutionCurriculum curriculum;
   final FirebaseOptionsProvider firebaseOptionsProvider;
 
@@ -26,6 +44,8 @@ class AppConfig {
     required this.logoAsset,
     required this.syahadahLogoAsset,
     required this.functionsRegion,
+    required this.authEmailDomain,
+    required this.payment,
     required this.curriculum,
     required this.firebaseOptionsProvider,
   });

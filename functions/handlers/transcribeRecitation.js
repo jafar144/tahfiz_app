@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
+const { CALLABLE_OPTIONS } = require("../lib/config");
 const { markWhisperCooldown } = require("../lib/quizLock");
 
 // API key Groq (gratis: https://console.groq.com/keys). Disimpan di Secret
@@ -7,7 +8,7 @@ const { markWhisperCooldown } = require("../lib/quizLock");
 const GROQ_API_KEY = defineSecret("GROQ_API_KEY");
 
 const OPTIONS = {
-  region: "asia-southeast2",
+  ...CALLABLE_OPTIONS,
   memory: "512MiB",
   timeoutSeconds: 120,
   secrets: [GROQ_API_KEY],

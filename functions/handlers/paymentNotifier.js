@@ -1,10 +1,6 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
-const {
-  SCHEDULE_OPTIONS,
-  WABLAS_TOKEN,
-  WABLAS_SECRET_KEY,
-} = require("../lib/config");
+const { SCHEDULE_OPTIONS } = require("../lib/config");
 const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
 const { sendToUid } = require("../lib/messaging");
 const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
@@ -25,10 +21,17 @@ const {
 // tanggal Jakarta sebelum query Firestore dijalankan.
 
 // Reads penuh (santri_profiles + payments) butuh kelonggaran timeout.
+const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
+  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase()
+);
+const wablasSecrets = wablasEnabledAtDeploy
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
+
 const PAYMENT_SCHEDULE_OPTIONS = {
   ...SCHEDULE_OPTIONS,
   timeoutSeconds: 300,
-  secrets: [WABLAS_TOKEN, WABLAS_SECRET_KEY],
+  secrets: wablasSecrets,
 };
 
 // Susun teks daftar bulan tunggakan, dipadatkan bila banyak.

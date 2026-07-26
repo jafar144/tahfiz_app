@@ -1,26 +1,25 @@
-const { defineString, defineSecret } = require("firebase-functions/params");
+const { defineString } = require("firebase-functions/params");
 
-const DB_HOST = defineString("DB_HOST");
-const DB_PORT = defineString("DB_PORT", { default: "3306" });
-const DB_USER = defineString("DB_USER");
-const DB_NAME = defineString("DB_NAME");
-const DB_PASSWORD = defineSecret("DB_PASSWORD");
-const AUTH_EMAIL_DOMAIN = defineString("AUTH_EMAIL_DOMAIN", {
-  default: "khoirunnasyien.app",
+const AUTH_EMAIL_DOMAIN = defineString("AUTH_EMAIL_DOMAIN");
+const INSTITUTION_NAME = defineString("INSTITUTION_NAME");
+const PAYMENT_BANK_NAME = defineString("PAYMENT_BANK_NAME");
+const PAYMENT_ACCOUNT_NUMBER = defineString("PAYMENT_ACCOUNT_NUMBER");
+const PAYMENT_ACCOUNT_HOLDER = defineString("PAYMENT_ACCOUNT_HOLDER");
+const STAFF_INITIAL_PASSWORD = defineString("STAFF_INITIAL_PASSWORD", {
+  default: "",
 });
-const WABLAS_BASE_URL = defineString("WABLAS_BASE_URL");
+const WABLAS_BASE_URL = defineString("WABLAS_BASE_URL", {
+  default: "https://disabled.invalid",
+});
 const WABLAS_ENABLED = defineString("WABLAS_ENABLED", { default: "false" });
 const WHATSAPP_ADMIN_PHONE = defineString("WHATSAPP_ADMIN_PHONE", {
-  default: "6289679479654",
+  default: "",
 });
-const WABLAS_TOKEN = defineSecret("WABLAS_TOKEN");
-const WABLAS_SECRET_KEY = defineSecret("WABLAS_SECRET_KEY");
 
-const FUNCTION_OPTIONS = {
+const CALLABLE_OPTIONS = {
   region: "asia-southeast2",
-  timeoutSeconds: 540,
-  memory: "512MiB",
-  secrets: [DB_PASSWORD],
+  memory: "256MiB",
+  enforceAppCheck: process.env.APP_CHECK_ENFORCED === "true",
 };
 
 // Opsi dasar untuk fungsi terjadwal (tanpa secret DB). Jadwal & timeZone
@@ -31,18 +30,26 @@ const SCHEDULE_OPTIONS = {
   memory: "256MiB",
 };
 
+function institutionMessagingConfig() {
+  return {
+    institutionName: INSTITUTION_NAME.value(),
+    bankName: PAYMENT_BANK_NAME.value(),
+    accountNumber: PAYMENT_ACCOUNT_NUMBER.value(),
+    accountHolder: PAYMENT_ACCOUNT_HOLDER.value(),
+  };
+}
+
 module.exports = {
-  DB_HOST,
-  DB_PORT,
-  DB_USER,
-  DB_NAME,
-  DB_PASSWORD,
   AUTH_EMAIL_DOMAIN,
+  INSTITUTION_NAME,
+  PAYMENT_BANK_NAME,
+  PAYMENT_ACCOUNT_NUMBER,
+  PAYMENT_ACCOUNT_HOLDER,
+  STAFF_INITIAL_PASSWORD,
   WABLAS_BASE_URL,
   WABLAS_ENABLED,
   WHATSAPP_ADMIN_PHONE,
-  WABLAS_TOKEN,
-  WABLAS_SECRET_KEY,
-  FUNCTION_OPTIONS,
+  CALLABLE_OPTIONS,
   SCHEDULE_OPTIONS,
+  institutionMessagingConfig,
 };

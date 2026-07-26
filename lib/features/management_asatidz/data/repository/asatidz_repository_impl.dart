@@ -10,7 +10,6 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   AsatidzRepositoryImpl(this.remote);
 
   @override
-  @override
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
     bool? isActive,
@@ -33,8 +32,8 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   }
 
   @override
-  Future<void> addAsatidz(AsatidzParams params) async {
-    await remote.addAsatidz(params);
+  Future<String> addAsatidz(AsatidzParams params) {
+    return remote.addAsatidz(params);
   }
 
   @override

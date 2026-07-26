@@ -1,8 +1,6 @@
 const {
   WABLAS_BASE_URL,
   WABLAS_ENABLED,
-  WABLAS_TOKEN,
-  WABLAS_SECRET_KEY,
 } = require("./config");
 
 const MAX_MESSAGES_PER_REQUEST = 100;
@@ -92,12 +90,18 @@ async function sendTextMessages(messages, options = {}) {
   const baseUrl = normalizeBaseUrl(
     options.baseUrl === undefined ? WABLAS_BASE_URL.value() : options.baseUrl
   );
+  const secrets =
+    options.token === undefined || options.secretKey === undefined
+      ? require("./wablasSecrets")
+      : null;
   const token = String(
-    options.token === undefined ? WABLAS_TOKEN.value() : options.token
+    options.token === undefined
+      ? secrets.WABLAS_TOKEN.value()
+      : options.token
   ).trim();
   const secretKey = String(
     options.secretKey === undefined
-      ? WABLAS_SECRET_KEY.value()
+      ? secrets.WABLAS_SECRET_KEY.value()
       : options.secretKey
   ).trim();
   if (!token || !secretKey) throw new Error("Credential Wablas belum tersedia.");

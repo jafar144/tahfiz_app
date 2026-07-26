@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
-const { AUTH_EMAIL_DOMAIN, FUNCTION_OPTIONS } = require("../lib/config");
+const { AUTH_EMAIL_DOMAIN } = require("../lib/config");
+const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
 const { createConnection } = require("../lib/mysql");
 const {
   normNis,
@@ -10,8 +11,10 @@ const {
   dateTimeToJakartaTimestamp,
   passwordFromBirthDate,
 } = require("../lib/utils");
+const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
 exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
+  if (!authorizeLegacyAdminHttp(req, res)) return;
   const apply = req.query.apply === "true";
   let connection;
   try {
@@ -65,6 +68,11 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
           } catch (e) {
             if (e.code === "auth/email-already-exists") {
               userRecord = await admin.auth().getUserByEmail(email);
+              userRecord = await admin.auth().updateUser(userRecord.uid, {
+                password,
+                displayName: r.nama,
+                disabled: false,
+              });
             } else {
               throw e;
             }
@@ -77,6 +85,7 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
             nis,
             phone: "",
             role: "santri",
+            is_admin: false,
             uid,
             created_at: admin.firestore.FieldValue.serverTimestamp(),
           });
@@ -136,7 +145,6 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
               nis: r._nis,
               nama: r.nama,
               email: `${r._nis}@${AUTH_EMAIL_DOMAIN.value()}`,
-              password: passwordFromBirthDate(r.tanggal_lahir) || String(r._nis),
               jenis_kelamin: jenisKelaminFromGolongan(r.golongan),
               tipe_kelas: tipeKelasFromGolongan(r.golongan),
               kelas: r.kelas,

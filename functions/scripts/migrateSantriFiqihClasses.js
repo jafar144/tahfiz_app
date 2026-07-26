@@ -1,6 +1,10 @@
 "use strict";
 
-process.env.GCLOUD_PROJECT ||= "khoirun-app";
+if (!process.env.GCLOUD_PROJECT && !process.env.GOOGLE_CLOUD_PROJECT) {
+  throw new Error(
+    "Set GCLOUD_PROJECT secara eksplisit agar migrasi tidak salah project.",
+  );
+}
 
 const { admin, db } = require("../lib/firebase");
 const {

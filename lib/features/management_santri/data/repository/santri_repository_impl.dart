@@ -119,9 +119,7 @@ class SantriRepositoryImpl implements SantriRepository {
   }
 
   @override
-  Future<void> addSantri(SantriParams params) async {
-    await remote.addSantri(params);
-  }
+  Future<String> addSantri(SantriParams params) => remote.addSantri(params);
 
   @override
   Future<String> getNextNis() => remote.getNextNis();

@@ -145,8 +145,10 @@ class SantriCubit extends Cubit<SantriState> {
         photoUrl: finalPhotoUrl,
       );
 
-      await repository.addSantri(finalParams);
-      loadSantri(keyword: _currentKeyword, isActive: _currentIsActive);
+      final temporaryPassword = await repository.addSantri(finalParams);
+      emit(
+        SantriCreated(nis: params.nis, temporaryPassword: temporaryPassword),
+      );
     } catch (e) {
       emit(SantriError(ErrorHandler.getMessage(e)));
     }

@@ -54,6 +54,7 @@ dependencies:
 
   # Getar kustom (amplitude/pola) untuk umpan balik haptic kuis
   vibration: ^3.2.0
+  firebase_app_check: ^0.4.5+2
 
 dev_dependencies:
   flutter_test:

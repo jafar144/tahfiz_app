@@ -21,7 +21,7 @@ abstract class SantriRepository {
 
   Future<SantriDetail> getSantriDetail(String id);
 
-  Future<void> addSantri(SantriParams params);
+  Future<String> addSantri(SantriParams params);
 
   Future<void> updateSantri(String id, SantriParams params);
 

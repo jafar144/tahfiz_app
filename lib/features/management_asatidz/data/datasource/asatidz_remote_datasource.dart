@@ -13,7 +13,9 @@ abstract class AsatidzRemoteDataSource {
 
   Future<AsatidzDetail> getAsatidzDetail(String id);
 
-  Future<void> addAsatidz(AsatidzParams params);
+  /// Membuat akun melalui callable Function dan mengembalikan password
+  /// sementara yang hanya ditampilkan sekali kepada admin.
+  Future<String> addAsatidz(AsatidzParams params);
 
   Future<void> updateAsatidz(String id, AsatidzParams params);
 }

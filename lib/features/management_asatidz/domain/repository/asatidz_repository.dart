@@ -13,7 +13,7 @@ abstract class AsatidzRepository {
 
   Future<AsatidzDetail> getAsatidzDetail(String id);
 
-  Future<void> addAsatidz(AsatidzParams params);
+  Future<String> addAsatidz(AsatidzParams params);
 
   Future<void> updateAsatidz(String id, AsatidzParams params);
 }

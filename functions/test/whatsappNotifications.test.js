@@ -19,6 +19,13 @@ const {
   runBirthdayWhatsApp,
 } = require("../handlers/whatsappNotifier");
 
+const institution = {
+  institutionName: "Lembaga Uji",
+  bankName: "BSI",
+  accountNumber: "1234567890",
+  accountHolder: "Bendahara Uji",
+};
+
 test("normalisasi Wablas mencegah double slash dan merapikan nomor Indonesia", () => {
   assert.equal(normalizeBaseUrl("https://solo.wablas.com///"), "https://solo.wablas.com");
   assert.equal(normalizeWhatsAppPhone("0877-9984-1612"), "6287799841612");
@@ -123,18 +130,24 @@ test("tanggal lahir midnight UTC+7 dicocokkan sebagai tanggal Jakarta", () => {
 });
 
 test("template WhatsApp memuat detail tunggakan dan doa ulang tahun", () => {
-  const arrears = buildArrearsWhatsAppMessage({
-    name: "Ahmad",
-    nis: "123",
-    months: [
-      { year: 2026, month: 5 },
-      { year: 2026, month: 6 },
-    ],
-  });
+  const arrears = buildArrearsWhatsAppMessage(
+    {
+      name: "Ahmad",
+      nis: "123",
+      months: [
+        { year: 2026, month: 5 },
+        { year: 2026, month: 6 },
+      ],
+    },
+    institution,
+  );
   assert.match(arrears, /Ahmad/);
   assert.match(arrears, /Mei 2026, Juni 2026/);
 
-  const birthday = buildBirthdayWhatsAppMessage({ name: "Ahmad", age: 16 });
+  const birthday = buildBirthdayWhatsAppMessage(
+    { name: "Ahmad", age: 16 },
+    institution,
+  );
   assert.match(birthday, /Barakallahu fii umrik/);
   assert.match(birthday, /16 tahun/);
 });
@@ -146,6 +159,7 @@ test("nomor wali kosong dialihkan ke nomor admin dengan penjelasan", async () =>
     {
       enabled: true,
       adminPhone: "+62 896-7947-9654",
+      institution,
       birthdays: [
         { uid: "a", name: "Ahmad", age: 16, nomorWali: "087799841612" },
         { uid: "b", name: "Fatimah", age: 15, nomorWali: "" },

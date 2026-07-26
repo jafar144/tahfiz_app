@@ -6,6 +6,13 @@ class SantriInitial extends SantriState {}
 
 class SantriLoading extends SantriState {}
 
+class SantriCreated extends SantriState {
+  final String nis;
+  final String temporaryPassword;
+
+  SantriCreated({required this.nis, required this.temporaryPassword});
+}
+
 class SantriLoaded extends SantriState {
   final List<SantriEntity> santri;
   final bool hasReachedMax;

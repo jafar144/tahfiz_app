@@ -1,9 +1,10 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
 const { assertAdmin } = require("../lib/authz");
+const { CALLABLE_OPTIONS } = require("../lib/config");
 const { isSupportedAppFeature } = require("../lib/appFeatureConfig");
 
-const OPTIONS = { region: "asia-southeast2" };
+const OPTIONS = CALLABLE_OPTIONS;
 const CONFIG_DOCUMENT = db.collection("app_config").doc("runtime");
 
 const setAppFeatureConfig = onCall(OPTIONS, async (request) => {

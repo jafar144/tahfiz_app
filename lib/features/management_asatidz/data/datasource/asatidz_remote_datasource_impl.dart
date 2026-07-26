@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:khoirunnasyien/features/management_asatidz/data/datasource/asatidz_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
@@ -8,9 +7,9 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asati
 
 class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
   final FirebaseFirestore firestore;
-  final FirebaseAuth auth;
+  final FirebaseFunctions functions;
 
-  AsatidzRemoteDataSourceImpl(this.firestore, this.auth);
+  AsatidzRemoteDataSourceImpl(this.firestore, this.functions);
 
   @override
   Future<List<AsatidzEntity>> getAsatidzList({
@@ -99,49 +98,24 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
   }
 
   @override
-  Future<void> addAsatidz(AsatidzParams params) async {
-    final email = '${params.nis}@khoirunnasyien.app';
-    final password = 'Khoirun123';
-
-    FirebaseApp? tempApp;
-    try {
-      tempApp = await Firebase.initializeApp(
-        name: 'tempAuthAsatidz', // Different name to avoid conflict
-        options: Firebase.app().options,
-      );
-
-      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
-
-      final userCredential = await tempAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      final uid = userCredential.user!.uid;
-
-      await firestore.collection('users').doc(uid).set({
-        'name': params.name,
-        'email': email,
-        'nis': params.nis,
-        'phone': params.phone,
-        'role': 'asatidz',
-        'uid': uid,
-        'created_at': FieldValue.serverTimestamp(),
-        if (params.photoUrl != null) 'photo_url': params.photoUrl,
-      });
-
-      await firestore.collection('asatidz_profiles').doc(uid).set({
-        'is_active': true,
-        'jenis_kelamin': params.jenisKelamin,
-        'name': params.name,
-        'nis': params.nis,
-        'uid': uid,
-        'created_at': FieldValue.serverTimestamp(),
-        if (params.photoUrl != null) 'photo_url': params.photoUrl,
-      });
-    } finally {
-      await tempApp?.delete();
+  Future<String> addAsatidz(AsatidzParams params) async {
+    final result = await functions
+        .httpsCallable('provisionInstitutionUser')
+        .call(<String, dynamic>{
+          'role': 'asatidz',
+          'name': params.name,
+          'nis': params.nis,
+          'phone': params.phone,
+          'jenisKelamin': params.jenisKelamin,
+          'isActive': params.isActive,
+          if (params.photoUrl != null) 'photoUrl': params.photoUrl,
+        });
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final password = (data['temporaryPassword'] as String?)?.trim() ?? '';
+    if (password.isEmpty) {
+      throw StateError('Server tidak mengembalikan password sementara.');
     }
+    return password;
   }
 
   @override

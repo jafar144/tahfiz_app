@@ -1,7 +1,8 @@
 const { onRequest } = require("firebase-functions/v2/https");
-const { FUNCTION_OPTIONS } = require("../lib/config");
+const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
 const { createConnection } = require("../lib/mysql");
 const { escapeHtml } = require("../lib/utils");
+const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
 // Mengelompokkan santri berdasarkan pembimbing (pengajar) DAN sesi (golongan),
 // langsung dari data website (MySQL). Satu pengajar yang mengajar di beberapa
@@ -93,6 +94,7 @@ ${cards || '<p class="muted">Tidak ada data.</p>'}
 }
 
 exports.groupPengajarSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
+  if (!authorizeLegacyAdminHttp(req, res)) return;
   let connection;
   try {
     connection = await createConnection();

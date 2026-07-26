@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/features/management_santri/data/datasource/santri_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
@@ -10,9 +9,14 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asati
 
 class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   final FirebaseFirestore firestore;
-  final FirebaseAuth auth;
+  final FirebaseFunctions functions;
 
-  SantriRemoteDataSourceImpl(this.firestore, this.auth);
+  SantriRemoteDataSourceImpl(this.firestore, this.functions);
+
+  static String _dateOnly(DateTime value) {
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${value.year}-${two(value.month)}-${two(value.day)}';
+  }
 
   /// Status gratis santri. Sumber utama adalah `free_until` (tanggal berakhir
   /// masa gratis). Untuk data lama yang belum dimigrasi (free_until belum
@@ -328,70 +332,41 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
   }
 
   @override
-  Future<void> addSantri(SantriParams params) async {
-    final email = '${params.nis}@khoirunnasyien.app';
+  Future<String> addSantri(SantriParams params) async {
     final kelasFiqih = _normalizedFiqihClass(params);
-    // Password format: YYYYMMDD
-    final birthDate = params.birthDate;
-    final password =
-        '${birthDate.year}${birthDate.month.toString().padLeft(2, '0')}${birthDate.day.toString().padLeft(2, '0')}';
-
-    FirebaseApp? tempApp;
-    try {
-      tempApp = await Firebase.initializeApp(
-        name: 'tempAuth',
-        options: Firebase.app().options,
-      );
-
-      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
-
-      final userCredential = await tempAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      final uid = userCredential.user!.uid;
-
-      await firestore.collection('users').doc(uid).set({
-        'name': params.name,
-        'email': email,
-        'nis': params.nis,
-        'phone': params.phone,
-        'role': 'santri',
-        'uid': uid,
-        'created_at': FieldValue.serverTimestamp(),
-      });
-
-      await firestore.collection('santri_profiles').doc(uid).set({
-        'is_active': true,
-        'free_until': params.isFree
-            ? Timestamp.fromDate(
-                params.freeUntil ??
-                    DateTime(
-                      DateTime.now().year + 7,
-                      DateTime.now().month,
-                      DateTime.now().day,
-                    ),
-              )
-            : null,
-        'jenis_kelamin': params.jenisKelamin,
-        'kelas': params.kelas,
-        'kelas_fiqih': ?kelasFiqih,
-        'nama_wali': params.waliName,
-        'nomor_wali': params.waliPhone,
-        'name': params.name,
-        'nis': params.nis,
-        'tanggal_masuk': Timestamp.fromDate(params.entryDate),
-        'tanggal_lahir': Timestamp.fromDate(params.birthDate),
-        'tempat_lahir': params.birthPlace,
-        'tipe_kelas': params.tipeKelas,
-        'uid': uid,
-        'created_at': FieldValue.serverTimestamp(),
-        if (params.photoUrl != null) 'photo_url': params.photoUrl,
-      });
-    } finally {
-      await tempApp?.delete();
+    final fallbackFreeUntil = DateTime(
+      DateTime.now().year + 7,
+      DateTime.now().month,
+      DateTime.now().day,
+    );
+    final result = await functions
+        .httpsCallable('provisionInstitutionUser')
+        .call(<String, dynamic>{
+          'role': 'santri',
+          'name': params.name,
+          'nis': params.nis,
+          'phone': params.phone,
+          'jenisKelamin': params.jenisKelamin,
+          'isActive': params.isActive,
+          'birthPlace': params.birthPlace,
+          'birthDate': _dateOnly(params.birthDate),
+          'waliName': params.waliName,
+          'waliPhone': params.waliPhone,
+          'kelas': params.kelas,
+          'kelasFiqih': ?kelasFiqih,
+          'tipeKelas': params.tipeKelas,
+          'entryDate': _dateOnly(params.entryDate),
+          'isFree': params.isFree,
+          if (params.isFree)
+            'freeUntil': _dateOnly(params.freeUntil ?? fallbackFreeUntil),
+          if (params.photoUrl != null) 'photoUrl': params.photoUrl,
+        });
+    final data = Map<String, dynamic>.from(result.data as Map);
+    final password = (data['temporaryPassword'] as String?)?.trim() ?? '';
+    if (password.isEmpty) {
+      throw StateError('Server tidak mengembalikan password sementara.');
     }
+    return password;
   }
 
   @override

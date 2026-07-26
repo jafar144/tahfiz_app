@@ -1,0 +1,210 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDocument() {
+      return signedIn() && exists(userPath());
+    }
+
+    function currentUser() {
+      return get(userPath()).data;
+    }
+
+    function isAdmin() {
+      return hasUserDocument()
+        && (currentUser().role == 'admin' || currentUser().is_admin == true);
+    }
+
+    function isAsatidz() {
+      return hasUserDocument() && currentUser().role == 'asatidz';
+    }
+
+    function isSantri() {
+      return hasUserDocument() && currentUser().role == 'santri';
+    }
+
+    function isStaff() {
+      return isAdmin() || isAsatidz();
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, delete: if false;
+      allow update: if isAdmin()
+        || (
+          isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['phone', 'photo_url'])
+        );
+    }
+
+    match /santri_profiles/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+      allow create, delete: if false;
+      allow update: if isAdmin();
+    }
+
+    match /asatidz_profiles/{uid} {
+      allow read: if isOwner(uid) || isStaff();
+      allow create, delete: if false;
+      allow update: if isAdmin();
+    }
+
+    match /families/{familyId} {
+      allow read: if isAdmin()
+        || (
+          isSantri()
+          && resource.data.santri_ids is list
+          && request.auth.uid in resource.data.santri_ids
+        );
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isAdmin()
+        || (
+          isSantri()
+          && resource.data.santri_id == request.auth.uid
+        );
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /monthly_reports/{reportId} {
+      allow read: if isStaff()
+        || (
+          isSantri()
+          && resource.data.santri_id == request.auth.uid
+        );
+      allow create: if isAdmin()
+        || (
+          isAsatidz()
+          && request.resource.data.asatidz_id == request.auth.uid
+        );
+      allow update: if isAdmin()
+        || (
+          isAsatidz()
+          && resource.data.asatidz_id == request.auth.uid
+          && request.resource.data.asatidz_id == resource.data.asatidz_id
+          && request.resource.data.santri_id == resource.data.santri_id
+        );
+      allow delete: if isAdmin();
+    }
+
+    match /halaqahs/{halaqahId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /session_schedules/{scheduleId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /asatidz_attendance/{attendanceId} {
+      allow read, create, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /santri_attendance/{attendanceId} {
+      allow read, create, update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    match /meetings/{meetingId} {
+      allow read, create, update: if isStaff();
+      allow delete: if isAdmin();
+
+      match /members/{memberId} {
+        allow read: if isStaff()
+          || isOwner(memberId)
+          || (
+            signedIn()
+            && resource.data.santri_id == request.auth.uid
+          );
+        allow create, update: if isStaff();
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /kelulusan/{kelulusanId} {
+      allow read: if signedIn();
+      allow create: if isStaff();
+      allow update, delete: if false;
+    }
+
+    match /recitation_quiz_attempts/{attemptId} {
+      allow read: if isStaff()
+        || (
+          signedIn()
+          && resource.data.user_id == request.auth.uid
+        );
+      allow create: if isSantri()
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.role == 'santri';
+      allow update, delete: if false;
+    }
+
+    match /quiz_leaderboards/{monthKey}/{boardId}/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isSantri()
+        && isOwner(uid)
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.role == 'santri';
+      allow delete: if isAdmin();
+    }
+
+    match /surah_journey_progress/{uid} {
+      allow read, create, update: if isOwner(uid);
+      allow delete: if isAdmin();
+    }
+
+    match /device_tokens/{token} {
+      allow read: if isAdmin();
+      allow create: if hasUserDocument()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == currentUser().role;
+      allow update: if hasUserDocument()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == currentUser().role;
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    match /app_config/runtime {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Energi, lock, dan semua koleksi yang belum dikenal hanya boleh diakses
+    // melalui Admin SDK/Cloud Functions.
+    match /quiz_energy_weeks/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /app_locks/{documentId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

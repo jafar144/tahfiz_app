@@ -1,8 +1,9 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/config");
+const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
 const { createConnection } = require("../lib/mysql");
 const { normNis, toJakartaDateString, escapeHtml } = require("../lib/utils");
+const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
 // Tahun lahir >= ambang ini dianggap anomali (mis. 2024 ke atas: tidak mungkin
 // ada santri baru berumur 2-3 tahun). Bisa di-override lewat ?minYear=2023.
@@ -72,6 +73,7 @@ Tambahkan <code>?format=json</code> untuk output JSON.</p>
 }
 
 exports.checkBirthDates = onRequest(FUNCTION_OPTIONS, async (req, res) => {
+  if (!authorizeLegacyAdminHttp(req, res)) return;
   const minYear = Number(req.query.minYear) || DEFAULT_MIN_ANOMALY_YEAR;
   let connection;
   try {

@@ -12,6 +12,7 @@ class AiwaTextField extends StatefulWidget {
   final bool enabled;
   final int maxLines;
   final ValueChanged<String>? onChanged;
+  final FormFieldValidator<String>? validator;
 
   const AiwaTextField({
     super.key,
@@ -26,6 +27,7 @@ class AiwaTextField extends StatefulWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.onChanged,
+    this.validator,
   });
 
   @override
@@ -73,7 +75,7 @@ class _AiwaTextFieldState extends State<AiwaTextField> {
             if (value == null || value.isEmpty) {
               return '${widget.label} tidak boleh kosong';
             }
-            return null;
+            return widget.validator?.call(value);
           },
           decoration: InputDecoration(
             hintText: widget.hint,

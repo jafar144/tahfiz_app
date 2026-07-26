@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
+const { CALLABLE_OPTIONS } = require("../lib/config");
 const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 
 // Sistem energi & sesi Kuis Hafalan (Tahfiz Arena) — dihitung SISI SERVER
@@ -16,7 +17,7 @@ const { LEASE_MS, lockRef, tsMillis } = require("../lib/quizLock");
 //    tambahan berlaku untuk minggu berjalan saja (hangus saat reset).
 //  • Lock 1-user & cooldown Whisper hanya berlaku untuk mode SUARA.
 
-const OPTIONS = { region: "asia-southeast2" };
+const OPTIONS = CALLABLE_OPTIONS;
 const COLLECTION = "quiz_energy_weeks";
 const WEEKLY_PRACTICE = 15;
 const WEEKLY_CHALLENGE_PER_MODE = 2;

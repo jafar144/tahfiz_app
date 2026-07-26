@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/features/auth/data/datasource/auth_remote_datasource.dart';
 
 class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
@@ -8,7 +9,7 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
 
   @override
   Future<void> login(String nis, String password) async {
-    final email = "$nis@khoirunnasyien.app";
+    final email = '$nis@${AppConfig.current.authEmailDomain}';
 
     await firebaseAuth.signInWithEmailAndPassword(
       email: email,

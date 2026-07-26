@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
@@ -122,6 +123,56 @@ class _AddSantriPageState extends State<AddSantriPage> {
 
       context.read<SantriCubit>().addSantri(params);
     }
+  }
+
+  Future<void> _showTemporaryPassword(SantriCreated state) async {
+    setState(() => _isLoading = false);
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Akun santri berhasil dibuat'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Simpan dan kirimkan kredensial berikut secara aman. '
+              'Password hanya ditampilkan sekali.',
+            ),
+            const SizedBox(height: 16),
+            SelectableText('NIS: ${state.nis}'),
+            const SizedBox(height: 8),
+            SelectableText('Password sementara: ${state.temporaryPassword}'),
+          ],
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(
+                ClipboardData(
+                  text:
+                      'NIS: ${state.nis}\n'
+                      'Password sementara: ${state.temporaryPassword}',
+                ),
+              );
+              if (dialogContext.mounted) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  const SnackBar(content: Text('Kredensial disalin')),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy_outlined),
+            label: const Text('Salin'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Sudah disimpan'),
+          ),
+        ],
+      ),
+    );
+    if (mounted) Navigator.pop(context, true);
   }
 
   Future<void> _pickDate({
@@ -343,12 +394,8 @@ class _AddSantriPageState extends State<AddSantriPage> {
       listener: (context, state) {
         if (state is SantriLoading) {
           setState(() => _isLoading = true);
-        } else if (state is SantriLoaded) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Santri berhasil ditambahkan')),
-          );
-          Navigator.pop(context);
+        } else if (state is SantriCreated) {
+          _showTemporaryPassword(state);
         } else if (state is SantriError) {
           setState(() => _isLoading = false);
           ScaffoldMessenger.of(

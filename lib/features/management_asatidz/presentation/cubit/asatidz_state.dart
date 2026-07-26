@@ -6,6 +6,13 @@ class AsatidzInitial extends AsatidzState {}
 
 class AsatidzLoading extends AsatidzState {}
 
+class AsatidzCreated extends AsatidzState {
+  final String nis;
+  final String temporaryPassword;
+
+  AsatidzCreated({required this.nis, required this.temporaryPassword});
+}
+
 class AsatidzLoaded extends AsatidzState {
   final List<AsatidzEntity> asatidz;
   final bool hasReachedMax;

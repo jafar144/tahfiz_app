@@ -145,6 +145,13 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2.23.0
         with:
@@ -155,15 +162,35 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Validate flavor isolation
+        run: dart run tool/validate_flavors.dart
+
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Run tests
         run: flutter test
 
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Audit production Functions dependencies
+        working-directory: functions
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Run Functions tests
+        working-directory: functions
+        run: npm test
+
+      - name: Run Firestore and Storage Rules tests
+        working-directory: functions
+        run: npm run test:rules
+
       - name: Restore Android upload key
         shell: bash
         env:
+          FLAVOR: ${{ needs.prepare.outputs.flavor }}
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -181,7 +208,7 @@ jobs:
             printf 'keyPassword=%s\n' "$KEY_PASSWORD"
             printf 'keyAlias=%s\n' "$KEY_ALIAS"
             printf 'storeFile=upload-keystore.jks\n'
-          } > android/key.properties
+          } > "android/key.$FLAVOR.properties"
 
       - name: Build signed Android App Bundle
         shell: bash

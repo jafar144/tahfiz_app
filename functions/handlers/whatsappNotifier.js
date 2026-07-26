@@ -1,5 +1,8 @@
 const { logger } = require("firebase-functions");
-const { WHATSAPP_ADMIN_PHONE } = require("../lib/config");
+const {
+  WHATSAPP_ADMIN_PHONE,
+  institutionMessagingConfig,
+} = require("../lib/config");
 const { fetchTodayBirthdays } = require("../lib/birthdayStatus");
 const { jakartaDateParts } = require("../lib/jakartaTime");
 const {
@@ -112,11 +115,15 @@ async function runWhatsAppArrears(parts, unpaid, options = {}) {
     options.adminPhone === undefined
       ? WHATSAPP_ADMIN_PHONE.value()
       : options.adminPhone;
+  const institution =
+    options.institution === undefined
+      ? institutionMessagingConfig()
+      : options.institution;
   const prepared = prepareMessages(
     eligible,
     parts,
     "arrears",
-    buildArrearsWhatsAppMessage,
+    (item) => buildArrearsWhatsAppMessage(item, institution),
     adminPhone
   );
   const delivery = await dispatch(
@@ -142,11 +149,15 @@ async function runBirthdayWhatsApp(parts, options = {}) {
     options.adminPhone === undefined
       ? WHATSAPP_ADMIN_PHONE.value()
       : options.adminPhone;
+  const institution =
+    options.institution === undefined
+      ? institutionMessagingConfig()
+      : options.institution;
   const prepared = prepareMessages(
     birthdays,
     parts,
     "birthday",
-    buildBirthdayWhatsAppMessage,
+    (item) => buildBirthdayWhatsAppMessage(item, institution),
     adminPhone
   );
   const delivery = await dispatch(

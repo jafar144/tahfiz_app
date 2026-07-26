@@ -9,7 +9,7 @@ function formatUnpaidMonths(months, limit = 6) {
   return `${labels.slice(0, limit).join(", ")}, dan ${labels.length - limit} bulan lainnya`;
 }
 
-function buildArrearsWhatsAppMessage(santri) {
+function buildArrearsWhatsAppMessage(santri, institution) {
   const nis = santri.nis ? ` (NIS ${santri.nis})` : "";
   return [
     "Assalamu'alaikum warahmatullahi wabarakatuh.",
@@ -19,13 +19,14 @@ function buildArrearsWhatsAppMessage(santri) {
     "",
     "Mohon berkenan memeriksa kembali pembayaran melalui aplikasi dan menyelesaikan tunggakan tersebut.",
     "",
-    "Pembayaran dapat dilakukan melalui Bank BSI 7117245448 a.n. Fahmi Ramdani.",
+    `Pembayaran dapat dilakukan melalui Bank ${institution.bankName} ` +
+      `${institution.accountNumber} a.n. ${institution.accountHolder}.`,
     "",
     "Mohon abaikan pesan ini dan informasikan kepada admin apabila pembayaran sudah dilakukan. Jazakumullahu khairan.",
   ].join("\n");
 }
 
-function buildBirthdayWhatsAppMessage(santri) {
+function buildBirthdayWhatsAppMessage(santri, institution) {
   const age = santri.age > 0 ? ` yang hari ini genap berusia ${santri.age} tahun` : "";
   return [
     "Assalamu'alaikum warahmatullahi wabarakatuh.",
@@ -34,7 +35,7 @@ function buildBirthdayWhatsAppMessage(santri) {
     "Semoga Allah senantiasa memberikan kesehatan, keberkahan umur, kemudahan dalam menghafal Al-Qur'an, serta menjadikannya anak yang saleh/salehah.",
     "",
     "Salam hangat,",
-    "Khoirunnasyien",
+    institution.institutionName,
   ].join("\n");
 }
 

@@ -1,26 +1,10 @@
 {
   "firestore": {
+    "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "flutter": {
-    "platforms": {
-      "android": {
-        "default": {
-          "projectId": "khoirun-app",
-          "appId": "1:1098267931109:android:46cd33f3b8393dddf87f0c",
-          "fileOutput": "android/app/src/khoirunnasyien/google-services.json"
-        }
-      },
-      "dart": {
-        "lib/flavors/khoirunnasyien/firebase_options.dart": {
-          "projectId": "khoirun-app",
-          "configurations": {
-            "android": "1:1098267931109:android:46cd33f3b8393dddf87f0c",
-            "ios": "1:1098267931109:ios:1753b04701b45053f87f0c"
-          }
-        }
-      }
-    }
+  "storage": {
+    "rules": "storage.rules"
   },
   "functions": {
     "source": "functions",

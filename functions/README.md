@@ -1,318 +1,169 @@
-# Khoirun Functions — Rekonsiliasi Data
+# Cloud Functions Tahfiz white-label
 
-Cloud Functions (v2) untuk membandingkan data Web (MySQL) vs Mobile (Firestore).
+Functions ini dipakai oleh semua flavor, tetapi setiap lembaga wajib deploy ke
+Firebase project yang berbeda. Konfigurasi non-secret dibaca dari
+`.env.<firebase-project-id>` dan secret disimpan di Google Secret Manager.
 
-## Function yang tersedia
+## Kelompok Functions
 
-- `compareSantri` — bandingkan santri berdasarkan **NIS**. Menampilkan:
-  1. Santri yang ada di **Web** tapi **tidak ada di Mobile**
-  2. Santri yang ada di **Mobile** tapi **tidak ada di Web**
+Kelompok inti selalu diekspor:
 
-- `checkBirthDates` — bandingkan **tanggal lahir** Web (MySQL `santris`) vs Mobile
-  (Firestore `santri_profiles`), dicocokkan berdasarkan **NIS**. Menampilkan:
-  1. Santri yang tanggal lahirnya **beda** antara Web & Mobile.
-  2. Santri yang tanggal lahirnya **anomali** — tahun ≥ ambang (default `2024`,
-     ubah dengan `?minYear=2023`), mis. santri baru tak mungkin berumur 2-3 tahun.
-  - Tanggal dinormalisasi ke zona WIB (`YYYY-MM-DD`) agar perbandingan tidak
-    terganggu jam/zona. `?format=json` untuk output JSON.
+- provisioning akun santri/asatidz oleh admin;
+- app config, energi kuis, dan penghapusan syahadah oleh handler berizin;
+- transkripsi bacaan;
+- notifikasi terjadwal dan pembersihan foto syahadah.
 
-- `resetSantriPasswords` — **reset password** Firebase Auth santri yang sudah
-  terdaftar (mis. tanggal lahirnya salah saat impor → password ikut salah).
-  Login app pakai email `{nis}@khoirunnasyien.app`; password baru ditentukan
-  **manual per-NIS**:
-  - Kirim `password` eksplisit, **atau** `tanggal_lahir` (`YYYY-MM-DD`) yang akan
-    diturunkan jadi password `YYYYMMDD` (konvensi mobile).
-  - Input: JSON body `{ "items": [ { "nis": "123", "tanggal_lahir": "2010-05-12" },
-    { "nis": "456", "password": "rahasia123" } ] }` — atau satu santri lewat query
-    `?nis=123&tanggal_lahir=2010-05-12`.
-  - **Default DRY-RUN.** Jalankan dulu untuk lihat `preview` (NIS, nama, email,
-    `passwordBaru`), lalu `?apply=true`.
-  - **APPLY butuh token** (langkah sensitif). Set sekali:
-    `firebase functions:secrets:set RESET_TOKEN`, lalu kirim `?token=...` saat apply.
-  - Opsional `?syncProfile=true` → sekalian perbaiki `santri_profiles.tanggal_lahir`
-    bila `tanggal_lahir` diberikan.
+Kelompok legacy hanya untuk rekonsiliasi sistem lama:
 
-- `importSantri` — migrasi santri Web → Mobile:
-  - Santri di Web tapi tidak di Mobile → buat akun Auth + dokumen
-    `users/{uid}` & `santri_profiles/{uid}`.
-  - Santri di Mobile tapi tidak di Web → set `santri_profiles.is_active = false`.
-  - **Default DRY-RUN** (tidak menulis). Jalankan dulu tanpa parameter untuk
-    melihat preview, lalu tambahkan `?apply=true` untuk benar-benar menulis.
+- compare/check/import data MySQL;
+- reset password/migrasi fiqih;
+- grouping data lama;
+- `guestLookup`.
 
-  Aturan mapping:
-  | Firestore | Sumber |
-  |-----------|--------|
-  | email | `nis@khoirunnasyien.app` |
-  | password (Auth) | tanggal lahir `YYYYMMDD` (konvensi mobile) |
-  | users.phone | dikosongkan |
-  | jenis_kelamin | `golongan` diawali "Putra" → L, "Putri" → P |
-  | tipe_kelas | kata ke-2 dari `golongan` (mis. "Putra Sore" → "Sore") |
-  | nomor_wali | `phone` MySQL (kalau ada) |
-  | tanggal_lahir | DATE MySQL @ 00:00 WIB |
-  | tanggal_masuk | `created_at` MySQL |
-  | free_until / nama_wali / halaqah_id | dikosongkan |
+Kelompok legacy tidak diekspor secara default. Ini mencegah Firebase project
+lembaga baru meminta atau membawa credential database lembaga lain.
 
-  > Tabel MySQL harus punya kolom: `nama, nis, tanggal_lahir, kelas, golongan,
-  > phone, tempat_lahir, created_at`. Kalau nama kolom berbeda, sesuaikan query
-  > `SELECT ... FROM santris` di `index.js`.
+## Setup project lembaga
 
-- `importPayments` — migrasi pembayaran **tahun 2026**, hanya yang **sudah bayar**
-  (`payments.status = 1`):
-  - **Bagian A** — santri `status_spp = 2` (gratis) → set
-    `santri_profiles.free_until = tanggal_masuk + 10 tahun`.
-  - **Bagian B** — tiap baris `payments` → buat dokumen `payments` Firestore:
-    `santri_id`=uid, `bulan` (angka), `tahun`=2026, `total`=200000,
-    `metode`="migrasi", `created_by`="SYSTEM_MIGRATION", `created_at`=serverTimestamp.
-  - **Anti-duplikat:** sebelum insert, cek apakah pembayaran santri+bulan+tahun
-    sudah ada di Firestore. `bulan` dinormalisasi ke angka karena data migrasi
-    lama tersimpan campur (int / "1" / "01"), jadi tidak akan dobel.
-  - Resolusi id: `payments.santri_id` → `santris.id` → `nis` → `uid`.
-  - **Default DRY-RUN.** Jalankan tanpa parameter dulu (periksa `summary`,
-    `previewPayments`, `previewFreeUntil`, dan `*Dilewati`), lalu `?apply=true`.
-
-  > Mengasumsikan PK tabel `santris` bernama `id` dan `payments` punya kolom
-  > `santri_id, bulan, tahun, status`. Sesuaikan query di `index.js` bila beda.
-
-- `importMonthlyReports` — migrasi penilaian bulanan **tahun 2026** dari tabel
-  `nilais` → koleksi `monthly_reports` Firestore:
-  | Firestore | Sumber |
-  |-----------|--------|
-  | santri_id | uid (`nilais.santri_id` → `santris.id` → `nis` → uid) |
-  | santri_name | nama santri di Firestore |
-  | asatidz_id | uid asatidz (`nilais.operator_id` → `users.username` web → `nis` asatidz Firestore) |
-  | asatidz_name | nama asatidz Firestore; kalau operator bukan asatidz → nama operator web |
-  | hafalan_terakhir | `hafalan` |
-  | nilai_perkembangan | `perkembangan` |
-  | nilai_akhlaq | `akhlak` |
-  | notes | dikosongkan |
-  | bulan / tahun | `bulan` / 2026 |
-  | created_at / updated_at | kolom `created_at` / `updated_at` di `nilais` |
-  - **Anti-duplikat:** cek `monthly_reports` santri+bulan+tahun yang sudah ada
-    (bulan dinormalisasi ke angka).
-  - **Default DRY-RUN.** Jalankan dulu, periksa `previewDibuat` & `dilewati`,
-    lalu `?apply=true`.
-
-  > Operator dicocokkan lewat `users.username` (web) = `nis` asatidz Firestore.
-  > Mengasumsikan `nilais` punya kolom `created_at`/`updated_at`.
-
-- `groupPengajarSantri` — **read-only**, mengelompokkan pengajar & santri yang
-  diajar langsung dari data website (MySQL). Grouping per **pembimbing**
-  (`santris.pembimbing_id` → `users.id`) **dan per sesi** (`santris.golongan`),
-  jadi satu ustadz yang mengajar mis. "Putra Sore" dan "Putra Malam" tampil
-  sebagai dua grup terpisah. Tiap grup berisi: nama pengajar, sesi, dan daftar
-  santri (NIS + nama). Tampil sebagai HTML; tambahkan `?format=json` untuk JSON.
-
-  > Mengasumsikan tabel `santris` punya kolom `pembimbing_id` (FK ke `users.id`)
-  > dan `golongan`. Santri tanpa `pembimbing_id` masuk grup "(tanpa pembimbing)".
-
-## Notifikasi terjadwal (FCM)
-
-Penjadwal mengirim notifikasi lewat token di koleksi `device_tokens` (per `uid`).
-Perhitungan tanggal memakai zona **WIB** (`lib/jakartaTime.js`).
-
-Jumlah fungsi terjadwal dibatasi menjadi **3 scheduler**. Dua scheduler notifikasi
-berjalan harian dan memilih job lewat kondisi tanggal; satu scheduler lain tetap
-menangani cleanup mingguan:
-
-1. `notifyAssessmentWindowOpen` — koordinator penilaian, harian **19:30 WIB**:
-   - H-6 akhir bulan: broadcast bahwa window penilaian dibuka.
-   - H-1 dan hari terakhir: pengingat penilaian belum lengkap per asatidz.
-2. `notifyArrearsMonthEnd` — koordinator SPP, harian **08:00 WIB**:
-   - Tanggal 5: ajakan membayar SPP bulan berjalan.
-   - Tanggal 15: pengingat tunggakan.
-   - H-3 akhir bulan: pengingat tunggakan.
-3. `cleanupExpiredSyahadah` — cleanup foto kelulusan, Senin **03:00 WIB**.
-
-Nama scheduler #1 dan #2 mempertahankan export lama agar deploy memperbarui
-fungsi yang sudah ada tanpa membuat scheduler keempat.
-
-Saat deploy pertama dari versi enam scheduler, pastikan menyetujui penghapusan
-`notifyIncompleteAssessment`, `notifyPaymentDue`, dan
-`notifyArrearsMidMonth`. Ketiganya sudah digantikan koordinator di atas dan
-tidak boleh dibiarkan aktif karena dapat mengirim notifikasi ganda.
-
-- **SPP santri** (`paymentNotifier.js`, 08:00 WIB) — hanya **santri reguler aktif**:
-  `is_active == true` dan **tidak sedang gratis** (`free_until` kosong atau sudah
-  lewat; yang `free_until`-nya masih di masa depan dilewati).
-  - Bulan mulai tagih = bulan `tanggal_masuk`, atau bulan **setelah** `free_until`
-    bila masa gratis sudah lewat — konsisten dengan `PaymentUtils.resolveStartDate`
-    di app. `bulan`/`tahun` pada `payments` dinormalisasi ke angka (data campur
-    int / "1" / "01").
-  - Tap notifikasi membuka beranda santri (`data.type` = `payment_due` /
-    `payment_arrears`).
-
-### WhatsApp terjadwal via Wablas
-
-Pengiriman WhatsApp menumpang pada `notifyArrearsMonthEnd`, sehingga jumlah
-Cloud Scheduler tetap **3**:
-
-- **Ulang tahun** diperiksa setiap hari pukul 08:00 WIB. Santri aktif yang
-  `tanggal_lahir`-nya sama dengan tanggal Jakarta hari ini mendapat ucapan di
-  `nomor_wali`. Timestamp seperti `December 28, 2010 at 12:00:00 AM UTC+7`
-  dibaca sebagai 28 Desember.
-- **Tunggakan lama** dikirim hanya pada H-3 akhir bulan. FCM tetap dikirim untuk
-  semua tunggakan, sedangkan WhatsApp hanya untuk santri yang bulan tunggakan
-  tertuanya sudah memasuki minimal **3 periode tagihan**. Contoh: pada Juli,
-  tunggakan Mei memenuhi syarat dan tunggakan Juni belum.
-- Periode pembayaran tidak pernah dihitung sebelum bulan `tanggal_masuk`, juga
-  pada profil yang pernah mempunyai masa gratis. Santri yang baru masuk Juli
-  baru mempunyai satu periode pada Juli sehingga belum menerima WA tunggakan.
-- Nomor `08...`, `8...`, atau `62...` dinormalisasi ke format `62...`. Data tanpa
-  `nomor_wali` valid dialihkan ke `WHATSAPP_ADMIN_PHONE`. Pesan admin memuat
-  nama santri, alasan pengalihan, isi pesan asli, dan penjelasan bahwa nomor
-  tersebut menerima pesan karena terdaftar sebagai admin.
-- Template pesan berada di `lib/whatsappMessages.js`. Ubah teks di
-  `buildArrearsWhatsAppMessage` atau `buildBirthdayWhatsAppMessage` tanpa perlu
-  mengubah scheduler maupun filter penerima.
-
-Konfigurasi non-secret di `functions/.env`:
+Salin `.env.example` menjadi `.env.<firebase-project-id>`. Parameter inti:
 
 ```dotenv
-WABLAS_BASE_URL=https://SERVER_DEVICE.wablas.com
+AUTH_EMAIL_DOMAIN=lembaga.app
+INSTITUTION_NAME="Nama Lembaga"
+PAYMENT_BANK_NAME=NAMA_BANK
+PAYMENT_ACCOUNT_NUMBER=NOMOR_REKENING
+PAYMENT_ACCOUNT_HOLDER=NAMA_PEMILIK
+STAFF_INITIAL_PASSWORD=
+APP_CHECK_ENFORCED=false
+
 WABLAS_ENABLED=false
-WHATSAPP_ADMIN_PHONE=6289679479654
+WABLAS_BASE_URL=https://disabled.invalid
+WHATSAPP_ADMIN_PHONE=
+
+DEPLOY_LEGACY_HTTP_FUNCTIONS=false
+LEGACY_ADMIN_HTTP_ENABLED=false
 ```
 
-URL otomatis dibersihkan dari slash di belakang untuk mencegah endpoint `//api`.
-Simpan token dan secret key ke Secret Manager:
+Set secret transkripsi:
 
-```bash
-firebase functions:secrets:set WABLAS_TOKEN
-firebase functions:secrets:set WABLAS_SECRET_KEY
+```powershell
+firebase functions:secrets:set GROQ_API_KEY --project FIREBASE_PROJECT_ID
 ```
 
-Untuk emulator, nilai secret dapat dioverride lewat `functions/.secret.local`:
+Jika Wablas diaktifkan, isi konfigurasi Wablas lalu:
+
+```powershell
+firebase functions:secrets:set WABLAS_TOKEN --project FIREBASE_PROJECT_ID
+firebase functions:secrets:set WABLAS_SECRET_KEY --project FIREBASE_PROJECT_ID
+```
+
+Jangan menyimpan secret di `.env`, source code, APK, atau log CI.
+
+`APP_CHECK_ENFORCED` tetap `false` sampai debug token dan AAB Play Integrity
+terlihat valid di Firebase Console. Setelah itu ubah ke `true`, deploy ulang
+Functions, lalu aktifkan enforcement Firestore/Storage dari Console.
+
+## Model keamanan akun
+
+Klien tidak membuat Firebase Auth user dan tidak boleh membuat dokumen
+`users`, `santri_profiles`, atau `asatidz_profiles`. Admin memanggil
+`provisionInstitutionUser`; handler membuat Auth dan profil secara server-side.
+
+Password awal:
+
+- santri memakai tanggal lahir dengan urutan `YYYYMMDD`, misalnya
+  `09/03/2012` menjadi `20120309`;
+- asatidz dapat memakai nilai `STAFF_INITIAL_PASSWORD` per lembaga; jika
+  kosong, password dibuat acak;
+- aplikasi tidak memaksa pengguna mengganti password setelah login.
+
+Akun admin pertama dibuat secara manual di Firebase Console mengikuti runbook
+lembaga. Tidak ada endpoint bootstrap admin publik.
+
+## Endpoint legacy
+
+Untuk maintenance project lama saja:
 
 ```dotenv
-WABLAS_TOKEN=token_device
-WABLAS_SECRET_KEY=secret_key_device
+DEPLOY_LEGACY_HTTP_FUNCTIONS=true
+LEGACY_ADMIN_HTTP_ENABLED=true
+DB_HOST=...
+DB_PORT=3306
+DB_USER=...
+DB_NAME=...
 ```
 
-Set `WABLAS_ENABLED=true` hanya setelah server, credential, nomor wali, dan
-template pesan selesai diuji. Token dan secret key tidak boleh disimpan di
-Flutter, `.env`, atau source control.
+Set secret:
 
-- **Pembersih foto kelulusan** (`cleanupExpiredSyahadah.js`, **tiap Senin 03:00
-  WIB**): menghapus entri koleksi `kelulusan` yang `created_at`-nya lebih dari
-  **7 hari** beserta file gambarnya di Storage (`syahadah_photos/`), agar storage
-  tidak penuh. Path file diambil dari `image_url`. Di app, carousel kelulusan
-  hanya menampilkan entri ≤ 7 hari, jadi yang kedaluwarsa sudah tidak tampil
-  meski belum sempat dibersihkan.
-
-## Setup
-
-### 1. Install dependency
-
-```bash
-cd functions
-npm install
+```powershell
+firebase functions:secrets:set DB_PASSWORD --project FIREBASE_PROJECT_ID
+firebase functions:secrets:set ADMIN_HTTP_TOKEN --project FIREBASE_PROJECT_ID
+firebase functions:secrets:set GUEST_API_KEY --project FIREBASE_PROJECT_ID
 ```
 
-### 2. Isi konfigurasi MySQL
+Semua endpoint maintenance memakai `x-admin-token` atau Bearer token. Token
+tidak boleh dikirim melalui query string. Dry-run tetap memerlukan token.
 
-Salin `.env.example` → `.env`, isi `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_NAME`.
+Contoh:
 
-Password MySQL disimpan sebagai **secret** (bukan di `.env`):
-
-```bash
-firebase functions:secrets:set DB_PASSWORD
-# tempel password saat diminta
+```powershell
+$headers = @{ "x-admin-token" = "TOKEN_DARI_PASSWORD_MANAGER" }
+Invoke-RestMethod `
+  -Headers $headers `
+  -Uri "https://REGION-PROJECT.cloudfunctions.net/importSantri"
 ```
 
-> Pastikan IP MySQL mengizinkan koneksi dari luar. Cloud Functions tidak punya IP
-> tetap by default; bila firewall MySQL membatasi IP, whitelist range Google atau
-> sementara izinkan `0.0.0.0/0` (lalu perketat setelah migrasi).
+Untuk apply, tambahkan parameter yang diminta handler, misalnya `?apply=true`.
+Setelah maintenance:
 
-### 3. Deploy
+1. ubah `LEGACY_ADMIN_HTTP_ENABLED=false`;
+2. ubah `DEPLOY_LEGACY_HTTP_FUNCTIONS=false`;
+3. deploy ulang Functions dan konfirmasi penghapusan endpoint legacy;
+4. rotasi/revoke token bila sudah tidak dipakai.
 
-```bash
-firebase deploy --only functions
-```
+Script lokal migrasi Firestore tidak mempunyai project fallback. Set project
+secara eksplisit dan gunakan Application Default Credentials:
 
-Setelah deploy, jalankan link yang muncul:
-
-```
-# Rekonsiliasi (read-only)
-https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri
-https://asia-southeast2-khoirun-app.cloudfunctions.net/compareSantri?format=json
-https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates
-https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?format=json
-https://asia-southeast2-khoirun-app.cloudfunctions.net/checkBirthDates?minYear=2023
-https://asia-southeast2-khoirun-app.cloudfunctions.net/groupPengajarSantri
-https://asia-southeast2-khoirun-app.cloudfunctions.net/groupPengajarSantri?format=json
-
-# Reset password santri — LIHAT DULU (dry-run), lalu EKSEKUSI dengan token
-# Satu santri cepat:
-https://asia-southeast2-khoirun-app.cloudfunctions.net/resetSantriPasswords?nis=123&tanggal_lahir=2010-05-12
-https://asia-southeast2-khoirun-app.cloudfunctions.net/resetSantriPasswords?nis=123&tanggal_lahir=2010-05-12&apply=true&token=RAHASIA
-# Banyak santri (POST JSON):
-#   curl -X POST '.../resetSantriPasswords?apply=true&token=RAHASIA' \
-#     -H 'Content-Type: application/json' \
-#     -d '{"items":[{"nis":"123","tanggal_lahir":"2010-05-12"}]}'
-
-# Migrasi — LIHAT DULU (dry-run, tidak menulis)
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri
-
-# Migrasi santri — EKSEKUSI (menulis data)
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importSantri?apply=true
-
-# Migrasi pembayaran 2026 — LIHAT DULU lalu EKSEKUSI
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importPayments?apply=true
-
-# Migrasi penilaian bulanan 2026 — LIHAT DULU lalu EKSEKUSI
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importMonthlyReports
-https://asia-southeast2-khoirun-app.cloudfunctions.net/importMonthlyReports?apply=true
-```
-
-- `compareSantri` → tampil 2 list dalam tabel HTML (`?format=json` untuk JSON).
-- `importSantri` → **selalu jalankan tanpa `?apply=true` dulu**, periksa
-  `previewDibuat` & `akanDinonaktifkan`, baru jalankan dengan `?apply=true`.
-
-## Catatan anti-timeout
-
-- `timeoutSeconds: 540` (9 menit), memory `512MiB`.
-- Semua data diambil dalam 1 query MySQL + 1 `get()` Firestore (field `name`, `nis` saja),
-  diff dilakukan di memori. Untuk ribuan baris ini berjalan dalam hitungan detik.
-
-## Migrasi kelas Fiqih
-
-Migrasi ini mengisi `santri_profiles.kelas_fiqih = "Fiqih 1"` hanya untuk
-santri aktif mulai kelas Mutawassith. Nilai `Fiqih 1` sampai `Fiqih 3` yang sudah ada
-tidak ditimpa, sehingga aman dijalankan ulang.
-
-```bash
-cd functions
+```powershell
+$env:GCLOUD_PROJECT = "firebase-project-id"
 npm run migrate:santri-fiqih
-npm run migrate:santri-fiqih -- --apply
+npm run migrate:quiz-leaderboards -- --month=2026-07
 ```
 
-Perintah pertama selalu dry-run. Periksa jumlah kandidat sebelum menjalankan
-perintah kedua.
+Tambahkan `--apply` hanya setelah output dry-run ditinjau.
 
-### Lewat link Cloud Function
+## Pengujian
 
-Set token sekali lalu deploy endpointnya:
+Gunakan Node 22 dan Java 17+:
 
-```bash
-firebase functions:secrets:set FIQIH_MIGRATION_TOKEN
-firebase deploy --only functions:migrateSantriFiqihClasses
+```powershell
+npm ci
+npm audit --omit=dev
+npm test
+npm run test:rules
 ```
 
-Setelah deploy, buka dry-run berikut (ganti `TOKEN_RAHASIA`):
+`test:rules` menyalakan emulator Firestore dan Storage, lalu memastikan:
 
-```text
-https://asia-southeast2-khoirun-app.cloudfunctions.net/migrateSantriFiqihClasses?token=TOKEN_RAHASIA
+- anonymous dan akses lintas santri ditolak;
+- role tidak dapat dinaikkan dari klien;
+- asatidz hanya dapat menulis data kegiatan;
+- token perangkat terikat pada pemilik;
+- upload Storage dibatasi role, tipe file, dan ukuran.
+
+## Deploy
+
+Selalu tulis project ID:
+
+```powershell
+firebase deploy `
+  --project FIREBASE_PROJECT_ID `
+  --only firestore:rules,firestore:indexes,storage
+
+firebase deploy `
+  --project FIREBASE_PROJECT_ID `
+  --only functions
 ```
 
-Untuk menulis data, tambahkan `&apply=true`. Endpoint menolak request tanpa
-token dan tidak menimpa nilai Fiqih yang sudah ada.
-
-## Test lokal (emulator)
-
-```bash
-firebase emulators:start --only functions
-```
-
-`.env` akan otomatis terbaca. Untuk secret di emulator, set `DB_PASSWORD` di `.env` juga
-(emulator membaca `.env` untuk secret).
+Runbook lengkap Barokatul Qur'an berada di
+`docs/setup_barokatul_quran.md`.

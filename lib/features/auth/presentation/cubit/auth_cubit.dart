@@ -43,14 +43,13 @@ class AuthCubit extends Cubit<AuthState> {
     final user = await userRepository.getUserByUid(firebaseUser.uid);
 
     if (user.role == UserRole.santri) {
-      final querySnapshot = await FirebaseFirestore.instance
+      final profile = await FirebaseFirestore.instance
           .collection('santri_profiles')
-          .where('nis', isEqualTo: user.nis)
-          .limit(1)
+          .doc(user.uid)
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        final data = querySnapshot.docs.first.data();
+      if (profile.exists) {
+        final data = profile.data()!;
         if (data['is_active'] == false) {
           await authRepository.logout();
           emit(AuthUnauthenticated());
@@ -76,14 +75,13 @@ class AuthCubit extends Cubit<AuthState> {
       final user = await userRepository.getUserByUid(firebaseUser.uid);
 
       if (user.role == UserRole.santri) {
-        final querySnapshot = await FirebaseFirestore.instance
+        final profile = await FirebaseFirestore.instance
             .collection('santri_profiles')
-            .where('nis', isEqualTo: user.nis)
-            .limit(1)
+            .doc(user.uid)
             .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
-          final data = querySnapshot.docs.first.data();
+        if (profile.exists) {
+          final data = profile.data()!;
           if (data['is_active'] == false) {
             await authRepository.logout();
             throw Exception('Gagal masuk. Akun santri ini sudah tidak aktif.');

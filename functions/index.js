@@ -1,13 +1,3 @@
-const { compareSantri } = require("./handlers/compareSantri");
-const { checkBirthDates } = require("./handlers/checkBirthDates");
-const { resetSantriPasswords } = require("./handlers/resetSantriPasswords");
-const { importSantri } = require("./handlers/importSantri");
-const { importPayments } = require("./handlers/importPayments");
-const { importMonthlyReports } = require("./handlers/importMonthlyReports");
-const {
-  migrateSantriFiqihClasses,
-} = require("./handlers/migrateSantriFiqihClasses");
-const { groupPengajarSantri } = require("./handlers/groupPengajarSantri");
 const {
   scheduledAssessmentNotifications,
 } = require("./handlers/assessmentNotifier");
@@ -15,7 +5,6 @@ const {
   scheduledPaymentNotifications,
 } = require("./handlers/paymentNotifier");
 const { cleanupExpiredSyahadah } = require("./handlers/cleanupExpiredSyahadah");
-const { guestLookup } = require("./handlers/guestLookup");
 const { transcribeRecitation } = require("./handlers/transcribeRecitation");
 const {
   getQuizEnergy,
@@ -26,15 +15,9 @@ const {
 } = require("./handlers/quizEnergy");
 const { setAppFeatureConfig } = require("./handlers/appConfig");
 const { deleteKelulusanPhoto } = require("./handlers/kelulusanAdmin");
-
-exports.compareSantri = compareSantri;
-exports.checkBirthDates = checkBirthDates;
-exports.resetSantriPasswords = resetSantriPasswords;
-exports.importSantri = importSantri;
-exports.importPayments = importPayments;
-exports.importMonthlyReports = importMonthlyReports;
-exports.migrateSantriFiqihClasses = migrateSantriFiqihClasses;
-exports.groupPengajarSantri = groupPengajarSantri;
+const {
+  provisionInstitutionUser,
+} = require("./handlers/provisionInstitutionUser");
 
 // Hanya tiga export scheduler. Nama dua export lama dipertahankan agar deploy
 // memperbarui fungsi yang sudah ada, bukan membuat scheduler tambahan.
@@ -47,11 +30,6 @@ exports.notifyArrearsMonthEnd = scheduledPaymentNotifications;
 
 // #3 Pembersih foto kelulusan kedaluwarsa, tiap Senin 03:00 WIB.
 exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
-
-// Endpoint guest web (read-only): cek pembayaran & penilaian terakhir by NIS.
-// Dilindungi header x-api-key (secret GUEST_API_KEY). Dipakai web cPanel
-// sementara sampai web pensiun (September 2026).
-exports.guestLookup = guestLookup;
 
 // Pendeteksi bacaan Quran (Fase 0): proxy transkripsi Groq Whisper.
 // onCall, butuh login. Secret GROQ_API_KEY.
@@ -73,3 +51,27 @@ exports.setAppFeatureConfig = setAppFeatureConfig;
 
 // Hapus poster kelulusan dan record Home Santri (khusus admin).
 exports.deleteKelulusanPhoto = deleteKelulusanPhoto;
+
+// Provisioning akun dan role hanya melalui server, khusus admin.
+exports.provisionInstitutionUser = provisionInstitutionUser;
+
+// Endpoint rekonsiliasi MySQL dan guest web adalah kebutuhan migrasi sistem
+// lama, bukan bagian aplikasi white-label. Default tidak diekspor agar project
+// lembaga baru tidak meminta credential database/guest milik lembaga lain.
+if (process.env.DEPLOY_LEGACY_HTTP_FUNCTIONS === "true") {
+  exports.compareSantri = require("./handlers/compareSantri").compareSantri;
+  exports.checkBirthDates =
+    require("./handlers/checkBirthDates").checkBirthDates;
+  exports.resetSantriPasswords =
+    require("./handlers/resetSantriPasswords").resetSantriPasswords;
+  exports.importSantri = require("./handlers/importSantri").importSantri;
+  exports.importPayments =
+    require("./handlers/importPayments").importPayments;
+  exports.importMonthlyReports =
+    require("./handlers/importMonthlyReports").importMonthlyReports;
+  exports.migrateSantriFiqihClasses =
+    require("./handlers/migrateSantriFiqihClasses").migrateSantriFiqihClasses;
+  exports.groupPengajarSantri =
+    require("./handlers/groupPengajarSantri").groupPengajarSantri;
+  exports.guestLookup = require("./handlers/guestLookup").guestLookup;
+}

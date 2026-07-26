@@ -1,12 +1,14 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/config");
+const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
 const { createConnection } = require("../lib/mysql");
 const { normNis, dateTimeToJakartaTimestamp } = require("../lib/utils");
+const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
 const TARGET_YEAR = 2026;
 
 exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
+  if (!authorizeLegacyAdminHttp(req, res)) return;
   const apply = req.query.apply === "true";
   let connection;
   try {

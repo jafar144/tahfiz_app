@@ -96,15 +96,21 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               children: [
                                 TextSpan(
-                                  text: 'Password = Tanggal Lahir, mis. ',
+                                  text:
+                                      'Santri: tanggal lahir, mis. '
+                                      '12 April 2015 menjadi ',
                                 ),
-                                TextSpan(text: '12 April 2015, maka'),
                                 TextSpan(
-                                  text: ' 20150412',
+                                  text: '20150412',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     color: Colors.black54,
                                   ),
+                                ),
+                                TextSpan(
+                                  text:
+                                      '. Admin/asatidz: gunakan password '
+                                      'lembaga.',
                                 ),
                               ],
                             ),

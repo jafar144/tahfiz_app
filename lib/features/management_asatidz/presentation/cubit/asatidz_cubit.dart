@@ -89,7 +89,7 @@ class AsatidzCubit extends Cubit<AsatidzState> {
         }
       }
 
-      await repository.addAsatidz(
+      final temporaryPassword = await repository.addAsatidz(
         AsatidzParams(
           name: params.name,
           nis: params.nis,
@@ -99,7 +99,9 @@ class AsatidzCubit extends Cubit<AsatidzState> {
           photoUrl: photoUrl,
         ),
       );
-      loadAsatidz(keyword: _currentKeyword, isActive: _currentIsActive);
+      emit(
+        AsatidzCreated(nis: params.nis, temporaryPassword: temporaryPassword),
+      );
     } catch (e) {
       if (photoUrl != null) {
         await ImageUtils.deleteImageFromFirebase(photoUrl);

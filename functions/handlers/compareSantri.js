@@ -1,8 +1,9 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/config");
+const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
 const { createConnection } = require("../lib/mysql");
 const { normNis, escapeHtml } = require("../lib/utils");
+const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
 function renderHtml(summary, inWebNotMobile, inMobileNotWeb) {
   const tableWeb = inWebNotMobile
@@ -59,6 +60,7 @@ function renderHtml(summary, inWebNotMobile, inMobileNotWeb) {
 }
 
 exports.compareSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
+  if (!authorizeLegacyAdminHttp(req, res)) return;
   let connection;
   try {
     connection = await createConnection();

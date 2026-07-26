@@ -1,5 +1,11 @@
 const mysql = require("mysql2/promise");
-const { DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD } = require("./config");
+const {
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_NAME,
+  DB_PASSWORD,
+} = require("./legacyConfig");
 
 async function createConnection(options = {}) {
   return mysql.createConnection({

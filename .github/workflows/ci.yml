@@ -1,0 +1,79 @@
+name: Validate white-label application
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: "3.44.4"
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Validate flavor isolation
+        run: dart run tool/validate_flavors.dart
+
+      - name: Analyze Flutter
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Install Functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Audit production Functions dependencies
+        working-directory: functions
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Run Functions unit tests
+        working-directory: functions
+        run: npm test
+
+      - name: Run Firestore and Storage Rules tests
+        working-directory: functions
+        run: npm run test:rules
+
+      - name: Compile every Android flavor
+        shell: bash
+        run: |
+          set -euo pipefail
+          for config in config/flavors/*.properties; do
+            flavor="$(basename "$config" .properties)"
+            entry_point="$(sed -n 's/^dartEntryPoint=//p' "$config" | tail -n 1 | tr -d '\r')"
+            flutter build apk \
+              --debug \
+              --flavor "$flavor" \
+              --target "$entry_point" \
+              --dart-define="APP_FLAVOR=$flavor"
+          done

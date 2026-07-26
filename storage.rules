@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDocument() {
+      return firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      );
+    }
+
+    function hasUserDocument() {
+      return signedIn()
+        && firestore.exists(
+          /databases/(default)/documents/users/$(request.auth.uid)
+        );
+    }
+
+    function isAdmin() {
+      return hasUserDocument()
+        && (
+          userDocument().data.role == 'admin'
+          || userDocument().data.is_admin == true
+        );
+    }
+
+    function isStaff() {
+      return isAdmin()
+        || (
+          hasUserDocument()
+          && userDocument().data.role == 'asatidz'
+        );
+    }
+
+    function validImage() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /santri_photos/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && validImage();
+      allow delete: if isAdmin();
+    }
+
+    match /asatidz_photos/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && validImage();
+      allow delete: if isAdmin();
+    }
+
+    match /syahadah_photos/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if isStaff() && validImage();
+      allow delete: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

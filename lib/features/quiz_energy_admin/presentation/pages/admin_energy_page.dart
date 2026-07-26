@@ -201,7 +201,7 @@ class _AdminEnergyViewState extends State<_AdminEnergyView> {
           child: BlocBuilder<SantriCubit, SantriState>(
             builder: (context, state) {
               switch (state) {
-                case SantriInitial() || SantriLoading():
+                case SantriInitial() || SantriLoading() || SantriCreated():
                   return const Center(
                     child: CircularProgressIndicator(color: QuizColors.gold),
                   );

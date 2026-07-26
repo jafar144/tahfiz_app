@@ -1,3 +1,5 @@
+import 'package:khoirunnasyien/core/config/app_config.dart';
+
 class MessageUtils {
   static String getPaymentReminderMessage(
     String name,
@@ -20,7 +22,7 @@ class MessageUtils {
 
     Mohon kerjasamanya, tunggakan tersebut agar segera diselesaikan.
 
-    Pembayaran bisa via transfer : Rek Bank BSI 7117245448 AN : Fahmi Ramdani
+    ${AppConfig.current.payment.transferInstruction}
 
     Atas kerjasamanya, terima kasih
 
