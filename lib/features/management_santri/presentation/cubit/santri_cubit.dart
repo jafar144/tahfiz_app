@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 
@@ -18,11 +19,14 @@ class SantriCubit extends Cubit<SantriState> {
   String? _currentClass;
   String? _currentAsatidzId;
   bool? _currentIsFree;
+  bool? _currentHasPhoto;
+  bool? _currentHasHalaqah;
+  SantriSortBy _currentSortBy = SantriSortBy.name;
   static const int _limit = 10;
 
   SantriCubit(this.repository) : super(SantriInitial());
 
-  void loadSantri({
+  Future<void> loadSantri({
     String? keyword,
     bool? isActive,
     String? gender,
@@ -30,6 +34,9 @@ class SantriCubit extends Cubit<SantriState> {
     String? kelas,
     String? asatidzId,
     bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    SantriSortBy sortBy = SantriSortBy.name,
   }) async {
     _currentKeyword = keyword;
     _currentIsActive = isActive;
@@ -38,6 +45,9 @@ class SantriCubit extends Cubit<SantriState> {
     _currentClass = kelas;
     _currentAsatidzId = asatidzId;
     _currentIsFree = isFree;
+    _currentHasPhoto = hasPhoto;
+    _currentHasHalaqah = hasHalaqah;
+    _currentSortBy = sortBy;
 
     emit(SantriLoading());
     try {
@@ -49,12 +59,18 @@ class SantriCubit extends Cubit<SantriState> {
         kelas: kelas,
         asatidzId: asatidzId,
         isFree: isFree,
+        hasPhoto: hasPhoto,
+        hasHalaqah: hasHalaqah,
+        sortBy: sortBy,
         limit: _limit,
       );
 
-      // Jika asatidzId aktif, semua data sudah di-fetch sekaligus (tanpa cursor)
-      // sehingga pagination tidak berlaku
-      final hasReachedMax = asatidzId != null || result.length < _limit;
+      // Filter asatidz dan pencarian mengambil seluruh hasil sekaligus, jadi
+      // keduanya tidak memakai cursor pagination.
+      final hasReachedMax =
+          asatidzId != null ||
+          (keyword?.trim().isNotEmpty ?? false) ||
+          result.length < _limit;
 
       emit(SantriLoaded(result, hasReachedMax: hasReachedMax));
     } catch (e) {
@@ -80,6 +96,9 @@ class SantriCubit extends Cubit<SantriState> {
         kelas: _currentClass,
         asatidzId: _currentAsatidzId,
         isFree: _currentIsFree,
+        hasPhoto: _currentHasPhoto,
+        hasHalaqah: _currentHasHalaqah,
+        sortBy: _currentSortBy,
         limit: _limit,
         lastDocumentId: lastId,
       );

@@ -1,3 +1,5 @@
+enum SantriSortBy { nis, name }
+
 class SantriEntity {
   final String id;
   final String name;
@@ -48,4 +50,8 @@ class SantriEntity {
       photoUrl: null,
     );
   }
+
+  bool get hasProfilePhoto => photoUrl?.trim().isNotEmpty ?? false;
+
+  bool get hasHalaqah => halaqahId?.trim().isNotEmpty ?? false;
 }

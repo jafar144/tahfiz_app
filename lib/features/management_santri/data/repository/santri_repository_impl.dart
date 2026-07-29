@@ -22,6 +22,9 @@ class SantriRepositoryImpl implements SantriRepository {
     String? kelas,
     String? asatidzId,
     bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,
   }) async {
@@ -33,6 +36,9 @@ class SantriRepositoryImpl implements SantriRepository {
       kelas: kelas,
       asatidzId: asatidzId,
       isFree: isFree,
+      hasPhoto: hasPhoto,
+      hasHalaqah: hasHalaqah,
+      sortBy: sortBy,
       limit: limit,
       lastDocumentId: lastDocumentId,
     );

@@ -13,6 +13,9 @@ abstract class SantriRemoteDataSource {
     String? kelas,
     String? asatidzId,
     bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,
   });

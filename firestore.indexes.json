@@ -163,6 +163,143 @@
       ]
     },
     {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "santri_profiles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_active", "order": "ASCENDING" },
+        { "fieldPath": "jenis_kelamin", "order": "ASCENDING" },
+        { "fieldPath": "tipe_kelas", "order": "ASCENDING" },
+        { "fieldPath": "kelas", "order": "ASCENDING" },
+        { "fieldPath": "nis", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "payments",
       "queryScope": "COLLECTION",
       "fields": [
