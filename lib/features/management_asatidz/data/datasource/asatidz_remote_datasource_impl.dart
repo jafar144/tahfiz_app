@@ -150,20 +150,16 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
 
   @override
   Future<String> getNextNis() async {
-    final snapshots = await Future.wait([
-      firestore.collection('santri_profiles').get(),
-      firestore.collection('asatidz_profiles').get(),
-    ]);
+    // Urutan NIS Asatidz berdiri sendiri dan tidak mengikuti nomor Santri.
+    final snapshot = await firestore.collection('asatidz_profiles').get();
 
     var maxNis = 1000;
-    for (final snapshot in snapshots) {
-      for (final doc in snapshot.docs) {
-        final rawNis = (doc.data()['nis'] ?? '').toString().trim();
-        final numericNis =
-            int.tryParse(rawNis) ?? double.tryParse(rawNis)?.toInt();
-        if (numericNis != null && numericNis > maxNis) {
-          maxNis = numericNis;
-        }
+    for (final doc in snapshot.docs) {
+      final rawNis = (doc.data()['nis'] ?? '').toString().trim();
+      final numericNis =
+          int.tryParse(rawNis) ?? double.tryParse(rawNis)?.toInt();
+      if (numericNis != null && numericNis > maxNis) {
+        maxNis = numericNis;
       }
     }
     return (maxNis + 1).toString();

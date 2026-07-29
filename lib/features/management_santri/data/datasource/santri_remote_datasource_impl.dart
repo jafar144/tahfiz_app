@@ -661,40 +661,26 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
   @override
   Future<String> getNextNis() async {
-    // NIS menjadi bagian email Firebase Auth dan karena itu unik lintas role.
-    // Hitung dari santri serta asatidz agar kedua form tidak menawarkan nomor
-    // yang sama ketika akun terakhir yang dibuat berasal dari role berbeda.
-    final snapshots = await Future.wait([
-      firestore.collection('santri_profiles').get(),
-      firestore.collection('asatidz_profiles').get(),
-    ]);
-    // Mulai dari 1000 agar pengguna pertama mendapat 1001 saat data kosong.
+    // Urutan NIS Santri berdiri sendiri dan tidak mengikuti nomor Asatidz.
+    final snapshot = await firestore.collection('santri_profiles').get();
+    // Mulai dari 1000 agar santri pertama mendapat 1001 saat data kosong.
     int maxNis = 1000;
-    for (final snapshot in snapshots) {
-      for (final doc in snapshot.docs) {
-        final s = (doc.data()['nis'] ?? '').toString().trim();
-        final n = int.tryParse(s) ?? double.tryParse(s)?.toInt();
-        if (n != null && n > maxNis) maxNis = n;
-      }
+    for (final doc in snapshot.docs) {
+      final s = (doc.data()['nis'] ?? '').toString().trim();
+      final n = int.tryParse(s) ?? double.tryParse(s)?.toInt();
+      if (n != null && n > maxNis) maxNis = n;
     }
     return (maxNis + 1).toString();
   }
 
   @override
   Future<bool> isNisTaken(String nis) async {
-    final results = await Future.wait([
-      firestore
-          .collection('santri_profiles')
-          .where('nis', isEqualTo: nis)
-          .limit(1)
-          .get(),
-      firestore
-          .collection('asatidz_profiles')
-          .where('nis', isEqualTo: nis)
-          .limit(1)
-          .get(),
-    ]);
-    return results.any((query) => query.docs.isNotEmpty);
+    final query = await firestore
+        .collection('santri_profiles')
+        .where('nis', isEqualTo: nis)
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
   }
 
   @override
