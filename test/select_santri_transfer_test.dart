@@ -21,10 +21,8 @@ void main() {
       allowHalaqahTransfer: true,
     );
 
-    expect(
-      find.byKey(Key('santri_transfer_indicator_${santri.id}')),
-      findsOneWidget,
-    );
+    expect(find.text('Halaqah lain'), findsNothing);
+    expect(_greyOpacityFor(santri), findsOneWidget);
     expect(find.text('Pilih (0)'), findsOneWidget);
 
     await tester.tap(find.text(santri.name));
@@ -92,10 +90,8 @@ void main() {
       currentHalaqahId: 'halaqah-sekarang',
     );
 
-    expect(
-      find.byKey(Key('santri_transfer_indicator_${santri.id}')),
-      findsNothing,
-    );
+    expect(find.text('Halaqah lain'), findsNothing);
+    expect(_greyOpacityFor(santri), findsNothing);
 
     await tester.tap(find.text(santri.name));
     await tester.pumpAndSettle();
@@ -103,6 +99,15 @@ void main() {
     expect(find.text('Santri sudah memiliki halaqah'), findsNothing);
     expect(find.text('Pilih (1)'), findsOneWidget);
   });
+}
+
+Finder _greyOpacityFor(SantriEntity santri) {
+  return find.ancestor(
+    of: find.text(santri.name),
+    matching: find.byWidgetPredicate(
+      (widget) => widget is Opacity && widget.opacity == 0.5,
+    ),
+  );
 }
 
 Future<void> _pumpPicker(

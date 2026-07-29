@@ -271,19 +271,16 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
                                   _isAssignedToAnotherHalaqah(santri);
 
                               return Opacity(
-                                opacity: isDisabled ? 0.5 : 1.0,
+                                opacity: isDisabled || isTransferCandidate
+                                    ? 0.5
+                                    : 1,
                                 child: IgnorePointer(
                                   ignoring: isDisabled,
                                   child: SantriCard(
                                     santri,
-                                    trailing:
-                                        widget.isMultiSelect ||
-                                            isTransferCandidate
+                                    trailing: widget.isMultiSelect
                                         ? _SelectionTrailing(
                                             santriId: santri.id,
-                                            isTransferCandidate:
-                                                isTransferCandidate,
-                                            isMultiSelect: widget.isMultiSelect,
                                             isSelected: isSelected,
                                             onChanged: isDisabled
                                                 ? null
@@ -313,71 +310,27 @@ class _SelectSantriPageState extends State<SelectSantriPage> {
 
 class _SelectionTrailing extends StatelessWidget {
   final String santriId;
-  final bool isTransferCandidate;
-  final bool isMultiSelect;
   final bool isSelected;
   final VoidCallback? onChanged;
 
   const _SelectionTrailing({
     required this.santriId,
-    required this.isTransferCandidate,
-    required this.isMultiSelect,
     required this.isSelected,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        if (isTransferCandidate)
-          Tooltip(
-            message: 'Sudah terdaftar di halaqah lain',
-            child: Container(
-              key: Key('santri_transfer_indicator_$santriId'),
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.shade200),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.swap_horiz_rounded,
-                    size: 13,
-                    color: Colors.orange.shade800,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    'Halaqah lain',
-                    style: TextStyle(
-                      color: Colors.orange.shade900,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (isTransferCandidate && isMultiSelect) const SizedBox(height: 4),
-        if (isMultiSelect)
-          SizedBox(
-            width: 32,
-            height: 32,
-            child: Checkbox(
-              key: Key('santri_select_checkbox_$santriId'),
-              value: isSelected,
-              onChanged: onChanged == null ? null : (_) => onChanged?.call(),
-              activeColor: Colors.blue,
-              visualDensity: VisualDensity.compact,
-            ),
-          ),
-      ],
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: Checkbox(
+        key: Key('santri_select_checkbox_$santriId'),
+        value: isSelected,
+        onChanged: onChanged == null ? null : (_) => onChanged?.call(),
+        activeColor: Colors.blue,
+        visualDensity: VisualDensity.compact,
+      ),
     );
   }
 }

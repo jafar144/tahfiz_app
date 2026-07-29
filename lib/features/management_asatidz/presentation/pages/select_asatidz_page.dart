@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
+import 'package:khoirunnasyien/features/management_asatidz/presentation/widgets/asatidz_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SelectAsatidzPage extends StatefulWidget {
@@ -69,157 +72,117 @@ class _SelectAsatidzPageState extends State<SelectAsatidzPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pilih Asatidz')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari Asatidz...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
+      backgroundColor: Colors.white,
+      appBar: const AiwaAppBar(title: 'Pilih Asatidz'),
+      body: BlocBuilder<AsatidzCubit, AsatidzState>(
+        builder: (context, state) {
+          final isLoading = state is AsatidzInitial || state is AsatidzLoading;
+          final List<AsatidzEntity> dataList;
+
+          if (state is AsatidzLoaded) {
+            dataList = state.asatidz;
+          } else {
+            dataList = List.generate(
+              6,
+              (index) => AsatidzEntity(
+                id: 'dummy_$index',
+                name: 'Nama Asatidz Placeholder',
+                nis: '12345',
+                jenisKelamin: widget.genderFiltered ?? 'L',
+                isActive: true,
               ),
-              onSubmitted: (_) => _onSearch(context),
-            ),
-          ),
-          Expanded(
-            child: BlocBuilder<AsatidzCubit, AsatidzState>(
-              builder: (context, state) {
-                final isLoading = state is AsatidzLoading;
-                final List<AsatidzEntity> dataList;
+            );
+          }
 
-                if (state is AsatidzLoaded) {
-                  dataList = state.asatidz;
-                } else {
-                  dataList = List.generate(
-                    6,
-                    (index) => AsatidzEntity(
-                      id: 'dummy_$index',
-                      name: 'Nama Asatidz Placeholder',
-                      nis: '12345',
-                      jenisKelamin: widget.genderFiltered ?? 'L',
-                      isActive: true,
-                    ),
-                  );
-                }
+          return SafeArea(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: AiwaSearch(
+                    controller: _searchController,
+                    onSubmitted: (_) => _onSearch(context),
+                    onSearch: () => _onSearch(context),
+                    hintText: 'Cari Asatidz...',
+                  ),
+                ),
+                Expanded(
+                  child: Builder(
+                    builder: (context) {
+                      if (state is AsatidzError) {
+                        return Center(child: Text(state.message));
+                      }
 
-                if (state is AsatidzLoaded && state.asatidz.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'Tidak ada data asatidz ditemukan',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
-                  );
-                }
-
-                if (state is AsatidzError) {
-                  return Center(child: Text(state.message));
-                }
-
-                return Skeletonizer(
-                  enabled: isLoading,
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount:
-                        dataList.length +
-                        (state is AsatidzLoaded && state.isFetchingMore
-                            ? 1
-                            : 0),
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      if (index >= dataList.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(),
+                      if (state is AsatidzLoaded && dataList.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'Data asatidz tidak ditemukan',
+                            style: TextStyle(color: Colors.grey.shade600),
                           ),
                         );
                       }
 
-                      final asatidz = dataList[index];
-                      final isSelected = asatidz.id == widget.initialSelectedId;
-                      final isDisabled = widget.disabledIds.contains(
-                        asatidz.id,
-                      );
+                      return Skeletonizer(
+                        enabled: isLoading,
+                        child: ListView.separated(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          itemCount:
+                              dataList.length +
+                              (state is AsatidzLoaded && state.isFetchingMore
+                                  ? 1
+                                  : 0),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            if (index >= dataList.length) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
 
-                      return ListTile(
-                        onTap: isLoading || isDisabled
-                            ? null
-                            : () {
-                                Navigator.pop(context, asatidz);
-                              },
-                        leading: CircleAvatar(
-                          backgroundColor: isDisabled
-                              ? Colors.grey
-                              : (isSelected
+                            final asatidz = dataList[index];
+                            final isSelected =
+                                asatidz.id == widget.initialSelectedId;
+                            final isDisabled = widget.disabledIds.contains(
+                              asatidz.id,
+                            );
+
+                            return AsatidzCard(
+                              asatidz,
+                              isSelected: isSelected,
+                              isEnabled: !isLoading && !isDisabled,
+                              onTap: () => Navigator.pop(context, asatidz),
+                              trailing: Icon(
+                                isDisabled
+                                    ? Icons.block_rounded
+                                    : isSelected
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                size: 21,
+                                color: isDisabled
+                                    ? Colors.grey.shade500
+                                    : isSelected
                                     ? Colors.blue
-                                    : Colors.grey.shade200),
-                          child: Text(
-                            asatidz.name[0],
-                            style: TextStyle(
-                              color: isSelected && !isDisabled
-                                  ? Colors.white
-                                  : Colors.black54,
-                            ),
-                          ),
+                                    : Colors.grey.shade400,
+                              ),
+                            );
+                          },
                         ),
-                        title: Text(
-                          asatidz.name,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            color: isDisabled ? Colors.grey : Colors.black87,
-                          ),
-                        ),
-                        subtitle: Text(
-                          isDisabled
-                              ? '${asatidz.nis} (Tidak Tersedia)'
-                              : asatidz.nis,
-                          style: TextStyle(
-                            color: isDisabled ? Colors.red.shade300 : null,
-                          ),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: isSelected && !isDisabled
-                                ? Colors.blue
-                                : Colors.grey.shade200,
-                          ),
-                        ),
-                        tileColor: isDisabled
-                            ? Colors.grey.shade50
-                            : (isSelected
-                                  ? Colors.blue.withValues(alpha: 0.1)
-                                  : Colors.white),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        trailing: isSelected && !isDisabled
-                            ? const Icon(Icons.check_circle, color: Colors.blue)
-                            : (isDisabled
-                                  ? const Icon(Icons.block, color: Colors.grey)
-                                  : null),
                       );
                     },
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

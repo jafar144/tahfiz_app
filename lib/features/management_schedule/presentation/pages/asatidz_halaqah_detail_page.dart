@@ -21,12 +21,16 @@ class AsatidzHalaqahDetailPage extends StatefulWidget {
   /// `asatidz_profiles` menggunakan [teacherId].
   final String teacherName;
   final String gender;
+  final ScheduleRepository? scheduleRepository;
+  final AsatidzRepository? asatidzRepository;
 
   const AsatidzHalaqahDetailPage({
     super.key,
     required this.teacherId,
     this.teacherName = '-',
     required this.gender,
+    this.scheduleRepository,
+    this.asatidzRepository,
   });
 
   @override
@@ -35,8 +39,8 @@ class AsatidzHalaqahDetailPage extends StatefulWidget {
 }
 
 class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
-  final _scheduleRepository = getIt<ScheduleRepository>();
-  final _asatidzRepository = getIt<AsatidzRepository>();
+  late final ScheduleRepository _scheduleRepository;
+  late final AsatidzRepository _asatidzRepository;
 
   bool _loading = true;
   String? _error;
@@ -46,13 +50,19 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
   final Map<String, ProgramSchedule> _scheduleById = {};
   final Map<String, List<SantriEntity>> _santriByHalaqah = {};
   String? _selectedHalaqahId;
+  int _loadRevision = 0;
 
   bool get _isMale => widget.gender == 'L';
   Color get _accent => _isMale ? Colors.blue : Colors.pink;
   String get _teacherName {
     final current = _teacher?.name.trim();
     if (current != null && current.isNotEmpty) return current;
-    return widget.teacherName;
+    final hydrated = _halaqahs.isEmpty
+        ? ''
+        : _halaqahs.first.teacherName.trim();
+    if (hydrated.isNotEmpty) return hydrated;
+    final fallback = widget.teacherName.trim();
+    return fallback.isEmpty || fallback == '-' ? 'Pengajar' : fallback;
   }
 
   Halaqah? get _selectedHalaqah {
@@ -69,10 +79,14 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
   @override
   void initState() {
     super.initState();
+    _scheduleRepository =
+        widget.scheduleRepository ?? getIt<ScheduleRepository>();
+    _asatidzRepository = widget.asatidzRepository ?? getIt<AsatidzRepository>();
     _load();
   }
 
   Future<void> _load() async {
+    final revision = ++_loadRevision;
     if (mounted) {
       setState(() {
         _loading = true;
@@ -81,68 +95,87 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
     }
 
     try {
-      try {
-        _teacher = await _asatidzRepository.getAsatidzDetail(widget.teacherId);
-      } catch (_) {
-        _teacher = null;
+      Future<AsatidzDetail?> loadTeacher() async {
+        try {
+          return await _asatidzRepository.getAsatidzDetail(widget.teacherId);
+        } catch (_) {
+          return null;
+        }
       }
 
-      final programsResult = await _scheduleRepository.getPrograms(
-        gender: widget.gender,
-      );
-      _programById.clear();
-      programsResult.fold(
-        ifLeft: (failure) => throw Exception(failure.message),
-        ifRight: (programs) {
-          for (final program in programs) {
-            _programById[program.id] = program;
-          }
-        },
-      );
-
-      final halaqahResult = await _scheduleRepository.getHalaqahsByTeacher(
-        widget.teacherId,
-      );
-      var halaqahs = <Halaqah>[];
-      halaqahResult.fold(
-        ifLeft: (failure) => throw Exception(failure.message),
-        ifRight: (items) {
-          halaqahs = items
-              .where((item) => _programById.containsKey(item.programId))
-              .toList();
-        },
-      );
-
-      _scheduleById.clear();
-      _santriByHalaqah.clear();
-      final loadedPrograms = <String>{};
-      for (final halaqah in halaqahs) {
-        if (loadedPrograms.add(halaqah.programId)) {
-          final schedulesResult = await _scheduleRepository.getSchedules(
-            programId: halaqah.programId,
+      Future<List<ScheduleProgram>> loadPrograms() async {
+        try {
+          final result = await _scheduleRepository.getPrograms(
+            gender: widget.gender,
           );
-          schedulesResult.fold(
+          var programs = <ScheduleProgram>[];
+          result.fold(
             ifLeft: (_) {},
-            ifRight: (schedules) {
-              for (final schedule in schedules) {
-                _scheduleById[schedule.id] = schedule;
-              }
-            },
+            ifRight: (items) => programs = List<ScheduleProgram>.from(items),
           );
+          return programs;
+        } catch (_) {
+          return <ScheduleProgram>[];
         }
+      }
 
-        final santriResult = await _scheduleRepository.getSantrisByHalaqahId(
-          halaqah.id,
+      Future<List<Halaqah>> loadHalaqahs() async {
+        final result = await _scheduleRepository.getHalaqahsByTeacher(
+          widget.teacherId,
         );
-        santriResult.fold(
-          ifLeft: (_) => _santriByHalaqah[halaqah.id] = [],
-          ifRight: (santri) => _santriByHalaqah[halaqah.id] = santri,
+        var halaqahs = <Halaqah>[];
+        String? errorMessage;
+        result.fold(
+          ifLeft: (failure) => errorMessage = failure.message,
+          ifRight: (items) => halaqahs = List<Halaqah>.from(items),
         );
+        if (errorMessage != null) throw Exception(errorMessage);
+        return halaqahs;
+      }
+
+      // Ketiga data inti dimulai bersamaan. Nama/program bersifat best-effort,
+      // sedangkan daftar halaqah adalah satu-satunya data yang wajib berhasil.
+      final teacherFuture = loadTeacher();
+      final programsFuture = loadPrograms();
+      final halaqahsFuture = loadHalaqahs();
+      final teacher = await teacherFuture;
+      final programs = await programsFuture;
+      final halaqahs = await halaqahsFuture;
+      final programById = <String, ScheduleProgram>{
+        for (final program in programs) program.id: program,
+      };
+
+      Future<void> hydrateMissingProgram(String programId) async {
+        if (programId.trim().isEmpty || programById.containsKey(programId)) {
+          return;
+        }
+        try {
+          final result = await _scheduleRepository.getProgramById(programId);
+          result.fold(
+            ifLeft: (_) {},
+            ifRight: (program) => programById[program.id] = program,
+          );
+        } catch (_) {
+          // Dokumen sesi lama boleh hilang; detail tetap memakai fallback.
+        }
+      }
+
+      await Future.wait(
+        halaqahs
+            .map((halaqah) => halaqah.programId)
+            .toSet()
+            .map(hydrateMissingProgram),
+      );
+
+      String sessionNameFor(Halaqah halaqah) {
+        final rawName = programById[halaqah.programId]?.name.trim() ?? '';
+        if (rawName.isEmpty) return 'Reguler';
+        return rawName[0].toUpperCase() + rawName.substring(1);
       }
 
       halaqahs.sort((first, second) {
-        final firstOrder = _sessionOrder(_sessionName(first));
-        final secondOrder = _sessionOrder(_sessionName(second));
+        final firstOrder = _sessionOrder(sessionNameFor(first));
+        final secondOrder = _sessionOrder(sessionNameFor(second));
         final bySession = firstOrder.compareTo(secondOrder);
         if (bySession != 0) return bySession;
         final byRoom = first.room.toLowerCase().compareTo(
@@ -151,8 +184,14 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
         return byRoom != 0 ? byRoom : first.id.compareTo(second.id);
       });
 
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
+        _teacher = teacher;
+        _programById
+          ..clear()
+          ..addAll(programById);
+        _scheduleById.clear();
+        _santriByHalaqah.clear();
         _halaqahs = halaqahs;
         if (_selectedHalaqahId == null ||
             !_halaqahs.any((item) => item.id == _selectedHalaqahId)) {
@@ -160,8 +199,64 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
         }
         _loading = false;
       });
+
+      // Jadwal dan anggota tidak menahan render halaman inti. Keduanya dimuat
+      // paralel dan kegagalan salah satu child read tidak mengosongkan halaman.
+      final scheduleById = <String, ProgramSchedule>{};
+      final santriByHalaqah = <String, List<SantriEntity>>{};
+
+      Future<void> loadSchedules(String programId) async {
+        if (programId.trim().isEmpty) return;
+        try {
+          final result = await _scheduleRepository.getSchedules(
+            programId: programId,
+          );
+          result.fold(
+            ifLeft: (_) {},
+            ifRight: (schedules) {
+              for (final schedule in schedules) {
+                scheduleById[schedule.id] = schedule;
+              }
+            },
+          );
+        } catch (_) {
+          // Jadwal adalah data pelengkap; card sesi tetap dapat ditampilkan.
+        }
+      }
+
+      Future<void> loadSantri(String halaqahId) async {
+        try {
+          final result = await _scheduleRepository.getSantrisByHalaqahId(
+            halaqahId,
+          );
+          result.fold(
+            ifLeft: (_) => santriByHalaqah[halaqahId] = [],
+            ifRight: (santri) => santriByHalaqah[halaqahId] = santri,
+          );
+        } catch (_) {
+          santriByHalaqah[halaqahId] = [];
+        }
+      }
+
+      await Future.wait<void>([
+        ...halaqahs
+            .map((halaqah) => halaqah.programId)
+            .toSet()
+            .map(loadSchedules),
+        ...halaqahs.map((halaqah) => loadSantri(halaqah.id)),
+      ]);
+
+      if (!mounted || revision != _loadRevision) return;
+      setState(() {
+        _scheduleById
+          ..clear()
+          ..addAll(scheduleById);
+        _santriByHalaqah
+          ..clear()
+          ..addAll(santriByHalaqah);
+      });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || revision != _loadRevision) return;
       setState(() {
         _error = error.toString().replaceFirst('Exception: ', '');
         _loading = false;

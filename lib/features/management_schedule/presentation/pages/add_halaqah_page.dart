@@ -9,6 +9,7 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asati
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_state.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
@@ -35,6 +36,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
   String? _selectedTeacherName;
 
   List<SantriEntity> _selectedSantris = [];
+  bool _isLoadingSchedules = false;
 
   @override
   void initState() {
@@ -181,6 +183,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       _selectedTeacherId = null;
       _selectedTeacherName = null;
       _selectedSantris = [];
+      _isLoadingSchedules = false;
     });
     context.read<AddHalaqahCubit>().loadInitialData(gender);
   }
@@ -206,15 +209,14 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       return;
     }
 
-    await showModalBottomSheet<void>(
+    final selectedSession = await showModalBottomSheet<ScheduleProgram>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return Material(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          clipBehavior: Clip.antiAlias,
           child: SafeArea(
             top: false,
             child: Column(
@@ -266,20 +268,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                                 Icons.chevron_right_rounded,
                                 color: Colors.black38,
                               ),
-                        onTap: () {
-                          setState(() {
-                            _selectedSessionId = session.id;
-                            _selectedSessionName = sessionName;
-                            _selectedScheduleIds = [];
-                          });
-                          context
-                              .read<AddHalaqahCubit>()
-                              .loadSchedulesAndPeople(
-                                session.id,
-                                _selectedGender!,
-                              );
-                          Navigator.pop(sheetContext);
-                        },
+                        onTap: () => Navigator.of(sheetContext).pop(session),
                       );
                     },
                   ),
@@ -291,6 +280,23 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
         );
       },
     );
+
+    if (selectedSession == null || !mounted) return;
+
+    setState(() {
+      _selectedSessionId = selectedSession.id;
+      _selectedSessionName = FormatUtils.capitalize(selectedSession.name);
+      _selectedScheduleIds = [];
+      _isLoadingSchedules = true;
+    });
+
+    // Picker Asatidz dan Santri memuat datanya sendiri. Di tahap ini cukup
+    // ambil jadwal agar field Jadwal Pertemuan segera siap digunakan dan tidak
+    // ikut gagal hanya karena query daftar orang yang tidak berkaitan.
+    await this.context.read<AddHalaqahCubit>().loadSchedules(
+      selectedSession.id,
+    );
+    if (mounted) setState(() => _isLoadingSchedules = false);
   }
 
   Widget _buildDetailInfo(BuildContext context, AddHalaqahState state) {
@@ -321,7 +327,9 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       children: [
         AiwaClickableInput(
           label: 'Jadwal Pertemuan',
-          value: _selectedScheduleIds.isEmpty
+          value: _isLoadingSchedules
+              ? 'Memuat jadwal...'
+              : _selectedScheduleIds.isEmpty
               ? 'Pilih jadwal'
               : '${_selectedScheduleIds.length} jadwal dipilih',
           icon: Icons.calendar_month_outlined,
@@ -330,11 +338,23 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               _showSnack(context, 'Silakan pilih sesi terlebih dahulu');
               return;
             }
-            if (schedules.isEmpty) {
-              _showSnack(context, 'Jadwal belum dimuat');
+            if (_isLoadingSchedules) {
+              _showSnack(context, 'Jadwal sedang dimuat');
               return;
             }
-            await _showSchedulePicker(schedules);
+
+            // Ambil state terbaru saat field diketuk. Closure widget dapat
+            // terbentuk sebelum hasil query jadwal selesai, sehingga memakai
+            // list hasil build sebelumnya membuat field selalu terlihat kosong.
+            final latestState = context.read<AddHalaqahCubit>().state;
+            final latestSchedules = latestState is AddHalaqahLoaded
+                ? latestState.schedules
+                : <ProgramSchedule>[];
+            if (latestSchedules.isEmpty) {
+              _showSnack(context, 'Tidak ada jadwal tersedia untuk sesi ini');
+              return;
+            }
+            await _showSchedulePicker(latestSchedules);
           },
         ),
         if (_selectedScheduleIds.isNotEmpty) ...[
@@ -387,94 +407,97 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Container(
+            return ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.sizeOf(context).height * 0.75,
               ),
-              decoration: const BoxDecoration(
+              child: Material(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    const _SheetHeader(
-                      title: 'Pilih Jadwal',
-                      subtitle: 'Anda dapat memilih lebih dari satu jadwal.',
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: schedules.length,
-                        separatorBuilder: (_, _) =>
-                            const Divider(height: 1, indent: 68),
-                        itemBuilder: (context, index) {
-                          final schedule = schedules[index];
-                          final selected = draft.contains(schedule.id);
-                          return CheckboxListTile(
-                            value: selected,
-                            activeColor: Colors.blue,
-                            controlAffinity: ListTileControlAffinity.trailing,
-                            secondary: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(11),
-                              ),
-                              child: Icon(
-                                Icons.event_available_outlined,
-                                size: 20,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                            title: Text(
-                              _getDayName(schedule.day),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${schedule.startTime} – ${schedule.endTime}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            onChanged: (_) {
-                              setSheetState(() {
-                                selected
-                                    ? draft.remove(schedule.id)
-                                    : draft.add(schedule.id);
-                              });
-                            },
-                          );
-                        },
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    children: [
+                      const _SheetHeader(
+                        title: 'Pilih Jadwal',
+                        subtitle: 'Anda dapat memilih lebih dari satu jadwal.',
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                      child: AiwaButton(
-                        text: 'Terapkan (${draft.length})',
-                        onPressed: () {
-                          setState(() {
-                            _selectedScheduleIds = schedules
-                                .where((item) => draft.contains(item.id))
-                                .map((item) => item.id)
-                                .toList();
-                          });
-                          if (_selectedScheduleIds.isNotEmpty) {
-                            context
-                                .read<AddHalaqahCubit>()
-                                .checkScheduleAvailability(
-                                  _selectedScheduleIds.first,
-                                );
-                          }
-                          Navigator.pop(sheetContext);
-                        },
+                      const Divider(height: 1),
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: schedules.length,
+                          separatorBuilder: (_, _) =>
+                              const Divider(height: 1, indent: 68),
+                          itemBuilder: (context, index) {
+                            final schedule = schedules[index];
+                            final selected = draft.contains(schedule.id);
+                            return CheckboxListTile(
+                              value: selected,
+                              activeColor: Colors.blue,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                              secondary: Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(11),
+                                ),
+                                child: Icon(
+                                  Icons.event_available_outlined,
+                                  size: 20,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              title: Text(
+                                _getDayName(schedule.day),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${schedule.startTime} – ${schedule.endTime}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onChanged: (_) {
+                                setSheetState(() {
+                                  selected
+                                      ? draft.remove(schedule.id)
+                                      : draft.add(schedule.id);
+                                });
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        child: AiwaButton(
+                          text: 'Terapkan (${draft.length})',
+                          onPressed: () {
+                            setState(() {
+                              _selectedScheduleIds = schedules
+                                  .where((item) => draft.contains(item.id))
+                                  .map((item) => item.id)
+                                  .toList();
+                            });
+                            if (_selectedScheduleIds.isNotEmpty) {
+                              context
+                                  .read<AddHalaqahCubit>()
+                                  .checkScheduleAvailability(
+                                    _selectedScheduleIds.first,
+                                  );
+                            }
+                            Navigator.pop(sheetContext);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
