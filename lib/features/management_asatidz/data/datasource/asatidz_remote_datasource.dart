@@ -18,4 +18,6 @@ abstract class AsatidzRemoteDataSource {
   Future<String> addAsatidz(AsatidzParams params);
 
   Future<void> updateAsatidz(String id, AsatidzParams params);
+
+  Future<String> getNextNis();
 }

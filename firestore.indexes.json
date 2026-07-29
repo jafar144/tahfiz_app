@@ -371,6 +371,15 @@
         { "fieldPath": "kelas", "order": "ASCENDING" },
         { "fieldPath": "best_score", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "participants",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "record_type", "order": "ASCENDING" },
+        { "fieldPath": "santri_id", "order": "ASCENDING" },
+        { "fieldPath": "event_date", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

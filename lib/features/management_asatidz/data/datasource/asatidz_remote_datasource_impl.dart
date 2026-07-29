@@ -139,10 +139,33 @@ class AsatidzRemoteDataSourceImpl implements AsatidzRemoteDataSource {
       userUpdate['photo_url'] = photoUpdate;
     }
 
-    await firestore
-        .collection('asatidz_profiles')
-        .doc(id)
-        .update(profileUpdate);
-    await firestore.collection('users').doc(id).update(userUpdate);
+    final batch = firestore.batch();
+    batch.update(
+      firestore.collection('asatidz_profiles').doc(id),
+      profileUpdate,
+    );
+    batch.update(firestore.collection('users').doc(id), userUpdate);
+    await batch.commit();
+  }
+
+  @override
+  Future<String> getNextNis() async {
+    final snapshots = await Future.wait([
+      firestore.collection('santri_profiles').get(),
+      firestore.collection('asatidz_profiles').get(),
+    ]);
+
+    var maxNis = 1000;
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        final rawNis = (doc.data()['nis'] ?? '').toString().trim();
+        final numericNis =
+            int.tryParse(rawNis) ?? double.tryParse(rawNis)?.toInt();
+        if (numericNis != null && numericNis > maxNis) {
+          maxNis = numericNis;
+        }
+      }
+    }
+    return (maxNis + 1).toString();
   }
 }

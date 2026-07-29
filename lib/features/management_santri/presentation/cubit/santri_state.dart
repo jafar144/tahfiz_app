@@ -15,22 +15,26 @@ class SantriCreated extends SantriState {
 
 class SantriLoaded extends SantriState {
   final List<SantriEntity> santri;
+  final int totalCount;
   final bool hasReachedMax;
   final bool isFetchingMore;
 
   SantriLoaded(
     this.santri, {
+    int? totalCount,
     this.hasReachedMax = false,
     this.isFetchingMore = false,
-  });
+  }) : totalCount = totalCount ?? santri.length;
 
   SantriLoaded copyWith({
     List<SantriEntity>? santri,
+    int? totalCount,
     bool? hasReachedMax,
     bool? isFetchingMore,
   }) {
     return SantriLoaded(
       santri ?? this.santri,
+      totalCount: totalCount ?? this.totalCount,
       hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       isFetchingMore: isFetchingMore ?? this.isFetchingMore,
     );

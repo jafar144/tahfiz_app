@@ -23,6 +23,7 @@ class SantriCubit extends Cubit<SantriState> {
   bool? _currentHasHalaqah;
   SantriSortBy _currentSortBy = SantriSortBy.name;
   static const int _limit = 10;
+  int _loadRequestId = 0;
 
   SantriCubit(this.repository) : super(SantriInitial());
 
@@ -38,6 +39,7 @@ class SantriCubit extends Cubit<SantriState> {
     bool? hasHalaqah,
     SantriSortBy sortBy = SantriSortBy.name,
   }) async {
+    final requestId = ++_loadRequestId;
     _currentKeyword = keyword;
     _currentIsActive = isActive;
     _currentGender = gender;
@@ -51,7 +53,7 @@ class SantriCubit extends Cubit<SantriState> {
 
     emit(SantriLoading());
     try {
-      final result = await repository.getSantriList(
+      final result = await repository.getSantriPage(
         keyword: keyword,
         isActive: isActive,
         gender: gender,
@@ -65,26 +67,29 @@ class SantriCubit extends Cubit<SantriState> {
         limit: _limit,
       );
 
-      // Filter asatidz dan pencarian mengambil seluruh hasil sekaligus, jadi
-      // keduanya tidak memakai cursor pagination.
-      final hasReachedMax =
-          asatidzId != null ||
-          (keyword?.trim().isNotEmpty ?? false) ||
-          result.length < _limit;
-
-      emit(SantriLoaded(result, hasReachedMax: hasReachedMax));
+      if (requestId != _loadRequestId || isClosed) return;
+      emit(
+        SantriLoaded(
+          result.items,
+          totalCount: result.totalCount,
+          hasReachedMax: result.hasReachedMax,
+        ),
+      );
     } catch (e) {
+      if (requestId != _loadRequestId || isClosed) return;
       emit(SantriError(ErrorHandler.getMessage(e)));
     }
   }
 
-  void loadMoreSantri() async {
+  Future<void> loadMoreSantri() async {
     final currentState = state;
     if (currentState is! SantriLoaded) return;
     if (currentState.hasReachedMax || currentState.isFetchingMore) return;
+    if (currentState.santri.isEmpty) return;
 
     // Already loading more
     emit(currentState.copyWith(isFetchingMore: true));
+    final requestId = _loadRequestId;
 
     try {
       final lastId = currentState.santri.last.id;
@@ -103,14 +108,23 @@ class SantriCubit extends Cubit<SantriState> {
         lastDocumentId: lastId,
       );
 
+      if (requestId != _loadRequestId || isClosed) return;
+      final mergedById = <String, SantriEntity>{
+        for (final santri in currentState.santri) santri.id: santri,
+        for (final santri in newSantri) santri.id: santri,
+      };
+      final merged = mergedById.values.toList();
+
       emit(
         currentState.copyWith(
-          santri: List.of(currentState.santri)..addAll(newSantri),
-          hasReachedMax: newSantri.length < _limit,
+          santri: merged,
+          hasReachedMax:
+              newSantri.isEmpty || merged.length >= currentState.totalCount,
           isFetchingMore: false,
         ),
       );
     } catch (e) {
+      if (requestId != _loadRequestId || isClosed) return;
       // On error, keep the current data but stop loading
       emit(currentState.copyWith(isFetchingMore: false));
       // Optionally emit a side-effect or different error state

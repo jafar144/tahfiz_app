@@ -18,6 +18,7 @@ abstract class RoutePaths {
   static const financialReport = '/financial_report';
 
   static const adminSchedule = '/admin_schedule';
+  static const adminSundayFajrAttendance = '/admin_sunday_fajr_attendance';
   static const addHalaqah = '/add_halaqah';
   static const selectSantri = '/select_santri';
   static const selectAsatidz = '/select_asatidz';
@@ -39,6 +40,7 @@ abstract class RoutePaths {
   static const monthlyReportInput = '/monthly_report_input';
 
   static const santriAttendance = '/santri_attendance';
+  static const santriSundayFajrHistory = '/santri_sunday_fajr_history';
   static const halaqahDeposits = '/halaqah_deposits';
   static const santriSetoran = '/santri_setoran';
   static const santriDepositHistory = '/santri_deposit_history';

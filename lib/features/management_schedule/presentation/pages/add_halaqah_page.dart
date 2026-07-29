@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/utils/format_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_state.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 
 class AddHalaqahPage extends StatefulWidget {
-  const AddHalaqahPage({super.key});
+  final String? initialGender;
+  final String? initialTeacherId;
+
+  const AddHalaqahPage({super.key, this.initialGender, this.initialTeacherId});
 
   @override
   State<AddHalaqahPage> createState() => _AddHalaqahPageState();
@@ -19,22 +25,40 @@ class AddHalaqahPage extends StatefulWidget {
 
 class _AddHalaqahPageState extends State<AddHalaqahPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roomController = TextEditingController();
 
   String? _selectedGender;
   String? _selectedSessionId;
   String? _selectedSessionName;
   List<String> _selectedScheduleIds = [];
-  List<String> _selectedScheduleDisplays = [];
   String? _selectedTeacherId;
   String? _selectedTeacherName;
 
   List<SantriEntity> _selectedSantris = [];
 
   @override
+  void initState() {
+    super.initState();
+    _selectedGender = widget.initialGender;
+    _selectedTeacherId = widget.initialTeacherId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final cubit = context.read<AddHalaqahCubit>();
+      final gender = _selectedGender;
+      if (gender != null) {
+        await cubit.loadInitialData(gender);
+      }
+      final teacherId = _selectedTeacherId;
+      if (teacherId != null) {
+        try {
+          final detail = await cubit.getAsatidzDetail(teacherId);
+          if (mounted) setState(() => _selectedTeacherName = detail.name);
+        } catch (_) {}
+      }
+    });
+  }
+
+  @override
   void dispose() {
-    _nameController.dispose();
     _roomController.dispose();
     super.dispose();
   }
@@ -57,10 +81,29 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       },
       builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(
-            surfaceTintColor: Colors.white,
-            title: const Text('Tambah Halaqah'),
-            elevation: 0,
+          backgroundColor: Colors.grey.shade50,
+          appBar: const AiwaAppBar(title: 'Tambah Sesi Halaqah'),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: AiwaButton(
+                text: 'Simpan Sesi',
+                onPressed: state is AddHalaqahLoading ? null : _submit,
+                isLoading: state is AddHalaqahLoading,
+                height: 50,
+              ),
+            ),
           ),
           body: SafeArea(
             child: Form(
@@ -77,8 +120,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                     _buildPengajarSection(context, state),
                     const SizedBox(height: 24),
                     _buildSantriSection(context, state),
-                    const SizedBox(height: 32),
-                    _buildSaveButton(context, state),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -93,10 +135,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Kategori Kelas',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const AiwaFormSectionTitle(title: 'Kategori Santri'),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -139,7 +178,6 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       _selectedSessionId = null;
       _selectedSessionName = null;
       _selectedScheduleIds = [];
-      _selectedScheduleDisplays = [];
       _selectedTeacherId = null;
       _selectedTeacherName = null;
       _selectedSantris = [];
@@ -147,7 +185,10 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
     context.read<AddHalaqahCubit>().loadInitialData(gender);
   }
 
-  void _handleSessionTap(BuildContext context, AddHalaqahState state) {
+  Future<void> _handleSessionTap(
+    BuildContext context,
+    AddHalaqahState state,
+  ) async {
     if (_selectedGender == null) {
       _showSnack(
         context,
@@ -156,83 +197,108 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       return;
     }
 
-    if (state is AddHalaqahLoaded) {
-      if (state.sessions.isEmpty) {
-        _showSnack(context, 'Tidak ada data sesi tersedia');
-        return;
-      }
-
-      showModalBottomSheet(
-        context: context,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (ctx) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  "Pilih Sesi",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: state.sessions.length,
-                  itemBuilder: (ctx, index) {
-                    final session = state.sessions[index];
-                    return ListTile(
-                      title: Text(FormatUtils.capitalize(session.name)),
-                      onTap: () {
-                        setState(() {
-                          _selectedSessionId = session.id;
-                          _selectedSessionName = FormatUtils.capitalize(
-                            session.name,
-                          );
-                          _selectedScheduleIds = [];
-                          _selectedScheduleDisplays = [];
-                        });
-                        context.read<AddHalaqahCubit>().loadSchedulesAndPeople(
-                          session.id,
-                          _selectedGender!,
-                        );
-                        Navigator.pop(ctx);
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          );
-        },
-      );
-    } else {
+    if (state is! AddHalaqahLoaded) {
       _showSnack(context, 'Sedang memuat data...');
+      return;
     }
+    if (state.sessions.isEmpty) {
+      _showSnack(context, 'Tidak ada data sesi tersedia');
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _SheetHeader(
+                  title: 'Pilih Sesi',
+                  subtitle: 'Pilih program waktu untuk halaqah baru.',
+                ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: state.sessions.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 68),
+                    itemBuilder: (context, index) {
+                      final session = state.sessions[index];
+                      final sessionName = FormatUtils.capitalize(session.name);
+                      final selected = session.id == _selectedSessionId;
+                      return ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            _sessionIcon(sessionName),
+                            color: Colors.blue.shade700,
+                            size: 20,
+                          ),
+                        ),
+                        title: Text(
+                          'Sesi $sessionName',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: selected
+                            ? Icon(
+                                Icons.check_circle_rounded,
+                                color: Colors.blue.shade700,
+                              )
+                            : const Icon(
+                                Icons.chevron_right_rounded,
+                                color: Colors.black38,
+                              ),
+                        onTap: () {
+                          setState(() {
+                            _selectedSessionId = session.id;
+                            _selectedSessionName = sessionName;
+                            _selectedScheduleIds = [];
+                          });
+                          context
+                              .read<AddHalaqahCubit>()
+                              .loadSchedulesAndPeople(
+                                session.id,
+                                _selectedGender!,
+                              );
+                          Navigator.pop(sheetContext);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildDetailInfo(BuildContext context, AddHalaqahState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Detail Kelas',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const AiwaFormSectionTitle(title: 'Detail Sesi'),
         const SizedBox(height: 12),
-        AiwaTextField(
-          label: 'Nama Halaqah',
-          hint: 'Masukkan nama halaqah',
-          icon: Icons.class_outlined,
-          controller: _nameController,
-          textCapitalization: TextCapitalization.sentences,
-        ),
-        const SizedBox(height: 16),
         AiwaTextField(
           label: 'Ruangan',
           hint: 'Masukkan nama ruangan',
@@ -247,168 +313,62 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
   }
 
   Widget _buildScheduleInput(BuildContext context, AddHalaqahState state) {
+    final schedules = state is AddHalaqahLoaded
+        ? state.schedules
+        : <ProgramSchedule>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
-          onTap: () {
+        AiwaClickableInput(
+          label: 'Jadwal Pertemuan',
+          value: _selectedScheduleIds.isEmpty
+              ? 'Pilih jadwal'
+              : '${_selectedScheduleIds.length} jadwal dipilih',
+          icon: Icons.calendar_month_outlined,
+          onTap: () async {
             if (_selectedSessionId == null) {
               _showSnack(context, 'Silakan pilih sesi terlebih dahulu');
               return;
             }
-
-            if (state is AddHalaqahLoaded) {
-              if (state.schedules.isEmpty) {
-                _showSnack(context, 'Tidak ada jadwal tersedia untuk sesi ini');
-                return;
-              }
-
-              showModalBottomSheet(
-                context: context,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                builder: (modalContext) {
-                  return StatefulBuilder(
-                    builder: (BuildContext _, StateSetter setModalState) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Text(
-                              "Pilih Jadwal",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const Divider(height: 1),
-                          Flexible(
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              itemCount: state.schedules.length,
-                              separatorBuilder: (_, _) =>
-                                  const Divider(height: 1),
-                              itemBuilder: (ctx, index) {
-                                final schedule = state.schedules[index];
-                                final dayName = _getDayName(schedule.day);
-                                final display =
-                                    '$dayName, ${schedule.startTime} - ${schedule.endTime}';
-                                final isSelected = _selectedScheduleIds
-                                    .contains(schedule.id);
-
-                                return ListTile(
-                                  title: Text(display),
-                                  trailing: isSelected
-                                      ? const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.blue,
-                                        )
-                                      : null,
-                                  onTap: () {
-                                    if (isSelected) {
-                                      _selectedScheduleIds.remove(schedule.id);
-                                      _selectedScheduleDisplays.remove(display);
-                                    } else {
-                                      _selectedScheduleIds.add(schedule.id);
-                                      _selectedScheduleDisplays.add(display);
-                                    }
-                                    setModalState(() {});
-                                    if (_selectedScheduleIds.isNotEmpty) {
-                                      context
-                                          .read<AddHalaqahCubit>()
-                                          .checkScheduleAvailability(
-                                            _selectedScheduleIds.first,
-                                          );
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {});
-                                  Navigator.pop(modalContext);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                ),
-                                child: Text(
-                                  'Selesai (${_selectedScheduleIds.length} dipilih)',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              );
-            } else {
+            if (schedules.isEmpty) {
               _showSnack(context, 'Jadwal belum dimuat');
+              return;
             }
+            await _showSchedulePicker(schedules);
           },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey.shade50,
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedScheduleIds.isEmpty
-                        ? 'Pilih Jadwal'
-                        : '${_selectedScheduleIds.length} jadwal dipilih',
-                    style: TextStyle(
-                      color: _selectedScheduleIds.isEmpty
-                          ? Colors.grey
-                          : Colors.black87,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey,
-                ),
-              ],
-            ),
-          ),
         ),
-        if (_selectedScheduleDisplays.isNotEmpty) ...[
+        if (_selectedScheduleIds.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _selectedScheduleDisplays.asMap().entries.map((entry) {
-              final index = entry.key;
-              final display = entry.value;
-              return Chip(
-                label: Text(display, style: const TextStyle(fontSize: 12)),
+            children: _selectedScheduleIds.map((id) {
+              final schedule = _findSchedule(schedules, id);
+              return InputChip(
+                label: Text(
+                  schedule == null
+                      ? 'Jadwal tidak ditemukan'
+                      : _scheduleLabel(schedule),
+                  style: TextStyle(
+                    color: Colors.blue.shade700,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                avatar: Icon(
+                  Icons.schedule_rounded,
+                  size: 15,
+                  color: Colors.blue.shade700,
+                ),
                 backgroundColor: Colors.blue.shade50,
-                deleteIcon: const Icon(Icons.close, size: 18),
+                side: BorderSide(color: Colors.blue.shade100),
+                deleteIcon: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: Colors.blue.shade700,
+                ),
                 onDeleted: () {
-                  setState(() {
-                    _selectedScheduleIds.removeAt(index);
-                    _selectedScheduleDisplays.removeAt(index);
-                  });
+                  setState(() => _selectedScheduleIds.remove(id));
                 },
               );
             }).toList(),
@@ -417,6 +377,131 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       ],
     );
   }
+
+  Future<void> _showSchedulePicker(List<ProgramSchedule> schedules) async {
+    final draft = Set<String>.from(_selectedScheduleIds);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const _SheetHeader(
+                      title: 'Pilih Jadwal',
+                      subtitle: 'Anda dapat memilih lebih dari satu jadwal.',
+                    ),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: schedules.length,
+                        separatorBuilder: (_, _) =>
+                            const Divider(height: 1, indent: 68),
+                        itemBuilder: (context, index) {
+                          final schedule = schedules[index];
+                          final selected = draft.contains(schedule.id);
+                          return CheckboxListTile(
+                            value: selected,
+                            activeColor: Colors.blue,
+                            controlAffinity: ListTileControlAffinity.trailing,
+                            secondary: Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(11),
+                              ),
+                              child: Icon(
+                                Icons.event_available_outlined,
+                                size: 20,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                            title: Text(
+                              _getDayName(schedule.day),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${schedule.startTime} – ${schedule.endTime}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            onChanged: (_) {
+                              setSheetState(() {
+                                selected
+                                    ? draft.remove(schedule.id)
+                                    : draft.add(schedule.id);
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      child: AiwaButton(
+                        text: 'Terapkan (${draft.length})',
+                        onPressed: () {
+                          setState(() {
+                            _selectedScheduleIds = schedules
+                                .where((item) => draft.contains(item.id))
+                                .map((item) => item.id)
+                                .toList();
+                          });
+                          if (_selectedScheduleIds.isNotEmpty) {
+                            context
+                                .read<AddHalaqahCubit>()
+                                .checkScheduleAvailability(
+                                  _selectedScheduleIds.first,
+                                );
+                          }
+                          Navigator.pop(sheetContext);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  ProgramSchedule? _findSchedule(List<ProgramSchedule> schedules, String id) {
+    for (final schedule in schedules) {
+      if (schedule.id == id) return schedule;
+    }
+    return null;
+  }
+
+  String _scheduleLabel(ProgramSchedule schedule) {
+    return '${_getDayName(schedule.day)}, '
+        '${schedule.startTime}–${schedule.endTime}';
+  }
+
+  IconData _sessionIcon(String session) => switch (session.toLowerCase()) {
+    'pagi' => Icons.wb_sunny_outlined,
+    'sore' => Icons.wb_twilight_outlined,
+    'malam' => Icons.nights_stay_outlined,
+    _ => Icons.schedule_outlined,
+  };
 
   String _getDayName(int day) {
     const days = [
@@ -428,17 +513,14 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       'Sabtu',
       'Minggu',
     ];
-    return days[(day - 1) % 7];
+    return day >= 1 && day <= 7 ? days[day - 1] : '-';
   }
 
   Widget _buildPengajarSection(BuildContext context, AddHalaqahState state) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Pengajar (Asatidz)',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+        const AiwaFormSectionTitle(title: 'Pengajar'),
         const SizedBox(height: 12),
         AiwaClickableInput(
           label: 'Pengajar',
@@ -452,11 +534,6 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               );
               return;
             }
-            if (_selectedScheduleIds.isEmpty) {
-              _showSnack(context, 'Silakan pilih jadwal terlebih dahulu');
-              return;
-            }
-
             final unavailable = (state is AddHalaqahLoaded)
                 ? state.unavailableTeacherIds
                 : <String>[];
@@ -489,10 +566,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Santri',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const AiwaFormSectionTitle(title: 'Santri'),
             if (_selectedSantris.isNotEmpty)
               Text(
                 '${_selectedSantris.length} dipilih',
@@ -504,7 +578,12 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
           ],
         ),
         const SizedBox(height: 12),
-        InkWell(
+        AiwaClickableInput(
+          label: 'Anggota Halaqah',
+          value: _selectedSantris.isEmpty
+              ? 'Pilih santri'
+              : _selectSantrisPreview(),
+          icon: Icons.groups_2_outlined,
           onTap: () async {
             if (_selectedGender == null) {
               _showSnack(
@@ -513,26 +592,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               );
               return;
             }
-            if (_selectedScheduleIds.isEmpty) {
-              _showSnack(context, 'Silakan pilih jadwal terlebih dahulu');
-              return;
-            }
-
-            final initialEntities = _selectedSantris
-                .map(
-                  (h) => SantriEntity(
-                    id: h.id,
-                    name: h.name,
-                    nis: h.nis,
-                    jenisKelamin: _selectedGender!,
-                    isActive: true,
-                    kelas: '',
-                    isFree: false,
-                    nomorWali: '',
-                    pembimbing: '',
-                  ),
-                )
-                .toList();
+            final initialEntities = List<SantriEntity>.from(_selectedSantris);
 
             final unavailable = (state is AddHalaqahLoaded)
                 ? state.unavailableSantriIds
@@ -545,49 +605,15 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                 'initialSelection': initialEntities,
                 'disabledIds': unavailable,
                 'isMultiSelect': true,
+                'allowHalaqahTransfer': true,
+                'currentHalaqahId': null,
               },
             );
 
-            if (result != null && result is List<SantriEntity>) {
-              setState(() {
-                _selectedSantris = result;
-              });
+            if (result is List<SantriEntity> && mounted) {
+              setState(() => _selectedSantris = result);
             }
           },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.grey.shade50,
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.people_outline, color: Colors.grey),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedSantris.isEmpty
-                        ? 'Pilih Santri'
-                        : _selectSantrisPreview(),
-                    style: TextStyle(
-                      color: _selectedSantris.isEmpty
-                          ? Colors.grey
-                          : Colors.black87,
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey,
-                ),
-              ],
-            ),
-          ),
         ),
         if (_selectedSantris.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -595,10 +621,35 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
             spacing: 8,
             runSpacing: 8,
             children: _selectedSantris.map((santri) {
-              return Chip(
-                label: Text(santri.name),
-                backgroundColor: Colors.blue.shade50,
-                deleteIcon: const Icon(Icons.close, size: 18),
+              final willMove = santri.halaqahId?.trim().isNotEmpty == true;
+              final color = willMove
+                  ? Colors.orange.shade800
+                  : Colors.blue.shade700;
+              return InputChip(
+                label: Text(
+                  santri.name,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                avatar: Icon(
+                  willMove
+                      ? Icons.swap_horiz_rounded
+                      : Icons.person_outline_rounded,
+                  size: 15,
+                  color: color,
+                ),
+                backgroundColor: willMove
+                    ? Colors.orange.shade50
+                    : Colors.blue.shade50,
+                side: BorderSide(
+                  color: willMove
+                      ? Colors.orange.shade200
+                      : Colors.blue.shade100,
+                ),
+                deleteIcon: Icon(Icons.close_rounded, size: 16, color: color),
                 onDeleted: () {
                   setState(() {
                     _selectedSantris.removeWhere((s) => s.id == santri.id);
@@ -618,37 +669,6 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       return '$names, +${_selectedSantris.length - 3} lainnya';
     }
     return names;
-  }
-
-  Widget _buildSaveButton(BuildContext context, AddHalaqahState state) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: state is AddHalaqahLoading ? null : _submit,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
-        ),
-        child: state is AddHalaqahLoading
-            ? const SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Text(
-                'Simpan Data',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-      ),
-    );
   }
 
   void _submit() {
@@ -671,7 +691,9 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       return;
     }
 
-    if (_selectedTeacherId == null) {
+    if (_selectedTeacherId == null ||
+        _selectedTeacherName == null ||
+        _selectedTeacherName!.trim().isEmpty) {
       _showSnack(context, 'Pilih pengajar terlebih dahulu');
       return;
     }
@@ -685,8 +707,8 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
       id: '',
       programId: _selectedSessionId!,
       scheduleIds: _selectedScheduleIds,
-      name: _nameController.text,
-      room: _roomController.text,
+      name: 'Sesi ${_selectedSessionName!}',
+      room: _roomController.text.trim(),
       teacherId: _selectedTeacherId!,
       teacherName: _selectedTeacherName!,
       status: 'Active',
@@ -700,5 +722,63 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _SheetHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SheetHeader({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 12, 12),
+      child: Column(
+        children: [
+          Container(
+            width: 42,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(height: 15),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Tutup',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

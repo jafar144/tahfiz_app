@@ -109,4 +109,6 @@ class AsatidzCubit extends Cubit<AsatidzState> {
       emit(AsatidzError(ErrorHandler.getMessage(e)));
     }
   }
+
+  Future<String> getNextNis() => repository.getNextNis();
 }

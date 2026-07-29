@@ -4,6 +4,7 @@ import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/features/management_santri/data/datasource/santri_remote_datasource.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_page_result.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 
@@ -38,6 +39,102 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       .current
       .curriculum
       .normalizeFiqihClass(params.kelas, params.kelasFiqih);
+
+  @override
+  Future<SantriPageResult> getSantriPage({
+    String? keyword,
+    bool? isActive,
+    String? gender,
+    String? session,
+    String? kelas,
+    String? asatidzId,
+    bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    SantriSortBy sortBy = SantriSortBy.name,
+    int limit = 10,
+  }) async {
+    // Filter pengajar merupakan join melalui koleksi halaqah. Jalur existing
+    // memang mengambil seluruh kandidat, jadi total dapat digunakan tanpa
+    // query tambahan.
+    if (asatidzId != null) {
+      final allMatches = await getSantriList(
+        keyword: keyword,
+        isActive: isActive,
+        gender: gender,
+        session: session,
+        kelas: kelas,
+        asatidzId: asatidzId,
+        isFree: isFree,
+        hasPhoto: hasPhoto,
+        hasHalaqah: hasHalaqah,
+        sortBy: sortBy,
+        limit: limit,
+      );
+      return SantriPageResult(items: allMatches, totalCount: allMatches.length);
+    }
+
+    final normalizedKeyword = keyword?.trim().toLowerCase() ?? '';
+    final requiresClientEvaluation =
+        normalizedKeyword.isNotEmpty ||
+        isFree != null ||
+        hasPhoto != null ||
+        hasHalaqah != null;
+
+    // Substring search serta filter presence/status kompatibilitas tidak dapat
+    // dihitung akurat oleh satu aggregate query Firestore. Scan kandidat satu
+    // kali, gunakan hasil yang sama untuk list dan total, lalu hentikan
+    // pagination agar dokumen tersebut tidak dibaca ulang.
+    if (requiresClientEvaluation) {
+      final allMatches = await _fetchAllClientEvaluated(
+        keyword: keyword,
+        isActive: isActive,
+        gender: gender,
+        session: session,
+        kelas: kelas,
+        isFree: isFree,
+        hasPhoto: hasPhoto,
+        hasHalaqah: hasHalaqah,
+        sortBy: sortBy,
+      );
+      return SantriPageResult(items: allMatches, totalCount: allMatches.length);
+    }
+
+    final query = _buildSantriQuery(
+      isActive: isActive,
+      gender: gender,
+      session: session,
+      kelas: kelas,
+    ).orderBy(sortBy == SantriSortBy.nis ? 'nis' : 'name');
+
+    try {
+      final snapshot = await query.limit(limit).get();
+      final aggregate = await query.count().get();
+      return SantriPageResult(
+        items: snapshot.docs.map(_entityFromSnapshot).toList(),
+        totalCount: aggregate.count ?? 0,
+      );
+    } on FirebaseException catch (error) {
+      final isMissingNisIndex =
+          error.code == 'failed-precondition' && sortBy == SantriSortBy.nis;
+      if (!isMissingNisIndex) rethrow;
+
+      // Fallback sementara selama composite index NIS belum tersedia. Karena
+      // seluruh kandidat sudah harus dibaca untuk sorting global, kembalikan
+      // semuanya sekaligus agar total eksak dan tidak ada scan berulang.
+      final allMatches = await _fetchAllNisSortedWithNameIndex(
+        keyword: keyword,
+        isActive: isActive,
+        gender: gender,
+        session: session,
+        kelas: kelas,
+        isFree: isFree,
+        hasPhoto: hasPhoto,
+        hasHalaqah: hasHalaqah,
+      );
+      return SantriPageResult(items: allMatches, totalCount: allMatches.length);
+    }
+  }
 
   @override
   Future<List<SantriEntity>> getSantriList({
@@ -202,6 +299,60 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     return query;
   }
 
+  Future<List<SantriEntity>> _fetchAllClientEvaluated({
+    String? keyword,
+    bool? isActive,
+    String? gender,
+    String? session,
+    String? kelas,
+    bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    required SantriSortBy sortBy,
+  }) async {
+    final query = _buildSantriQuery(
+      isActive: isActive,
+      gender: gender,
+      session: session,
+      kelas: kelas,
+    ).orderBy(sortBy == SantriSortBy.nis ? 'nis' : 'name');
+
+    QuerySnapshot<Map<String, dynamic>> snapshot;
+    try {
+      snapshot = await query.get();
+    } on FirebaseException catch (error) {
+      final isMissingNisIndex =
+          error.code == 'failed-precondition' && sortBy == SantriSortBy.nis;
+      if (!isMissingNisIndex) rethrow;
+
+      return _fetchAllNisSortedWithNameIndex(
+        keyword: keyword,
+        isActive: isActive,
+        gender: gender,
+        session: session,
+        kelas: kelas,
+        isFree: isFree,
+        hasPhoto: hasPhoto,
+        hasHalaqah: hasHalaqah,
+      );
+    }
+
+    final normalizedKeyword = keyword?.trim().toLowerCase() ?? '';
+    return snapshot.docs.map(_entityFromSnapshot).where((santri) {
+      final matchesKeyword =
+          normalizedKeyword.isEmpty ||
+          santri.name.toLowerCase().contains(normalizedKeyword) ||
+          santri.nis.toLowerCase().contains(normalizedKeyword);
+      return matchesKeyword &&
+          _matchesClientFilters(
+            santri,
+            isFree: isFree,
+            hasPhoto: hasPhoto,
+            hasHalaqah: hasHalaqah,
+          );
+    }).toList()..sort((a, b) => _compareSantri(a, b, sortBy));
+  }
+
   /// Jalur kompatibilitas sementara saat composite index NIS masih dibangun.
   ///
   /// Query memakai index `name` lama yang sudah digunakan halaman ini, lalu
@@ -217,6 +368,46 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? hasHalaqah,
     required int limit,
     String? lastDocumentId,
+  }) async {
+    final allMatches = await _fetchAllNisSortedWithNameIndex(
+      keyword: keyword,
+      isActive: isActive,
+      gender: gender,
+      session: session,
+      kelas: kelas,
+      isFree: isFree,
+      hasPhoto: hasPhoto,
+      hasHalaqah: hasHalaqah,
+    );
+
+    final normalizedKeyword = keyword?.trim().toLowerCase() ?? '';
+
+    // Pencarian memang dikembalikan lengkap karena Cubit menonaktifkan
+    // pagination ketika keyword aktif.
+    if (normalizedKeyword.isNotEmpty) return allMatches;
+
+    var startIndex = 0;
+    if (lastDocumentId != null) {
+      final lastIndex = allMatches.indexWhere(
+        (santri) => santri.id == lastDocumentId,
+      );
+      if (lastIndex >= 0) startIndex = lastIndex + 1;
+    }
+
+    if (startIndex >= allMatches.length) return [];
+    final endIndex = (startIndex + limit).clamp(0, allMatches.length);
+    return allMatches.sublist(startIndex, endIndex);
+  }
+
+  Future<List<SantriEntity>> _fetchAllNisSortedWithNameIndex({
+    String? keyword,
+    bool? isActive,
+    String? gender,
+    String? session,
+    String? kelas,
+    bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
   }) async {
     final snapshot = await _buildSantriQuery(
       isActive: isActive,
@@ -239,22 +430,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             hasHalaqah: hasHalaqah,
           );
     }).toList()..sort((a, b) => _compareSantri(a, b, SantriSortBy.nis));
-
-    // Pencarian memang dikembalikan lengkap karena Cubit menonaktifkan
-    // pagination ketika keyword aktif.
-    if (normalizedKeyword.isNotEmpty) return allMatches;
-
-    var startIndex = 0;
-    if (lastDocumentId != null) {
-      final lastIndex = allMatches.indexWhere(
-        (santri) => santri.id == lastDocumentId,
-      );
-      if (lastIndex >= 0) startIndex = lastIndex + 1;
-    }
-
-    if (startIndex >= allMatches.length) return [];
-    final endIndex = (startIndex + limit).clamp(0, allMatches.length);
-    return allMatches.sublist(startIndex, endIndex);
+    return allMatches;
   }
 
   Future<List<SantriEntity>> _fetchWithClientFilters({
@@ -485,25 +661,40 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
 
   @override
   Future<String> getNextNis() async {
-    final snapshot = await firestore.collection('santri_profiles').get();
-    // Mulai dari 1000 agar santri pertama mendapat 1001 saat data kosong.
+    // NIS menjadi bagian email Firebase Auth dan karena itu unik lintas role.
+    // Hitung dari santri serta asatidz agar kedua form tidak menawarkan nomor
+    // yang sama ketika akun terakhir yang dibuat berasal dari role berbeda.
+    final snapshots = await Future.wait([
+      firestore.collection('santri_profiles').get(),
+      firestore.collection('asatidz_profiles').get(),
+    ]);
+    // Mulai dari 1000 agar pengguna pertama mendapat 1001 saat data kosong.
     int maxNis = 1000;
-    for (final doc in snapshot.docs) {
-      final s = (doc.data()['nis'] ?? '').toString().trim();
-      final n = int.tryParse(s) ?? double.tryParse(s)?.toInt();
-      if (n != null && n > maxNis) maxNis = n;
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        final s = (doc.data()['nis'] ?? '').toString().trim();
+        final n = int.tryParse(s) ?? double.tryParse(s)?.toInt();
+        if (n != null && n > maxNis) maxNis = n;
+      }
     }
     return (maxNis + 1).toString();
   }
 
   @override
   Future<bool> isNisTaken(String nis) async {
-    final query = await firestore
-        .collection('santri_profiles')
-        .where('nis', isEqualTo: nis)
-        .limit(1)
-        .get();
-    return query.docs.isNotEmpty;
+    final results = await Future.wait([
+      firestore
+          .collection('santri_profiles')
+          .where('nis', isEqualTo: nis)
+          .limit(1)
+          .get(),
+      firestore
+          .collection('asatidz_profiles')
+          .where('nis', isEqualTo: nis)
+          .limit(1)
+          .get(),
+    ]);
+    return results.any((query) => query.docs.isNotEmpty);
   }
 
   @override

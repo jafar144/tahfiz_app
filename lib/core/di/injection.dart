@@ -62,6 +62,9 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/s
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/data/datasources/sunday_fajr_attendance_remote_datasource.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/data/repositories/sunday_fajr_attendance_repository_impl.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositories/sunday_fajr_attendance_repository.dart';
 import 'package:khoirunnasyien/features/asatidz/data/datasources/asatidz_remote_datasource.dart';
 import 'package:khoirunnasyien/features/asatidz/data/repositories/asatidz_repository_impl.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart'
@@ -140,6 +143,10 @@ Future<void> initDI() async {
     () => ScheduleRemoteDataSourceImpl(getIt()),
   );
 
+  getIt.registerLazySingleton<SundayFajrAttendanceRemoteDataSource>(
+    () => SundayFajrAttendanceRemoteDataSourceImpl(getIt<FirebaseFirestore>()),
+  );
+
   getIt.registerLazySingleton<AsatidzRemoteDataSource>(
     () => AsatidzRemoteDataSourceImpl(firestore: getIt()),
   );
@@ -167,6 +174,12 @@ Future<void> initDI() async {
 
   getIt.registerLazySingleton<ScheduleRepository>(
     () => ScheduleRepositoryImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<SundayFajrAttendanceRepository>(
+    () => SundayFajrAttendanceRepositoryImpl(
+      getIt<SundayFajrAttendanceRemoteDataSource>(),
+    ),
   );
 
   getIt.registerLazySingleton<asatidz_domain.AsatidzRepository>(

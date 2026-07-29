@@ -214,6 +214,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   onTap: () => context.pushNamed(RouteNames.adminSchedule),
                 ),
                 MenuCard(
+                  icon: Icons.wb_twilight_rounded,
+                  title: 'Minggu Subuh',
+                  color: Colors.blue,
+                  onTap: () =>
+                      context.pushNamed(RouteNames.adminSundayFajrAttendance),
+                ),
+                MenuCard(
                   icon: Icons.fact_check_rounded,
                   title: 'Penilaian',
                   color: Colors.blue,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/router/route_paths.dart';
 import 'package:khoirunnasyien/features/auth/presentation/pages/login_page.dart';
@@ -39,6 +40,9 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/hala
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/select_santri_page.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/select_asatidz_page.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositories/sunday_fajr_attendance_repository.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/pages/sunday_fajr_admin_page.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/pages/sunday_fajr_santri_history_page.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/kelulusan_photo_list_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_payment_page.dart';
@@ -254,12 +258,26 @@ class AppRouter {
         ),
       ),
       GoRoute(
+        path: RoutePaths.adminSundayFajrAttendance,
+        name: RouteNames.adminSundayFajrAttendance,
+        builder: (context, state) => SundayFajrAdminPage(
+          repository: getIt<SundayFajrAttendanceRepository>(),
+          adminId: getIt<FirebaseAuth>().currentUser?.uid ?? '',
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.addHalaqah,
         name: RouteNames.addHalaqah,
-        builder: (context, state) => BlocProvider(
-          create: (_) => getIt<AddHalaqahCubit>(),
-          child: const AddHalaqahPage(),
-        ),
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>? ?? {};
+          return BlocProvider(
+            create: (_) => getIt<AddHalaqahCubit>(),
+            child: AddHalaqahPage(
+              initialGender: extras['initialGender'] as String?,
+              initialTeacherId: extras['initialTeacherId'] as String?,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: RoutePaths.selectSantri,
@@ -274,13 +292,10 @@ class AppRouter {
           final isFree = extras['isFree'] as bool?;
 
           return BlocProvider(
-            create: (_) => getIt<SantriCubit>()
-              ..loadSantri(
-                isActive: true,
-                gender: gender,
-                asatidzId: asatidzId,
-                isFree: isFree,
-              ),
+            // SelectSantriPage menjadi satu-satunya pemilik initial load agar
+            // query page, aggregate count, dan hidrasi pengajar tidak berjalan
+            // dua kali setiap picker dibuka.
+            create: (_) => getIt<SantriCubit>(),
             child: SelectSantriPage(
               genderFiltered: gender,
               initialSelection:
@@ -288,6 +303,9 @@ class AppRouter {
                   [],
               disabledIds: disabledIds,
               isMultiSelect: isMultiSelect,
+              allowHalaqahTransfer:
+                  extras['allowHalaqahTransfer'] as bool? ?? false,
+              currentHalaqahId: extras['currentHalaqahId'] as String?,
               asatidzId: asatidzId,
               isFree: isFree,
             ),
@@ -349,9 +367,19 @@ class AppRouter {
         path: RoutePaths.editHalaqah,
         name: RouteNames.editHalaqah,
         builder: (context, state) {
-          final cubit = state.extra as HalaqahDetailCubit;
-          return BlocProvider.value(
-            value: cubit,
+          final extra = state.extra;
+          if (extra is HalaqahDetailCubit) {
+            // Tetap menerima kontrak route lama agar deep flow versi
+            // sebelumnya tidak langsung rusak setelah aplikasi diperbarui.
+            return BlocProvider.value(
+              value: extra,
+              child: const EditHalaqahPage(),
+            );
+          }
+
+          final halaqah = extra as Halaqah;
+          return BlocProvider(
+            create: (_) => getIt<HalaqahDetailCubit>(param1: halaqah),
             child: const EditHalaqahPage(),
           );
         },
@@ -378,6 +406,14 @@ class AppRouter {
             child: SantriPaymentPage(startDate: startDate, santriId: santriId),
           );
         },
+      ),
+      GoRoute(
+        path: RoutePaths.santriSundayFajrHistory,
+        name: RouteNames.santriSundayFajrHistory,
+        builder: (context, state) => SundayFajrSantriHistoryPage(
+          repository: getIt<SundayFajrAttendanceRepository>(),
+          santriId: getIt<FirebaseAuth>().currentUser?.uid ?? '',
+        ),
       ),
       GoRoute(
         path: RoutePaths.santriReports,

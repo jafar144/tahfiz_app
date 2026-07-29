@@ -31,7 +31,27 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
   String _gender = 'L'; // L / P
   bool _isLoading = false;
   bool _isPickingPhoto = false;
+  bool _loadingNis = true;
   File? _localPhotoFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNextNis();
+  }
+
+  Future<void> _loadNextNis() async {
+    try {
+      final nis = await context.read<AsatidzCubit>().getNextNis();
+      if (!mounted) return;
+      setState(() {
+        _nisController.text = nis;
+        _loadingNis = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingNis = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -253,10 +273,32 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
                   const SizedBox(height: 16),
                   AiwaTextField(
                     label: 'NIS',
-                    hint: 'Nomor Induk',
+                    hint: _loadingNis ? 'Memuat...' : 'Nomor Induk',
                     controller: _nisController,
                     icon: Icons.badge_outlined,
                     keyboardType: TextInputType.number,
+                    enabled: !_loadingNis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 13,
+                        color: Colors.grey.shade500,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'NIS terisi otomatis (nomor terakhir + 1), '
+                          'bisa diubah bila perlu.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   AiwaTextField(

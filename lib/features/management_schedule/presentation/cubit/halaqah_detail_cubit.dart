@@ -151,8 +151,7 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
 
   Future<void> updateHalaqah(
     Halaqah updatedHalaqah,
-    List<String> newSantriIds,
-    List<String> removedSantriIds,
+    List<String> finalSantriIds,
   ) async {
     final previousState = state;
 
@@ -164,56 +163,20 @@ class HalaqahDetailCubit extends Cubit<HalaqahDetailState> {
 
     final result = await scheduleRepository.updateHalaqah(
       updatedHalaqah,
-      newSantriIds,
-      removedSantriIds,
+      finalSantriIds,
     );
 
     result.fold(
       ifLeft: (failure) {
         emit(HalaqahDetailError(failure.message));
-      },
-      ifRight: (_) async {
-        emit(HalaqahDetailSuccess());
-
-        await Future.delayed(const Duration(milliseconds: 100));
-
-        final schedulesResult = await scheduleRepository.getSchedules(
-          programId: updatedHalaqah.programId,
-        );
-        final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
-          updatedHalaqah.id,
-        );
-
-        final schedules = schedulesResult.fold(
-          ifLeft: (_) => <ProgramSchedule>[],
-          ifRight: (s) => s,
-        );
-
-        final santris = santrisResult.fold(
-          ifLeft: (_) => <SantriEntity>[],
-          ifRight: (s) => s,
-        );
-
-        final gender = previousState is HalaqahDetailLoaded
-            ? previousState.gender
-            : '';
-
-        emit(
-          HalaqahDetailLoaded(
-            halaqah: updatedHalaqah,
-            schedules: schedules,
-            santriList: santris,
-            gender: gender,
-          ),
-        );
-
-        if (updatedHalaqah.scheduleIds.isNotEmpty) {
-          _checkAvailability(
-            updatedHalaqah.scheduleIds.first,
-            updatedHalaqah.id,
-          );
+        if (previousState is HalaqahDetailLoaded) {
+          emit(previousState.copyWith(isSubmitting: false));
         }
       },
+      // Halaman edit menutup route ketika menerima state ini. Detail Pengajar
+      // yang berada di bawahnya kemudian memuat ulang data terbaru. Jangan
+      // menjadwalkan emit lanjutan karena provider route sudah dapat tertutup.
+      ifRight: (_) => emit(HalaqahDetailSuccess()),
     );
   }
 }

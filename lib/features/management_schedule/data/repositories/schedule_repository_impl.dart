@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/management_schedule/data/datasource/sche
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
+import 'package:khoirunnasyien/features/management_schedule/domain/exceptions/halaqah_conflict_exception.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/halaqah_model.dart';
 
@@ -81,8 +82,7 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   @override
   Future<Either<Failure, void>> updateHalaqah(
     Halaqah halaqah,
-    List<String> newSantriIds,
-    List<String> removedSantriIds,
+    List<String> finalSantriIds,
   ) async {
     try {
       final model = HalaqahModel(
@@ -94,14 +94,12 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
         teacherId: halaqah.teacherId,
         teacherName: halaqah.teacherName,
         status: halaqah.status,
-        santriCount: newSantriIds.length,
+        santriCount: finalSantriIds.length,
       );
-      await remoteDataSource.updateHalaqah(
-        model,
-        newSantriIds,
-        removedSantriIds,
-      );
+      await remoteDataSource.updateHalaqah(model, finalSantriIds);
       return const Either.right(null);
+    } on HalaqahConflictException catch (e) {
+      return Either.left(ServerFailure(e.message));
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
     }
@@ -126,6 +124,8 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
       );
       await remoteDataSource.createHalaqah(model, santriIds);
       return const Either.right(null);
+    } on HalaqahConflictException catch (e) {
+      return Either.left(ServerFailure(e.message));
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
     }

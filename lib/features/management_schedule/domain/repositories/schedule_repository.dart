@@ -24,8 +24,7 @@ abstract class ScheduleRepository {
   Future<Either<Failure, List<Halaqah>>> getAllHalaqahs();
   Future<Either<Failure, void>> updateHalaqah(
     Halaqah halaqah,
-    List<String> newSantriIds,
-    List<String> removedSantriIds,
+    List<String> finalSantriIds,
   );
   Future<Either<Failure, void>> createHalaqah(
     Halaqah halaqah,

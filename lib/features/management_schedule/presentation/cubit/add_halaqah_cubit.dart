@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
@@ -16,6 +17,10 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
     required this.asatidzRepository,
     required this.santriRepository,
   }) : super(AddHalaqahInitial());
+
+  Future<AsatidzDetail> getAsatidzDetail(String id) {
+    return asatidzRepository.getAsatidzDetail(id);
+  }
 
   Future<void> loadInitialData(String gender) async {
     emit(AddHalaqahLoading());
@@ -170,16 +175,21 @@ class AddHalaqahCubit extends Cubit<AddHalaqahState> {
   }
 
   Future<void> createHalaqah(Halaqah halaqah, List<String> santriIds) async {
+    final previousState = state;
     emit(AddHalaqahLoading());
     try {
       final result = await scheduleRepository.createHalaqah(halaqah, santriIds);
 
       result.fold(
-        ifLeft: (failure) => emit(AddHalaqahError(failure.message)),
+        ifLeft: (failure) {
+          emit(AddHalaqahError(failure.message));
+          if (previousState is AddHalaqahLoaded) emit(previousState);
+        },
         ifRight: (_) => emit(AddHalaqahSuccess()),
       );
     } catch (e) {
       emit(AddHalaqahError(ErrorHandler.getMessage(e)));
+      if (previousState is AddHalaqahLoaded) emit(previousState);
     }
   }
 }

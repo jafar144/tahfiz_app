@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_page_result.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/pages/admin_santri_page.dart';
@@ -82,6 +83,32 @@ void main() {
     expect(repository.lastSortBy, SantriSortBy.name);
     expect(find.text('Urutkan: Nama'), findsOneWidget);
   });
+
+  testWidgets(
+    'admin list shows exact result total with compact footer padding',
+    (tester) async {
+      final repository = _FakeSantriRepository(
+        result: [_santri()],
+        totalCount: 37,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider(
+            create: (_) => SantriCubit(repository),
+            child: const AdminSantriPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('santri_result_count')), findsOneWidget);
+      expect(find.text('37 santri ditemukan'), findsOneWidget);
+
+      final listView = tester.widget<ListView>(find.byType(ListView).first);
+      expect(listView.padding, const EdgeInsets.all(16));
+    },
+  );
 }
 
 SantriEntity _santri({String? photoUrl, String? halaqahId}) {
@@ -99,9 +126,43 @@ SantriEntity _santri({String? photoUrl, String? halaqahId}) {
 }
 
 class _FakeSantriRepository implements SantriRepository {
+  final List<SantriEntity> result;
+  final int totalCount;
+
   bool? lastHasPhoto;
   bool? lastHasHalaqah;
   SantriSortBy? lastSortBy;
+
+  _FakeSantriRepository({this.result = const <SantriEntity>[], int? totalCount})
+    : totalCount = totalCount ?? result.length;
+
+  void _record({
+    required bool? hasPhoto,
+    required bool? hasHalaqah,
+    required SantriSortBy sortBy,
+  }) {
+    lastHasPhoto = hasPhoto;
+    lastHasHalaqah = hasHalaqah;
+    lastSortBy = sortBy;
+  }
+
+  @override
+  Future<SantriPageResult> getSantriPage({
+    String? keyword,
+    bool? isActive,
+    String? gender,
+    String? session,
+    String? kelas,
+    String? asatidzId,
+    bool? isFree,
+    bool? hasPhoto,
+    bool? hasHalaqah,
+    SantriSortBy sortBy = SantriSortBy.name,
+    int limit = 10,
+  }) async {
+    _record(hasPhoto: hasPhoto, hasHalaqah: hasHalaqah, sortBy: sortBy);
+    return SantriPageResult(items: result, totalCount: totalCount);
+  }
 
   @override
   Future<List<SantriEntity>> getSantriList({
@@ -118,10 +179,8 @@ class _FakeSantriRepository implements SantriRepository {
     int limit = 10,
     String? lastDocumentId,
   }) async {
-    lastHasPhoto = hasPhoto;
-    lastHasHalaqah = hasHalaqah;
-    lastSortBy = sortBy;
-    return [];
+    _record(hasPhoto: hasPhoto, hasHalaqah: hasHalaqah, sortBy: sortBy);
+    return result;
   }
 
   @override

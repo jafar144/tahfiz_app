@@ -3,6 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
@@ -10,17 +14,18 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/prog
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 
-/// Detail seorang pengajar beserta seluruh halaqah/sesi yang diampunya.
-/// Tiap halaqah menampilkan info sesi, jadwal, dan daftar santrinya.
 class AsatidzHalaqahDetailPage extends StatefulWidget {
   final String teacherId;
+
+  /// Fallback untuk deep-link/route versi lama. Nama terbaru tetap diambil dari
+  /// `asatidz_profiles` menggunakan [teacherId].
   final String teacherName;
-  final String gender; // 'L' / 'P'
+  final String gender;
 
   const AsatidzHalaqahDetailPage({
     super.key,
     required this.teacherId,
-    required this.teacherName,
+    this.teacherName = '-',
     required this.gender,
   });
 
@@ -30,21 +35,36 @@ class AsatidzHalaqahDetailPage extends StatefulWidget {
 }
 
 class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
-  final _repo = getIt<ScheduleRepository>();
+  final _scheduleRepository = getIt<ScheduleRepository>();
+  final _asatidzRepository = getIt<AsatidzRepository>();
 
   bool _loading = true;
   String? _error;
-
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
+  AsatidzDetail? _teacher;
   List<Halaqah> _halaqahs = [];
   final Map<String, ScheduleProgram> _programById = {};
   final Map<String, ProgramSchedule> _scheduleById = {};
   final Map<String, List<SantriEntity>> _santriByHalaqah = {};
+  String? _selectedHalaqahId;
 
   bool get _isMale => widget.gender == 'L';
   Color get _accent => _isMale ? Colors.blue : Colors.pink;
+  String get _teacherName {
+    final current = _teacher?.name.trim();
+    if (current != null && current.isNotEmpty) return current;
+    return widget.teacherName;
+  }
+
+  Halaqah? get _selectedHalaqah {
+    if (_halaqahs.isEmpty) return null;
+    return _halaqahs.firstWhere(
+      (halaqah) => halaqah.id == _selectedHalaqahId,
+      orElse: () => _halaqahs.first,
+    );
+  }
+
+  int get _totalSantri =>
+      _santriByHalaqah.values.fold(0, (sum, list) => sum + list.length);
 
   @override
   void initState() {
@@ -52,129 +72,108 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
     _load();
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
     try {
-      // Program (sesi) untuk gender ini → untuk menamai sesi tiap halaqah.
-      final programsRes = await _repo.getPrograms(gender: widget.gender);
+      try {
+        _teacher = await _asatidzRepository.getAsatidzDetail(widget.teacherId);
+      } catch (_) {
+        _teacher = null;
+      }
+
+      final programsResult = await _scheduleRepository.getPrograms(
+        gender: widget.gender,
+      );
       _programById.clear();
-      programsRes.fold(
-        ifLeft: (f) => throw Exception(f.message),
+      programsResult.fold(
+        ifLeft: (failure) => throw Exception(failure.message),
         ifRight: (programs) {
-          for (final p in programs) {
-            _programById[p.id] = p;
+          for (final program in programs) {
+            _programById[program.id] = program;
           }
         },
       );
 
-      // Halaqah milik pengajar ini, dibatasi pada gender yang sedang dibuka.
-      final halaqahRes = await _repo.getHalaqahsByTeacher(widget.teacherId);
-      List<Halaqah> halaqahs = [];
-      halaqahRes.fold(
-        ifLeft: (f) => throw Exception(f.message),
-        ifRight: (list) => halaqahs = list
-            .where((h) => _programById.containsKey(h.programId))
-            .toList(),
+      final halaqahResult = await _scheduleRepository.getHalaqahsByTeacher(
+        widget.teacherId,
+      );
+      var halaqahs = <Halaqah>[];
+      halaqahResult.fold(
+        ifLeft: (failure) => throw Exception(failure.message),
+        ifRight: (items) {
+          halaqahs = items
+              .where((item) => _programById.containsKey(item.programId))
+              .toList();
+        },
       );
 
-      // Jadwal tiap program & santri tiap halaqah.
       _scheduleById.clear();
       _santriByHalaqah.clear();
       final loadedPrograms = <String>{};
-      for (final h in halaqahs) {
-        if (!loadedPrograms.contains(h.programId)) {
-          loadedPrograms.add(h.programId);
-          final schRes = await _repo.getSchedules(programId: h.programId);
-          schRes.fold(
+      for (final halaqah in halaqahs) {
+        if (loadedPrograms.add(halaqah.programId)) {
+          final schedulesResult = await _scheduleRepository.getSchedules(
+            programId: halaqah.programId,
+          );
+          schedulesResult.fold(
             ifLeft: (_) {},
             ifRight: (schedules) {
-              for (final s in schedules) {
-                _scheduleById[s.id] = s;
+              for (final schedule in schedules) {
+                _scheduleById[schedule.id] = schedule;
               }
             },
           );
         }
 
-        final santriRes = await _repo.getSantrisByHalaqahId(h.id);
-        santriRes.fold(
-          ifLeft: (_) => _santriByHalaqah[h.id] = [],
-          ifRight: (santris) => _santriByHalaqah[h.id] = santris,
+        final santriResult = await _scheduleRepository.getSantrisByHalaqahId(
+          halaqah.id,
+        );
+        santriResult.fold(
+          ifLeft: (_) => _santriByHalaqah[halaqah.id] = [],
+          ifRight: (santri) => _santriByHalaqah[halaqah.id] = santri,
         );
       }
 
-      // Urutkan halaqah berdasarkan sesi (pagi → sore → malam) lalu nama.
-      halaqahs.sort((a, b) {
-        final sa = _sessionName(a).toLowerCase();
-        final sb = _sessionName(b).toLowerCase();
-        final order = {'pagi': 0, 'sore': 1, 'malam': 2};
-        final bySession = (order[sa] ?? 99).compareTo(order[sb] ?? 99);
+      halaqahs.sort((first, second) {
+        final firstOrder = _sessionOrder(_sessionName(first));
+        final secondOrder = _sessionOrder(_sessionName(second));
+        final bySession = firstOrder.compareTo(secondOrder);
         if (bySession != 0) return bySession;
-        return a.name.compareTo(b.name);
+        final byRoom = first.room.toLowerCase().compareTo(
+          second.room.toLowerCase(),
+        );
+        return byRoom != 0 ? byRoom : first.id.compareTo(second.id);
       });
 
       if (!mounted) return;
       setState(() {
         _halaqahs = halaqahs;
+        if (_selectedHalaqahId == null ||
+            !_halaqahs.any((item) => item.id == _selectedHalaqahId)) {
+          _selectedHalaqahId = _halaqahs.isEmpty ? null : _halaqahs.first.id;
+        }
         _loading = false;
-        if (_currentPage >= _halaqahs.length) {
-          _currentPage = _halaqahs.isEmpty ? 0 : _halaqahs.length - 1;
-        }
       });
-      // Setelah jumlah halaqah berubah (mis. balik dari Kelola), pastikan
-      // posisi pager tetap valid.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_pageController.hasClients &&
-            _halaqahs.length > 1 &&
-            _pageController.page?.round() != _currentPage) {
-          _pageController.jumpToPage(_currentPage);
-        }
-      });
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = error.toString().replaceFirst('Exception: ', '');
         _loading = false;
       });
     }
   }
 
-  String _sessionName(Halaqah h) {
-    final p = _programById[h.programId];
-    final name = (p?.name.isNotEmpty ?? false) ? p!.name : 'Regular';
-    return _capitalize(name);
-  }
-
-  int get _totalSantri =>
-      _santriByHalaqah.values.fold(0, (sum, list) => sum + list.length);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD),
-      appBar: AppBar(
-        surfaceTintColor: Colors.white,
-        title: const Text(
-          'Detail Pengajar',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
+      backgroundColor: const Color(0xFFF7F8FC),
+      appBar: const AiwaAppBar(title: 'Detail Pengajar'),
       body: _buildBody(),
     );
   }
@@ -183,182 +182,120 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
+
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Gagal memuat data:\n$_error',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.cloud_off_outlined,
+                size: 46,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade700),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Coba lagi'),
+              ),
+            ],
           ),
         ),
       );
     }
 
-    // Satu halaqah (atau kosong) → cukup scroll vertikal biasa.
-    if (_halaqahs.length <= 1) {
-      return RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildHeaderCard(),
-            const SizedBox(height: 20),
-            if (_halaqahs.isEmpty)
-              _buildEmpty()
-            else
-              _buildHalaqahSection(_halaqahs.first),
-            const SizedBox(height: 24),
-          ],
-        ),
-      );
-    }
-
-    // Lebih dari satu halaqah → geser ke kanan antar halaqah (per sesi).
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: _buildHeaderCard(),
-        ),
-        const SizedBox(height: 12),
-        _buildHalaqahTabs(),
-        const SizedBox(height: 4),
-        Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (i) => setState(() => _currentPage = i),
-            itemCount: _halaqahs.length,
-            itemBuilder: (context, index) {
-              return RefreshIndicator(
-                onRefresh: _load,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [_buildHalaqahSection(_halaqahs[index])],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Tab sesi untuk berpindah antar halaqah seorang pengajar.
-  Widget _buildHalaqahTabs() {
-    return SizedBox(
-      height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _halaqahs.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final session = _sessionName(_halaqahs[index]);
-          final selected = index == _currentPage;
-          final color = _getSessionColor(session);
-          return GestureDetector(
-            onTap: () => _pageController.animateToPage(
-              index,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: selected ? color.withValues(alpha: 0.12) : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: selected ? color : Colors.grey.shade300,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _getSessionIcon(session),
-                    size: 14,
-                    color: selected ? color : Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    session,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: selected ? color : Colors.grey.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    final selected = _selectedHalaqah;
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          _buildHeaderCard(),
+          const SizedBox(height: 16),
+          _buildSessionChips(),
+          const SizedBox(height: 16),
+          if (selected == null)
+            _buildEmptyState()
+          else
+            _buildSessionSection(selected),
+        ],
       ),
     );
   }
 
   Widget _buildHeaderCard() {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Row(
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: _accent.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              UiUtils.getInitials(widget.teacherName),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: _accent,
-              ),
-            ),
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: _accent.withValues(alpha: 0.1),
+            backgroundImage: (_teacher?.photoUrl?.trim().isNotEmpty ?? false)
+                ? NetworkImage(_teacher!.photoUrl!)
+                : null,
+            child: (_teacher?.photoUrl?.trim().isNotEmpty ?? false)
+                ? null
+                : Text(
+                    UiUtils.getInitials(_teacherName),
+                    style: TextStyle(
+                      color: _accent,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.teacherName,
+                  _teacherName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                     color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 7,
+                  runSpacing: 7,
                   children: [
                     _statChip(
-                      Icons.groups_2_rounded,
-                      '${_halaqahs.length} Halaqah',
+                      Icons.schedule_rounded,
+                      '${_halaqahs.length} Sesi',
                     ),
-                    _statChip(Icons.people_alt_rounded, '$_totalSantri Santri'),
                     _statChip(
-                      Icons.person,
+                      Icons.people_alt_outlined,
+                      '$_totalSantri Santri',
+                    ),
+                    _statChip(
+                      _isMale ? Icons.male_rounded : Icons.female_rounded,
                       _isMale ? 'Putra' : 'Putri',
                       color: _accent,
                     ),
@@ -372,241 +309,269 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
     );
   }
 
-  Widget _statChip(IconData icon, String text, {Color? color}) {
-    final c = color ?? Colors.grey.shade700;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: (color ?? Colors.grey).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+  Widget _buildSessionChips() {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
         children: [
-          Icon(icon, size: 14, color: c),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: c,
+          for (final halaqah in _halaqahs) ...[
+            _SessionChip(
+              label: _sessionName(halaqah),
+              icon: _sessionIcon(_sessionName(halaqah)),
+              color: _sessionColor(_sessionName(halaqah)),
+              selected: halaqah.id == _selectedHalaqahId,
+              onTap: () => setState(() => _selectedHalaqahId = halaqah.id),
             ),
+            const SizedBox(width: 8),
+          ],
+          _SessionChip(
+            label: 'Tambah sesi',
+            icon: Icons.add_rounded,
+            color: Colors.blue,
+            selected: false,
+            dashedIntent: true,
+            onTap: _openAddSession,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmpty() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      alignment: Alignment.center,
-      child: Column(
-        children: [
-          Icon(Icons.event_busy, size: 56, color: Colors.grey.shade300),
-          const SizedBox(height: 12),
-          Text(
-            'Belum ada halaqah untuk pengajar ini',
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHalaqahSection(Halaqah halaqah) {
+  Widget _buildSessionSection(Halaqah halaqah) {
     final session = _sessionName(halaqah);
-    final santriList = _santriByHalaqah[halaqah.id] ?? [];
+    final santri = _santriByHalaqah[halaqah.id] ?? [];
     final schedules =
         halaqah.scheduleIds
             .map((id) => _scheduleById[id])
             .whereType<ProgramSchedule>()
             .toList()
-          ..sort((a, b) {
-            final byDay = a.day.compareTo(b.day);
-            if (byDay != 0) return byDay;
-            return a.startTime.compareTo(b.startTime);
+          ..sort((first, second) {
+            final byDay = first.day.compareTo(second.day);
+            return byDay != 0
+                ? byDay
+                : first.startTime.compareTo(second.startTime);
           });
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Kartu info halaqah.
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _sessionBadge(session),
-                    const Spacer(),
-                    TextButton.icon(
-                      onPressed: () => _openManage(halaqah, session),
-                      icon: const Icon(Icons.settings_outlined, size: 16),
-                      label: const Text('Kelola'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _accent,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        visualDensity: VisualDensity.compact,
-                      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _sessionBadge(session),
+                  const Spacer(),
+                  OutlinedButton.icon(
+                    onPressed: () => _openEdit(halaqah),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade200),
+                      visualDensity: VisualDensity.compact,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  halaqah.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
                   ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.door_sliding_outlined,
-                      size: 15,
-                      color: Colors.grey.shade500,
+                  const SizedBox(width: 6),
+                  IconButton(
+                    tooltip: 'Hapus sesi',
+                    onPressed: () => _confirmDelete(halaqah, session),
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      backgroundColor: Colors.red.shade50,
+                      visualDensity: VisualDensity.compact,
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Ruang ${halaqah.room}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-                if (schedules.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: schedules
-                        .map(
-                          (s) => _scheduleChip(
-                            '${_dayName(s.day)} · ${s.startTime}-${s.endTime}',
-                          ),
-                        )
-                        .toList(),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 19),
                   ),
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Header daftar santri.
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Row(
-              children: [
-                Text(
-                  'Daftar Santri',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade700,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.meeting_room_outlined,
+                    size: 17,
+                    color: Colors.grey.shade500,
                   ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${santriList.length}',
+                  const SizedBox(width: 6),
+                  Text(
+                    halaqah.room.trim().isEmpty
+                        ? 'Ruangan belum diatur'
+                        : 'Ruang ${halaqah.room}',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
                       color: Colors.grey.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                ],
+              ),
+              if (schedules.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: schedules
+                      .map(
+                        (item) => _scheduleChip(
+                          '${_dayName(item.day)} • '
+                          '${item.startTime}–${item.endTime}',
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
-            ),
+            ],
           ),
-          if (santriList.isEmpty)
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            const Text(
+              'Daftar Santri',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+            const Spacer(),
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
               ),
               child: Text(
-                'Belum ada santri di halaqah ini',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-              ),
-            )
-          else
-            ...santriList.map(
-              (s) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: SantriCard(s, showPembimbing: false),
+                '${santri.length}',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (santri.isEmpty)
+          _emptySantri()
+        else
+          for (final item in santri)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: SantriCard(item, showPembimbing: false),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.event_available_outlined,
+            size: 50,
+            color: Colors.blue[200],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Belum ada sesi',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Tambahkan sesi pertama untuk pengajar ini.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: _openAddSession,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Tambah sesi'),
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _openManage(Halaqah halaqah, String session) async {
-    await context.pushNamed(
-      RouteNames.detailHalaqah,
-      extra: {
-        'halaqah': halaqah,
-        'sessionName': session,
-        'gender': widget.gender,
-      },
+  Widget _emptySantri() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Text(
+        'Belum ada santri pada sesi ini',
+        style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+      ),
     );
-    if (mounted) _load();
   }
 
-  Widget _sessionBadge(String session) {
-    final color = _getSessionColor(session);
+  Widget _statChip(IconData icon, String text, {Color? color}) {
+    final foreground = color ?? Colors.grey.shade700;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: (color ?? Colors.grey).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getSessionIcon(session), size: 14, color: color),
+          Icon(icon, size: 13, color: foreground),
           const SizedBox(width: 4),
           Text(
-            session,
+            text,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sessionBadge(String session) {
+    final color = _sessionColor(session);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_sessionIcon(session), color: color, size: 15),
+          const SizedBox(width: 5),
+          Text(
+            'Sesi $session',
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.bold,
               fontSize: 12,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -619,49 +584,95 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(9),
       ),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: 12,
           color: Colors.grey.shade700,
+          fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 
-  String _capitalize(String text) {
-    if (text.isEmpty) return text;
-    return text[0].toUpperCase() + text.substring(1);
+  Future<void> _openAddSession() async {
+    await context.pushNamed(
+      RouteNames.addHalaqah,
+      extra: {
+        'initialGender': widget.gender,
+        'initialTeacherId': widget.teacherId,
+      },
+    );
+    if (mounted) await _load();
   }
 
-  Color _getSessionColor(String session) {
-    switch (session.toLowerCase()) {
-      case 'pagi':
-        return Colors.orange.shade700;
-      case 'sore':
-        return Colors.deepOrange.shade700;
-      case 'malam':
-        return Colors.indigo.shade700;
-      default:
-        return Colors.grey.shade700;
-    }
+  Future<void> _openEdit(Halaqah halaqah) async {
+    await context.pushNamed(RouteNames.editHalaqah, extra: halaqah);
+    if (mounted) await _load();
   }
 
-  IconData _getSessionIcon(String session) {
-    switch (session.toLowerCase()) {
-      case 'pagi':
-        return Icons.wb_sunny_outlined;
-      case 'sore':
-        return Icons.wb_twilight;
-      case 'malam':
-        return Icons.nights_stay_outlined;
-      default:
-        return Icons.schedule;
-    }
+  Future<void> _confirmDelete(Halaqah halaqah, String session) async {
+    final confirmed = await showAiwaActionSheet<bool>(
+      context: context,
+      title: 'Hapus sesi $session?',
+      content: const Text(
+        'Santri pada sesi ini akan dilepas dari halaqah. '
+        'Tindakan ini tidak menghapus akun santri.',
+      ),
+      cancelText: 'Batal',
+      confirmText: 'Hapus sesi',
+      cancelValue: false,
+      confirmValue: true,
+      cancelColor: Colors.grey,
+      confirmColor: Colors.red,
+    );
+    if (confirmed != true || !mounted) return;
+
+    final result = await _scheduleRepository.deleteHalaqah(halaqah.id);
+    if (!mounted) return;
+    result.fold(
+      ifLeft: (failure) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+      ifRight: (_) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sesi berhasil dihapus')));
+        _load();
+      },
+    );
   }
+
+  String _sessionName(Halaqah halaqah) {
+    final rawName = _programById[halaqah.programId]?.name.trim() ?? '';
+    if (rawName.isEmpty) return 'Reguler';
+    return rawName[0].toUpperCase() + rawName.substring(1);
+  }
+
+  int _sessionOrder(String session) => switch (session.toLowerCase()) {
+    'pagi' => 0,
+    'sore' => 1,
+    'malam' => 2,
+    _ => 99,
+  };
+
+  Color _sessionColor(String session) => switch (session.toLowerCase()) {
+    'pagi' => Colors.orange.shade700,
+    'sore' => Colors.deepOrange.shade700,
+    'malam' => Colors.indigo.shade700,
+    _ => Colors.blueGrey.shade700,
+  };
+
+  IconData _sessionIcon(String session) => switch (session.toLowerCase()) {
+    'pagi' => Icons.wb_sunny_outlined,
+    'sore' => Icons.wb_twilight_outlined,
+    'malam' => Icons.nights_stay_outlined,
+    _ => Icons.schedule_outlined,
+  };
 
   String _dayName(int day) {
     const days = [
@@ -673,7 +684,67 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
       'Sabtu',
       'Minggu',
     ];
-    if (day >= 1 && day <= 7) return days[day - 1];
-    return '';
+    return day >= 1 && day <= 7 ? days[day - 1] : '-';
+  }
+}
+
+class _SessionChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final bool dashedIntent;
+  final VoidCallback onTap;
+
+  const _SessionChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    this.dashedIntent = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? color.withValues(alpha: 0.11) : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected || dashedIntent ? color : Colors.grey.shade300,
+              width: dashedIntent ? 1.3 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: selected || dashedIntent ? color : Colors.grey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected || dashedIntent
+                      ? color
+                      : Colors.grey.shade700,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

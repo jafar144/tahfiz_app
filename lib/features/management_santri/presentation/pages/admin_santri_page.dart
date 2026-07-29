@@ -222,6 +222,49 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 18,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: BlocBuilder<SantriCubit, SantriState>(
+                builder: (context, state) {
+                  if (state is SantriLoaded) {
+                    return Row(
+                      key: const Key('santri_result_count'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.people_outline_rounded,
+                          size: 14,
+                          color: Colors.grey.shade500,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${state.totalCount} santri ditemukan',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  if (state is SantriLoading) {
+                    return Text(
+                      'Menghitung hasil...',
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 11,
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -255,7 +298,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+              padding: const EdgeInsets.all(16),
               itemCount:
                   displayList.length +
                   (state is SantriLoaded && state.isFetchingMore ? 1 : 0),

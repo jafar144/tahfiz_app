@@ -39,8 +39,179 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function currentSantriHalaqahId() {
+      return get(
+        /databases/$(database)/documents/santri_profiles/$(request.auth.uid)
+      ).data.get('halaqah_id', '');
+    }
+
+    // Hanya profil pengajar yang sedang membimbing akun santri ini yang boleh
+    // dibaca. Ini menjaga nama/nomor pembimbing tetap berasal dari dokumen
+    // terkini tanpa membuka daftar seluruh asatidz kepada santri.
+    function isAssignedAsatidz(uid) {
+      return isSantri()
+        && currentSantriHalaqahId() is string
+        && currentSantriHalaqahId().size() > 0
+        && get(
+          /databases/$(database)/documents/halaqahs/$(currentSantriHalaqahId())
+        ).data.get('asatidz', {}).get('id', '') == uid;
+    }
+
+    // Tanggal absensi disimpan sebagai date-only UTC yang mewakili kalender
+    // WIB. Penambahan tujuh jam di sini memastikan batas hari mengikuti WIB,
+    // bukan timezone perangkat atau UTC.
+    function wibToday() {
+      return (request.time + duration.value(7, 'h')).date();
+    }
+
+    function latestSundayWib() {
+      return wibToday()
+        - duration.value(wibToday().dayOfWeek() % 7, 'd');
+    }
+
+    function isEditableSunday(eventDate) {
+      return eventDate is timestamp
+        && eventDate == eventDate.date()
+        && eventDate.dayOfWeek() == 7
+        && (
+          eventDate == latestSundayWib()
+          || eventDate == latestSundayWib() - duration.value(7, 'd')
+        );
+    }
+
+    function isCreatableSunday(eventDate) {
+      return eventDate is timestamp
+        && eventDate == eventDate.date()
+        && eventDate.dayOfWeek() == 7
+        && wibToday().dayOfWeek() == 7
+        && eventDate == wibToday();
+    }
+
+    function sundayFajrParentPath(weekId) {
+      return /databases/$(database)/documents/sunday_fajr_attendance/$(weekId);
+    }
+
+    function validSundayWeekKey(weekKey) {
+      return weekKey is string
+        && weekKey.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function validSundayFajrSummary(weekId, data) {
+      return data.keys().hasAll([
+          'week_key',
+          'event_date',
+          'participant_count',
+          'total_hadir',
+          'total_izin',
+          'total_alpha',
+          'revision',
+          'schema_version',
+          'created_by',
+          'created_at',
+          'updated_by',
+          'updated_at',
+        ])
+        && data.keys().hasOnly([
+          'week_key',
+          'event_date',
+          'participant_count',
+          'total_hadir',
+          'total_izin',
+          'total_alpha',
+          'revision',
+          'schema_version',
+          'created_by',
+          'created_at',
+          'updated_by',
+          'updated_at',
+        ])
+        && validSundayWeekKey(weekId)
+        && data.week_key == weekId
+        && isEditableSunday(data.event_date)
+        && data.participant_count is int
+        && data.total_hadir is int
+        && data.total_izin is int
+        && data.total_alpha is int
+        && data.participant_count >= 0
+        && data.participant_count <= 497
+        && data.total_hadir >= 0
+        && data.total_izin >= 0
+        && data.total_alpha >= 0
+        && data.participant_count
+          == data.total_hadir + data.total_izin + data.total_alpha
+        && data.revision is int
+        && data.revision >= 1
+        && data.schema_version == 1
+        && data.created_by is string
+        && data.created_by.size() > 0
+        && data.updated_by is string
+        && data.updated_by.size() > 0
+        && data.created_at is timestamp
+        && data.updated_at is timestamp;
+    }
+
+    function validSundayFajrParticipant(weekId, participantId, data) {
+      return data.keys().hasAll([
+          'record_type',
+          'santri_id',
+          'santri_name',
+          'santri_nis',
+          'kelas',
+          'week_key',
+          'event_date',
+          'status',
+          'izin_reason',
+        ])
+        && data.keys().hasOnly([
+          'record_type',
+          'santri_id',
+          'santri_name',
+          'santri_nis',
+          'kelas',
+          'week_key',
+          'event_date',
+          'status',
+          'izin_reason',
+          'created_at',
+          'updated_at',
+        ])
+        && data.record_type == 'sunday_fajr_participant'
+        && validSundayWeekKey(weekId)
+        && data.week_key == weekId
+        && data.santri_id == participantId
+        && data.santri_id is string
+        && data.santri_id.size() > 0
+        && data.santri_name is string
+        && data.santri_name.size() > 0
+        && data.santri_nis is string
+        && data.kelas is string
+        && data.kelas.size() > 0
+        && isEditableSunday(data.event_date)
+        && data.status in ['hadir', 'izin', 'alpha']
+        && data.izin_reason is string
+        && (
+          (
+            data.status == 'izin'
+            && data.izin_reason.size() > 0
+            && data.izin_reason.size() <= 300
+          )
+          || (
+            data.status != 'izin'
+            && data.izin_reason == ''
+          )
+        )
+        && (
+          !data.keys().hasAny(['created_at'])
+          || data.created_at is timestamp
+        )
+        && (
+          !data.keys().hasAny(['updated_at'])
+          || data.updated_at is timestamp
+        );
+    }
+
     match /users/{uid} {
-      allow read: if isOwner(uid) || isAdmin();
+      allow read: if isOwner(uid) || isAdmin() || isAssignedAsatidz(uid);
       allow create, delete: if false;
       allow update: if isAdmin()
         || (
@@ -57,7 +228,7 @@ service cloud.firestore {
     }
 
     match /asatidz_profiles/{uid} {
-      allow read: if isOwner(uid) || isStaff();
+      allow read: if isOwner(uid) || isStaff() || isAssignedAsatidz(uid);
       allow create, delete: if false;
       allow update: if isAdmin();
     }
@@ -107,6 +278,10 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    match /halaqah_teacher_sessions/{guardId} {
+      allow read, create, update, delete: if isAdmin();
+    }
+
     match /session_schedules/{scheduleId} {
       allow read: if signedIn();
       allow create, update, delete: if isAdmin();
@@ -125,6 +300,83 @@ service cloud.firestore {
     match /santri_attendance/{attendanceId} {
       allow read, create, update: if isStaff();
       allow delete: if isAdmin();
+    }
+
+    match /sunday_fajr_attendance/{weekId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && validSundayFajrSummary(weekId, request.resource.data)
+        && isCreatableSunday(request.resource.data.event_date)
+        && request.resource.data.revision == 1
+        && request.resource.data.created_by == request.auth.uid
+        && request.resource.data.updated_by == request.auth.uid
+        && request.resource.data.created_at == request.time
+        && request.resource.data.updated_at == request.time;
+      allow update: if isAdmin()
+        && isEditableSunday(resource.data.event_date)
+        && validSundayFajrSummary(weekId, request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'total_hadir',
+          'total_izin',
+          'total_alpha',
+          'revision',
+          'updated_by',
+          'updated_at',
+        ])
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.updated_by == request.auth.uid
+        && request.resource.data.updated_at == request.time;
+      allow delete: if false;
+
+      match /participants/{participantId} {
+        allow read: if isAdmin()
+          || (
+            isSantri()
+            && resource.data.santri_id == request.auth.uid
+          );
+        allow create: if isAdmin()
+          && validSundayFajrParticipant(
+            weekId,
+            participantId,
+            request.resource.data
+          )
+          && isCreatableSunday(request.resource.data.event_date)
+          && !exists(sundayFajrParentPath(weekId))
+          && existsAfter(sundayFajrParentPath(weekId))
+          && getAfter(sundayFajrParentPath(weekId)).data.revision == 1
+          && getAfter(sundayFajrParentPath(weekId)).data.event_date
+            == request.resource.data.event_date
+          ;
+        allow update: if isAdmin()
+          && isEditableSunday(resource.data.event_date)
+          && validSundayFajrParticipant(
+            weekId,
+            participantId,
+            request.resource.data
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'izin_reason',
+          ])
+          && exists(sundayFajrParentPath(weekId))
+          && existsAfter(sundayFajrParentPath(weekId))
+          && getAfter(sundayFajrParentPath(weekId)).data.revision
+            == get(sundayFajrParentPath(weekId)).data.revision + 1
+          && getAfter(sundayFajrParentPath(weekId)).data.updated_by
+            == request.auth.uid
+          && getAfter(sundayFajrParentPath(weekId)).data.updated_at
+            == request.time;
+        allow delete: if false;
+      }
+    }
+
+    // Collection-group query dari sisi santri memerlukan recursive wildcard.
+    // Discriminator mencegah rule ini membuka subcollection "participants"
+    // milik fitur lain yang mungkin ditambahkan di masa depan.
+    match /{path=**}/participants/{participantId} {
+      allow read: if isSantri()
+        && resource.data.record_type == 'sunday_fajr_participant'
+        && resource.data.santri_id == request.auth.uid;
     }
 
     match /meetings/{meetingId} {

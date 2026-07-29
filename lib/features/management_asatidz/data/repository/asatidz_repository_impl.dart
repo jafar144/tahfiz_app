@@ -40,4 +40,7 @@ class AsatidzRepositoryImpl implements AsatidzRepository {
   Future<void> updateAsatidz(String id, AsatidzParams params) async {
     await remote.updateAsatidz(id, params);
   }
+
+  @override
+  Future<String> getNextNis() => remote.getNextNis();
 }

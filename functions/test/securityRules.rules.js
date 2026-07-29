@@ -15,9 +15,18 @@ const {
   initializeTestEnvironment,
 } = require("@firebase/rules-unit-testing");
 const {
+  collectionGroup,
   doc,
   getDoc,
+  getDocs,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
   setDoc,
+  Timestamp,
+  where,
+  writeBatch,
 } = require("firebase/firestore");
 const {
   ref,
@@ -27,6 +36,87 @@ const {
 const projectId = "demo-tahfiz";
 const root = path.resolve(__dirname, "..", "..");
 let testEnv;
+
+function wibCalendarDate(now = new Date()) {
+  const wib = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+  return new Date(Date.UTC(
+    wib.getUTCFullYear(),
+    wib.getUTCMonth(),
+    wib.getUTCDate(),
+  ));
+}
+
+function latestSundayWib(now = new Date()) {
+  const today = wibCalendarDate(now);
+  today.setUTCDate(today.getUTCDate() - today.getUTCDay());
+  return today;
+}
+
+function weekKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function sundaySummary(date, {
+  participantCount,
+  hadir = 0,
+  izin = 0,
+  alpha = participantCount - hadir - izin,
+  revision = 1,
+} = {}) {
+  const key = weekKey(date);
+  const timestamp = Timestamp.fromDate(date);
+  return {
+    week_key: key,
+    event_date: timestamp,
+    participant_count: participantCount,
+    total_hadir: hadir,
+    total_izin: izin,
+    total_alpha: alpha,
+    revision,
+    schema_version: 1,
+    created_by: "admin",
+    created_at: timestamp,
+    updated_by: "admin",
+    updated_at: timestamp,
+  };
+}
+
+function sundayParticipant(date, santriId, status = "alpha") {
+  return {
+    record_type: "sunday_fajr_participant",
+    santri_id: santriId,
+    santri_name: `Santri ${santriId}`,
+    santri_nis: santriId.replace(/\D/g, "") || "1001",
+    kelas: "Tahfiz 1",
+    week_key: weekKey(date),
+    event_date: Timestamp.fromDate(date),
+    status,
+    izin_reason: "",
+  };
+}
+
+async function seedSundayAttendance(date, participantIds) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    const key = weekKey(date);
+    await setDoc(
+      doc(firestore, "sunday_fajr_attendance", key),
+      sundaySummary(date, { participantCount: participantIds.length }),
+    );
+    await Promise.all(participantIds.map((santriId) =>
+      setDoc(
+        doc(
+          firestore,
+          "sunday_fajr_attendance",
+          key,
+          "participants",
+          santriId,
+        ),
+        sundayParticipant(date, santriId),
+      ),
+    ));
+  });
+}
 
 async function seedUsers() {
   await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -187,6 +277,209 @@ test("token perangkat hanya dapat ditulis oleh pemiliknya", async () => {
       role: "admin",
     }),
   );
+});
+
+test("santri hanya dapat membaca profil pengajar yang ditugaskan", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    await Promise.all([
+      setDoc(
+        doc(firestore, "santri_profiles/santri"),
+        { halaqah_id: "halaqah-santri" },
+        { merge: true },
+      ),
+      setDoc(doc(firestore, "halaqahs/halaqah-santri"), {
+        asatidz: { id: "asatidz" },
+        session_id: "sore",
+      }),
+      setDoc(doc(firestore, "asatidz_profiles/asatidz"), {
+        name: "Pengajar Aktif",
+      }),
+      setDoc(doc(firestore, "asatidz_profiles/asatidz-lain"), {
+        name: "Pengajar Lain",
+      }),
+      setDoc(doc(firestore, "users/asatidz-lain"), {
+        uid: "asatidz-lain",
+        role: "asatidz",
+        is_admin: false,
+      }),
+    ]);
+  });
+
+  const santri = testEnv.authenticatedContext("santri").firestore();
+  await assertSucceeds(getDoc(doc(santri, "asatidz_profiles/asatidz")));
+  await assertSucceeds(getDoc(doc(santri, "users/asatidz")));
+  await assertFails(getDoc(doc(santri, "asatidz_profiles/asatidz-lain")));
+  await assertFails(getDoc(doc(santri, "users/asatidz-lain")));
+});
+
+test("guard pengajar dan sesi hanya dapat dikelola admin", async () => {
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  const santri = testEnv.authenticatedContext("santri").firestore();
+  const guardData = {
+    teacher_id: "asatidz",
+    session_id: "sore",
+    halaqah_id: "halaqah-1",
+  };
+
+  await assertSucceeds(
+    setDoc(
+      doc(admin, "halaqah_teacher_sessions/asatidz%3A%3Asore"),
+      guardData,
+    ),
+  );
+  await assertFails(
+    setDoc(
+      doc(santri, "halaqah_teacher_sessions/palsu"),
+      guardData,
+    ),
+  );
+});
+
+test("admin dapat mengubah absensi Minggu terbaru secara atomik", async () => {
+  const sunday = latestSundayWib();
+  const key = weekKey(sunday);
+  await seedSundayAttendance(sunday, ["santri"]);
+
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  await assertSucceeds(runTransaction(admin, async (transaction) => {
+    const parent = doc(admin, "sunday_fajr_attendance", key);
+    const participant = doc(
+      admin,
+      "sunday_fajr_attendance",
+      key,
+      "participants",
+      "santri",
+    );
+    transaction.update(parent, {
+      total_hadir: 1,
+      total_izin: 0,
+      total_alpha: 0,
+      revision: 2,
+      updated_by: "admin",
+      updated_at: serverTimestamp(),
+    });
+    transaction.update(participant, {
+      status: "hadir",
+      izin_reason: "",
+    });
+  }));
+});
+
+test("absensi dua Minggu lalu tidak dapat diubah", async () => {
+  const oldSunday = latestSundayWib();
+  oldSunday.setUTCDate(oldSunday.getUTCDate() - 14);
+  const key = weekKey(oldSunday);
+  await seedSundayAttendance(oldSunday, ["santri"]);
+
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  await assertFails(runTransaction(admin, async (transaction) => {
+    transaction.update(doc(admin, "sunday_fajr_attendance", key), {
+      total_hadir: 1,
+      total_izin: 0,
+      total_alpha: 0,
+      revision: 2,
+      updated_by: "admin",
+      updated_at: serverTimestamp(),
+    });
+    transaction.update(
+      doc(
+        admin,
+        "sunday_fajr_attendance",
+        key,
+        "participants",
+        "santri",
+      ),
+      { status: "hadir", izin_reason: "" },
+    );
+  }));
+});
+
+test("santri hanya dapat meng-query riwayat Minggu Subuh miliknya", async () => {
+  const sunday = latestSundayWib();
+  await seedSundayAttendance(sunday, ["santri", "santri-lain"]);
+
+  const santri = testEnv.authenticatedContext("santri").firestore();
+  const ownQuery = query(
+    collectionGroup(santri, "participants"),
+    where("record_type", "==", "sunday_fajr_participant"),
+    where("santri_id", "==", "santri"),
+    orderBy("event_date", "desc"),
+  );
+  const otherQuery = query(
+    collectionGroup(santri, "participants"),
+    where("record_type", "==", "sunday_fajr_participant"),
+    where("santri_id", "==", "santri-lain"),
+    orderBy("event_date", "desc"),
+  );
+
+  const ownSnapshot = await assertSucceeds(getDocs(ownQuery));
+  assert.equal(ownSnapshot.size, 1);
+  await assertFails(getDocs(otherQuery));
+});
+
+test("create Absensi baru mengikuti hari Minggu WIB server", async () => {
+  const today = wibCalendarDate();
+  const isSunday = today.getUTCDay() === 0;
+  const selectedDate = isSunday ? today : latestSundayWib();
+  const key = weekKey(selectedDate);
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  const batch = writeBatch(admin);
+  batch.set(doc(admin, "sunday_fajr_attendance", key), {
+    ...sundaySummary(selectedDate, { participantCount: 1 }),
+    created_at: serverTimestamp(),
+    updated_at: serverTimestamp(),
+  });
+  batch.set(
+    doc(
+      admin,
+      "sunday_fajr_attendance",
+      key,
+      "participants",
+      "santri",
+    ),
+    sundayParticipant(selectedDate, "santri"),
+  );
+
+  if (isSunday) {
+    await assertSucceeds(batch.commit());
+  } else {
+    await assertFails(batch.commit());
+  }
+});
+
+test("rules menerima update atomik untuk batas 497 peserta", async () => {
+  const sunday = latestSundayWib();
+  const key = weekKey(sunday);
+  const participantIds = Array.from(
+    { length: 497 },
+    (_, index) => `santri-${index + 1}`,
+  );
+  await seedSundayAttendance(sunday, participantIds);
+
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  await assertSucceeds(runTransaction(admin, async (transaction) => {
+    transaction.update(doc(admin, "sunday_fajr_attendance", key), {
+      total_hadir: participantIds.length,
+      total_izin: 0,
+      total_alpha: 0,
+      revision: 2,
+      updated_by: "admin",
+      updated_at: serverTimestamp(),
+    });
+    for (const participantId of participantIds) {
+      transaction.update(
+        doc(
+          admin,
+          "sunday_fajr_attendance",
+          key,
+          "participants",
+          participantId,
+        ),
+        { status: "hadir", izin_reason: "" },
+      );
+    }
+  }));
 });
 
 test("Storage menerima gambar hanya dari role yang sesuai", async () => {

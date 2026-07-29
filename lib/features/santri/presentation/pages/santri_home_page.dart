@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
@@ -14,6 +16,9 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/mont
 import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
 import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_summary_card.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_carousel.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositories/sunday_fajr_attendance_repository.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/sunday_fajr_eligibility.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/widgets/sunday_fajr_santri_preview.dart';
 import 'package:khoirunnasyien/core/services/app_update_service.dart';
 
 class SantriHomePage extends StatefulWidget {
@@ -89,6 +94,7 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     _buildHeader(state),
                     _buildJourneySection(state),
                     const KelulusanCarousel(),
+                    _buildSundayFajrPreview(state),
                     _buildPaymentStatus(state),
                     if (state.latestReport != null) _buildLatestReport(state),
                     if (state.pembimbingName != null)
@@ -101,6 +107,35 @@ class _SantriHomePageState extends State<SantriHomePage> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildSundayFajrPreview(SantriHomeState state) {
+    final authState = context.read<AuthCubit>().state;
+    final santri = state.santri;
+    if (authState is! AuthAuthenticated || santri == null) {
+      return const SizedBox.shrink();
+    }
+
+    final authenticatedId = authState.user.uid;
+    final selectedId = context.read<SantriHomeCubit>().currentSantriId;
+    if (selectedId != authenticatedId) {
+      // Riwayat attendance dibatasi rules untuk pemilik akun. Saat sedang
+      // melihat anggota keluarga lain, jangan tampilkan data akun utama.
+      return const SizedBox.shrink();
+    }
+
+    return SundayFajrSantriPreview(
+      repository: getIt<SundayFajrAttendanceRepository>(),
+      santriId: authenticatedId,
+      isEligible: isSundayFajrEligible(
+        isActive: santri.isActive,
+        gender: santri.jenisKelamin,
+        kelas: santri.kelas,
+      ),
+      onOpenHistory: () {
+        context.pushNamed(RouteNames.santriSundayFajrHistory);
+      },
     );
   }
 

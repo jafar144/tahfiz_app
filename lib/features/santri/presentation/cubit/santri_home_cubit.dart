@@ -116,6 +116,9 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
             try {
               final asatidzDetail = await mgmtAsatidzRepository
                   .getAsatidzDetail(r.teacherId);
+              if (asatidzDetail.name.trim().isNotEmpty) {
+                pembimbingName = asatidzDetail.name;
+              }
               pembimbingPhone = asatidzDetail.phone;
               pembimbingGender = asatidzDetail.jenisKelamin;
             } catch (e) {
