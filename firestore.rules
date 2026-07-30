@@ -64,27 +64,16 @@ service cloud.firestore {
       return (request.time + duration.value(7, 'h')).date();
     }
 
-    function latestSundayWib() {
-      return wibToday()
-        - duration.value(wibToday().dayOfWeek() % 7, 'd');
-    }
-
     function isEditableSunday(eventDate) {
-      return eventDate is timestamp
-        && eventDate == eventDate.date()
-        && eventDate.dayOfWeek() == 7
-        && (
-          eventDate == latestSundayWib()
-          || eventDate == latestSundayWib() - duration.value(7, 'd')
-        );
-    }
-
-    function isCreatableSunday(eventDate) {
       return eventDate is timestamp
         && eventDate == eventDate.date()
         && eventDate.dayOfWeek() == 7
         && wibToday().dayOfWeek() == 7
         && eventDate == wibToday();
+    }
+
+    function isCreatableSunday(eventDate) {
+      return isEditableSunday(eventDate);
     }
 
     function sundayFajrParentPath(weekId) {
@@ -189,17 +178,7 @@ service cloud.firestore {
         && isEditableSunday(data.event_date)
         && data.status in ['hadir', 'izin', 'alpha']
         && data.izin_reason is string
-        && (
-          (
-            data.status == 'izin'
-            && data.izin_reason.size() > 0
-            && data.izin_reason.size() <= 300
-          )
-          || (
-            data.status != 'izin'
-            && data.izin_reason == ''
-          )
-        )
+        && data.izin_reason == ''
         && (
           !data.keys().hasAny(['created_at'])
           || data.created_at is timestamp
@@ -374,9 +353,14 @@ service cloud.firestore {
     // Discriminator mencegah rule ini membuka subcollection "participants"
     // milik fitur lain yang mungkin ditambahkan di masa depan.
     match /{path=**}/participants/{participantId} {
-      allow read: if isSantri()
-        && resource.data.record_type == 'sunday_fajr_participant'
-        && resource.data.santri_id == request.auth.uid;
+      allow read: if resource.data.record_type == 'sunday_fajr_participant'
+        && (
+          isAdmin()
+          || (
+            isSantri()
+            && resource.data.santri_id == request.auth.uid
+          )
+        );
     }
 
     match /meetings/{meetingId} {

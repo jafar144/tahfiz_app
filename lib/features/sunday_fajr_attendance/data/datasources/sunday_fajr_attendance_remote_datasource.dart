@@ -162,21 +162,7 @@ class SundayFajrAttendanceRemoteDataSourceImpl
           participant.kelas.trim().isEmpty) {
         throw ArgumentError('Data identitas peserta belum lengkap.');
       }
-      final reason = participant.status == SundayFajrAttendanceStatus.izin
-          ? participant.izinReason.trim()
-          : '';
-      if (participant.status == SundayFajrAttendanceStatus.izin &&
-          reason.isEmpty) {
-        throw ArgumentError(
-          'Alasan izin ${participant.santriName} belum diisi.',
-        );
-      }
-      if (reason.length > 300) {
-        throw ArgumentError(
-          'Alasan izin ${participant.santriName} maksimal 300 karakter.',
-        );
-      }
-      return participant.copyWith(izinReason: reason);
+      return participant.copyWith(izinReason: '');
     }).toList();
 
     final totalHadir = normalizedParticipants

@@ -67,10 +67,7 @@ class SundayFajrParticipantDraft {
   final String izinReason;
   final DateTime? createdAt;
 
-  bool get hasValidReason =>
-      status != SundayFajrAttendanceStatus.izin || izinReason.trim().isNotEmpty;
-
-  bool get isComplete => status != null && hasValidReason;
+  bool get isComplete => status != null;
 
   SundayFajrParticipantDraft copyWith({
     SundayFajrAttendanceStatus? status,

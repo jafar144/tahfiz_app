@@ -18,34 +18,35 @@ void main() {
       );
     });
 
-    test('hanya Minggu terbaru dan sebelumnya yang editable', () {
-      final now = DateTime.utc(2026, 7, 29);
+    test('record hanya editable pada hari Minggu yang sama', () {
+      final sundayNow = DateTime.utc(2026, 7, 26, 5);
+      final mondayNow = DateTime.utc(2026, 7, 27, 5);
 
       expect(
         SundayFajrAttendancePolicy.isEditable(
           DateTime.utc(2026, 7, 26),
-          now: now,
+          now: sundayNow,
         ),
         isTrue,
       );
       expect(
         SundayFajrAttendancePolicy.isEditable(
           DateTime.utc(2026, 7, 19),
-          now: now,
+          now: sundayNow,
         ),
-        isTrue,
+        isFalse,
       );
       expect(
         SundayFajrAttendancePolicy.isEditable(
-          DateTime.utc(2026, 7, 12),
-          now: now,
+          DateTime.utc(2026, 7, 26),
+          now: mondayNow,
         ),
         isFalse,
       );
       expect(
         SundayFajrAttendancePolicy.isEditable(
           DateTime.utc(2026, 8, 2),
-          now: now,
+          now: sundayNow,
         ),
         isFalse,
       );

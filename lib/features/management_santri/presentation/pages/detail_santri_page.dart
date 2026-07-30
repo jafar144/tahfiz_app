@@ -24,6 +24,9 @@ import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_r
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_target_carousel.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositories/sunday_fajr_attendance_repository.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/sunday_fajr_eligibility.dart';
+import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/widgets/sunday_fajr_santri_preview.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriDetailPage extends StatefulWidget {
@@ -269,6 +272,18 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 const AiwaFormSectionTitle(title: 'Riwayat Pembayaran'),
                 const SizedBox(height: 10),
                 _buildPaymentSection(detail),
+                if (_isAdmin &&
+                    isSundayFajrEligible(
+                      isActive: detail.isActive,
+                      gender: detail.jenisKelamin,
+                      kelas: detail.kelas,
+                    ))
+                  SundayFajrSantriPreview(
+                    repository: getIt<SundayFajrAttendanceRepository>(),
+                    santriId: detail.id,
+                    isEligible: true,
+                    topSpacing: 20,
+                  ),
                 const SizedBox(height: 80),
               ],
             ),

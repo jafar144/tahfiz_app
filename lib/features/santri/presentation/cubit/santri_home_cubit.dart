@@ -99,7 +99,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       );
 
       // 4. Fetch Pembimbing (via Halaqah)
-      String? pembimbingName;
+      String? pembimbingName = _usablePembimbingName(santri.pembimbing);
       String? pembimbingPhone;
       String? pembimbingGender;
 
@@ -183,4 +183,12 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       );
     }
   }
+}
+
+String? _usablePembimbingName(String? value) {
+  final name = value?.trim();
+  if (name == null || name.isEmpty || name.toLowerCase() == 'belum ada') {
+    return null;
+  }
+  return name;
 }

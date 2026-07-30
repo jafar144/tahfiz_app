@@ -95,9 +95,9 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     _buildHeader(state),
                     _buildJourneySection(state),
                     const KelulusanCarousel(),
-                    _buildSundayFajrPreview(state),
                     _buildPaymentStatus(state),
                     if (state.latestReport != null) _buildLatestReport(state),
+                    _buildSundayFajrPreview(state),
                     if (state.pembimbingName != null)
                       _buildPembimbingSection(state),
                     const SizedBox(height: 100),
@@ -134,9 +134,6 @@ class _SantriHomePageState extends State<SantriHomePage> {
         gender: santri.jenisKelamin,
         kelas: santri.kelas,
       ),
-      onOpenHistory: () {
-        context.pushNamed(RouteNames.santriSundayFajrHistory);
-      },
     );
   }
 

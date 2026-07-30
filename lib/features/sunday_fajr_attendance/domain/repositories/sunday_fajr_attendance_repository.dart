@@ -39,7 +39,7 @@ class SundayFajrLockedException implements Exception {
 
   @override
   String toString() =>
-      'Absensi ini sudah terkunci karena melewati batas satu minggu.';
+      'Absensi hanya dapat dibuat atau diubah pada hari Minggu yang sama.';
 }
 
 class SundayFajrRosterTooLargeException implements Exception {

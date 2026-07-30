@@ -117,38 +117,6 @@ class _SantriHistoryCard extends StatelessWidget {
               ),
             ],
           ),
-          if (participant.izinReason.trim().isNotEmpty) ...[
-            const SizedBox(height: 11),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(11),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.notes_rounded,
-                    size: 15,
-                    color: Color(0xFFB45309),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      participant.izinReason,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        height: 1.4,
-                        color: Color(0xFF92400E),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

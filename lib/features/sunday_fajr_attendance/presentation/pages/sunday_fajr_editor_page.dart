@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
+import 'package:khoirunnasyien/core/widgets/aiwa_search.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/entities/sunday_fajr_attendance_status.dart';
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/entities/sunday_fajr_participant.dart';
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositories/sunday_fajr_attendance_repository.dart';
@@ -52,9 +55,28 @@ class _SundayFajrEditorViewState extends State<_SundayFajrEditorView> {
   String _statusFilter = 'all';
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_handleSearchChanged);
+  }
+
+  @override
   void dispose() {
-    _searchController.dispose();
+    _searchController
+      ..removeListener(_handleSearchChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _handleSearchChanged() {
+    final query = _searchController.text;
+    if (query == _query || !mounted) return;
+    setState(() => _query = query);
+  }
+
+  void _applySearch() {
+    FocusScope.of(context).unfocus();
+    _handleSearchChanged();
   }
 
   @override
@@ -86,6 +108,10 @@ class _SundayFajrEditorViewState extends State<_SundayFajrEditorView> {
         }
       },
       builder: (context, state) {
+        final showBottomBar =
+            (state.status == SundayFajrEditorStatus.loaded ||
+                state.status == SundayFajrEditorStatus.saving) &&
+            state.isEditable;
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           appBar: const AiwaAppBar(title: 'Absensi Minggu Subuh'),
@@ -98,9 +124,7 @@ class _SundayFajrEditorViewState extends State<_SundayFajrEditorView> {
             ),
             _ => _buildContent(context, state),
           },
-          bottomNavigationBar:
-              state.status == SundayFajrEditorStatus.loaded ||
-                  state.status == SundayFajrEditorStatus.saving
+          bottomNavigationBar: showBottomBar
               ? _buildBottomBar(context, state)
               : null,
         );
@@ -125,173 +149,105 @@ class _SundayFajrEditorViewState extends State<_SundayFajrEditorView> {
       return matchesQuery && matchesStatus;
     }).toList();
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
-            children: [
-              _EditorHeader(state: state),
-              const SizedBox(height: 14),
-              SundayFajrSummaryRow(
-                hadir: state.totalHadir,
-                izin: state.totalIzin,
-                alpha: state.totalAlpha,
-                unmarked: state.totalUnmarked,
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Daftar Santri',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
-                  if (state.isEditable && state.participants.isNotEmpty)
-                    TextButton.icon(
-                      key: const Key('mark-all-present'),
-                      onPressed: state.isBusy
-                          ? null
-                          : context
-                                .read<SundayFajrEditorCubit>()
-                                .markAllPresent,
-                      icon: const Icon(Icons.done_all_rounded, size: 17),
-                      label: const Text(
-                        'Semua Hadir',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: InputDecoration(
-                  hintText: 'Cari nama atau NIS',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                        ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 13),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _FilterChip(
-                      label: 'Semua',
-                      selected: _statusFilter == 'all',
-                      onTap: () => setState(() => _statusFilter = 'all'),
-                    ),
-                    if (state.totalUnmarked > 0)
-                      _FilterChip(
-                        label: 'Belum (${state.totalUnmarked})',
-                        selected: _statusFilter == 'unmarked',
-                        onTap: () => setState(() => _statusFilter = 'unmarked'),
-                      ),
-                    _FilterChip(
-                      label: 'Hadir (${state.totalHadir})',
-                      selected: _statusFilter == 'hadir',
-                      onTap: () => setState(() => _statusFilter = 'hadir'),
-                    ),
-                    _FilterChip(
-                      label: 'Izin (${state.totalIzin})',
-                      selected: _statusFilter == 'izin',
-                      onTap: () => setState(() => _statusFilter = 'izin'),
-                    ),
-                    _FilterChip(
-                      label: 'Alpha (${state.totalAlpha})',
-                      selected: _statusFilter == 'alpha',
-                      onTap: () => setState(() => _statusFilter = 'alpha'),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (state.participants.isEmpty)
-                _NoParticipants(isEditable: state.isEditable)
-              else if (participants.isEmpty)
-                const _NoSearchResult()
-              else
-                for (var index = 0; index < participants.length; index++) ...[
-                  _ParticipantCard(
-                    participant: participants[index],
-                    editable: state.isEditable && !state.isBusy,
-                    onStatusChanged: (status) => context
-                        .read<SundayFajrEditorCubit>()
-                        .updateStatus(participants[index].santriId, status),
-                    onReasonChanged: (reason) => context
-                        .read<SundayFajrEditorCubit>()
-                        .updateReason(participants[index].santriId, reason),
-                  ),
-                  if (index != participants.length - 1)
-                    const SizedBox(height: 10),
-                ],
-            ],
+    return CustomScrollView(
+      key: const Key('sunday-fajr-editor-scroll-view'),
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+          sliver: SliverToBoxAdapter(child: _EditorHeader(state: state)),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          sliver: SliverToBoxAdapter(
+            child: SundayFajrAttendanceChart(
+              hadir: state.totalHadir,
+              izin: state.totalIzin,
+              alpha: state.totalAlpha,
+              unmarked: state.totalUnmarked,
+            ),
           ),
         ),
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _SearchHeaderDelegate(
+            controller: _searchController,
+            selectedFilter: _statusFilter,
+            isEditable: state.isEditable,
+            totalParticipants: state.participants.length,
+            totalUnmarked: state.totalUnmarked,
+            totalHadir: state.totalHadir,
+            totalIzin: state.totalIzin,
+            totalAlpha: state.totalAlpha,
+            onSearch: _applySearch,
+            onSubmitted: (_) => _applySearch(),
+            onFilterChanged: (value) => setState(() => _statusFilter = value),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+          sliver: SliverToBoxAdapter(
+            child: Row(
+              children: [
+                Text(
+                  state.isEditable ? 'Isi Kehadiran' : 'Daftar Santri',
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${participants.length} santri',
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (state.participants.isEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            sliver: SliverToBoxAdapter(
+              child: _NoParticipants(isEditable: state.isEditable),
+            ),
+          )
+        else if (participants.isEmpty)
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(16, 4, 16, 32),
+            sliver: SliverToBoxAdapter(child: _NoSearchResult()),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+            sliver: SliverList.separated(
+              itemCount: participants.length,
+              itemBuilder: (context, index) {
+                final participant = participants[index];
+                if (!state.isEditable) {
+                  return _LockedParticipantCard(participant: participant);
+                }
+                return _EditableParticipantCard(
+                  participant: participant,
+                  enabled: !state.isBusy,
+                  onStatusChanged: (status) => context
+                      .read<SundayFajrEditorCubit>()
+                      .updateStatus(participant.santriId, status),
+                );
+              },
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildBottomBar(BuildContext context, SundayFajrEditorState state) {
-    if (!state.isEditable) {
-      return SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.lock_outline_rounded, color: Color(0xFF64748B)),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Data absensi ini sudah terkunci dan hanya dapat dilihat.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return SafeArea(
       top: false,
       child: Container(
@@ -323,7 +279,7 @@ class _SundayFajrEditorViewState extends State<_SundayFajrEditorView> {
                     child: Text(
                       state.totalUnmarked > 0
                           ? '${state.totalUnmarked} santri belum diberi status.'
-                          : 'Lengkapi alasan untuk seluruh santri yang izin.',
+                          : 'Pastikan setiap santri sudah diberi status.',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF92400E),
@@ -358,9 +314,13 @@ class _EditorHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFFFFF), Color(0xFFF3F8FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFDDE8F5)),
       ),
       child: Row(
         children: [
@@ -393,7 +353,7 @@ class _EditorHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   state.isExisting
-                      ? '${state.participants.length} peserta - Revisi ${state.attendance!.revision}'
+                      ? '${state.participants.length} peserta • Revisi ${state.attendance!.revision}'
                       : '${state.participants.length} santri memenuhi kriteria',
                   style: const TextStyle(
                     fontSize: 11.5,
@@ -404,7 +364,7 @@ class _EditorHeader extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
             decoration: BoxDecoration(
               color: state.isEditable
                   ? const Color(0xFFDBEAFE)
@@ -443,18 +403,130 @@ class _EditorHeader extends StatelessWidget {
   }
 }
 
-class _ParticipantCard extends StatelessWidget {
-  const _ParticipantCard({
+class _SearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _SearchHeaderDelegate({
+    required this.controller,
+    required this.selectedFilter,
+    required this.isEditable,
+    required this.totalParticipants,
+    required this.totalUnmarked,
+    required this.totalHadir,
+    required this.totalIzin,
+    required this.totalAlpha,
+    required this.onSearch,
+    required this.onSubmitted,
+    required this.onFilterChanged,
+  });
+
+  final TextEditingController controller;
+  final String selectedFilter;
+  final bool isEditable;
+  final int totalParticipants;
+  final int totalUnmarked;
+  final int totalHadir;
+  final int totalIzin;
+  final int totalAlpha;
+  final VoidCallback onSearch;
+  final ValueChanged<String> onSubmitted;
+  final ValueChanged<String> onFilterChanged;
+
+  @override
+  double get minExtent => 108;
+
+  @override
+  double get maxExtent => 108;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      key: const Key('sunday-fajr-pinned-search'),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        border: Border(
+          bottom: BorderSide(
+            color: overlapsContent
+                ? const Color(0xFFE2E8F0)
+                : Colors.transparent,
+          ),
+        ),
+        boxShadow: overlapsContent
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
+      ),
+      child: Column(
+        children: [
+          AiwaSearch(
+            controller: controller,
+            hintText: 'Cari nama atau NIS santri',
+            onSearch: onSearch,
+            onSubmitted: onSubmitted,
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'Semua ($totalParticipants)',
+                    selected: selectedFilter == 'all',
+                    onTap: () => onFilterChanged('all'),
+                  ),
+                  if (isEditable && totalUnmarked > 0)
+                    _FilterChip(
+                      label: 'Belum ($totalUnmarked)',
+                      selected: selectedFilter == 'unmarked',
+                      onTap: () => onFilterChanged('unmarked'),
+                    ),
+                  _FilterChip(
+                    label: 'Hadir ($totalHadir)',
+                    selected: selectedFilter == 'hadir',
+                    onTap: () => onFilterChanged('hadir'),
+                  ),
+                  _FilterChip(
+                    label: 'Izin ($totalIzin)',
+                    selected: selectedFilter == 'izin',
+                    onTap: () => onFilterChanged('izin'),
+                  ),
+                  _FilterChip(
+                    label: 'Alpha ($totalAlpha)',
+                    selected: selectedFilter == 'alpha',
+                    onTap: () => onFilterChanged('alpha'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SearchHeaderDelegate oldDelegate) => true;
+}
+
+class _EditableParticipantCard extends StatelessWidget {
+  const _EditableParticipantCard({
     required this.participant,
-    required this.editable,
+    required this.enabled,
     required this.onStatusChanged,
-    required this.onReasonChanged,
   });
 
   final SundayFajrParticipantDraft participant;
-  final bool editable;
+  final bool enabled;
   final ValueChanged<SundayFajrAttendanceStatus> onStatusChanged;
-  final ValueChanged<String> onReasonChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -466,17 +538,19 @@ class _ParticipantCard extends StatelessWidget {
         .map((part) => part[0].toUpperCase())
         .join();
     return Container(
+      key: ValueKey('editable-participant-${participant.santriId}'),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color:
-              participant.status == SundayFajrAttendanceStatus.izin &&
-                  !participant.hasValidReason
-              ? const Color(0xFFF59E0B)
-              : const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withValues(alpha: 0.025),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -511,7 +585,7 @@ class _ParticipantCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'NIS ${participant.santriNis} - ${participant.kelas}',
+                      'NIS ${participant.santriNis} • ${participant.kelas}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -522,86 +596,59 @@ class _ParticipantCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (!editable && participant.status != null)
-                SundayFajrStatusBadge(
-                  status: participant.status!,
-                  compact: true,
-                ),
             ],
           ),
-          if (editable) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                for (final status in SundayFajrAttendanceStatus.values) ...[
-                  Expanded(
-                    child: _StatusOption(
-                      status: status,
-                      selected: participant.status == status,
-                      onTap: () => onStatusChanged(status),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (final status in SundayFajrAttendanceStatus.values) ...[
+                Expanded(
+                  child: _StatusOption(
+                    key: ValueKey(
+                      '${participant.santriId}-status-${status.value}',
                     ),
+                    status: status,
+                    selected: participant.status == status,
+                    enabled: enabled,
+                    onTap: () => onStatusChanged(status),
                   ),
-                  if (status != SundayFajrAttendanceStatus.values.last)
-                    const SizedBox(width: 7),
-                ],
+                ),
+                if (status != SundayFajrAttendanceStatus.values.last)
+                  const SizedBox(width: 7),
               ],
-            ),
-          ],
-          if (participant.status == SundayFajrAttendanceStatus.izin) ...[
-            const SizedBox(height: 10),
-            TextFormField(
-              key: ValueKey('${participant.santriId}-izin-reason'),
-              initialValue: participant.izinReason,
-              enabled: editable,
-              maxLength: 300,
-              minLines: 1,
-              maxLines: 3,
-              onChanged: onReasonChanged,
-              decoration: InputDecoration(
-                hintText: 'Tulis alasan izin',
-                counterText: '',
-                prefixIcon: const Icon(Icons.notes_rounded, size: 18),
-                filled: true,
-                fillColor: const Color(0xFFFFFBEB),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 11,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: participant.hasValidReason
-                        ? const Color(0xFFFDE68A)
-                        : const Color(0xFFF59E0B),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: participant.hasValidReason
-                        ? const Color(0xFFFDE68A)
-                        : const Color(0xFFF59E0B),
-                  ),
-                ),
-              ),
-            ),
-            if (!participant.hasValidReason) ...[
-              const SizedBox(height: 5),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Alasan izin wajib diisi.',
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    color: Color(0xFFB45309),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ],
-          ],
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _LockedParticipantCard extends StatelessWidget {
+  const _LockedParticipantCard({required this.participant});
+
+  final SundayFajrParticipantDraft participant;
+
+  @override
+  Widget build(BuildContext context) {
+    final santri = SantriEntity(
+      id: participant.santriId,
+      name: participant.santriName,
+      nis: participant.santriNis,
+      kelas: participant.kelas,
+      jenisKelamin: 'L',
+      isActive: true,
+      isFree: false,
+    );
+    return Semantics(
+      label:
+          '${participant.santriName}, NIS ${participant.santriNis}, '
+          'status ${participant.status?.label ?? 'belum diisi'}',
+      child: SantriCard(
+        santri,
+        key: ValueKey('locked-participant-${participant.santriId}'),
+        onTap: () {},
+        showPembimbing: false,
       ),
     );
   }
@@ -609,55 +656,61 @@ class _ParticipantCard extends StatelessWidget {
 
 class _StatusOption extends StatelessWidget {
   const _StatusOption({
+    super.key,
     required this.status,
     required this.selected,
+    required this.enabled,
     required this.onTap,
   });
 
   final SundayFajrAttendanceStatus status;
   final bool selected;
+  final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final style = SundayFajrStatusStyle.of(status);
-    return Material(
-      color: selected ? style.background : const Color(0xFFF8FAFC),
-      borderRadius: BorderRadius.circular(11),
-      child: InkWell(
-        onTap: onTap,
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: Material(
+        color: selected ? style.background : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(11),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(11),
-            border: Border.all(
-              color: selected
-                  ? style.color.withValues(alpha: 0.45)
-                  : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                style.icon,
-                size: 14,
-                color: selected ? style.color : const Color(0xFF94A3B8),
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(11),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(11),
+              border: Border.all(
+                color: selected
+                    ? style.color.withValues(alpha: 0.45)
+                    : const Color(0xFFE2E8F0),
               ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  status.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? style.color : const Color(0xFF64748B),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  style.icon,
+                  size: 14,
+                  color: selected ? style.color : const Color(0xFF94A3B8),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    status.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? style.color : const Color(0xFF64748B),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

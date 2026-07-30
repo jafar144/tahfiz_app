@@ -22,14 +22,6 @@ class SundayFajrAttendancePolicy {
     return today.subtract(Duration(days: today.weekday % DateTime.daysPerWeek));
   }
 
-  static DateTime previousSunday({DateTime? now}) =>
-      latestSunday(now: now).subtract(const Duration(days: 7));
-
-  static List<DateTime> editableSundays({DateTime? now}) => [
-    latestSunday(now: now),
-    previousSunday(now: now),
-  ];
-
   static bool canCreate(DateTime date, {DateTime? now}) {
     final today = wibCalendarDate(now ?? DateTime.now());
     return today.weekday == DateTime.sunday && canonicalDate(date) == today;
@@ -39,8 +31,7 @@ class SundayFajrAttendancePolicy {
       canonicalDate(date).weekday == DateTime.sunday;
 
   static bool isEditable(DateTime date, {DateTime? now}) {
-    final canonical = canonicalDate(date);
-    return editableSundays(now: now).contains(canonical);
+    return canCreate(date, now: now);
   }
 
   static bool isRosterSizeSupported(int participantCount) =>

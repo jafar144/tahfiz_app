@@ -91,35 +91,8 @@ class SundayFajrEditorCubit extends Cubit<SundayFajrEditorState> {
     if (!state.isEditable || state.isBusy) return;
     final updated = state.participants.map((item) {
       if (item.santriId != santriId) return item;
-      return item.copyWith(
-        status: status,
-        izinReason: status == SundayFajrAttendanceStatus.izin
-            ? item.izinReason
-            : '',
-      );
+      return item.copyWith(status: status, izinReason: '');
     }).toList();
-    emit(state.copyWith(participants: updated, clearError: true));
-  }
-
-  void updateReason(String santriId, String reason) {
-    if (!state.isEditable || state.isBusy) return;
-    final updated = state.participants.map((item) {
-      if (item.santriId != santriId) return item;
-      return item.copyWith(izinReason: reason);
-    }).toList();
-    emit(state.copyWith(participants: updated, clearError: true));
-  }
-
-  void markAllPresent() {
-    if (!state.isEditable || state.isBusy) return;
-    final updated = state.participants
-        .map(
-          (item) => item.copyWith(
-            status: SundayFajrAttendanceStatus.hadir,
-            izinReason: '',
-          ),
-        )
-        .toList();
     emit(state.copyWith(participants: updated, clearError: true));
   }
 
@@ -143,9 +116,7 @@ class SundayFajrEditorCubit extends Cubit<SundayFajrEditorState> {
               weekKey: weekKey,
               eventDate: state.eventDate,
               status: item.status!,
-              izinReason: item.status == SundayFajrAttendanceStatus.izin
-                  ? item.izinReason.trim()
-                  : '',
+              izinReason: '',
               createdAt: item.createdAt ?? now,
               updatedAt: now,
             ),

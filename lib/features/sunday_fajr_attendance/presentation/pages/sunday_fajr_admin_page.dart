@@ -49,182 +49,148 @@ class _SundayFajrAdminView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AiwaAppBar(title: 'Minggu Subuh'),
-      body: BlocBuilder<SundayFajrAdminCubit, SundayFajrAdminState>(
-        builder: (context, state) {
-          if (state.status == SundayFajrAdminStatus.failure &&
-              state.history.isEmpty) {
-            return _ErrorView(
-              message: state.errorMessage ?? 'Data tidak dapat dimuat.',
-              onRetry: context.read<SundayFajrAdminCubit>().load,
-            );
-          }
+    return BlocBuilder<SundayFajrAdminCubit, SundayFajrAdminState>(
+      builder: (context, state) {
+        final effectiveNow = now ?? DateTime.now();
+        final currentSunday = SundayFajrAttendancePolicy.latestSunday(
+          now: effectiveNow,
+        );
+        final currentWeekKey = SundayFajrAttendancePolicy.weekKey(
+          currentSunday,
+        );
+        final currentRecordExists = state.history.any(
+          (attendance) => attendance.weekKey == currentWeekKey,
+        );
+        final canCreate = SundayFajrAttendancePolicy.canCreate(
+          currentSunday,
+          now: effectiveNow,
+        );
+        final isLoading =
+            state.status == SundayFajrAdminStatus.initial ||
+            state.status == SundayFajrAdminStatus.loading;
+        final showAddButton =
+            !isLoading &&
+            state.status != SundayFajrAdminStatus.failure &&
+            canCreate &&
+            !currentRecordExists;
 
-          final isLoading =
-              state.status == SundayFajrAdminStatus.initial ||
-              state.status == SundayFajrAdminStatus.loading;
-          return RefreshIndicator(
-            onRefresh: context.read<SundayFajrAdminCubit>().load,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                  sliver: SliverToBoxAdapter(
-                    child: _CreateAttendanceCard(
-                      onTap: () => _showDateSelection(context, state.history),
-                    ),
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: const AiwaAppBar(title: 'Minggu Subuh'),
+          floatingActionButton: showAddButton
+              ? FloatingActionButton.extended(
+                  key: const Key('add-sunday-fajr-attendance'),
+                  onPressed: () => _openEditor(context, currentSunday),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text(
+                    'Tambah Absensi',
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 10),
-                  sliver: SliverToBoxAdapter(
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Riwayat Mingguan',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
+                )
+              : null,
+          body:
+              state.status == SundayFajrAdminStatus.failure &&
+                  state.history.isEmpty
+              ? _ErrorView(
+                  message: state.errorMessage ?? 'Data tidak dapat dimuat.',
+                  onRetry: context.read<SundayFajrAdminCubit>().load,
+                )
+              : RefreshIndicator(
+                  onRefresh: context.read<SundayFajrAdminCubit>().load,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: _RecordsHeader(
+                            totalRecords: state.history.length,
+                            canCreate: canCreate,
+                            currentRecordExists: currentRecordExists,
                           ),
                         ),
-                        if (state.history.isNotEmpty)
-                          Text(
-                            '${state.history.length} data',
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 22, 16, 10),
+                        sliver: SliverToBoxAdapter(
+                          child: Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Catatan Absensi',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ),
+                              if (state.history.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${state.history.length} minggu',
+                                    style: const TextStyle(
+                                      color: Color(0xFF2563EB),
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
+                      if (isLoading)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                          sliver: SliverList.separated(
+                            itemCount: 4,
+                            itemBuilder: (_, _) =>
+                                const _AttendanceCardSkeleton(),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                          ),
+                        )
+                      else if (state.history.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _EmptyHistory(canCreate: canCreate),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 104),
+                          sliver: SliverList.separated(
+                            itemCount: state.history.length,
+                            itemBuilder: (context, index) {
+                              final attendance = state.history[index];
+                              return _AttendanceHistoryCard(
+                                attendance: attendance,
+                                now: effectiveNow,
+                                onTap: () =>
+                                    _openEditor(context, attendance.eventDate),
+                              );
+                            },
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 12),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (isLoading)
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                    sliver: SliverList.separated(
-                      itemCount: 4,
-                      itemBuilder: (_, _) => const _AttendanceCardSkeleton(),
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    ),
-                  )
-                else if (state.history.isEmpty)
-                  const SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: _EmptyHistory(),
-                  )
-                else
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    sliver: SliverList.separated(
-                      itemCount: state.history.length,
-                      itemBuilder: (context, index) {
-                        final attendance = state.history[index];
-                        return _AttendanceHistoryCard(
-                          attendance: attendance,
-                          onTap: () =>
-                              _openEditor(context, attendance.eventDate),
-                        );
-                      },
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    ),
-                  ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _showDateSelection(
-    BuildContext context,
-    List<SundayFajrAttendance> history,
-  ) async {
-    final selectedDate = await showModalBottomSheet<DateTime>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        final dates = SundayFajrAttendancePolicy.editableSundays(now: now);
-        final options = dates.map((date) {
-          final exists = history.any(
-            (item) => item.weekKey == SundayFajrAttendancePolicy.weekKey(date),
-          );
-          final canCreate = SundayFajrAttendancePolicy.canCreate(
-            date,
-            now: now,
-          );
-          return _DateOption(
-            date: date,
-            label: date == dates.first ? 'Minggu terbaru' : 'Minggu sebelumnya',
-            exists: exists,
-            canCreate: canCreate,
-            onTap: exists || canCreate
-                ? () => Navigator.pop(sheetContext, date)
-                : null,
-          );
-        }).toList();
-        return SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Pilih Minggu',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Data baru hanya dapat dibuat pada hari Minggu. Data satu Minggu sebelumnya tetap dapat diedit jika sudah ada.',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: Color(0xFF64748B),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                for (var index = 0; index < options.length; index++) ...[
-                  options[index],
-                  if (index != options.length - 1) const SizedBox(height: 10),
-                ],
-              ],
-            ),
-          ),
         );
       },
     );
-    if (selectedDate == null || !context.mounted) return;
-    await _openEditor(context, selectedDate);
   }
 
   Future<void> _openEditor(BuildContext context, DateTime eventDate) async {
@@ -234,6 +200,7 @@ class _SundayFajrAdminView extends StatelessWidget {
           repository: repository,
           actorId: adminId,
           eventDate: eventDate,
+          now: now,
         ),
       ),
     );
@@ -243,241 +210,182 @@ class _SundayFajrAdminView extends StatelessWidget {
   }
 }
 
-class _CreateAttendanceCard extends StatelessWidget {
-  const _CreateAttendanceCard({required this.onTap});
+class _RecordsHeader extends StatelessWidget {
+  const _RecordsHeader({
+    required this.totalRecords,
+    required this.canCreate,
+    required this.currentRecordExists,
+  });
 
-  final VoidCallback onTap;
+  final int totalRecords;
+  final bool canCreate;
+  final bool currentRecordExists;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    final message = canCreate
+        ? currentRecordExists
+              ? 'Absensi minggu ini sudah tersimpan. Buka catatannya untuk melakukan perubahan.'
+              : 'Hari ini jadwal pencatatan. Gunakan tombol Tambah Absensi untuk memulai.'
+        : 'Absensi baru dapat dibuat setiap hari Minggu. Catatan lama tetap dapat dilihat kapan saja.';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEAF4FF), Color(0xFFF8FBFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1E88E5), Color(0xFF1565C0)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        border: Border.all(color: const Color(0xFFD7E9FB)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.22),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            child: const Icon(
+              Icons.mosque_rounded,
+              color: AppColors.primary,
+              size: 25,
+            ),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.wb_twilight_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      'Kelola Absensi',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
+                    const Expanded(
+                      child: Text(
+                        'Rekap Minggu Subuh',
+                        style: TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                    SizedBox(height: 4),
                     Text(
-                      'Catat hadir, izin, dan alpha untuk kegiatan Minggu Subuh.',
-                      style: TextStyle(
-                        color: Color(0xFFDDEEFF),
-                        fontSize: 11.5,
-                        height: 1.35,
+                      '$totalRecords data',
+                      style: const TextStyle(
+                        color: Color(0xFF2563EB),
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DateOption extends StatelessWidget {
-  const _DateOption({
-    required this.date,
-    required this.label,
-    required this.exists,
-    required this.canCreate,
-    required this.onTap,
-  });
-
-  final DateTime date;
-  final String label;
-  final bool exists;
-  final bool canCreate;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final available = onTap != null;
-    return Opacity(
-      opacity: available ? 1 : 0.62,
-      child: Material(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                  child: const Icon(
-                    Icons.calendar_today_rounded,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        formatSundayFajrDate(date),
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: exists
-                        ? const Color(0xFFDBEAFE)
-                        : canCreate
-                        ? const Color(0xFFDCFCE7)
-                        : const Color(0xFFE2E8F0),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    exists
-                        ? 'Edit'
-                        : canCreate
-                        ? 'Buat'
-                        : 'Belum tersedia',
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: exists
-                          ? const Color(0xFF1D4ED8)
-                          : canCreate
-                          ? const Color(0xFF15803D)
-                          : const Color(0xFF64748B),
-                    ),
+                const SizedBox(height: 5),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 11.5,
+                    height: 1.4,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
 class _AttendanceHistoryCard extends StatelessWidget {
-  const _AttendanceHistoryCard({required this.attendance, required this.onTap});
+  const _AttendanceHistoryCard({
+    required this.attendance,
+    required this.now,
+    required this.onTap,
+  });
 
   final SundayFajrAttendance attendance;
+  final DateTime now;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final editable = SundayFajrAttendancePolicy.isEditable(
       attendance.eventDate,
+      now: now,
     );
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(15),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.035),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 48,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.09),
-                      borderRadius: BorderRadius.circular(12),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(
-                      Icons.mosque_rounded,
-                      color: AppColors.primary,
-                      size: 21,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          formatSundayFajrDate(
+                            attendance.eventDate,
+                            pattern: 'dd',
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF1D4ED8),
+                            fontSize: 18,
+                            height: 1,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          formatSundayFajrDate(
+                            attendance.eventDate,
+                            pattern: 'MMM',
+                          ).toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF60A5FA),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 11),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,19 +393,21 @@ class _AttendanceHistoryCard extends StatelessWidget {
                         Text(
                           formatSundayFajrDate(
                             attendance.eventDate,
-                            pattern: 'd MMMM yyyy',
+                            pattern: 'EEEE, d MMMM yyyy',
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFF0F172A),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
-                          '${attendance.participantCount} santri - Revisi ${attendance.revision}',
+                          '${attendance.participantCount} santri • Revisi ${attendance.revision}',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10.5,
                             color: Color(0xFF64748B),
                           ),
                         ),
@@ -515,29 +425,111 @@ class _AttendanceHistoryCard extends StatelessWidget {
                           : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(999),
                     ),
-                    child: Text(
-                      editable ? 'Dapat diedit' : 'Terkunci',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: editable
-                            ? const Color(0xFF1D4ED8)
-                            : const Color(0xFF64748B),
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          editable
+                              ? Icons.edit_rounded
+                              : Icons.lock_outline_rounded,
+                          size: 11,
+                          color: editable
+                              ? const Color(0xFF1D4ED8)
+                              : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          editable ? 'Edit' : 'Selesai',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: editable
+                                ? const Color(0xFF1D4ED8)
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF94A3B8),
+                    size: 21,
                   ),
                 ],
               ),
-              const SizedBox(height: 13),
-              SundayFajrSummaryRow(
+              const SizedBox(height: 14),
+              SundayFajrDistributionBar(
                 hadir: attendance.totalHadir,
                 izin: attendance.totalIzin,
                 alpha: attendance.totalAlpha,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _CompactMetric(
+                      label: 'Hadir',
+                      value: attendance.totalHadir,
+                      color: const Color(0xFF15803D),
+                    ),
+                  ),
+                  Expanded(
+                    child: _CompactMetric(
+                      label: 'Izin',
+                      value: attendance.totalIzin,
+                      color: const Color(0xFFB45309),
+                    ),
+                  ),
+                  Expanded(
+                    child: _CompactMetric(
+                      label: 'Alpha',
+                      value: attendance.totalAlpha,
+                      color: const Color(0xFFB91C1C),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CompactMetric extends StatelessWidget {
+  const _CompactMetric({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          '$label $value',
+          style: const TextStyle(
+            color: Color(0xFF64748B),
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -550,18 +542,20 @@ class _AttendanceCardSkeleton extends StatelessWidget {
     return Skeletonizer(
       enabled: true,
       child: Container(
-        height: 132,
+        height: 160,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Minggu, 20 Juli 2026'),
-            SizedBox(height: 12),
-            Expanded(child: SundayFajrSummaryRow(hadir: 70, izin: 5, alpha: 2)),
+            SizedBox(height: 18),
+            Text('75 santri tercatat pada absensi ini'),
+            Spacer(),
+            SundayFajrSummaryRow(hadir: 70, izin: 3, alpha: 2),
           ],
         ),
       ),
@@ -570,37 +564,49 @@ class _AttendanceCardSkeleton extends StatelessWidget {
 }
 
 class _EmptyHistory extends StatelessWidget {
-  const _EmptyHistory();
+  const _EmptyHistory({required this.canCreate});
+
+  final bool canCreate;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(32),
+        padding: const EdgeInsets.fromLTRB(32, 24, 32, 104),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.event_available_outlined,
-              size: 58,
-              color: Color(0xFFCBD5E1),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF6FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.event_available_outlined,
+                size: 34,
+                color: Color(0xFF60A5FA),
+              ),
             ),
-            SizedBox(height: 14),
-            Text(
-              'Belum ada riwayat',
+            const SizedBox(height: 16),
+            const Text(
+              'Belum ada catatan absensi',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF334155),
               ),
             ),
-            SizedBox(height: 5),
+            const SizedBox(height: 6),
             Text(
-              'Data Minggu Subuh yang disimpan akan tampil di sini.',
+              canCreate
+                  ? 'Tekan Tambah Absensi untuk mencatat kehadiran Minggu Subuh hari ini.'
+                  : 'Catatan pertama dapat dibuat pada hari Minggu.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                height: 1.4,
+                height: 1.45,
                 color: Color(0xFF94A3B8),
               ),
             ),
