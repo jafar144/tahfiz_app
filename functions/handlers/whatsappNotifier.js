@@ -1,5 +1,6 @@
 const { logger } = require("firebase-functions");
 const {
+  APP_DOWNLOAD_URL,
   WHATSAPP_ADMIN_PHONE,
   institutionMessagingConfig,
 } = require("../lib/config");
@@ -11,8 +12,13 @@ const {
   sendTextMessages,
 } = require("../lib/wablas");
 const {
+  normalizeHttpsUrl,
+  resolveWhatsAppGroup,
+} = require("../lib/whatsappGroups");
+const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildSantriWelcomeWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
 } = require("../lib/whatsappMessages");
 
@@ -173,6 +179,71 @@ async function runBirthdayWhatsApp(parts, options = {}) {
   };
 }
 
+async function runSantriWelcomeWhatsApp(santri, password, options = {}) {
+  const enabled =
+    options.enabled === undefined ? isWablasEnabled() : options.enabled;
+  if (!enabled) return { skipped: true, reason: "wablas_disabled" };
+
+  const appUrl = normalizeHttpsUrl(
+    options.appUrl === undefined ? APP_DOWNLOAD_URL.value() : options.appUrl,
+  );
+  if (!appUrl) {
+    return { skipped: true, reason: "app_url_not_configured" };
+  }
+
+  const group =
+    options.group === undefined
+      ? resolveWhatsAppGroup(santri.jenisKelamin, santri.tipeKelas)
+      : options.group;
+  if (!group) {
+    return { skipped: true, reason: "group_identity_not_supported" };
+  }
+  const inviteUrl = normalizeHttpsUrl(group.inviteUrl);
+  if (!inviteUrl) {
+    return { skipped: true, reason: "group_invite_not_configured" };
+  }
+
+  // Nomor wali diprioritaskan karena pesan memuat kredensial akun. Nomor
+  // santri hanya menjadi fallback bila nomor wali kosong/tidak valid. Pesan
+  // tidak dialihkan ke admin agar password tidak terkirim ke penerima lain.
+  const waliPhone = normalizeWhatsAppPhone(santri.nomorWali);
+  const santriPhone = normalizeWhatsAppPhone(santri.phone);
+  const phone = waliPhone || santriPhone;
+  if (!phone) {
+    return { skipped: true, reason: "recipient_phone_invalid" };
+  }
+
+  const institution =
+    options.institution === undefined
+      ? institutionMessagingConfig()
+      : options.institution;
+  const message = buildSantriWelcomeWhatsAppMessage({
+    santri,
+    password,
+    institution,
+    appUrl,
+    group: { ...group, inviteUrl },
+  });
+  const delivery = await dispatch(
+    [
+      {
+        phone,
+        message,
+        isGroup: "false",
+        refId: `welcome-${santri.uid}`,
+      },
+    ],
+    "whatsappSantriWelcome",
+    options.send,
+  );
+
+  return {
+    recipient: waliPhone ? "wali" : "santri",
+    group: group.key,
+    ...delivery,
+  };
+}
+
 module.exports = {
   MIN_ARREARS_BILLING_PERIODS,
   oldestArrearsAge,
@@ -181,4 +252,5 @@ module.exports = {
   prepareMessages,
   runWhatsAppArrears,
   runBirthdayWhatsApp,
+  runSantriWelcomeWhatsApp,
 };

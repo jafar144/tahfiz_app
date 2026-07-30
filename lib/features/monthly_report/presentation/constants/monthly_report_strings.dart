@@ -53,6 +53,18 @@ class MonthlyReportStrings {
   static const perbaruiPenilaian = 'Perbarui Penilaian';
   static const pilihNilaiPerkembanganAkhlaq =
       'Harap pilih nilai Perkembangan dan Akhlaq';
+  static const evaluasiTarget = 'Evaluasi Target Bulan Ini';
+  static const evaluasiTargetHint =
+      'Pilih hasil yang paling sesuai dengan capaian santri.';
+  static const hasilTargetWajib = 'Harap pilih hasil target bulan ini';
+  static const targetBulanDepan = 'Target Bulan Depan';
+  static const targetBulanDepanHint =
+      'Buat batas minimum yang realistis dan target optimum yang menantang.';
+  static const targetMinimum = 'Target Minimum';
+  static const targetOptimum = 'Target Optimum';
+  static const targetMinimumHint = 'Contoh: Murojaah 3 halaman dengan lancar';
+  static const targetOptimumHint =
+      'Contoh: Menambah hafalan 5 halaman dengan lancar';
   static const berhasilDisimpan = 'Penilaian berhasil disimpan';
 
   // ── Kartu penilaian (riwayat santri) ────────────────────────────────

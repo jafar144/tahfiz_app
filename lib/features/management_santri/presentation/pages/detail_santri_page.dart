@@ -23,6 +23,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_target_carousel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriDetailPage extends StatefulWidget {
@@ -293,7 +294,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const AiwaFormSectionTitle(title: 'Penilaian Bulanan'),
+            const AiwaFormSectionTitle(title: 'Target & Penilaian Bulanan'),
             TextButton(
               onPressed: () => _openAllReports(detail),
               child: const Text('Lihat Semua'),
@@ -302,7 +303,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         ),
         const SizedBox(height: 10),
         FutureBuilder(
-          future: getIt<MonthlyReportRepository>().getLatestReportBySantri(
+          future: getIt<MonthlyReportRepository>().getReportsBySantri(
             detail.id,
           ),
           builder: (context, snapshot) {
@@ -313,16 +314,38 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
               );
             }
 
-            MonthlyReport? latest;
+            List<MonthlyReport> reports = const [];
             snapshot.data?.fold(
               ifLeft: (_) {},
-              ifRight: (report) => latest = report,
+              ifRight: (value) => reports = value,
             );
 
-            if (latest == null) {
+            if (reports.isEmpty) {
               return _buildEmptyReportCard();
             }
-            return MonthlyReportCard(report: latest!);
+
+            final hasTargets = MonthlyTargetTimelineEntry.fromReports(
+              reports,
+            ).isNotEmpty;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasTargets) ...[
+                  MonthlyTargetCarousel(reports: reports),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Penilaian terakhir',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF4B5563),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                MonthlyReportCard(report: reports.first),
+              ],
+            );
           },
         ),
       ],

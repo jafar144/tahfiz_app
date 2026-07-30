@@ -11,12 +11,21 @@ const {
 const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildSantriWelcomeWhatsAppMessage,
+  buildMonthlyAssessmentGroupMessage,
 } = require("../lib/whatsappMessages");
+const {
+  WHATSAPP_GROUP_IDENTITIES,
+  findWhatsAppGroupIdentity,
+  resolveWhatsAppGroup,
+  configuredWhatsAppGroups,
+} = require("../lib/whatsappGroups");
 const {
   oldestArrearsAge,
   billingPeriodsSinceEntry,
   selectLongOverdueSantri,
   runBirthdayWhatsApp,
+  runSantriWelcomeWhatsApp,
 } = require("../handlers/whatsappNotifier");
 
 const institution = {
@@ -150,6 +159,145 @@ test("template WhatsApp memuat detail tunggakan dan doa ulang tahun", () => {
   );
   assert.match(birthday, /Barakallahu fii umrik/);
   assert.match(birthday, /16 tahun/);
+});
+
+test("identitas grup memilih kombinasi gender dan sesi secara konsisten", () => {
+  assert.equal(findWhatsAppGroupIdentity("L", "Pagi").key, "putra_pagi");
+  assert.equal(findWhatsAppGroupIdentity("putri", "MALAM").key, "putri_malam");
+  assert.equal(findWhatsAppGroupIdentity("L", "siang"), null);
+
+  const overrides = Object.fromEntries(
+    WHATSAPP_GROUP_IDENTITIES.map((identity) => [
+      identity.key,
+      { groupId: "", inviteUrl: "" },
+    ]),
+  );
+  overrides.putri_sore = {
+    groupId: "group-putri-sore",
+    inviteUrl: "https://chat.whatsapp.com/putri-sore",
+  };
+  overrides.putri_malam = {
+    groupId: "group-putri-sore",
+    inviteUrl: "https://chat.whatsapp.com/putri-malam",
+  };
+
+  const selected = resolveWhatsAppGroup("P", "Sore", overrides);
+  assert.equal(selected.label, "Putri Sore");
+  assert.equal(selected.groupId, "group-putri-sore");
+  assert.equal(
+    selected.inviteUrl,
+    "https://chat.whatsapp.com/putri-sore",
+  );
+  assert.deepEqual(
+    configuredWhatsAppGroups(overrides).map((group) => group.key),
+    ["putri_sore"],
+  );
+});
+
+test("template welcome memuat profil, kredensial, aplikasi, dan link grup", () => {
+  const message = buildSantriWelcomeWhatsAppMessage({
+    santri: {
+      name: "Fatimah",
+      nis: "24001",
+      kelas: "Tahsin Awwal",
+      tipeKelas: "Pagi",
+      jenisKelamin: "P",
+    },
+    password: "20120309",
+    institution,
+    appUrl: "https://example.com/aplikasi",
+    group: {
+      label: "Putri Pagi",
+      inviteUrl: "https://chat.whatsapp.com/putri-pagi",
+    },
+  });
+
+  assert.match(message, /Fatimah/);
+  assert.match(message, /NIS: 24001/);
+  assert.match(message, /Kelas: Tahsin Awwal/);
+  assert.match(message, /Sesi: Pagi/);
+  assert.match(message, /Password awal: 20120309/);
+  assert.match(message, /https:\/\/example\.com\/aplikasi/);
+  assert.match(message, /https:\/\/chat\.whatsapp\.com\/putri-pagi/);
+  assert.match(message, /progres hafalan dan target bulanan/);
+});
+
+test("welcome dikirim ke wali setelah seluruh link terkonfigurasi", async () => {
+  let sent;
+  const result = await runSantriWelcomeWhatsApp(
+    {
+      uid: "santri-1",
+      name: "Fatimah",
+      nis: "24001",
+      nomorWali: "0812-3456-7890",
+      phone: "0813-0000-0000",
+      kelas: "Tahsin Awwal",
+      tipeKelas: "Pagi",
+      jenisKelamin: "P",
+    },
+    "20120309",
+    {
+      enabled: true,
+      appUrl: "https://example.com/aplikasi",
+      group: {
+        key: "putri_pagi",
+        label: "Putri Pagi",
+        inviteUrl: "https://chat.whatsapp.com/putri-pagi",
+      },
+      institution,
+      send: async (messages) => {
+        sent = messages;
+        return { messageCount: messages.length };
+      },
+    },
+  );
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].phone, "6281234567890");
+  assert.equal(sent[0].isGroup, "false");
+  assert.equal(sent[0].refId, "welcome-santri-1");
+  assert.match(sent[0].message, /Password awal: 20120309/);
+  assert.deepEqual(
+    { recipient: result.recipient, group: result.group, sent: result.sent },
+    { recipient: "wali", group: "putri_pagi", sent: 1 },
+  );
+});
+
+test("welcome tidak mengirim kredensial bila link grup belum diatur", async () => {
+  let sendCalled = false;
+  const result = await runSantriWelcomeWhatsApp(
+    {
+      uid: "santri-1",
+      nomorWali: "081234567890",
+      tipeKelas: "Pagi",
+      jenisKelamin: "P",
+    },
+    "rahasia",
+    {
+      enabled: true,
+      appUrl: "https://example.com/aplikasi",
+      group: { key: "putri_pagi", label: "Putri Pagi", inviteUrl: "" },
+      send: async () => {
+        sendCalled = true;
+      },
+    },
+  );
+
+  assert.equal(sendCalled, false);
+  assert.deepEqual(result, {
+    skipped: true,
+    reason: "group_invite_not_configured",
+  });
+});
+
+test("pesan grup awal bulan menyebut penilaian lalu target bulan berjalan", () => {
+  const message = buildMonthlyAssessmentGroupMessage(
+    { month: 1, year: 2027 },
+    institution,
+  );
+  assert.match(message, /Desember 2026/);
+  assert.match(message, /Januari 2027/);
+  assert.match(message, /hubungi asatidz masing-masing/);
 });
 
 test("nomor wali kosong dialihkan ke nomor admin dengan penjelasan", async () => {

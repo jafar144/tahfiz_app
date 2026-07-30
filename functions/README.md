@@ -39,6 +39,10 @@ APP_CHECK_ENFORCED=false
 WABLAS_ENABLED=false
 WABLAS_BASE_URL=https://disabled.invalid
 WHATSAPP_ADMIN_PHONE=
+APP_DOWNLOAD_URL=
+WHATSAPP_GROUP_PUTRA_PAGI_ID=
+WHATSAPP_GROUP_PUTRA_PAGI_INVITE_URL=
+# Lengkapi juga PUTRA_SORE, PUTRA_MALAM, PUTRI_PAGI, PUTRI_SORE, PUTRI_MALAM.
 
 DEPLOY_LEGACY_HTTP_FUNCTIONS=false
 LEGACY_ADMIN_HTTP_ENABLED=false
@@ -56,6 +60,13 @@ Jika Wablas diaktifkan, isi konfigurasi Wablas lalu:
 firebase functions:secrets:set WABLAS_TOKEN --project FIREBASE_PROJECT_ID
 firebase functions:secrets:set WABLAS_SECRET_KEY --project FIREBASE_PROJECT_ID
 ```
+
+Saat `WABLAS_ENABLED=true`, provisioning santri mengirim welcome message ke
+nomor wali (fallback ke nomor santri) setelah akun tersimpan. Scheduler
+`notifyMonthlyAssessmentGroups` mengirim reminder ke seluruh ID grup yang
+terisi setiap tanggal 3 pukul 09:00 WIB. Isi keenam pasangan `..._ID` dan
+`..._INVITE_URL`; ID digunakan sebagai tujuan Wablas, invite URL dimasukkan ke
+welcome message. Gangguan Wablas tidak membatalkan akun yang sudah tersimpan.
 
 Jangan menyimpan secret di `.env`, source code, APK, atau log CI.
 

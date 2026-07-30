@@ -13,22 +13,29 @@ class MonthlyReportInputReady extends MonthlyReportInputState {
 
   /// Penilaian terakhir santri sebelum periode ini (untuk referensi).
   final MonthlyReport? latestReport;
+
+  /// Laporan sebelumnya yang membuat target untuk periode yang sedang dinilai.
+  /// Null untuk data lama atau bila belum pernah ada target.
+  final MonthlyReport? targetToEvaluate;
   final bool isSaving;
 
   const MonthlyReportInputReady({
     this.existingReport,
     this.latestReport,
+    this.targetToEvaluate,
     this.isSaving = false,
   });
 
   MonthlyReportInputReady copyWith({
     MonthlyReport? existingReport,
     MonthlyReport? latestReport,
+    MonthlyReport? targetToEvaluate,
     bool? isSaving,
   }) {
     return MonthlyReportInputReady(
       existingReport: existingReport ?? this.existingReport,
       latestReport: latestReport ?? this.latestReport,
+      targetToEvaluate: targetToEvaluate ?? this.targetToEvaluate,
       isSaving: isSaving ?? this.isSaving,
     );
   }

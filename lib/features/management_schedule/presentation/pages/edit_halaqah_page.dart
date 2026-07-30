@@ -257,17 +257,17 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      clipBehavior: Clip.antiAlias,
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Container(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.sizeOf(context).height * 0.75,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: SafeArea(
                 top: false,

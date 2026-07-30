@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_target_carousel.dart';
 import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
 import 'package:khoirunnasyien/features/journey/presentation/widgets/journey_summary_card.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_carousel.dart';
@@ -510,11 +511,18 @@ class _SantriHomePageState extends State<SantriHomePage> {
   }
 
   Widget _buildLatestReport(SantriHomeState state) {
+    final hasTargets = MonthlyTargetTimelineEntry.fromReports(
+      state.monthlyReports,
+    ).isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (hasTargets) ...[
+            MonthlyTargetCarousel(reports: state.monthlyReports),
+            const SizedBox(height: 28),
+          ],
           Row(
             children: [
               const Expanded(

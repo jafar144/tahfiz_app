@@ -15,6 +15,61 @@ const WABLAS_ENABLED = defineString("WABLAS_ENABLED", { default: "false" });
 const WHATSAPP_ADMIN_PHONE = defineString("WHATSAPP_ADMIN_PHONE", {
   default: "",
 });
+const APP_DOWNLOAD_URL = defineString("APP_DOWNLOAD_URL", {
+  default: "",
+});
+
+// ID grup dipakai Wablas untuk broadcast (isGroup=true), sedangkan invite URL
+// disematkan pada pesan selamat datang santri. Keduanya sengaja dipisah karena
+// ID internal WhatsApp bukan tautan yang dapat dibuka wali.
+const WHATSAPP_GROUP_PUTRA_PAGI_ID = defineString(
+  "WHATSAPP_GROUP_PUTRA_PAGI_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRA_PAGI_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRA_PAGI_INVITE_URL",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRA_SORE_ID = defineString(
+  "WHATSAPP_GROUP_PUTRA_SORE_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRA_SORE_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRA_SORE_INVITE_URL",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRA_MALAM_ID = defineString(
+  "WHATSAPP_GROUP_PUTRA_MALAM_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRA_MALAM_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRA_MALAM_INVITE_URL",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_PAGI_ID = defineString(
+  "WHATSAPP_GROUP_PUTRI_PAGI_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_PAGI_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRI_PAGI_INVITE_URL",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_SORE_ID = defineString(
+  "WHATSAPP_GROUP_PUTRI_SORE_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_SORE_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRI_SORE_INVITE_URL",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_MALAM_ID = defineString(
+  "WHATSAPP_GROUP_PUTRI_MALAM_ID",
+  { default: "" },
+);
+const WHATSAPP_GROUP_PUTRI_MALAM_INVITE_URL = defineString(
+  "WHATSAPP_GROUP_PUTRI_MALAM_INVITE_URL",
+  { default: "" },
+);
 
 const CALLABLE_OPTIONS = {
   region: "asia-southeast2",
@@ -49,6 +104,19 @@ module.exports = {
   WABLAS_BASE_URL,
   WABLAS_ENABLED,
   WHATSAPP_ADMIN_PHONE,
+  APP_DOWNLOAD_URL,
+  WHATSAPP_GROUP_PUTRA_PAGI_ID,
+  WHATSAPP_GROUP_PUTRA_PAGI_INVITE_URL,
+  WHATSAPP_GROUP_PUTRA_SORE_ID,
+  WHATSAPP_GROUP_PUTRA_SORE_INVITE_URL,
+  WHATSAPP_GROUP_PUTRA_MALAM_ID,
+  WHATSAPP_GROUP_PUTRA_MALAM_INVITE_URL,
+  WHATSAPP_GROUP_PUTRI_PAGI_ID,
+  WHATSAPP_GROUP_PUTRI_PAGI_INVITE_URL,
+  WHATSAPP_GROUP_PUTRI_SORE_ID,
+  WHATSAPP_GROUP_PUTRI_SORE_INVITE_URL,
+  WHATSAPP_GROUP_PUTRI_MALAM_ID,
+  WHATSAPP_GROUP_PUTRI_MALAM_INVITE_URL,
   CALLABLE_OPTIONS,
   SCHEDULE_OPTIONS,
   institutionMessagingConfig,

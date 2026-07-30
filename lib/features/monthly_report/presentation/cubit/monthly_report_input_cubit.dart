@@ -35,10 +35,20 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
             }
           }
 
+          MonthlyReport? targetToEvaluate;
+          for (final r in reports) {
+            if (r.id == existing?.id) continue;
+            if (r.target?.appliesTo(bulan, tahun) ?? false) {
+              targetToEvaluate = r;
+              break;
+            }
+          }
+
           emit(
             MonthlyReportInputReady(
               existingReport: existing,
               latestReport: latestPrevious,
+              targetToEvaluate: targetToEvaluate,
             ),
           );
         },
@@ -58,15 +68,37 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
     required String hafalanTerakhir,
     required int nilaiPerkembangan,
     required int nilaiAkhlaq,
+    required String targetMinimum,
+    required String targetOptimum,
+    MonthlyTargetResult targetResult = MonthlyTargetResult.notAssessed,
     String notes = '',
   }) async {
     if (state is! MonthlyReportInputReady) return;
 
     final currentState = state as MonthlyReportInputReady;
+    final normalizedMinimum = targetMinimum.trim();
+    final normalizedOptimum = targetOptimum.trim();
+    if (normalizedMinimum.isEmpty || normalizedOptimum.isEmpty) {
+      emit(
+        const MonthlyReportInputError('Target minimum dan optimum wajib diisi'),
+      );
+      emit(currentState);
+      return;
+    }
+    if (currentState.targetToEvaluate != null &&
+        targetResult == MonthlyTargetResult.notAssessed) {
+      emit(
+        const MonthlyReportInputError('Hasil target bulan ini wajib dipilih'),
+      );
+      emit(currentState);
+      return;
+    }
     emit(currentState.copyWith(isSaving: true));
 
     try {
       final now = DateTime.now();
+      final targetPeriod = DateTime(tahun, bulan + 1);
+      final targetToEvaluate = currentState.targetToEvaluate;
       final report = MonthlyReport(
         id: currentState.existingReport?.id ?? '',
         asatidzId: asatidzId,
@@ -79,6 +111,21 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
         nilaiPerkembangan: nilaiPerkembangan,
         nilaiAkhlaq: nilaiAkhlaq,
         notes: notes,
+        target: MonthlyTarget(
+          bulan: targetPeriod.month,
+          tahun: targetPeriod.year,
+          minimum: normalizedMinimum,
+          optimum: normalizedOptimum,
+        ),
+        targetEvaluation: targetToEvaluate == null
+            ? null
+            : MonthlyTargetEvaluation(
+                sourceReportId: targetToEvaluate.id,
+                targetBulan: targetToEvaluate.target!.bulan,
+                targetTahun: targetToEvaluate.target!.tahun,
+                result: targetResult,
+                evaluatedAt: now,
+              ),
         createdAt: currentState.existingReport?.createdAt ?? now,
         updatedAt: now,
       );

@@ -39,6 +39,59 @@ function buildBirthdayWhatsAppMessage(santri, institution) {
   ].join("\n");
 }
 
+function buildSantriWelcomeWhatsAppMessage({
+  santri,
+  password,
+  institution,
+  appUrl,
+  group,
+}) {
+  const genderLabel = santri.jenisKelamin === "P" ? "Putri" : "Putra";
+  return [
+    "Assalamu'alaikum warahmatullahi wabarakatuh.",
+    "",
+    `Alhamdulillah, Ananda ${santri.name} sudah terdaftar sebagai santri ${institution.institutionName}. Selamat bergabung.`,
+    "",
+    "*Data santri*",
+    `Nama: ${santri.name}`,
+    `NIS: ${santri.nis}`,
+    `Kelas: ${santri.kelas}`,
+    `Sesi: ${santri.tipeKelas}`,
+    `Kelompok: ${genderLabel}`,
+    "",
+    "*Akses aplikasi*",
+    `NIS/login: ${santri.nis}`,
+    `Password awal: ${password}`,
+    `Link aplikasi: ${appUrl}`,
+    "",
+    "Aplikasi dapat digunakan untuk memantau progres hafalan dan target bulanan, melihat hasil penilaian, serta mengecek status pembayaran.",
+    "",
+    `Silakan bergabung ke Grup WhatsApp ${group.label}:`,
+    group.inviteUrl,
+    "",
+    "Mohon simpan data login dengan baik dan tidak membagikan password kepada pihak lain. Jazakumullahu khairan.",
+  ].join("\n");
+}
+
+function previousMonthParts(parts) {
+  return parts.month === 1
+    ? { month: 12, year: parts.year - 1 }
+    : { month: parts.month - 1, year: parts.year };
+}
+
+function buildMonthlyAssessmentGroupMessage(parts, institution) {
+  const previous = previousMonthParts(parts);
+  return [
+    "Assalamu'alaikum warahmatullahi wabarakatuh.",
+    "",
+    `Bapak/Ibu, penilaian santri bulan ${monthNameId(previous.month)} ${previous.year} dan target hafalan bulan ${monthNameId(parts.month)} ${parts.year} sudah tersedia di aplikasi.`,
+    "",
+    "Silakan dicek melalui akun masing-masing. Jika ada yang ingin disampaikan, silakan hubungi asatidz masing-masing.",
+    "",
+    `Jazakumullahu khairan.\n${institution.institutionName}`,
+  ].join("\n");
+}
+
 function buildAdminFallbackWhatsAppMessage({
   santri,
   notificationType,
@@ -66,5 +119,8 @@ module.exports = {
   formatUnpaidMonths,
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildSantriWelcomeWhatsAppMessage,
+  previousMonthParts,
+  buildMonthlyAssessmentGroupMessage,
   buildAdminFallbackWhatsAppMessage,
 };

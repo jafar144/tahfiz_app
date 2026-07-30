@@ -8,9 +8,23 @@ const {
   STAFF_INITIAL_PASSWORD,
 } = require("../lib/config");
 const { normNis, passwordFromBirthDate } = require("../lib/utils");
+const {
+  runSantriWelcomeWhatsApp,
+} = require("./whatsappNotifier");
 
 const TEMPORARY_PASSWORD_ALPHABET =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
+
+const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
+  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase(),
+);
+const wablasSecrets = wablasEnabledAtDeploy
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
+const PROVISION_OPTIONS = {
+  ...CALLABLE_OPTIONS,
+  secrets: wablasSecrets,
+};
 
 function requiredText(value, field, maxLength = 160) {
   const text = String(value ?? "").trim();
@@ -91,7 +105,7 @@ async function rollbackAuthUser(uid) {
   }
 }
 
-const provisionInstitutionUser = onCall(CALLABLE_OPTIONS, async (request) => {
+const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Harus login.");
   }
@@ -223,12 +237,37 @@ const provisionInstitutionUser = onCall(CALLABLE_OPTIONS, async (request) => {
     );
   }
 
+  let whatsapp = { skipped: true, reason: "not_a_santri" };
+  if (role === "santri") {
+    try {
+      whatsapp = await runSantriWelcomeWhatsApp(
+        {
+          uid,
+          name,
+          nis,
+          phone,
+          nomorWali: profileData.nomor_wali,
+          kelas: profileData.kelas,
+          tipeKelas: profileData.tipe_kelas,
+          jenisKelamin: profileData.jenis_kelamin,
+        },
+        temporaryPassword,
+      );
+    } catch (error) {
+      // Akun dan profil sudah berhasil dibuat. Gangguan provider WhatsApp tidak
+      // boleh membuat klien mengulang provisioning dan menghasilkan duplikasi.
+      console.error("Welcome WhatsApp santri gagal:", error);
+      whatsapp = { sent: 0, failed: 1, reason: "unexpected_error" };
+    }
+  }
+
   return {
     uid,
     role,
     nis,
     email,
     temporaryPassword,
+    whatsapp,
   };
 });
 

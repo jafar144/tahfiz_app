@@ -400,6 +400,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
 
   Future<void> _showSchedulePicker(List<ProgramSchedule> schedules) async {
     final draft = Set<String>.from(_selectedScheduleIds);
+    final cubit = context.read<AddHalaqahCubit>();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -485,14 +486,12 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                                   .map((item) => item.id)
                                   .toList();
                             });
+                            Navigator.of(sheetContext).pop();
                             if (_selectedScheduleIds.isNotEmpty) {
-                              context
-                                  .read<AddHalaqahCubit>()
-                                  .checkScheduleAvailability(
-                                    _selectedScheduleIds.first,
-                                  );
+                              cubit.checkScheduleAvailability(
+                                _selectedScheduleIds.first,
+                              );
                             }
-                            Navigator.pop(sheetContext);
                           },
                         ),
                       ),

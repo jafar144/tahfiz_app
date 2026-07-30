@@ -15,14 +15,25 @@ class MonthlyReportModel extends MonthlyReport {
     required super.nilaiPerkembangan,
     required super.nilaiAkhlaq,
     super.notes,
+    super.target,
+    super.targetEvaluation,
     required super.createdAt,
     required super.updatedAt,
   });
 
   factory MonthlyReportModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    return MonthlyReportModel.fromMap(id: doc.id, data: data);
+  }
+
+  /// Parser terpisah agar kompatibilitas dokumen lama dapat diuji tanpa
+  /// memerlukan emulator Firestore.
+  factory MonthlyReportModel.fromMap({
+    required String id,
+    required Map<String, dynamic> data,
+  }) {
     return MonthlyReportModel(
-      id: doc.id,
+      id: id,
       asatidzId: data['asatidz_id'] ?? '',
       asatidzName: data['asatidz_name'] ?? '',
       asatidzGender: data['asatidz_gender'] ?? '',
@@ -34,6 +45,8 @@ class MonthlyReportModel extends MonthlyReport {
       nilaiPerkembangan: _parseNilai(data['nilai_perkembangan']),
       nilaiAkhlaq: _parseNilai(data['nilai_akhlaq']),
       notes: data['notes'] ?? '',
+      target: _parseTarget(data['monthly_target']),
+      targetEvaluation: _parseTargetEvaluation(data['target_evaluation']),
       createdAt: (data['created_at'] as Timestamp).toDate(),
       updatedAt: (data['updated_at'] as Timestamp).toDate(),
     );
@@ -53,6 +66,8 @@ class MonthlyReportModel extends MonthlyReport {
     nilaiPerkembangan: nilaiPerkembangan,
     nilaiAkhlaq: nilaiAkhlaq,
     notes: notes,
+    target: target,
+    targetEvaluation: targetEvaluation,
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
@@ -70,6 +85,21 @@ class MonthlyReportModel extends MonthlyReport {
       'nilai_perkembangan': nilaiPerkembangan,
       'nilai_akhlaq': nilaiAkhlaq,
       'notes': notes,
+      if (target != null)
+        'monthly_target': {
+          'bulan': target!.bulan,
+          'tahun': target!.tahun,
+          'minimum': target!.minimum,
+          'optimum': target!.optimum,
+        },
+      if (targetEvaluation != null)
+        'target_evaluation': {
+          'source_report_id': targetEvaluation!.sourceReportId,
+          'target_bulan': targetEvaluation!.targetBulan,
+          'target_tahun': targetEvaluation!.targetTahun,
+          'result': targetEvaluation!.result.storageValue,
+          'evaluated_at': Timestamp.fromDate(targetEvaluation!.evaluatedAt),
+        },
       'created_at': Timestamp.fromDate(createdAt),
       'updated_at': Timestamp.fromDate(updatedAt),
     };
@@ -93,4 +123,64 @@ int _parseNilai(dynamic raw) {
     value = 0;
   }
   return value <= 0 ? 1 : value;
+}
+
+MonthlyTarget? _parseTarget(dynamic raw) {
+  final data = _stringKeyedMap(raw);
+  if (data == null) return null;
+
+  final minimum = (data['minimum'] ?? '').toString().trim();
+  final optimum = (data['optimum'] ?? '').toString().trim();
+  final bulan = _parsePositiveInt(data['bulan']);
+  final tahun = _parsePositiveInt(data['tahun']);
+  if (minimum.isEmpty || optimum.isEmpty || bulan == null || tahun == null) {
+    return null;
+  }
+
+  return MonthlyTarget(
+    bulan: bulan,
+    tahun: tahun,
+    minimum: minimum,
+    optimum: optimum,
+  );
+}
+
+MonthlyTargetEvaluation? _parseTargetEvaluation(dynamic raw) {
+  final data = _stringKeyedMap(raw);
+  if (data == null) return null;
+
+  final bulan = _parsePositiveInt(data['target_bulan']);
+  final tahun = _parsePositiveInt(data['target_tahun']);
+  final evaluatedAt = _parseDate(data['evaluated_at']);
+  if (bulan == null || tahun == null || evaluatedAt == null) return null;
+
+  return MonthlyTargetEvaluation(
+    sourceReportId: (data['source_report_id'] ?? '').toString(),
+    targetBulan: bulan,
+    targetTahun: tahun,
+    result: MonthlyTargetResult.fromStorage(data['result']),
+    evaluatedAt: evaluatedAt,
+  );
+}
+
+Map<String, dynamic>? _stringKeyedMap(dynamic raw) {
+  if (raw is! Map) return null;
+  return raw.map((key, value) => MapEntry(key.toString(), value));
+}
+
+int? _parsePositiveInt(dynamic raw) {
+  final value = switch (raw) {
+    int value => value,
+    num value => value.toInt(),
+    String value => int.tryParse(value),
+    _ => null,
+  };
+  return value != null && value > 0 ? value : null;
+}
+
+DateTime? _parseDate(dynamic raw) {
+  if (raw is Timestamp) return raw.toDate();
+  if (raw is DateTime) return raw;
+  if (raw is String) return DateTime.tryParse(raw);
+  return null;
 }

@@ -18,6 +18,7 @@ class SantriHomeState {
   /// Gender pembimbing ('L' / 'P') untuk gelar Ustadz/Ustadzah.
   final String? pembimbingGender;
   final MonthlyReport? latestReport;
+  final List<MonthlyReport> monthlyReports;
 
   /// Saudara (akun lain dalam satu keluarga) untuk fitur ganti akun di home.
   final List<SantriDetail> familyMembers;
@@ -33,6 +34,7 @@ class SantriHomeState {
     this.pembimbingPhone,
     this.pembimbingGender,
     this.latestReport,
+    this.monthlyReports = const [],
     this.familyMembers = const [],
   });
 
@@ -58,6 +60,7 @@ class SantriHomeState {
     String? pembimbingPhone,
     String? pembimbingGender,
     MonthlyReport? latestReport,
+    List<MonthlyReport>? monthlyReports,
     List<SantriDetail>? familyMembers,
   }) {
     return SantriHomeState(
@@ -71,6 +74,7 @@ class SantriHomeState {
       pembimbingPhone: pembimbingPhone ?? this.pembimbingPhone,
       pembimbingGender: pembimbingGender ?? this.pembimbingGender,
       latestReport: latestReport ?? this.latestReport,
+      monthlyReports: monthlyReports ?? this.monthlyReports,
       familyMembers: familyMembers ?? this.familyMembers,
     );
   }

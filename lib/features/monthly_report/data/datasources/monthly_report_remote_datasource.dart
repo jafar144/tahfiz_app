@@ -165,6 +165,8 @@ class MonthlyReportRemoteDataSourceImpl
         'nilai_perkembangan': report.nilaiPerkembangan,
         'nilai_akhlaq': report.nilaiAkhlaq,
         'notes': report.notes,
+        'monthly_target': _targetToFirestore(report.target),
+        'target_evaluation': _evaluationToFirestore(report.targetEvaluation),
         'updated_at': Timestamp.fromDate(now),
       };
 
@@ -185,6 +187,8 @@ class MonthlyReportRemoteDataSourceImpl
         nilaiPerkembangan: report.nilaiPerkembangan,
         nilaiAkhlaq: report.nilaiAkhlaq,
         notes: report.notes,
+        target: report.target,
+        targetEvaluation: report.targetEvaluation,
         createdAt: existing.createdAt,
         updatedAt: now,
       );
@@ -202,6 +206,8 @@ class MonthlyReportRemoteDataSourceImpl
       nilaiPerkembangan: report.nilaiPerkembangan,
       nilaiAkhlaq: report.nilaiAkhlaq,
       notes: report.notes,
+      target: report.target,
+      targetEvaluation: report.targetEvaluation,
       createdAt: now,
       updatedAt: now,
     );
@@ -222,6 +228,8 @@ class MonthlyReportRemoteDataSourceImpl
       nilaiPerkembangan: model.nilaiPerkembangan,
       nilaiAkhlaq: model.nilaiAkhlaq,
       notes: model.notes,
+      target: model.target,
+      targetEvaluation: model.targetEvaluation,
       createdAt: now,
       updatedAt: now,
     );
@@ -240,4 +248,27 @@ class MonthlyReportRemoteDataSourceImpl
         .where((id) => id.isNotEmpty)
         .toSet();
   }
+}
+
+Map<String, dynamic>? _targetToFirestore(MonthlyTarget? target) {
+  if (target == null) return null;
+  return {
+    'bulan': target.bulan,
+    'tahun': target.tahun,
+    'minimum': target.minimum,
+    'optimum': target.optimum,
+  };
+}
+
+Map<String, dynamic>? _evaluationToFirestore(
+  MonthlyTargetEvaluation? evaluation,
+) {
+  if (evaluation == null) return null;
+  return {
+    'source_report_id': evaluation.sourceReportId,
+    'target_bulan': evaluation.targetBulan,
+    'target_tahun': evaluation.targetTahun,
+    'result': evaluation.result.storageValue,
+    'evaluated_at': Timestamp.fromDate(evaluation.evaluatedAt),
+  };
 }

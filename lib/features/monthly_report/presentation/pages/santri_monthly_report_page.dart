@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/constants/mo
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_target_carousel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class SantriMonthlyReportPage extends StatelessWidget {
@@ -64,17 +65,39 @@ class _SantriMonthlyReportView extends StatelessWidget {
               return _buildEmptyState();
             }
 
+            final hasTargets = MonthlyTargetTimelineEntry.fromReports(
+              state.reports,
+            ).isNotEmpty;
             return RefreshIndicator(
               onRefresh: () => context
                   .read<SantriMonthlyReportCubit>()
                   .loadReports(santriId),
-              child: ListView.separated(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                itemCount: state.reports.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  return MonthlyReportCard(report: state.reports[index]);
-                },
+                children: [
+                  if (hasTargets) ...[
+                    MonthlyTargetCarousel(reports: state.reports),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Riwayat Penilaian',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  for (
+                    var index = 0;
+                    index < state.reports.length;
+                    index++
+                  ) ...[
+                    MonthlyReportCard(report: state.reports[index]),
+                    if (index != state.reports.length - 1)
+                      const SizedBox(height: 16),
+                  ],
+                ],
               ),
             );
           }

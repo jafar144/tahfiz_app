@@ -128,11 +128,20 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         },
       );
 
-      // 5. Fetch Latest Monthly Report
+      // 5. Fetch laporan bulanan. Daftar lengkap dipakai untuk menyusun
+      // timeline target; item pertama tetap menjadi penilaian terbaru.
       MonthlyReport? latestReport;
-      final reportResult = await monthlyReportRepository
-          .getLatestReportBySantri(santriId);
-      reportResult.fold(ifLeft: (_) {}, ifRight: (r) => latestReport = r);
+      List<MonthlyReport> monthlyReports = const [];
+      final reportResult = await monthlyReportRepository.getReportsBySantri(
+        santriId,
+      );
+      reportResult.fold(
+        ifLeft: (_) {},
+        ifRight: (reports) {
+          monthlyReports = reports;
+          if (reports.isNotEmpty) latestReport = reports.first;
+        },
+      );
 
       // 6. Fetch saudara (akun lain dalam satu keluarga) untuk fitur ganti akun.
       final List<SantriDetail> familyMembers = [];
@@ -163,6 +172,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
           pembimbingPhone: pembimbingPhone,
           pembimbingGender: pembimbingGender,
           latestReport: latestReport,
+          monthlyReports: monthlyReports,
           familyMembers: familyMembers,
         ),
       );

@@ -111,7 +111,75 @@ test("handler gabungan meneruskan hanya job yang dipilih planner", async () => {
   ]);
 });
 
-test("manifest Firebase memuat tepat tiga jadwal di zona Jakarta", () => {
+test("reminder tanggal 3 dikirim sebagai pesan grup ke seluruh ID terisi", async () => {
+  const {
+    runMonthlyGroupReminder,
+  } = require("../handlers/monthlyGroupNotifier");
+  let sent;
+  const result = await runMonthlyGroupReminder(
+    { day: 3, month: 8, year: 2026 },
+    {
+      enabled: true,
+      institution: { institutionName: "Lembaga Uji" },
+      groups: [
+        { key: "putra_pagi", groupId: "group-1" },
+        { key: "putri_sore", groupId: "group-2" },
+      ],
+      send: async (messages) => {
+        sent = messages;
+        return { messageCount: messages.length };
+      },
+    },
+  );
+
+  assert.equal(result.sent, 2);
+  assert.deepEqual(
+    sent.map((message) => ({
+      phone: message.phone,
+      isGroup: message.isGroup,
+      refId: message.refId,
+    })),
+    [
+      {
+        phone: "group-1",
+        isGroup: "true",
+        refId: "monthly-assessment-target-2026-08-putra_pagi",
+      },
+      {
+        phone: "group-2",
+        isGroup: "true",
+        refId: "monthly-assessment-target-2026-08-putri_sore",
+      },
+    ],
+  );
+  assert.match(sent[0].message, /penilaian santri bulan Juli 2026/);
+  assert.match(sent[0].message, /target hafalan bulan Agustus 2026/);
+});
+
+test("reminder grup tetap aman saat Wablas dinonaktifkan", async () => {
+  const {
+    runMonthlyGroupReminder,
+  } = require("../handlers/monthlyGroupNotifier");
+  let sendCalled = false;
+  const result = await runMonthlyGroupReminder(
+    { day: 3, month: 8, year: 2026 },
+    {
+      enabled: false,
+      groups: [{ key: "putra_pagi", groupId: "group-1" }],
+      send: async () => {
+        sendCalled = true;
+      },
+    },
+  );
+
+  assert.equal(sendCalled, false);
+  assert.deepEqual(result, {
+    skipped: true,
+    reason: "wablas_disabled",
+  });
+});
+
+test("manifest Firebase memuat tepat empat jadwal di zona Jakarta", () => {
   const cloudFunctions = require("../index");
   const scheduled = Object.entries(cloudFunctions)
     .filter(([, handler]) => Boolean(handler?.__endpoint?.scheduleTrigger))
@@ -137,6 +205,11 @@ test("manifest Firebase memuat tepat tiga jadwal di zona Jakarta", () => {
       schedule: "0 3 * * 1",
       timeZone: "Asia/Jakarta",
     },
+    {
+      name: "notifyMonthlyAssessmentGroups",
+      schedule: "0 9 3 * *",
+      timeZone: "Asia/Jakarta",
+    },
   ]);
 
   assert.equal(cloudFunctions.notifyIncompleteAssessment, undefined);
@@ -144,23 +217,25 @@ test("manifest Firebase memuat tepat tiga jadwal di zona Jakarta", () => {
   assert.equal(cloudFunctions.notifyArrearsMidMonth, undefined);
 });
 
-test("source hanya mendaftarkan tiga Cloud Scheduler", () => {
+test("source hanya mendaftarkan empat Cloud Scheduler", () => {
   const root = path.resolve(__dirname, "..");
   const handlerFiles = [
     "handlers/assessmentNotifier.js",
     "handlers/paymentNotifier.js",
     "handlers/cleanupExpiredSyahadah.js",
+    "handlers/monthlyGroupNotifier.js",
   ];
   const registrationCount = handlerFiles.reduce((total, file) => {
     const source = fs.readFileSync(path.join(root, file), "utf8");
     return total + (source.match(/= onSchedule\(/g) || []).length;
   }, 0);
-  assert.equal(registrationCount, 3);
+  assert.equal(registrationCount, 4);
 
   const indexSource = fs.readFileSync(path.join(root, "index.js"), "utf8");
   assert.match(indexSource, /exports\.notifyAssessmentWindowOpen\s*=/);
   assert.match(indexSource, /exports\.notifyArrearsMonthEnd\s*=/);
   assert.match(indexSource, /exports\.cleanupExpiredSyahadah\s*=/);
+  assert.match(indexSource, /exports\.notifyMonthlyAssessmentGroups\s*=/);
   assert.doesNotMatch(indexSource, /exports\.notifyIncompleteAssessment\s*=/);
   assert.doesNotMatch(indexSource, /exports\.notifyPaymentDue\s*=/);
   assert.doesNotMatch(indexSource, /exports\.notifyArrearsMidMonth\s*=/);

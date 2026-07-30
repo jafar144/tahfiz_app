@@ -33,13 +33,19 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
   final _formKey = GlobalKey<FormState>();
   final _hafalanController = TextEditingController();
   final _notesController = TextEditingController();
+  final _targetMinimumController = TextEditingController();
+  final _targetOptimumController = TextEditingController();
   int _nilaiPerkembangan = 0;
   int _nilaiAkhlaq = 0;
+  MonthlyTargetResult _targetResult = MonthlyTargetResult.notAssessed;
+  bool _didHydrate = false;
 
   @override
   void dispose() {
     _hafalanController.dispose();
     _notesController.dispose();
+    _targetMinimumController.dispose();
+    _targetOptimumController.dispose();
     super.dispose();
   }
 
@@ -50,15 +56,25 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
       appBar: AiwaAppBar(title: MonthlyReportStrings.inputTitle),
       body: BlocConsumer<MonthlyReportInputCubit, MonthlyReportInputState>(
         listener: (context, state) {
-          if (state is MonthlyReportInputReady &&
-              state.existingReport != null &&
-              _hafalanController.text.isEmpty) {
-            final r = state.existingReport!;
-            _hafalanController.text = r.hafalanTerakhir;
-            _notesController.text = r.notes;
+          if (state is MonthlyReportInputReady && !_didHydrate) {
+            _didHydrate = true;
+            final existing = state.existingReport;
+            if (existing != null) {
+              _hafalanController.text = existing.hafalanTerakhir;
+              _notesController.text = existing.notes;
+              _targetMinimumController.text = existing.target?.minimum ?? '';
+              _targetOptimumController.text = existing.target?.optimum ?? '';
+            }
+
+            final source = state.targetToEvaluate;
+            final evaluation = existing?.targetEvaluation;
             setState(() {
-              _nilaiPerkembangan = r.nilaiPerkembangan;
-              _nilaiAkhlaq = r.nilaiAkhlaq;
+              _nilaiPerkembangan = existing?.nilaiPerkembangan ?? 0;
+              _nilaiAkhlaq = existing?.nilaiAkhlaq ?? 0;
+              if (source?.target != null &&
+                  evaluation?.evaluates(source!.id, source.target!) == true) {
+                _targetResult = evaluation!.result;
+              }
             });
           }
           if (state is MonthlyReportInputSuccess) {
@@ -108,6 +124,11 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                     const SizedBox(height: 10),
                     MonthlyReportCard(report: state.latestReport!),
                   ],
+                  if (state is MonthlyReportInputReady &&
+                      state.targetToEvaluate?.target != null) ...[
+                    const SizedBox(height: 24),
+                    _buildTargetEvaluationSection(state.targetToEvaluate!),
+                  ],
                   const SizedBox(height: 24),
                   _buildHafalanField(),
                   const SizedBox(height: 24),
@@ -128,6 +149,8 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                       setState(() => _nilaiAkhlaq = val);
                     },
                   ),
+                  const SizedBox(height: 24),
+                  _buildNextTargetSection(),
                   const SizedBox(height: 24),
                   _buildNotesField(),
                   const SizedBox(height: 32),
@@ -230,6 +253,338 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTargetEvaluationSection(MonthlyReport sourceReport) {
+    final target = sourceReport.target!;
+    const emerald = Color(0xFF0F766E);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel(
+          MonthlyReportStrings.evaluasiTarget,
+          Icons.task_alt_rounded,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          MonthlyReportStrings.evaluasiTargetHint,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDFA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFCCFBF1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.flag_rounded,
+                      size: 19,
+                      color: emerald,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '${MonthlyReport.getNamaBulan(target.bulan)} '
+                      '${target.tahun}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF134E4A),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _buildTargetBrief(
+                MonthlyReportStrings.targetMinimum,
+                target.minimum,
+                Icons.spa_outlined,
+              ),
+              const SizedBox(height: 10),
+              _buildTargetBrief(
+                MonthlyReportStrings.targetOptimum,
+                target.optimum,
+                Icons.auto_awesome_rounded,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildTargetResultOption(
+          MonthlyTargetResult.notAchieved,
+          'Belum tercapai',
+          'Target minimum masih perlu dilanjutkan',
+          Icons.refresh_rounded,
+          const Color(0xFFB45309),
+        ),
+        const SizedBox(height: 8),
+        _buildTargetResultOption(
+          MonthlyTargetResult.minimumAchieved,
+          'Minimum tercapai',
+          'Batas minimum berhasil dituntaskan',
+          Icons.check_circle_outline_rounded,
+          const Color(0xFF059669),
+        ),
+        const SizedBox(height: 8),
+        _buildTargetResultOption(
+          MonthlyTargetResult.optimumAchieved,
+          'Optimum tercapai',
+          'Target terbaik berhasil dituntaskan',
+          Icons.workspace_premium_outlined,
+          const Color(0xFF0F766E),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTargetBrief(String label, String value, IconData icon) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 17, color: const Color(0xFF0F766E)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                  color: Color(0xFF5F8F89),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: Color(0xFF134E4A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTargetResultOption(
+    MonthlyTargetResult result,
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+  ) {
+    final selected = _targetResult == result;
+    return InkWell(
+      onTap: () => setState(() => _targetResult = result),
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.07) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? color : Colors.grey.shade200,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 21,
+              color: selected ? color : Colors.grey.shade400,
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? color : Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 21,
+              height: 21,
+              decoration: BoxDecoration(
+                color: selected ? color : Colors.transparent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? color : Colors.grey.shade300,
+                ),
+              ),
+              child: selected
+                  ? const Icon(
+                      Icons.check_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNextTargetSection() {
+    final next = DateTime(widget.tahun, widget.bulan + 1);
+    const emerald = Color(0xFF0F766E);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel(
+          '${MonthlyReportStrings.targetBulanDepan} · '
+          '${MonthlyReport.getNamaBulan(next.month)} ${next.year}',
+          Icons.flag_rounded,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          MonthlyReportStrings.targetBulanDepanHint,
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Column(
+            children: [
+              _buildTargetField(
+                controller: _targetMinimumController,
+                label: MonthlyReportStrings.targetMinimum,
+                hint: MonthlyReportStrings.targetMinimumHint,
+                icon: Icons.spa_outlined,
+                color: const Color(0xFF059669),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 14),
+                child: Divider(height: 1, color: Color(0xFFF3F4F6)),
+              ),
+              _buildTargetField(
+                controller: _targetOptimumController,
+                label: MonthlyReportStrings.targetOptimum,
+                hint: MonthlyReportStrings.targetOptimumHint,
+                icon: Icons.auto_awesome_rounded,
+                color: emerald,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTargetField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 17, color: color),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          minLines: 2,
+          maxLines: 4,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 12.5,
+              height: 1.4,
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: color, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.all(13),
+          ),
+          validator: (value) => value == null || value.trim().isEmpty
+              ? MonthlyReportStrings.wajibDiisi
+              : null,
+        ),
+      ],
     );
   }
 
@@ -445,6 +800,19 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
       return;
     }
 
+    final inputState = context.read<MonthlyReportInputCubit>().state;
+    if (inputState is MonthlyReportInputReady &&
+        inputState.targetToEvaluate != null &&
+        _targetResult == MonthlyTargetResult.notAssessed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(MonthlyReportStrings.hasilTargetWajib),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     context.read<MonthlyReportInputCubit>().saveReport(
       asatidzId: widget.asatidzId,
       asatidzName: widget.asatidzName,
@@ -455,6 +823,9 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
       hafalanTerakhir: _hafalanController.text.trim(),
       nilaiPerkembangan: _nilaiPerkembangan,
       nilaiAkhlaq: _nilaiAkhlaq,
+      targetMinimum: _targetMinimumController.text.trim(),
+      targetOptimum: _targetOptimumController.text.trim(),
+      targetResult: _targetResult,
       notes: _notesController.text.trim(),
     );
   }
