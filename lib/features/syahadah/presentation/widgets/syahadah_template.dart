@@ -59,14 +59,61 @@ class SyahadahTemplate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SyahadahTemplateRegistry.build(
-      SyahadahTemplateData(
-        displayName: displayName,
-        nis: nis,
-        hafalan: hafalan,
-        photoUrl: photoUrl,
-        kelas: kelas,
-        date: date,
+    // Poster adalah kanvas desain tetap. Pembesaran font dari pengaturan
+    // aksesibilitas perangkat tetap berlaku untuk UI aplikasi, tetapi tidak
+    // boleh mengubah komposisi poster maupun hasil file yang diekspor.
+    return MediaQuery.withNoTextScaling(
+      child: SyahadahTemplateRegistry.build(
+        SyahadahTemplateData(
+          displayName: displayName,
+          nis: nis,
+          hafalan: hafalan,
+          photoUrl: photoUrl,
+          kelas: kelas,
+          date: date,
+        ),
+      ),
+    );
+  }
+}
+
+/// Area teks pada kanvas syahadah yang mempertahankan ukuran desain normal,
+/// lalu mengecilkan keseluruhan blok hanya ketika kontennya melebihi frame.
+class SyahadahFittedText extends StatelessWidget {
+  final String text;
+  final double width;
+  final double height;
+  final TextStyle style;
+  final TextAlign textAlign;
+  final AlignmentGeometry alignment;
+
+  const SyahadahFittedText({
+    super.key,
+    required this.text,
+    required this.width,
+    required this.height,
+    required this.style,
+    this.textAlign = TextAlign.start,
+    this.alignment = Alignment.topLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: SizedBox(
+          width: width,
+          child: Text(
+            text,
+            textAlign: textAlign,
+            textScaler: TextScaler.noScaling,
+            style: style,
+          ),
+        ),
       ),
     );
   }

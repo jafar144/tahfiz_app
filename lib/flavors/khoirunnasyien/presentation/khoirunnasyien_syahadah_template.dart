@@ -253,16 +253,16 @@ class KhoirunnasyienSyahadahTemplate extends StatelessWidget {
             top: _isTahsin ? 540 : 520,
             child: Transform.rotate(
               angle: -0.02,
-              child: SizedBox(
+              child: SyahadahFittedText(
+                key: const ValueKey('syahadah-hafalan-fitted-text'),
                 width: 500,
-                child: Text(
-                  _hafalanText,
-                  style: GoogleFonts.breeSerif(
-                    fontSize: _isTahsin ? 60 : 50,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                    height: 1.4,
-                  ),
+                height: _isTahsin ? 220 : 245,
+                text: _hafalanText,
+                style: GoogleFonts.breeSerif(
+                  fontSize: _isTahsin ? 60 : 50,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                  height: 1.4,
                 ),
               ),
             ),
