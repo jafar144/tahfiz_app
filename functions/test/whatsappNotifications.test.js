@@ -13,6 +13,7 @@ const {
   buildBirthdayWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildMonthlyAssessmentGroupMessage,
+  buildIncompleteAssessmentWhatsAppMessage,
 } = require("../lib/whatsappMessages");
 const {
   WHATSAPP_GROUP_IDENTITIES,
@@ -26,6 +27,7 @@ const {
   selectLongOverdueSantri,
   runBirthdayWhatsApp,
   runSantriWelcomeWhatsApp,
+  runIncompleteAssessmentWhatsApp,
 } = require("../handlers/whatsappNotifier");
 
 const institution = {
@@ -298,6 +300,120 @@ test("pesan grup awal bulan menyebut penilaian lalu target bulan berjalan", () =
   assert.match(message, /Desember 2026/);
   assert.match(message, /Januari 2027/);
   assert.match(message, /hubungi asatidz masing-masing/);
+});
+
+test("template pengingat asatidz memuat progres penilaian yang belum lengkap", () => {
+  const message = buildIncompleteAssessmentWhatsAppMessage(
+    { name: "Ahmad", count: 3, total: 12 },
+    { month: 7, year: 2026 },
+    institution,
+  );
+
+  assert.match(message, /Ustadz\/Ustadzah Ahmad/);
+  assert.match(message, /3 dari 12 santri binaan/);
+  assert.match(message, /Juli 2026/);
+  assert.match(message, /melengkapinya melalui aplikasi/);
+  assert.match(message, /Lembaga Uji/);
+});
+
+test("pengingat penilaian dikirim personal ke nomor asatidz yang dinormalisasi", async () => {
+  let sent;
+  const result = await runIncompleteAssessmentWhatsApp(
+    { day: 30, month: 7, year: 2026 },
+    [
+      { uid: "asatidz-a", name: "Ahmad", total: 10, count: 2 },
+      {
+        uid: "asatidz-b",
+        name: "Fatimah",
+        total: 8,
+        count: 1,
+        phone: "0813-0000-0000",
+      },
+    ],
+    {
+      enabled: true,
+      institution,
+      resolvePhone: async (uid) =>
+        uid === "asatidz-a" ? "0812-3456-7890" : "",
+      send: async (messages) => {
+        sent = messages;
+        return { messageCount: messages.length };
+      },
+    },
+  );
+
+  assert.deepEqual(
+    sent.map((message) => ({
+      phone: message.phone,
+      isGroup: message.isGroup,
+      refId: message.refId,
+    })),
+    [
+      {
+        phone: "6281234567890",
+        isGroup: "false",
+        refId: "assessment-incomplete-2026-07-30-asatidz-a",
+      },
+      {
+        phone: "6281300000000",
+        isGroup: "false",
+        refId: "assessment-incomplete-2026-07-30-asatidz-b",
+      },
+    ],
+  );
+  assert.equal(result.eligible, 2);
+  assert.equal(result.invalidPhone, 0);
+  assert.equal(result.sent, 2);
+});
+
+test("nomor asatidz invalid dilewati dan Wablas nonaktif tidak membaca nomor", async () => {
+  let resolverCalls = 0;
+  let sendCalls = 0;
+  const incomplete = [
+    { uid: "asatidz-a", name: "Ahmad", total: 10, count: 2 },
+  ];
+  const disabled = await runIncompleteAssessmentWhatsApp(
+    { day: 30, month: 7, year: 2026 },
+    incomplete,
+    {
+      enabled: false,
+      resolvePhone: async () => {
+        resolverCalls += 1;
+        return "081234567890";
+      },
+      send: async () => {
+        sendCalls += 1;
+      },
+    },
+  );
+  const invalid = await runIncompleteAssessmentWhatsApp(
+    { day: 31, month: 7, year: 2026 },
+    incomplete,
+    {
+      enabled: true,
+      institution,
+      resolvePhone: async () => {
+        resolverCalls += 1;
+        return "nomor-tidak-valid";
+      },
+      send: async () => {
+        sendCalls += 1;
+      },
+    },
+  );
+
+  assert.deepEqual(disabled, {
+    skipped: true,
+    reason: "wablas_disabled",
+  });
+  assert.equal(resolverCalls, 1);
+  assert.equal(sendCalls, 0);
+  assert.deepEqual(invalid, {
+    eligible: 1,
+    invalidPhone: 1,
+    sent: 0,
+    failed: 0,
+  });
 });
 
 test("nomor wali kosong dialihkan ke nomor admin dengan penjelasan", async () => {

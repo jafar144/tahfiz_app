@@ -35,11 +35,32 @@ function jakartaDateParts(date = new Date()) {
   return { year, month, day, daysInMonth, daysRemaining };
 }
 
+function jakartaDateTimeParts(date = new Date()) {
+  const timeParts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  })
+    .formatToParts(date)
+    .reduce((result, part) => {
+      if (part.type !== "literal") result[part.type] = Number(part.value);
+      return result;
+    }, {});
+
+  return {
+    ...jakartaDateParts(date),
+    hour: timeParts.hour,
+    minute: timeParts.minute,
+  };
+}
+
 function monthNameId(month) {
   return MONTH_NAMES_ID[month - 1] || String(month);
 }
 
 module.exports = {
   jakartaDateParts,
+  jakartaDateTimeParts,
   monthNameId,
 };

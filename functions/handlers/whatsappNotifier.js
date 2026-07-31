@@ -1,4 +1,5 @@
 const { logger } = require("firebase-functions");
+const { db } = require("../lib/firebase");
 const {
   APP_DOWNLOAD_URL,
   WHATSAPP_ADMIN_PHONE,
@@ -20,6 +21,7 @@ const {
   buildBirthdayWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
+  buildIncompleteAssessmentWhatsAppMessage,
 } = require("../lib/whatsappMessages");
 
 // Dihitung inklusif: pada Juli, tunggakan Mei berumur 3 periode tagihan.
@@ -244,6 +246,76 @@ async function runSantriWelcomeWhatsApp(santri, password, options = {}) {
   };
 }
 
+async function fetchAsatidzPhone(uid, firestore = db) {
+  const snapshot = await firestore.collection("users").doc(uid).get();
+  if (!snapshot.exists) return "";
+  return snapshot.data()?.phone || "";
+}
+
+async function runIncompleteAssessmentWhatsApp(
+  parts,
+  incomplete,
+  options = {},
+) {
+  const enabled =
+    options.enabled === undefined ? isWablasEnabled() : options.enabled;
+  if (!enabled) return { skipped: true, reason: "wablas_disabled" };
+  if (!incomplete.length) {
+    return { skipped: true, reason: "no_recipients" };
+  }
+
+  const institution =
+    options.institution === undefined
+      ? institutionMessagingConfig()
+      : options.institution;
+  const resolvePhone = options.resolvePhone || fetchAsatidzPhone;
+  const messages = [];
+  let invalidPhone = 0;
+
+  for (const asatidz of incomplete) {
+    let rawPhone = asatidz.phone;
+    if (!rawPhone) {
+      try {
+        rawPhone = await resolvePhone(asatidz.uid);
+      } catch (error) {
+        logger.error(
+          `[whatsappAssessmentIncomplete] gagal membaca nomor ${asatidz.uid}: ${error.message}`,
+        );
+      }
+    }
+
+    const phone = normalizeWhatsAppPhone(rawPhone);
+    if (!phone) {
+      invalidPhone += 1;
+      continue;
+    }
+
+    messages.push({
+      phone,
+      message: buildIncompleteAssessmentWhatsAppMessage(
+        asatidz,
+        parts,
+        institution,
+      ),
+      isGroup: "false",
+      refId: `assessment-incomplete-${parts.year}-${String(
+        parts.month,
+      ).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}-${asatidz.uid}`,
+    });
+  }
+
+  const delivery = await dispatch(
+    messages,
+    "whatsappAssessmentIncomplete",
+    options.send,
+  );
+  return {
+    eligible: incomplete.length,
+    invalidPhone,
+    ...delivery,
+  };
+}
+
 module.exports = {
   MIN_ARREARS_BILLING_PERIODS,
   oldestArrearsAge,
@@ -253,4 +325,6 @@ module.exports = {
   runWhatsAppArrears,
   runBirthdayWhatsApp,
   runSantriWelcomeWhatsApp,
+  fetchAsatidzPhone,
+  runIncompleteAssessmentWhatsApp,
 };

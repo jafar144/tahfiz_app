@@ -62,11 +62,14 @@ firebase functions:secrets:set WABLAS_SECRET_KEY --project FIREBASE_PROJECT_ID
 ```
 
 Saat `WABLAS_ENABLED=true`, provisioning santri mengirim welcome message ke
-nomor wali (fallback ke nomor santri) setelah akun tersimpan. Scheduler
-`notifyMonthlyAssessmentGroups` mengirim reminder ke seluruh ID grup yang
-terisi setiap tanggal 3 pukul 09:00 WIB. Isi keenam pasangan `..._ID` dan
-`..._INVITE_URL`; ID digunakan sebagai tujuan Wablas, invite URL dimasukkan ke
-welcome message. Gangguan Wablas tidak membatalkan akun yang sudah tersimpan.
+nomor wali (fallback ke nomor santri) setelah akun tersimpan. Scheduler pagi
+bersama `notifyArrearsMonthEnd` menangani pembayaran pukul 08:00 WIB dan
+reminder penilaian/target ke seluruh ID grup setiap tanggal 3 pukul 09:00 WIB.
+Scheduler penilaian juga mengirim pengingat personal ke WA asatidz pada H-1
+dan hari terakhir bulan. Isi keenam pasangan `..._ID` dan `..._INVITE_URL`; ID
+digunakan sebagai tujuan Wablas, invite URL dimasukkan ke welcome message.
+Gangguan Wablas tidak membatalkan notifikasi aplikasi atau akun yang sudah
+tersimpan.
 
 Jangan menyimpan secret di `.env`, source code, APK, atau log CI.
 

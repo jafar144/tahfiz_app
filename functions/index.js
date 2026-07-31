@@ -4,9 +4,6 @@ const {
 const {
   scheduledPaymentNotifications,
 } = require("./handlers/paymentNotifier");
-const {
-  scheduledMonthlyGroupReminder,
-} = require("./handlers/monthlyGroupNotifier");
 const { cleanupExpiredSyahadah } = require("./handlers/cleanupExpiredSyahadah");
 const { transcribeRecitation } = require("./handlers/transcribeRecitation");
 const {
@@ -27,20 +24,17 @@ const {
   provisionInstitutionUser,
 } = require("./handlers/provisionInstitutionUser");
 
-// Empat export scheduler. Nama dua export lama dipertahankan agar deploy
+// Tiga export scheduler. Nama dua export lama dipertahankan agar deploy
 // memperbarui fungsi yang sudah ada, bukan membuat scheduler tambahan.
 
 // #1 Penilaian bulanan: semua kondisi, tiap hari 19:30 WIB.
 exports.notifyAssessmentWindowOpen = scheduledAssessmentNotifications;
 
-// #2 SPP: semua kondisi tanggal, tiap hari 08:00 WIB.
+// #2 Tugas pagi: SPP pukul 08:00, reminder bulanan tanggal 3 pukul 09:00 WIB.
 exports.notifyArrearsMonthEnd = scheduledPaymentNotifications;
 
 // #3 Pembersih foto kelulusan kedaluwarsa, tiap Senin 03:00 WIB.
 exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
-
-// #4 Pengingat penilaian + target ke seluruh grup, tanggal 3 pukul 09:00 WIB.
-exports.notifyMonthlyAssessmentGroups = scheduledMonthlyGroupReminder;
 
 // Pendeteksi bacaan Quran (Fase 0): proxy transkripsi Groq Whisper.
 // onCall, butuh login. Secret GROQ_API_KEY.

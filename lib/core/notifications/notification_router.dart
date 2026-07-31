@@ -21,6 +21,10 @@ void handleNotificationTap(Map<String, dynamic> data) {
       // Beranda santri menampilkan ringkasan tunggakan + akses data pembayaran.
       AppRouter.router.push(RoutePaths.home);
       break;
+    case 'monthly_assessment_target_available':
+      // Target bulan berjalan ditampilkan pada beranda/detail akun santri.
+      AppRouter.router.push(RoutePaths.home);
+      break;
     default:
       break;
   }

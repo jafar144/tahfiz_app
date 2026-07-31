@@ -1,9 +1,16 @@
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
 const { SCHEDULE_OPTIONS } = require("../lib/config");
-const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
+const {
+  jakartaDateParts,
+  jakartaDateTimeParts,
+  monthNameId,
+} = require("../lib/jakartaTime");
 const { sendToUid } = require("../lib/messaging");
 const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
+const {
+  runMonthlyAssessmentReminder,
+} = require("./monthlyGroupNotifier");
 const {
   runWhatsAppArrears,
   runBirthdayWhatsApp,
@@ -33,6 +40,11 @@ const PAYMENT_SCHEDULE_OPTIONS = {
   timeoutSeconds: 300,
   secrets: wablasSecrets,
 };
+
+const MORNING_NOTIFICATION_JOBS = Object.freeze({
+  payment: "payment",
+  monthlyAssessment: "monthlyAssessment",
+});
 
 // Susun teks daftar bulan tunggakan, dipadatkan bila banyak.
 function formatArrearsList(months) {
@@ -133,19 +145,55 @@ async function runPaymentNotifications(
   return runScheduledJobs(jobNames, runners, parts);
 }
 
-// Satu penjadwal harian 08:00 WIB menangani seluruh notifikasi pembayaran.
+function morningNotificationJobNames(parts) {
+  if (parts.hour === 8) {
+    return [MORNING_NOTIFICATION_JOBS.payment];
+  }
+  if (parts.hour === 9 && parts.day === 3) {
+    return [MORNING_NOTIFICATION_JOBS.monthlyAssessment];
+  }
+  return [];
+}
+
+async function runMorningNotifications(
+  parts = jakartaDateTimeParts(),
+  runners = {
+    [MORNING_NOTIFICATION_JOBS.payment]: runPaymentNotifications,
+    [MORNING_NOTIFICATION_JOBS.monthlyAssessment]:
+      runMonthlyAssessmentReminder,
+  },
+) {
+  const jobNames = morningNotificationJobNames(parts);
+  if (!jobNames.length) {
+    logger.info(
+      `[morningSchedule] tidak ada tugas pukul ${parts.hour}:${String(
+        parts.minute,
+      ).padStart(2, "0")} tanggal ${parts.day}.`,
+    );
+  }
+  return runScheduledJobs(jobNames, runners, parts);
+}
+
+// Satu Cloud Scheduler dipakai bersama: pembayaran tetap pukul 08:00 WIB,
+// sedangkan penilaian + target hanya tanggal 3 pukul 09:00 WIB.
 const scheduledPaymentNotifications = onSchedule(
-  { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8 * * *" },
-  async () => {
-    await runPaymentNotifications();
+  { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8,9 * * *" },
+  async (event) => {
+    const scheduledAt = event?.scheduleTime
+      ? new Date(event.scheduleTime)
+      : new Date();
+    await runMorningNotifications(jakartaDateTimeParts(scheduledAt));
   }
 );
 
 module.exports = {
+  MORNING_NOTIFICATION_JOBS,
   scheduledPaymentNotifications,
   runPaymentDue,
   runArrearsMidMonth,
   runArrearsMonthEnd,
   runBirthdayWhatsApp,
   runPaymentNotifications,
+  morningNotificationJobNames,
+  runMorningNotifications,
 };

@@ -1,10 +1,7 @@
-const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
-const {
-  SCHEDULE_OPTIONS,
-  institutionMessagingConfig,
-} = require("../lib/config");
-const { jakartaDateParts } = require("../lib/jakartaTime");
+const { institutionMessagingConfig } = require("../lib/config");
+const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
+const { sendToRole } = require("../lib/messaging");
 const {
   isWablasEnabled,
   sendTextMessages,
@@ -14,22 +11,10 @@ const {
 } = require("../lib/whatsappGroups");
 const {
   buildMonthlyAssessmentGroupMessage,
+  previousMonthParts,
 } = require("../lib/whatsappMessages");
 
 const MONTHLY_GROUP_REMINDER_DAY = 3;
-
-const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
-  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase(),
-);
-const wablasSecrets = wablasEnabledAtDeploy
-  ? Object.values(require("../lib/wablasSecrets"))
-  : [];
-const MONTHLY_GROUP_SCHEDULE_OPTIONS = {
-  ...SCHEDULE_OPTIONS,
-  schedule: "0 9 3 * *",
-  timeoutSeconds: 120,
-  secrets: wablasSecrets,
-};
 
 async function runMonthlyGroupReminder(
   parts = jakartaDateParts(),
@@ -82,15 +67,71 @@ async function runMonthlyGroupReminder(
   }
 }
 
-const scheduledMonthlyGroupReminder = onSchedule(
-  MONTHLY_GROUP_SCHEDULE_OPTIONS,
-  async () => {
-    await runMonthlyGroupReminder();
-  },
-);
+async function runMonthlyAppReminder(
+  parts = jakartaDateParts(),
+  options = {},
+) {
+  if (parts.day !== MONTHLY_GROUP_REMINDER_DAY) {
+    return { skipped: true, reason: "not_reminder_day" };
+  }
+
+  const previous = previousMonthParts(parts);
+  const push = options.sendPush || sendToRole;
+  try {
+    const result = await push("santri", {
+      title: "Penilaian & Target Bulanan Tersedia",
+      body: `Penilaian bulan ${monthNameId(previous.month)} ${previous.year} dan target bulan ${monthNameId(parts.month)} ${parts.year} sudah tersedia di aplikasi.`,
+      data: {
+        type: "monthly_assessment_target_available",
+        bulan: parts.month,
+        tahun: parts.year,
+        assessment_month: previous.month,
+        assessment_year: previous.year,
+      },
+    });
+    logger.info(
+      `[monthlyAppReminder] terkirim ${result.successCount}, gagal ${result.failureCount}.`,
+    );
+    return result;
+  } catch (error) {
+    logger.error(
+      `[monthlyAppReminder] pengiriman notifikasi HP gagal: ${error.message}`,
+    );
+    return { successCount: 0, failureCount: 0, error: error.message };
+  }
+}
+
+async function runMonthlyAssessmentReminder(
+  parts = jakartaDateParts(),
+  options = {},
+) {
+  const appDelivery = (async () => {
+    try {
+      return await runMonthlyAppReminder(parts, options.app);
+    } catch (error) {
+      logger.error(`[monthlyReminder] kanal aplikasi gagal: ${error.message}`);
+      return { successCount: 0, failureCount: 0, error: error.message };
+    }
+  })();
+  const whatsappDelivery = (async () => {
+    try {
+      return await runMonthlyGroupReminder(parts, options.whatsapp);
+    } catch (error) {
+      logger.error(`[monthlyReminder] kanal WhatsApp gagal: ${error.message}`);
+      return { sent: 0, failed: 0, error: error.message };
+    }
+  })();
+  const [app, whatsapp] = await Promise.all([
+    appDelivery,
+    whatsappDelivery,
+  ]);
+
+  return { app, whatsapp };
+}
 
 module.exports = {
   MONTHLY_GROUP_REMINDER_DAY,
-  scheduledMonthlyGroupReminder,
   runMonthlyGroupReminder,
+  runMonthlyAppReminder,
+  runMonthlyAssessmentReminder,
 };

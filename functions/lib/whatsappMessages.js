@@ -92,6 +92,25 @@ function buildMonthlyAssessmentGroupMessage(parts, institution) {
   ].join("\n");
 }
 
+function buildIncompleteAssessmentWhatsAppMessage(
+  asatidz,
+  parts,
+  institution,
+) {
+  const recipient = asatidz.name
+    ? `Ustadz/Ustadzah ${asatidz.name}`
+    : "Ustadz/Ustadzah";
+  return [
+    "Assalamu'alaikum warahmatullahi wabarakatuh.",
+    "",
+    `${recipient}, masih ada ${asatidz.count} dari ${asatidz.total} santri binaan yang penilaian bulan ${monthNameId(parts.month)} ${parts.year} belum dilengkapi.`,
+    "",
+    "Mohon berkenan melengkapinya melalui aplikasi sebelum bulan ini berakhir. Jika sudah selesai, pesan ini dapat diabaikan.",
+    "",
+    `Jazakumullahu khairan.\n${institution.institutionName}`,
+  ].join("\n");
+}
+
 function buildAdminFallbackWhatsAppMessage({
   santri,
   notificationType,
@@ -122,5 +141,6 @@ module.exports = {
   buildSantriWelcomeWhatsAppMessage,
   previousMonthParts,
   buildMonthlyAssessmentGroupMessage,
+  buildIncompleteAssessmentWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
 };
