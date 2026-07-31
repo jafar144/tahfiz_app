@@ -30,6 +30,8 @@ class SantriHomePage extends StatefulWidget {
 }
 
 class _SantriHomePageState extends State<SantriHomePage> {
+  bool _isLoadingPembimbingContact = false;
+
   @override
   void initState() {
     super.initState();
@@ -646,38 +648,73 @@ class _SantriHomePageState extends State<SantriHomePage> {
                     ),
                   ],
                 ),
-                if (phone != null) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _launchWhatsApp(phone),
-                      icon: const Icon(Icons.chat_bubble_rounded, size: 14),
-                      label: const Text(
-                        'Hubungi via WhatsApp',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isLoadingPembimbingContact
+                        ? null
+                        : () => _contactPembimbing(phone),
+                    icon: _isLoadingPembimbingContact
+                        ? const SizedBox.square(
+                            dimension: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.chat_bubble_rounded, size: 14),
+                    label: Text(
+                      _isLoadingPembimbingContact
+                          ? 'Memuat nomor...'
+                          : 'Hubungi via WhatsApp',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366),
+                      disabledBackgroundColor: const Color(0xFF25D366),
+                      disabledForegroundColor: Colors.white,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _contactPembimbing(String? loadedPhone) async {
+    var phone = loadedPhone;
+    if (phone == null) {
+      setState(() => _isLoadingPembimbingContact = true);
+      phone = await context.read<SantriHomeCubit>().retryPembimbingContact();
+      if (!mounted) return;
+      setState(() => _isLoadingPembimbingContact = false);
+    }
+
+    if (phone == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Nomor WhatsApp pembimbing belum dapat dimuat. Coba lagi.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    await _launchWhatsApp(phone);
   }
 
   Future<void> _launchWhatsApp(String rawPhone) async {

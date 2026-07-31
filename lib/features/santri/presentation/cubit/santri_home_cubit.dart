@@ -35,12 +35,14 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
   static String? overrideSantriId;
 
   String? _currentSantriId;
+  String? _currentTeacherId;
   String? get currentSantriId => _currentSantriId;
 
   Future<void> loadData(String santriId) async {
     if (isClosed) return;
     _currentSantriId = santriId;
-    emit(state.copyWith(status: SantriHomeStatus.loading));
+    _currentTeacherId = null;
+    emit(const SantriHomeState(status: SantriHomeStatus.loading));
 
     try {
       // 1. Fetch Santri Profile
@@ -111,18 +113,25 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         ifLeft: (l) async {},
         ifRight: (r) async {
           if (r != null) {
-            pembimbingName = r.teacherName;
+            _currentTeacherId = r.teacherId;
+            final halaqahTeacherName = _usablePembimbingName(r.teacherName);
+            if (halaqahTeacherName != null) {
+              pembimbingName = halaqahTeacherName;
+            }
             // Fetch phone & gender from AsatidzDetail
             try {
               final asatidzDetail = await mgmtAsatidzRepository
                   .getAsatidzDetail(r.teacherId);
-              if (asatidzDetail.name.trim().isNotEmpty) {
-                pembimbingName = asatidzDetail.name;
+              final detailName = _usablePembimbingName(asatidzDetail.name);
+              if (detailName != null) {
+                pembimbingName = detailName;
               }
-              pembimbingPhone = asatidzDetail.phone;
-              pembimbingGender = asatidzDetail.jenisKelamin;
-            } catch (e) {
-              // Could not fetch detail, use placeholder or leave null
+              pembimbingPhone = _normalizePhone(asatidzDetail.phone);
+              pembimbingGender = _normalizeGender(asatidzDetail.jenisKelamin);
+            } catch (_) {
+              // Halaqah memasangkan pengajar dan santri dengan gender yang
+              // sama. Gelar tetap bisa ditampilkan saat kontak tidak tersedia.
+              pembimbingGender = _normalizeGender(santri.jenisKelamin);
             }
           }
         },
@@ -162,7 +171,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       if (isClosed) return;
 
       emit(
-        state.copyWith(
+        SantriHomeState(
           status: SantriHomeStatus.success,
           santri: santri,
           overdueMonthsCount: overdueMonthsCount,
@@ -183,6 +192,32 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       );
     }
   }
+
+  /// Mengambil ulang kontak tanpa me-reload seluruh halaman.
+  Future<String?> retryPembimbingContact() async {
+    final teacherId = _currentTeacherId;
+    if (teacherId == null || teacherId.trim().isEmpty || isClosed) return null;
+
+    try {
+      final detail = await mgmtAsatidzRepository.getAsatidzDetail(teacherId);
+      final phone = _normalizePhone(detail.phone);
+      if (phone == null || isClosed) return null;
+
+      emit(
+        state.copyWith(
+          pembimbingName:
+              _usablePembimbingName(detail.name) ?? state.pembimbingName,
+          pembimbingPhone: phone,
+          pembimbingGender:
+              _normalizeGender(detail.jenisKelamin) ??
+              _normalizeGender(state.santri?.jenisKelamin),
+        ),
+      );
+      return phone;
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 String? _usablePembimbingName(String? value) {
@@ -191,4 +226,17 @@ String? _usablePembimbingName(String? value) {
     return null;
   }
   return name;
+}
+
+String? _normalizePhone(String? value) {
+  final phone = value?.trim();
+  return phone == null || phone.isEmpty ? null : phone;
+}
+
+String? _normalizeGender(String? value) {
+  return switch (value?.trim().toUpperCase()) {
+    'L' => 'L',
+    'P' => 'P',
+    _ => null,
+  };
 }

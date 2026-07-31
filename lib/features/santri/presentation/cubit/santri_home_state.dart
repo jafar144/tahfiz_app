@@ -40,13 +40,14 @@ class SantriHomeState {
 
   /// Nama pembimbing lengkap dengan gelar, mis. "Ustadz Fulan".
   String? get pembimbingDisplayName {
-    if (pembimbingName == null) return null;
-    final title = switch (pembimbingGender) {
+    final name = pembimbingName?.trim();
+    if (name == null || name.isEmpty) return null;
+    final title = switch (pembimbingGender?.trim().toUpperCase()) {
       'L' => 'Ustadz',
       'P' => 'Ustadzah',
       _ => '',
     };
-    return title.isEmpty ? pembimbingName : '$title $pembimbingName';
+    return title.isEmpty ? name : '$title $name';
   }
 
   SantriHomeState copyWith({
