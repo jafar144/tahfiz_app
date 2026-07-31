@@ -339,25 +339,20 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
               return _buildEmptyReportCard();
             }
 
-            final hasTargets = MonthlyTargetTimelineEntry.fromReports(
-              reports,
-            ).isNotEmpty;
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (hasTargets) ...[
-                  MonthlyTargetCarousel(reports: reports),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Penilaian terakhir',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF4B5563),
-                    ),
+                MonthlyTargetCarousel(reports: reports),
+                const SizedBox(height: 24),
+                const Text(
+                  'Penilaian terakhir',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF4B5563),
                   ),
-                  const SizedBox(height: 10),
-                ],
+                ),
+                const SizedBox(height: 10),
                 MonthlyReportCard(report: reports.first),
               ],
             );

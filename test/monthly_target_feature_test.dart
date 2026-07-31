@@ -1,12 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dart_either/dart_either.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/monthly_report/data/models/monthly_report_model.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_state.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/monthly_report_input_page.dart';
 
 void main() {
   group('monthly target persistence', () {
@@ -194,6 +198,81 @@ void main() {
       expect(cubit.state, isA<MonthlyReportInputReady>());
     });
   });
+
+  group('monthly target input UI', () {
+    testWidgets(
+      'keeps evaluation section visible when previous target is unavailable',
+      (tester) async {
+        final repository = _FakeMonthlyReportRepository(const []);
+        final cubit = MonthlyReportInputCubit(repository: repository);
+        addTearDown(cubit.close);
+
+        await _pumpInputPage(tester, cubit);
+        await cubit.loadExisting('student-1', 7, 2026);
+        await tester.pump();
+
+        expect(find.text('Evaluasi Target Bulan Ini'), findsOneWidget);
+        expect(find.text('Belum ada target bulan sebelumnya'), findsOneWidget);
+        expect(find.textContaining('Target untuk Juli 2026'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows result choices when previous target exists', (
+      tester,
+    ) async {
+      final repository = _FakeMonthlyReportRepository([
+        _report(
+          id: 'june',
+          bulan: 6,
+          target: const MonthlyTarget(
+            bulan: 7,
+            tahun: 2026,
+            minimum: 'Murojaah 3 halaman',
+            optimum: 'Hafalan 5 halaman',
+          ),
+        ),
+      ]);
+      final cubit = MonthlyReportInputCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await _pumpInputPage(tester, cubit);
+      await cubit.loadExisting('student-1', 7, 2026);
+      await tester.pump();
+
+      expect(find.text('Belum ada target bulan sebelumnya'), findsNothing);
+      expect(find.text('Belum tercapai'), findsOneWidget);
+      expect(find.text('Minimum tercapai'), findsOneWidget);
+      expect(find.text('Optimum tercapai'), findsOneWidget);
+    });
+  });
+}
+
+Future<void> _pumpInputPage(
+  WidgetTester tester,
+  MonthlyReportInputCubit cubit,
+) {
+  return tester.pumpWidget(
+    MaterialApp(
+      home: BlocProvider.value(
+        value: cubit,
+        child: MonthlyReportInputPage(
+          santri: SantriEntity(
+            id: 'student-1',
+            name: 'Ali',
+            nis: '4110',
+            kelas: 'Tahfizh',
+            jenisKelamin: 'L',
+            isActive: true,
+            isFree: false,
+          ),
+          asatidzId: 'teacher-1',
+          asatidzName: 'Ahmad',
+          bulan: 7,
+          tahun: 2026,
+        ),
+      ),
+    ),
+  );
 }
 
 MonthlyReportModel _report({

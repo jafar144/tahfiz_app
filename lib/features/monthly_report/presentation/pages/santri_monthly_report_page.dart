@@ -65,9 +65,6 @@ class _SantriMonthlyReportView extends StatelessWidget {
               return _buildEmptyState();
             }
 
-            final hasTargets = MonthlyTargetTimelineEntry.fromReports(
-              state.reports,
-            ).isNotEmpty;
             return RefreshIndicator(
               onRefresh: () => context
                   .read<SantriMonthlyReportCubit>()
@@ -75,19 +72,17 @@ class _SantriMonthlyReportView extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (hasTargets) ...[
-                    MonthlyTargetCarousel(reports: state.reports),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'Riwayat Penilaian',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1F2937),
-                      ),
+                  MonthlyTargetCarousel(reports: state.reports),
+                  const SizedBox(height: 28),
+                  const Text(
+                    'Riwayat Penilaian',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1F2937),
                     ),
-                    const SizedBox(height: 12),
-                  ],
+                  ),
+                  const SizedBox(height: 12),
                   for (
                     var index = 0;
                     index < state.reports.length;

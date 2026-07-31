@@ -508,18 +508,13 @@ class _SantriHomePageState extends State<SantriHomePage> {
   }
 
   Widget _buildLatestReport(SantriHomeState state) {
-    final hasTargets = MonthlyTargetTimelineEntry.fromReports(
-      state.monthlyReports,
-    ).isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (hasTargets) ...[
-            MonthlyTargetCarousel(reports: state.monthlyReports),
-            const SizedBox(height: 28),
-          ],
+          MonthlyTargetCarousel(reports: state.monthlyReports),
+          const SizedBox(height: 28),
           Row(
             children: [
               const Expanded(

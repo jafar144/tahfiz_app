@@ -95,6 +95,47 @@ void main() {
     expect(timeline, hasLength(1));
     expect(timeline.single.result, MonthlyTargetResult.optimumAchieved);
   });
+
+  testWidgets(
+    'legacy report without target renders monthly target empty state',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: MonthlyTargetCarousel(
+                reports: [_report(id: 'legacy-report', bulan: 7)],
+                now: DateTime(2026, 7, 15),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('monthly-target-empty-state')),
+        findsOneWidget,
+      );
+      expect(find.text('Target Bulanan'), findsOneWidget);
+      expect(find.text('Target belum tersedia'), findsOneWidget);
+    },
+  );
+
+  testWidgets('empty reports keep monthly target carousel hidden', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: MonthlyTargetCarousel(reports: [])),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('monthly-target-empty-state')), findsNothing);
+    expect(find.text('Target Bulanan'), findsNothing);
+  });
 }
 
 MonthlyReport _report({

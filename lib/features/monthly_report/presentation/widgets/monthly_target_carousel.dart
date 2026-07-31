@@ -146,7 +146,10 @@ class _MonthlyTargetCarouselState extends State<MonthlyTargetCarousel> {
 
   @override
   Widget build(BuildContext context) {
-    if (_entries.isEmpty) return const SizedBox.shrink();
+    if (widget.reports.isEmpty) return const SizedBox.shrink();
+    if (_entries.isEmpty) {
+      return _MonthlyTargetEmptyState(showTitle: widget.showTitle);
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,6 +245,108 @@ class _MonthlyTargetCarouselState extends State<MonthlyTargetCarousel> {
       index,
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
+    );
+  }
+}
+
+class _MonthlyTargetEmptyState extends StatelessWidget {
+  final bool showTitle;
+
+  const _MonthlyTargetEmptyState({required this.showTitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showTitle) ...[
+          const Row(
+            children: [
+              _TargetTitleIcon(),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Target Bulanan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF163A36),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Ikhtiar terarah, dijaga sedikit demi sedikit',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF6B817E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+        ],
+        Container(
+          key: const Key('monthly-target-empty-state'),
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFDDEBE8)),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF134E4A).withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF0FDFA),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.flag_outlined,
+                  size: 25,
+                  color: Color(0xFF0F766E),
+                ),
+              ),
+              const SizedBox(height: 13),
+              const Text(
+                'Target belum tersedia',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF163A36),
+                ),
+              ),
+              const SizedBox(height: 5),
+              const Text(
+                'Target bulanan akan tampil setelah asatidz menyimpan '
+                'penilaian terbaru.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.45,
+                  color: Color(0xFF6B817E),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

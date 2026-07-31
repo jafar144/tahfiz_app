@@ -124,10 +124,12 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
                     const SizedBox(height: 10),
                     MonthlyReportCard(report: state.latestReport!),
                   ],
-                  if (state is MonthlyReportInputReady &&
-                      state.targetToEvaluate?.target != null) ...[
+                  if (state is MonthlyReportInputReady) ...[
                     const SizedBox(height: 24),
-                    _buildTargetEvaluationSection(state.targetToEvaluate!),
+                    if (state.targetToEvaluate?.target != null)
+                      _buildTargetEvaluationSection(state.targetToEvaluate!)
+                    else
+                      _buildEmptyTargetEvaluationSection(),
                   ],
                   const SizedBox(height: 24),
                   _buildHafalanField(),
@@ -253,6 +255,88 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyTargetEvaluationSection() {
+    final period =
+        '${MonthlyReport.getNamaBulan(widget.bulan)} ${widget.tahun}';
+    final next = DateTime(widget.tahun, widget.bulan + 1);
+    final nextPeriod = '${MonthlyReport.getNamaBulan(next.month)} ${next.year}';
+    const emerald = Color(0xFF0F766E);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel(
+          MonthlyReportStrings.evaluasiTarget,
+          Icons.task_alt_rounded,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Tidak ada target yang perlu dievaluasi untuk periode ini.',
+          style: TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: Colors.grey.shade500,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDFA),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFCCFBF1)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: emerald,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Belum ada target bulan sebelumnya',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF134E4A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Target untuk $period belum dibuat pada penilaian '
+                      'sebelumnya. Lanjutkan penilaian dan buat target '
+                      '$nextPeriod di bawah.',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.45,
+                        color: Color(0xFF47736E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
