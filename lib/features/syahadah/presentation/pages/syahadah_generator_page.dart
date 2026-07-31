@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -24,6 +25,7 @@ import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:uuid/uuid.dart';
 
 class SyahadahGeneratorPage extends StatefulWidget {
   const SyahadahGeneratorPage({super.key});
@@ -42,11 +44,12 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   bool _isGenerating = false;
   KelulusanSaveStatus? _saveStatus;
   _PendingKelulusanSave? _pendingSave;
-  int _saveAttempt = 0;
+  String? _saveErrorMessage;
+  bool _requiresReplaceConfirmation = false;
+  bool _canRetrySave = true;
 
   @override
   void dispose() {
-    _saveAttempt++;
     _hafalanController.dispose();
     _namaController.dispose();
     super.dispose();
@@ -99,8 +102,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Poster akan langsung dibagikan. Foto juga disimpan ke '
-                  'daftar Kelulusan Santri secara paralel.',
+                  'Poster akan disimpan ke daftar Kelulusan Santri. '
+                  'Setelah berhasil, menu bagikan akan dibuka.',
                   style: TextStyle(height: 1.45),
                 ),
               ),
@@ -125,8 +128,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                   SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'Anda boleh melanjutkan ke WhatsApp. Jangan tutup paksa '
-                      'Tahfiz App sampai banner berubah menjadi “Sudah tersimpan”.',
+                      'Pastikan aplikasi tetap terbuka sampai proses '
+                      'penyimpanan selesai.',
                       style: TextStyle(
                         color: Color(0xFF92400E),
                         fontSize: 12,
@@ -147,51 +150,258 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
     );
   }
 
-  void _startBackgroundSave(_PendingKelulusanSave job) {
-    final attempt = ++_saveAttempt;
-    setState(() {
-      _pendingSave = job;
-      _saveStatus = KelulusanSaveStatus.saving;
-    });
-    unawaited(_saveKelulusanInBackground(job, attempt));
+  Future<bool?> _showReplaceConfirmSheet({
+    required String santriName,
+    required int existingCount,
+  }) {
+    final countText = existingCount > 1
+        ? 'Ditemukan $existingCount foto kelulusan'
+        : 'Foto kelulusan';
+    return showAiwaActionSheet<bool>(
+      context: context,
+      title: 'Foto Kelulusan Sudah Ada',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.photo_library_rounded,
+                color: Color(0xFFB45309),
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '$countText untuk $santriName pada hari ini.',
+                  style: const TextStyle(height: 1.45),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color(0xFFFEF2F2),
+              borderRadius: BorderRadius.all(Radius.circular(12)),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Color(0xFFB91C1C),
+                    size: 21,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Jika tetap dilanjutkan, seluruh foto sebelumnya untuk '
+                      'santri ini pada hari yang sama akan dihapus dan diganti '
+                      'dengan satu foto baru.',
+                      style: TextStyle(
+                        color: Color(0xFF991B1B),
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      confirmText: 'Ganti & Bagikan',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: const Color(0xFFB91C1C),
+    );
   }
 
-  Future<void> _saveKelulusanInBackground(
-    _PendingKelulusanSave job,
-    int attempt,
-  ) async {
-    String? uploadedUrl;
-    try {
-      uploadedUrl = await ImageUtils.uploadImageToFirebase(
-        job.file,
-        'syahadah_photos',
-      );
-      if (uploadedUrl == null) throw Exception('Upload foto gagal');
+  Future<bool> _savePendingKelulusan(_PendingKelulusanSave job) async {
+    var currentJob = job;
+    if (mounted) {
+      setState(() {
+        _pendingSave = currentJob;
+        _saveStatus = KelulusanSaveStatus.saving;
+        _saveErrorMessage = null;
+        _requiresReplaceConfirmation = false;
+        _canRetrySave = true;
+      });
+    }
 
-      await getIt<KelulusanRepository>().addKelulusan(
-        santriId: job.santri.id,
-        santriName: job.displayName,
-        kelas: job.santri.kelas,
-        hafalan: job.hafalan,
-        imageUrl: uploadedUrl,
+    try {
+      // Reservasi dibuat sedekat mungkin dengan upload. Server mengikatnya
+      // ke hasil preflight yang sudah dikonfirmasi agar retry lama tidak dapat
+      // menimpa foto yang lebih baru.
+      await getIt<KelulusanRepository>().reserveUpload(
+        santriId: currentJob.santri.id,
+        dateKey: currentJob.dateKey,
+        operationId: currentJob.operationId,
+        expectedRevision: currentJob.expectedRevision,
+        replaceExisting: currentJob.replaceExisting,
       );
-      if (mounted && attempt == _saveAttempt) {
-        setState(() => _saveStatus = KelulusanSaveStatus.success);
+
+      var uploadedUrl = currentJob.uploadedUrl;
+      if (uploadedUrl == null) {
+        try {
+          uploadedUrl = await ImageUtils.uploadImageToFirebaseOrThrow(
+            currentJob.file,
+            'syahadah_photos/${currentJob.uploaderUid}',
+            fileName: kelulusanUploadFileName(
+              santriId: currentJob.santri.id,
+              dateKey: currentJob.dateKey,
+              operationId: currentJob.operationId,
+            ),
+            uploaderUid: currentJob.uploaderUid,
+          ).timeout(const Duration(seconds: 30));
+        } catch (error) {
+          if (_looksLikeNetworkFailure(error)) {
+            throw const KelulusanNetworkException();
+          }
+          rethrow;
+        }
+
+        currentJob = currentJob.copyWith(uploadedUrl: uploadedUrl);
+        if (mounted) {
+          setState(() => _pendingSave = currentJob);
+        }
       }
-    } catch (_) {
-      if (uploadedUrl != null) {
-        await ImageUtils.deleteImageFromFirebase(uploadedUrl);
+
+      await getIt<KelulusanRepository>().saveKelulusan(
+        santriId: currentJob.santri.id,
+        santriName: currentJob.displayName,
+        kelas: currentJob.santri.kelas,
+        hafalan: currentJob.hafalan,
+        imageUrl: uploadedUrl,
+        dateKey: currentJob.dateKey,
+        operationId: currentJob.operationId,
+        replaceExisting: currentJob.replaceExisting,
+      );
+      if (mounted) {
+        setState(() {
+          _pendingSave = currentJob;
+          _saveStatus = KelulusanSaveStatus.success;
+          _saveErrorMessage = null;
+        });
       }
-      if (mounted && attempt == _saveAttempt) {
-        setState(() => _saveStatus = KelulusanSaveStatus.failure);
+      return true;
+    } on KelulusanAlreadyExistsException {
+      if (mounted) {
+        setState(() {
+          // State server berubah sejak konfirmasi. URL lama dibuang dan retry
+          // berikutnya memakai preflight serta UUID baru.
+          _pendingSave = currentJob.copyWith(clearUploadedUrl: true);
+          _saveStatus = KelulusanSaveStatus.failure;
+          _saveErrorMessage =
+              'Foto kelulusan santri ini sudah ada hari ini. '
+              'Ketuk Coba Lagi untuk mengonfirmasi penggantian.';
+          _requiresReplaceConfirmation = true;
+          _canRetrySave = true;
+        });
       }
+      return false;
+    } on KelulusanNetworkException catch (error) {
+      _showSaveFailure(error.message);
+      return false;
+    } on KelulusanRemoteException catch (error) {
+      _showSaveFailure(
+        error.message,
+        canRetry: !const {
+          'failed-precondition',
+          'invalid-argument',
+          'not-found',
+          'permission-denied',
+          'unauthenticated',
+        }.contains(error.code),
+      );
+      return false;
+    } catch (error) {
+      if (_looksLikeNetworkFailure(error)) {
+        _showSaveFailure(kelulusanNetworkErrorMessage);
+      } else {
+        _showSaveFailure(
+          'Foto kelulusan belum berhasil disimpan. Silakan coba lagi.',
+        );
+      }
+      return false;
     }
   }
 
-  void _retryBackgroundSave() {
-    final job = _pendingSave;
-    if (job == null || _saveStatus == KelulusanSaveStatus.saving) return;
-    _startBackgroundSave(job);
+  void _showSaveFailure(String message, {bool canRetry = true}) {
+    if (!mounted) return;
+    setState(() {
+      _saveStatus = KelulusanSaveStatus.failure;
+      _saveErrorMessage = message;
+      _canRetrySave = canRetry;
+    });
+  }
+
+  Future<void> _retryPendingSave() async {
+    var job = _pendingSave;
+    if (job == null ||
+        _saveStatus == KelulusanSaveStatus.saving ||
+        _isGenerating) {
+      return;
+    }
+
+    setState(() => _isGenerating = true);
+    try {
+      if (_requiresReplaceConfirmation) {
+        final replacementOperationId = const Uuid().v4();
+        final status = await getIt<KelulusanRepository>().checkToday(
+          santriId: job.santri.id,
+        );
+        if (!mounted) return;
+        if (status.dateKey != job.dateKey) {
+          const message =
+              'Tanggal sudah berubah. Silakan generate ulang foto kelulusan.';
+          _showSaveFailure(message, canRetry: false);
+          _showSnackBar(message);
+          return;
+        }
+        if (status.exists) {
+          final confirmed = await _showReplaceConfirmSheet(
+            santriName: job.displayName,
+            existingCount: status.existingCount,
+          );
+          if (confirmed != true) return;
+        }
+        // Jangan gunakan ulang path yang pernah masuk antrean cleanup akibat
+        // conflict. UUID baru memastikan worker tidak dapat menghapus foto
+        // pengganti yang sudah aktif.
+        job = job.copyWith(
+          dateKey: status.dateKey,
+          operationId: replacementOperationId,
+          expectedRevision: status.revision,
+          replaceExisting: status.exists,
+          clearUploadedUrl: true,
+        );
+        setState(() {
+          _pendingSave = job;
+          _requiresReplaceConfirmation = false;
+        });
+      }
+
+      final saved = await _savePendingKelulusan(job);
+      if (saved && mounted) await _shareFile(job.file);
+    } on KelulusanNetworkException catch (error) {
+      _showSaveFailure(error.message);
+      _showSnackBar(error.message);
+    } catch (error) {
+      final message = _looksLikeNetworkFailure(error)
+          ? kelulusanNetworkErrorMessage
+          : 'Belum dapat mencoba kembali. Silakan ulangi beberapa saat lagi.';
+      _showSaveFailure(message);
+      _showSnackBar(message);
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
   }
 
   void _dismissSaveStatus() {
@@ -200,35 +410,50 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   }
 
   Future<void> _generateAndShare() async {
+    if (_isGenerating || _saveStatus == KelulusanSaveStatus.saving) return;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedSantri == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih santri terlebih dahulu')),
-      );
+      _showSnackBar('Pilih santri terlebih dahulu');
       return;
     }
     if (_selectedSantri!.photoUrl == null ||
         _selectedSantri!.photoUrl!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Santri ini belum memiliki foto profil, silahkan edit profil santri terlebih dahulu.',
-          ),
-        ),
+      _showSnackBar(
+        'Santri ini belum memiliki foto profil, silahkan edit profil santri '
+        'terlebih dahulu.',
       );
       return;
     }
 
-    final confirmed = await _showConfirmSheet();
-    if (confirmed != true) return;
-
     final selectedSantri = _selectedSantri!;
+    final authState = context.read<AuthCubit>().state;
+    if (authState is! AuthAuthenticated) {
+      _showSnackBar('Sesi login berakhir. Silakan login kembali.');
+      return;
+    }
+    UiUtils.unfocus(context);
     final displayName = _namaController.text;
     final hafalan = _hafalanController.text;
+    final operationId = const Uuid().v4();
 
     setState(() => _isGenerating = true);
 
     try {
+      // Callable ini sekaligus menjadi pemeriksaan koneksi. Proses berhenti
+      // sebelum render/upload/share ketika server tidak dapat dijangkau.
+      final dailyStatus = await getIt<KelulusanRepository>().checkToday(
+        santriId: selectedSantri.id,
+      );
+      if (!mounted) return;
+
+      final confirmed = dailyStatus.exists
+          ? await _showReplaceConfirmSheet(
+              santriName: displayName,
+              existingCount: dailyStatus.existingCount,
+            )
+          : await _showConfirmSheet();
+      if (confirmed != true) return;
+
       await Future.delayed(const Duration(milliseconds: 300));
 
       RenderRepaintBoundary boundary =
@@ -250,31 +475,74 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       // Kompres hingga maksimal 1 MB (hemat storage & ringan dibagikan).
       final file = await ImageUtils.compressToMaxSize(rawFile) ?? rawFile;
 
-      // Storage dan Firestore diproses paralel. Banner menjaga pengguna tetap
-      // mengetahui status penyimpanan ketika kembali dari share sheet.
-      _startBackgroundSave(
-        _PendingKelulusanSave(
-          file: file,
-          santri: selectedSantri,
-          displayName: displayName,
-          hafalan: hafalan,
-        ),
+      final job = _PendingKelulusanSave(
+        file: file,
+        santri: selectedSantri,
+        displayName: displayName,
+        hafalan: hafalan,
+        dateKey: dailyStatus.dateKey,
+        operationId: operationId,
+        expectedRevision: dailyStatus.revision,
+        uploaderUid: authState.user.uid,
+        replaceExisting: dailyStatus.exists,
       );
-      await WidgetsBinding.instance.endOfFrame;
-
-      final xfile = XFile(file.path);
-      await SharePlus.instance.share(ShareParams(files: [xfile]));
+      final saved = await _savePendingKelulusan(job);
+      if (saved && mounted) await _shareFile(file);
+    } on KelulusanNetworkException catch (error) {
+      _showSnackBar(error.message);
+    } on KelulusanRemoteException catch (error) {
+      _showSnackBar(error.message);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal membuat syahadah: $e')));
-      }
+      final message = _looksLikeNetworkFailure(e)
+          ? kelulusanNetworkErrorMessage
+          : 'Gagal membuat syahadah: $e';
+      _showSnackBar(message);
     } finally {
       if (mounted) {
         setState(() => _isGenerating = false);
       }
     }
+  }
+
+  Future<void> _shareFile(File file) async {
+    if (!mounted) return;
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+    } catch (_) {
+      _showSnackBar(
+        'Foto sudah tersimpan, tetapi menu bagikan belum dapat dibuka. '
+        'Silakan coba bagikan kembali beberapa saat lagi.',
+      );
+    }
+  }
+
+  bool _looksLikeNetworkFailure(Object error) {
+    if (error is KelulusanNetworkException ||
+        error is TimeoutException ||
+        error is SocketException) {
+      return true;
+    }
+    if (error is FirebaseException) {
+      return const {
+        'cancelled',
+        'deadline-exceeded',
+        'network-request-failed',
+        'retry-limit-exceeded',
+        'unavailable',
+      }.contains(error.code);
+    }
+    final text = error.toString().toLowerCase();
+    return text.contains('network') ||
+        text.contains('socket') ||
+        text.contains('host lookup');
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -283,6 +551,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       final state = cubit.state;
       return state is AuthAuthenticated && state.user.role == UserRole.admin;
     });
+    final isBusy = _isGenerating || _saveStatus == KelulusanSaveStatus.saving;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -292,8 +561,9 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           if (isAdmin)
             IconButton(
               tooltip: 'Kelola foto kelulusan',
-              onPressed: () =>
-                  context.pushNamed(RouteNames.adminSyahadahPhotos),
+              onPressed: isBusy
+                  ? null
+                  : () => context.pushNamed(RouteNames.adminSyahadahPhotos),
               icon: const Icon(Icons.photo_library_outlined),
             ),
         ],
@@ -316,8 +586,11 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                     ? const SizedBox.shrink(key: ValueKey('save-status-hidden'))
                     : KelulusanSaveBanner(
                         status: _saveStatus!,
-                        onRetry: _saveStatus == KelulusanSaveStatus.failure
-                            ? _retryBackgroundSave
+                        failureMessage: _saveErrorMessage,
+                        onRetry:
+                            _saveStatus == KelulusanSaveStatus.failure &&
+                                _canRetrySave
+                            ? _retryPendingSave
                             : null,
                         onDismiss: _dismissSaveStatus,
                       ),
@@ -341,7 +614,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                         ),
                         const SizedBox(height: 8),
                         InkWell(
-                          onTap: _selectSantri,
+                          onTap: isBusy ? null : _selectSantri,
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -458,7 +731,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                           controller: _namaController,
                           icon: Icons.badge_outlined,
                           textCapitalization: TextCapitalization.words,
-                          enabled: _selectedSantri != null,
+                          enabled: _selectedSantri != null && !isBusy,
                           onChanged: (val) => setState(() {}),
                         ),
                         const SizedBox(height: 16),
@@ -470,6 +743,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                           controller: _hafalanController,
                           icon: Icons.menu_book,
                           textCapitalization: TextCapitalization.words,
+                          enabled: !isBusy,
                           onChanged: (val) => setState(() {}),
                         ),
                         const SizedBox(height: 24),
@@ -538,7 +812,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                 ),
                 child: AiwaButton(
                   text: 'Generate & Bagikan',
-                  onPressed: _saveStatus == KelulusanSaveStatus.saving
+                  onPressed:
+                      _isGenerating || _saveStatus == KelulusanSaveStatus.saving
                       ? null
                       : _generateAndShare,
                   isLoading: _isGenerating,
@@ -582,11 +857,45 @@ class _PendingKelulusanSave {
   final SantriEntity santri;
   final String displayName;
   final String hafalan;
+  final String dateKey;
+  final String operationId;
+  final String expectedRevision;
+  final String uploaderUid;
+  final bool replaceExisting;
+  final String? uploadedUrl;
 
   const _PendingKelulusanSave({
     required this.file,
     required this.santri,
     required this.displayName,
     required this.hafalan,
+    required this.dateKey,
+    required this.operationId,
+    required this.expectedRevision,
+    required this.uploaderUid,
+    required this.replaceExisting,
+    this.uploadedUrl,
   });
+
+  _PendingKelulusanSave copyWith({
+    String? dateKey,
+    String? operationId,
+    String? expectedRevision,
+    bool? replaceExisting,
+    String? uploadedUrl,
+    bool clearUploadedUrl = false,
+  }) {
+    return _PendingKelulusanSave(
+      file: file,
+      santri: santri,
+      displayName: displayName,
+      hafalan: hafalan,
+      dateKey: dateKey ?? this.dateKey,
+      operationId: operationId ?? this.operationId,
+      expectedRevision: expectedRevision ?? this.expectedRevision,
+      uploaderUid: uploaderUid,
+      replaceExisting: replaceExisting ?? this.replaceExisting,
+      uploadedUrl: clearUploadedUrl ? null : uploadedUrl ?? this.uploadedUrl,
+    );
+  }
 }

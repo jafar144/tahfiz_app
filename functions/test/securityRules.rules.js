@@ -16,6 +16,7 @@ const {
 } = require("@firebase/rules-unit-testing");
 const {
   collectionGroup,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -25,6 +26,7 @@ const {
   serverTimestamp,
   setDoc,
   Timestamp,
+  updateDoc,
   where,
   writeBatch,
 } = require("firebase/firestore");
@@ -248,6 +250,52 @@ test("asatidz dapat menulis kegiatan belajar tetapi bukan data master", async ()
       uid: "user-baru",
     }),
   );
+});
+
+test("foto kelulusan hanya dapat ditulis callable dan tetap dapat dibaca setelah login", async () => {
+  const existingId = "santri_2026-07-30";
+  const existingData = {
+    santri_id: "santri",
+    santri_name: "Santri Sendiri",
+    kelas: "Tahfiz 1",
+    hafalan: "Juz 30",
+    image_url: "https://example.com/syahadah.jpg",
+    day_key: "2026-07-30",
+    created_at: Timestamp.fromDate(new Date("2026-07-30T03:00:00.000Z")),
+  };
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(
+      doc(context.firestore(), "kelulusan", existingId),
+      existingData,
+    );
+  });
+
+  const admin = testEnv.authenticatedContext("admin").firestore();
+  const asatidz = testEnv.authenticatedContext("asatidz").firestore();
+  const santri = testEnv.authenticatedContext("santri").firestore();
+
+  for (const firestore of [admin, asatidz]) {
+    await assertFails(
+      setDoc(doc(firestore, "kelulusan", `${existingId}-baru`), existingData),
+    );
+    await assertFails(
+      updateDoc(doc(firestore, "kelulusan", existingId), {
+        hafalan: "Juz 29",
+      }),
+    );
+    await assertFails(
+      deleteDoc(doc(firestore, "kelulusan", existingId)),
+    );
+    await assertSucceeds(
+      getDoc(doc(firestore, "kelulusan", existingId)),
+    );
+  }
+
+  await assertSucceeds(getDoc(doc(santri, "kelulusan", existingId)));
+
+  const anonymous = testEnv.unauthenticatedContext().firestore();
+  await assertFails(getDoc(doc(anonymous, "kelulusan", existingId)));
 });
 
 test("santri hanya dapat membaca pembayaran dan laporan miliknya", async () => {
@@ -574,7 +622,43 @@ test("Storage menerima gambar hanya dari role yang sesuai", async () => {
   );
   await assertSucceeds(
     uploadString(
-      ref(asatidzStorage, "syahadah_photos/poster.jpg"),
+      ref(asatidzStorage, "syahadah_photos/asatidz/poster.jpg"),
+      "image",
+      "raw",
+      {
+        contentType: "image/jpeg",
+        customMetadata: { uploader_uid: "asatidz" },
+      },
+    ),
+  );
+  await assertSucceeds(
+    uploadString(
+      ref(asatidzStorage, "syahadah_photos/asatidz/poster.jpg"),
+      "image-retry",
+      "raw",
+      {
+        contentType: "image/jpeg",
+        customMetadata: { uploader_uid: "asatidz" },
+      },
+    ),
+  );
+  await assertFails(
+    uploadString(
+      ref(adminStorage, "syahadah_photos/asatidz/poster.jpg"),
+      "image-timpa",
+      "raw",
+      {
+        contentType: "image/jpeg",
+        customMetadata: { uploader_uid: "admin" },
+      },
+    ),
+  );
+  await assertFails(
+    uploadString(
+      ref(
+        asatidzStorage,
+        "syahadah_photos/asatidz/tanpa-pemilik.jpg",
+      ),
       "image",
       "raw",
       { contentType: "image/jpeg" },
@@ -582,7 +666,7 @@ test("Storage menerima gambar hanya dari role yang sesuai", async () => {
   );
   await assertFails(
     uploadString(
-      ref(santriStorage, "syahadah_photos/poster-palsu.jpg"),
+      ref(santriStorage, "syahadah_photos/santri/poster-palsu.jpg"),
       "image",
       "raw",
       { contentType: "image/jpeg" },

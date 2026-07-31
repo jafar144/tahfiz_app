@@ -103,7 +103,7 @@ class _KelulusanPhotoListPageState extends State<KelulusanPhotoListPage> {
 
     setState(() => _deletingIds.add(item.id));
     try {
-      await getIt<KelulusanRepository>().deleteKelulusan(item.id);
+      await getIt<KelulusanRepository>().deleteKelulusan(item);
       if (!mounted) return;
       setState(
         () => _items = _items.where((entry) => entry.id != item.id).toList(),

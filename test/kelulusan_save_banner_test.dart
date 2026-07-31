@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_
 void main() {
   Widget buildBanner(
     KelulusanSaveStatus status, {
+    String? failureMessage,
     VoidCallback? onRetry,
     VoidCallback? onDismiss,
   }) {
@@ -12,6 +13,7 @@ void main() {
       home: Scaffold(
         body: KelulusanSaveBanner(
           status: status,
+          failureMessage: failureMessage,
           onRetry: onRetry,
           onDismiss: onDismiss,
         ),
@@ -19,13 +21,13 @@ void main() {
     );
   }
 
-  testWidgets('status menyimpan mengingatkan aplikasi tidak ditutup paksa', (
+  testWidgets('status menyimpan menunggu sebelum membuka menu bagikan', (
     tester,
   ) async {
     await tester.pumpWidget(buildBanner(KelulusanSaveStatus.saving));
 
     expect(find.text('Menyimpan foto kelulusan…'), findsOneWidget);
-    expect(find.textContaining('Jangan tutup paksa'), findsOneWidget);
+    expect(find.textContaining('dibagikan setelah tersimpan'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
@@ -47,5 +49,17 @@ void main() {
     await tester.tap(find.text('Coba Lagi'));
 
     expect(retried, isTrue);
+  });
+
+  testWidgets('status gagal dapat menampilkan pesan jaringan khusus', (
+    tester,
+  ) async {
+    const message =
+        'Tidak ada koneksi internet. Periksa jaringan Anda, lalu coba lagi.';
+    await tester.pumpWidget(
+      buildBanner(KelulusanSaveStatus.failure, failureMessage: message),
+    );
+
+    expect(find.text(message), findsOneWidget);
   });
 }

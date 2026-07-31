@@ -19,6 +19,11 @@ const {
 const { setAppFeatureConfig } = require("./handlers/appConfig");
 const { deleteKelulusanPhoto } = require("./handlers/kelulusanAdmin");
 const {
+  checkKelulusanPhoto,
+  reserveKelulusanPhoto,
+  saveKelulusanPhoto,
+} = require("./handlers/kelulusanSave");
+const {
   provisionInstitutionUser,
 } = require("./handlers/provisionInstitutionUser");
 
@@ -57,6 +62,11 @@ exports.setAppFeatureConfig = setAppFeatureConfig;
 
 // Hapus poster kelulusan dan record Home Santri (khusus admin).
 exports.deleteKelulusanPhoto = deleteKelulusanPhoto;
+
+// Cek dan simpan poster secara idempoten per santri + tanggal WIB.
+exports.checkKelulusanPhoto = checkKelulusanPhoto;
+exports.reserveKelulusanPhoto = reserveKelulusanPhoto;
+exports.saveKelulusanPhoto = saveKelulusanPhoto;
 
 // Provisioning akun dan role hanya melalui server, khusus admin.
 exports.provisionInstitutionUser = provisionInstitutionUser;

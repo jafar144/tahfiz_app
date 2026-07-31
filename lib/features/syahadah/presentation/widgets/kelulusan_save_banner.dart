@@ -4,12 +4,14 @@ enum KelulusanSaveStatus { saving, success, failure }
 
 class KelulusanSaveBanner extends StatelessWidget {
   final KelulusanSaveStatus status;
+  final String? failureMessage;
   final VoidCallback? onRetry;
   final VoidCallback? onDismiss;
 
   const KelulusanSaveBanner({
     super.key,
     required this.status,
+    this.failureMessage,
     this.onRetry,
     this.onDismiss,
   });
@@ -28,8 +30,7 @@ class KelulusanSaveBanner extends StatelessWidget {
         border: const Color(0xFFBFDBFE),
         foreground: const Color(0xFF1D4ED8),
         title: 'Menyimpan foto kelulusan…',
-        message:
-            'Anda boleh membuka WhatsApp. Jangan tutup paksa Tahfiz App sampai proses selesai.',
+        message: 'Tunggu sebentar. Poster akan dibagikan setelah tersimpan.',
       ),
       KelulusanSaveStatus.success => (
         background: const Color(0xFFECFDF3),
@@ -43,7 +44,9 @@ class KelulusanSaveBanner extends StatelessWidget {
         border: const Color(0xFFFECACA),
         foreground: const Color(0xFFB91C1C),
         title: 'Foto belum berhasil disimpan',
-        message: 'Periksa koneksi internet, lalu coba simpan kembali.',
+        message:
+            failureMessage ??
+            'Periksa koneksi internet, lalu coba simpan kembali.',
       ),
     };
 

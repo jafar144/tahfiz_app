@@ -76,15 +76,31 @@ class ImageUtils {
     String? fileName,
   }) async {
     try {
-      final String name = fileName ?? const Uuid().v4();
-      final destination = '$path/$name.jpg';
-      final ref = FirebaseStorage.instance.ref().child(destination);
-      await ref.putFile(file);
-      final url = await ref.getDownloadURL();
-      return url;
-    } catch (e) {
+      return await uploadImageToFirebaseOrThrow(file, path, fileName: fileName);
+    } catch (_) {
       return null;
     }
+  }
+
+  /// Sama seperti [uploadImageToFirebase], tetapi meneruskan error Firebase.
+  /// Gunakan ketika UI perlu membedakan kegagalan jaringan dari error lain.
+  static Future<String> uploadImageToFirebaseOrThrow(
+    File file,
+    String path, {
+    String? fileName,
+    String? uploaderUid,
+  }) async {
+    final String name = fileName ?? const Uuid().v4();
+    final destination = '$path/$name.jpg';
+    final ref = FirebaseStorage.instance.ref().child(destination);
+    final normalizedUploaderUid = uploaderUid?.trim() ?? '';
+    final metadata = normalizedUploaderUid.isEmpty
+        ? null
+        : SettableMetadata(
+            customMetadata: {'uploader_uid': normalizedUploaderUid},
+          );
+    await ref.putFile(file, metadata);
+    return ref.getDownloadURL();
   }
 
   /// Menghapus file dari Firebase Storage berdasarkan download URL

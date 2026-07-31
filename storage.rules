@@ -41,6 +41,11 @@ service firebase.storage {
         && request.resource.contentType.matches('image/.*');
     }
 
+    function ownsRequestedUpload() {
+      return signedIn()
+        && request.resource.metadata.get('uploader_uid', '') == request.auth.uid;
+    }
+
     match /santri_photos/{fileName} {
       allow read: if signedIn();
       allow create, update: if isAdmin() && validImage();
@@ -53,9 +58,23 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    match /syahadah_photos/{fileName} {
+    // File versi baru dipisah per UID uploader. Dengan begitu write ke path
+    // milik staff lain tetap mustahil meski operasi overwrite dianggap create
+    // oleh SDK/Storage generation.
+    match /syahadah_photos/{uploaderUid}/{fileName} {
       allow read: if signedIn();
-      allow create, update: if isStaff() && validImage();
+      allow create, update: if isStaff()
+        && uploaderUid == request.auth.uid
+        && validImage()
+        && ownsRequestedUpload();
+      allow delete: if isAdmin();
+    }
+
+    // Foto versi lama masih dapat dibaca/dihapus admin, tetapi tidak boleh
+    // ditimpa lagi oleh aplikasi client.
+    match /syahadah_photos/{legacyFileName} {
+      allow read: if signedIn();
+      allow create, update: if false;
       allow delete: if isAdmin();
     }
 

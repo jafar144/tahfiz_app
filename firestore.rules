@@ -381,8 +381,9 @@ service cloud.firestore {
 
     match /kelulusan/{kelulusanId} {
       allow read: if signedIn();
-      allow create: if isStaff();
-      allow update, delete: if false;
+      // Penulisan dilakukan oleh callable server agar satu santri hanya
+      // memiliki satu foto per tanggal WIB dan replace berjalan atomik.
+      allow create, update, delete: if false;
     }
 
     match /recitation_quiz_attempts/{attemptId} {

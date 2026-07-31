@@ -1,5 +1,64 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+
+const kelulusanNetworkErrorMessage =
+    'Tidak ada koneksi internet. Periksa jaringan Anda, lalu coba lagi.';
+
+class KelulusanNetworkException implements Exception {
+  final String message;
+
+  const KelulusanNetworkException([
+    this.message = kelulusanNetworkErrorMessage,
+  ]);
+
+  @override
+  String toString() => message;
+}
+
+class KelulusanAlreadyExistsException implements Exception {
+  final String message;
+  final int? existingCount;
+
+  const KelulusanAlreadyExistsException(this.message, {this.existingCount});
+
+  @override
+  String toString() => message;
+}
+
+class KelulusanRemoteException implements Exception {
+  final String message;
+  final String? code;
+
+  const KelulusanRemoteException(this.message, {this.code});
+
+  @override
+  String toString() => message;
+}
+
+class KelulusanDailyStatus {
+  final String dateKey;
+  final int existingCount;
+  final String revision;
+
+  const KelulusanDailyStatus({
+    required this.dateKey,
+    required this.existingCount,
+    required this.revision,
+  });
+
+  bool get exists => existingCount > 0;
+}
+
+String kelulusanUploadFileName({
+  required String santriId,
+  required String dateKey,
+  required String operationId,
+}) {
+  return '${santriId}_${dateKey}_$operationId';
+}
 
 /// Satu entri kelulusan/wisuda santri yang tampil di carousel Home santri.
 class KelulusanEntity {
@@ -9,6 +68,7 @@ class KelulusanEntity {
   final String kelas;
   final String hafalan;
   final String imageUrl;
+  final String operationId;
   final DateTime createdAt;
 
   KelulusanEntity({
@@ -18,6 +78,7 @@ class KelulusanEntity {
     required this.kelas,
     required this.hafalan,
     required this.imageUrl,
+    required this.operationId,
     required this.createdAt,
   });
 
@@ -30,6 +91,7 @@ class KelulusanEntity {
       kelas: data['kelas'] ?? '',
       hafalan: data['hafalan'] ?? '',
       imageUrl: data['image_url'] ?? '',
+      operationId: data['operation_id'] ?? '',
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -44,22 +106,120 @@ class KelulusanRepository {
   CollectionReference<Map<String, dynamic>> get _collection =>
       _firestore.collection('kelulusan');
 
-  Future<void> addKelulusan({
+  Future<KelulusanDailyStatus> checkToday({required String santriId}) async {
+    try {
+      final result = await _functions
+          .httpsCallable('checkKelulusanPhoto')
+          .call<Map<String, dynamic>>({'santriId': santriId})
+          .timeout(const Duration(seconds: 12));
+      final data = result.data;
+      final dateKey = data['dateKey'] as String? ?? '';
+      final revision = data['revision'] as String? ?? '';
+      if (dateKey.isEmpty || revision.isEmpty) {
+        throw const KelulusanRemoteException(
+          'Data foto kelulusan tidak dapat diperiksa.',
+        );
+      }
+      return KelulusanDailyStatus(
+        dateKey: dateKey,
+        existingCount: (data['existingCount'] as num?)?.toInt() ?? 0,
+        revision: revision,
+      );
+    } catch (error) {
+      throw _mapCallableError(error);
+    }
+  }
+
+  Future<void> reserveUpload({
+    required String santriId,
+    required String dateKey,
+    required String operationId,
+    required String expectedRevision,
+    required bool replaceExisting,
+  }) async {
+    try {
+      await _functions
+          .httpsCallable('reserveKelulusanPhoto')
+          .call<Map<String, dynamic>>({
+            'santriId': santriId,
+            'dateKey': dateKey,
+            'operationId': operationId,
+            'expectedRevision': expectedRevision,
+            'replaceExisting': replaceExisting,
+          })
+          .timeout(const Duration(seconds: 12));
+    } catch (error) {
+      throw _mapCallableError(error);
+    }
+  }
+
+  Future<void> saveKelulusan({
     required String santriId,
     required String santriName,
     required String kelas,
     required String hafalan,
     required String imageUrl,
+    required String dateKey,
+    required String operationId,
+    required bool replaceExisting,
   }) async {
-    await _collection.add({
-      'santri_id': santriId,
-      'santri_name': santriName,
-      'kelas': kelas,
-      'hafalan': hafalan,
-      'image_url': imageUrl,
-      'created_at': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _functions
+          .httpsCallable('saveKelulusanPhoto')
+          .call<Map<String, dynamic>>({
+            'santriId': santriId,
+            'santriName': santriName,
+            'kelas': kelas,
+            'hafalan': hafalan,
+            'imageUrl': imageUrl,
+            'dateKey': dateKey,
+            'operationId': operationId,
+            'replaceExisting': replaceExisting,
+          })
+          .timeout(const Duration(seconds: 20));
+    } catch (error) {
+      throw _mapCallableError(error);
+    }
   }
+
+  Exception _mapCallableError(Object error) {
+    if (error is KelulusanNetworkException) return error;
+    if (error is KelulusanAlreadyExistsException) return error;
+    if (error is KelulusanRemoteException) return error;
+    if (error is TimeoutException || error is SocketException) {
+      return const KelulusanNetworkException();
+    }
+    if (error is FirebaseFunctionsException) {
+      if (_networkErrorCodes.contains(error.code)) {
+        return const KelulusanNetworkException();
+      }
+      if (error.code == 'already-exists') {
+        final details = error.details;
+        final existingCount = details is Map
+            ? (details['existingCount'] as num?)?.toInt()
+            : null;
+        return KelulusanAlreadyExistsException(
+          error.message ??
+              'Foto kelulusan santri ini sudah ada untuk hari ini.',
+          existingCount: existingCount,
+        );
+      }
+      return KelulusanRemoteException(
+        error.message ?? 'Foto kelulusan belum berhasil disimpan.',
+        code: error.code,
+      );
+    }
+    return const KelulusanRemoteException(
+      'Foto kelulusan belum berhasil disimpan. Silakan coba lagi.',
+    );
+  }
+
+  static const _networkErrorCodes = {
+    'cancelled',
+    'deadline-exceeded',
+    'network-request-failed',
+    'unavailable',
+  };
 
   Query<Map<String, dynamic>> _query({
     required int limit,
@@ -95,7 +255,15 @@ class KelulusanRepository {
     );
   }
 
-  Future<void> deleteKelulusan(String id) async {
-    await _functions.httpsCallable('deleteKelulusanPhoto').call({'id': id});
+  Future<void> deleteKelulusan(KelulusanEntity item) async {
+    try {
+      await _functions.httpsCallable('deleteKelulusanPhoto').call({
+        'id': item.id,
+        'expectedImageUrl': item.imageUrl,
+        'expectedOperationId': item.operationId,
+      });
+    } catch (error) {
+      throw _mapCallableError(error);
+    }
   }
 }
