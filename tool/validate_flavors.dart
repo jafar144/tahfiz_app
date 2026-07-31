@@ -8,6 +8,7 @@ const requiredProperties = <String>[
   'defaultVersionName',
   'defaultVersionCode',
   'firebaseProjectId',
+  'functionsRegion',
   'dartEntryPoint',
   'authEmailDomain',
   'paymentBankName',
@@ -127,6 +128,11 @@ void main() {
     ).hasMatch(properties['authEmailDomain']!)) {
       errors.add('$prefix authEmailDomain tidak valid.');
     }
+    if (!RegExp(
+      r'^[a-z][a-z0-9-]*[a-z0-9]$',
+    ).hasMatch(properties['functionsRegion']!)) {
+      errors.add('$prefix functionsRegion tidak valid.');
+    }
 
     final requiredFiles = <String>[
       properties['dartEntryPoint']!,
@@ -180,6 +186,7 @@ void main() {
         'flavor': flavor,
         'appName': properties['appName']!,
         'institutionName': properties['institutionName']!,
+        'functionsRegion': properties['functionsRegion']!,
         'authEmailDomain': properties['authEmailDomain']!,
         'bankName': properties['paymentBankName']!,
         'accountNumber': properties['paymentAccountNumber']!,

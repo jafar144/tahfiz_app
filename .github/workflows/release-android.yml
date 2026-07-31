@@ -187,6 +187,15 @@ jobs:
         working-directory: functions
         run: npm run test:rules
 
+      - name: Verify required Firebase callable endpoints
+        shell: bash
+        timeout-minutes: 3
+        env:
+          FLAVOR: ${{ needs.prepare.outputs.flavor }}
+        run: |
+          set -euo pipefail
+          dart run tool/check_required_callables.dart --flavor "$FLAVOR"
+
       - name: Set up Java for Android build
         uses: actions/setup-java@v5
         with:

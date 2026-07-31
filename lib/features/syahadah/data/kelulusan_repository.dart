@@ -6,6 +6,15 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 const kelulusanNetworkErrorMessage =
     'Tidak ada koneksi internet. Periksa jaringan Anda, lalu coba lagi.';
+const kelulusanFeatureUnavailableMessage =
+    'Fitur foto kelulusan belum tersedia di server. Silakan hubungi admin.';
+
+const _kelulusanNetworkErrorCodes = {
+  'cancelled',
+  'deadline-exceeded',
+  'network-request-failed',
+  'unavailable',
+};
 
 class KelulusanNetworkException implements Exception {
   final String message;
@@ -36,6 +45,45 @@ class KelulusanRemoteException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Memetakan payload error callable tanpa bergantung pada instance Firebase.
+///
+/// Endpoint callable yang belum ter-deploy mengembalikan `not-found` dengan
+/// pesan mentah `NOT_FOUND`. Pesan bisnis dari handler tetap dipertahankan.
+Exception mapKelulusanFunctionsError({
+  required String code,
+  String? message,
+  Object? details,
+}) {
+  if (_kelulusanNetworkErrorCodes.contains(code)) {
+    return const KelulusanNetworkException();
+  }
+  if (code == 'already-exists') {
+    final existingCount = details is Map
+        ? (details['existingCount'] as num?)?.toInt()
+        : null;
+    return KelulusanAlreadyExistsException(
+      message ?? 'Foto kelulusan santri ini sudah ada untuk hari ini.',
+      existingCount: existingCount,
+    );
+  }
+
+  final normalizedMessage = message?.trim().toUpperCase().replaceAll(
+    RegExp(r'[\s_-]'),
+    '',
+  );
+  if (code == 'not-found' && normalizedMessage == 'NOTFOUND') {
+    return const KelulusanRemoteException(
+      kelulusanFeatureUnavailableMessage,
+      code: 'not-found',
+    );
+  }
+
+  return KelulusanRemoteException(
+    message ?? 'Foto kelulusan belum berhasil disimpan.',
+    code: code,
+  );
 }
 
 class KelulusanDailyStatus {
@@ -190,36 +238,16 @@ class KelulusanRepository {
       return const KelulusanNetworkException();
     }
     if (error is FirebaseFunctionsException) {
-      if (_networkErrorCodes.contains(error.code)) {
-        return const KelulusanNetworkException();
-      }
-      if (error.code == 'already-exists') {
-        final details = error.details;
-        final existingCount = details is Map
-            ? (details['existingCount'] as num?)?.toInt()
-            : null;
-        return KelulusanAlreadyExistsException(
-          error.message ??
-              'Foto kelulusan santri ini sudah ada untuk hari ini.',
-          existingCount: existingCount,
-        );
-      }
-      return KelulusanRemoteException(
-        error.message ?? 'Foto kelulusan belum berhasil disimpan.',
+      return mapKelulusanFunctionsError(
         code: error.code,
+        message: error.message,
+        details: error.details,
       );
     }
     return const KelulusanRemoteException(
       'Foto kelulusan belum berhasil disimpan. Silakan coba lagi.',
     );
   }
-
-  static const _networkErrorCodes = {
-    'cancelled',
-    'deadline-exceeded',
-    'network-request-failed',
-    'unavailable',
-  };
 
   Query<Map<String, dynamic>> _query({
     required int limit,
