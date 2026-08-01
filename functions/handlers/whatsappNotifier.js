@@ -19,6 +19,7 @@ const {
 const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildCurrentMonthPaymentWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
   buildIncompleteAssessmentWhatsAppMessage,
@@ -51,6 +52,14 @@ function selectLongOverdueSantri(
     (santri) =>
       oldestArrearsAge(santri, parts) >= minimumPeriods &&
       billingPeriodsSinceEntry(santri, parts) >= minimumPeriods
+  );
+}
+
+function selectCurrentMonthUnpaidSantri(unpaid, parts) {
+  return unpaid.filter((santri) =>
+    santri.months?.some(
+      (month) => month.year === parts.year && month.month === parts.month,
+    ),
   );
 }
 
@@ -144,6 +153,63 @@ async function runWhatsAppArrears(parts, unpaid, options = {}) {
     invalidPhone: prepared.invalidPhoneCount,
     adminFallback: prepared.adminFallbackCount,
     ...delivery,
+  };
+}
+
+async function runCurrentMonthPaymentWhatsApp(parts, unpaid, options = {}) {
+  const enabled =
+    options.enabled === undefined ? isWablasEnabled() : options.enabled;
+  if (!enabled) return { skipped: true, reason: "wablas_disabled" };
+
+  const excludedUids = new Set(options.excludeUids || []);
+  const eligible = selectCurrentMonthUnpaidSantri(unpaid, parts).filter(
+    (santri) => !excludedUids.has(santri.uid),
+  );
+  const adminPhone =
+    options.adminPhone === undefined
+      ? WHATSAPP_ADMIN_PHONE.value()
+      : options.adminPhone;
+  const prepared = prepareMessages(
+    eligible,
+    parts,
+    "current-month-payment",
+    (item) => buildCurrentMonthPaymentWhatsAppMessage(item, parts),
+    adminPhone,
+  );
+  const delivery = await dispatch(
+    prepared.messages,
+    "whatsappCurrentMonthPayment",
+    options.send,
+  );
+  return {
+    eligible: eligible.length,
+    invalidPhone: prepared.invalidPhoneCount,
+    adminFallback: prepared.adminFallbackCount,
+    ...delivery,
+  };
+}
+
+async function runMonthEndPaymentWhatsApp(parts, unpaid, options = {}) {
+  const enabled =
+    options.enabled === undefined ? isWablasEnabled() : options.enabled;
+  if (!enabled) return { skipped: true, reason: "wablas_disabled" };
+
+  const longOverdue = selectLongOverdueSantri(unpaid, parts);
+  const arrears = await runWhatsAppArrears(parts, unpaid, {
+    ...options,
+    enabled: true,
+  });
+  const currentMonth = await runCurrentMonthPaymentWhatsApp(parts, unpaid, {
+    ...options,
+    enabled: true,
+    excludeUids: longOverdue.map((santri) => santri.uid),
+  });
+
+  return {
+    sent: (arrears.sent || 0) + (currentMonth.sent || 0),
+    failed: (arrears.failed || 0) + (currentMonth.failed || 0),
+    arrears,
+    currentMonth,
   };
 }
 
@@ -321,8 +387,11 @@ module.exports = {
   oldestArrearsAge,
   billingPeriodsSinceEntry,
   selectLongOverdueSantri,
+  selectCurrentMonthUnpaidSantri,
   prepareMessages,
   runWhatsAppArrears,
+  runCurrentMonthPaymentWhatsApp,
+  runMonthEndPaymentWhatsApp,
   runBirthdayWhatsApp,
   runSantriWelcomeWhatsApp,
   fetchAsatidzPhone,

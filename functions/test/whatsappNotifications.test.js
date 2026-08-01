@@ -11,6 +11,7 @@ const {
 const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildCurrentMonthPaymentWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildMonthlyAssessmentGroupMessage,
   buildIncompleteAssessmentWhatsAppMessage,
@@ -25,6 +26,8 @@ const {
   oldestArrearsAge,
   billingPeriodsSinceEntry,
   selectLongOverdueSantri,
+  selectCurrentMonthUnpaidSantri,
+  runMonthEndPaymentWhatsApp,
   runBirthdayWhatsApp,
   runSantriWelcomeWhatsApp,
   runIncompleteAssessmentWhatsApp,
@@ -140,7 +143,7 @@ test("tanggal lahir midnight UTC+7 dicocokkan sebagai tanggal Jakarta", () => {
   );
 });
 
-test("template WhatsApp memuat detail tunggakan dan doa ulang tahun", () => {
+test("template WhatsApp memuat detail tunggakan dan naskah ulang tahun lembaga", () => {
   const arrears = buildArrearsWhatsAppMessage(
     {
       name: "Ahmad",
@@ -156,11 +159,120 @@ test("template WhatsApp memuat detail tunggakan dan doa ulang tahun", () => {
   assert.match(arrears, /Mei 2026, Juni 2026/);
 
   const birthday = buildBirthdayWhatsAppMessage(
-    { name: "Ahmad", age: 16 },
+    { name: "Aisyah Zahra", age: 12 },
     institution,
   );
-  assert.match(birthday, /Barakallahu fii umrik/);
-  assert.match(birthday, /16 tahun/);
+  assert.equal(
+    birthday,
+    [
+      "Assalamu'alaikum warahmatullahi wabarakatuh.",
+      "",
+      "Lembaga Tahsin dan Tahfizh Alquran Khoirunnasyien mengucapkan :",
+      "",
+      "Barakallahu fii umrik",
+      "",
+      "Ananda Aisyah Zahra",
+      "",
+      "yang hari ini genap berusia 12 tahun.",
+      "",
+      "Semoga Allah senantiasa memberikan kesehatan, keberkahan umur, kemudahan dalam menghafal Al-Qur'an, serta menjadikannya anak yang saleh/salehah.",
+      "",
+      "Salam berkah dari :",
+      "Seluruh Pengurus dan Pengajar Lembaga",
+    ].join("\n"),
+  );
+});
+
+test("template H-3 menyebut bulan berjalan, nama, dan NIS", () => {
+  const message = buildCurrentMonthPaymentWhatsAppMessage(
+    { name: "Aisyah Zahra", nis: "1234" },
+    { month: 3, year: 2026 },
+  );
+
+  assert.equal(
+    message,
+    [
+      "Assalamualaikum warohmatullahi wabarokatuh",
+      "",
+      "Sehubungan akan berakhirnya bulan Maret 2026",
+      "",
+      "Kami hanya mengingatkan",
+      "",
+      "Menurut catatan bendahara lembaga kami, anak Bapak/Ibu",
+      "Nama : Aisyah Zahra",
+      "NIS : 1234",
+      "Bulan yg belum dibayar : Maret 2026",
+      "",
+      "Mohon agar dapat segera diselesaikan.",
+      "",
+      "Atas kerjasamanya, terima kasih",
+      "",
+      "#Mohon koreksi bila data kami salah",
+    ].join("\n"),
+  );
+});
+
+test("H-3 memisahkan tunggakan tiga periode dari tagihan bulan berjalan", async () => {
+  const parts = { year: 2026, month: 7, day: 28 };
+  const longAndCurrent = {
+    uid: "long-current",
+    name: "Ahmad",
+    nis: "1001",
+    nomorWali: "081200000001",
+    tanggalMasuk: new Date("2026-04-30T17:00:00.000Z"),
+    months: [
+      { year: 2026, month: 5 },
+      { year: 2026, month: 7 },
+    ],
+  };
+  const currentOnly = {
+    uid: "current-only",
+    name: "Fatimah",
+    nis: "1002",
+    nomorWali: "081200000002",
+    tanggalMasuk: new Date("2026-06-30T17:00:00.000Z"),
+    months: [{ year: 2026, month: 7 }],
+  };
+  const longButCurrentPaid = {
+    uid: "long-old",
+    name: "Ali",
+    nis: "1003",
+    nomorWali: "081200000003",
+    tanggalMasuk: new Date("2026-04-30T17:00:00.000Z"),
+    months: [{ year: 2026, month: 5 }],
+  };
+  const unpaid = [longAndCurrent, currentOnly, longButCurrentPaid];
+  const batches = [];
+
+  assert.deepEqual(selectCurrentMonthUnpaidSantri(unpaid, parts), [
+    longAndCurrent,
+    currentOnly,
+  ]);
+
+  const result = await runMonthEndPaymentWhatsApp(parts, unpaid, {
+    enabled: true,
+    institution,
+    adminPhone: "",
+    send: async (messages) => {
+      batches.push(messages);
+      return { messageCount: messages.length };
+    },
+  });
+  const sent = batches.flat();
+
+  assert.equal(result.sent, 3);
+  assert.equal(result.arrears.sent, 2);
+  assert.equal(result.currentMonth.sent, 1);
+  assert.deepEqual(
+    sent.map((message) => message.refId),
+    [
+      "arrears-2026-07-long-current",
+      "arrears-2026-07-long-old",
+      "current-month-payment-2026-07-current-only",
+    ],
+  );
+  assert.match(sent[0].message, /masih terdapat tunggakan SPP/);
+  assert.match(sent[2].message, /Bulan yg belum dibayar : Juli 2026/);
 });
 
 test("identitas grup memilih kombinasi gender dan sesi secara konsisten", () => {

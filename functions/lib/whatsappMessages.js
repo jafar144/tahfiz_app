@@ -27,15 +27,46 @@ function buildArrearsWhatsAppMessage(santri, institution) {
 }
 
 function buildBirthdayWhatsAppMessage(santri, institution) {
-  const age = santri.age > 0 ? ` yang hari ini genap berusia ${santri.age} tahun` : "";
+  const ageLine = santri.age > 0
+    ? `yang hari ini genap berusia ${santri.age} tahun.`
+    : "yang hari ini sedang berulang tahun.";
   return [
     "Assalamu'alaikum warahmatullahi wabarakatuh.",
     "",
-    `Barakallahu fii umrik untuk Ananda ${santri.name}${age}.`,
+    "Lembaga Tahsin dan Tahfizh Alquran Khoirunnasyien mengucapkan :",
+    "",
+    "Barakallahu fii umrik",
+    "",
+    `Ananda ${santri.name}`,
+    "",
+    ageLine,
+    "",
     "Semoga Allah senantiasa memberikan kesehatan, keberkahan umur, kemudahan dalam menghafal Al-Qur'an, serta menjadikannya anak yang saleh/salehah.",
     "",
-    "Salam hangat,",
-    institution.institutionName,
+    "Salam berkah dari :",
+    "Seluruh Pengurus dan Pengajar Lembaga",
+  ].join("\n");
+}
+
+function buildCurrentMonthPaymentWhatsAppMessage(santri, parts) {
+  const monthLabel = `${monthNameId(parts.month)} ${parts.year}`;
+  return [
+    "Assalamualaikum warohmatullahi wabarokatuh",
+    "",
+    `Sehubungan akan berakhirnya bulan ${monthLabel}`,
+    "",
+    "Kami hanya mengingatkan",
+    "",
+    "Menurut catatan bendahara lembaga kami, anak Bapak/Ibu",
+    `Nama : ${santri.name}`,
+    `NIS : ${santri.nis || "-"}`,
+    `Bulan yg belum dibayar : ${monthLabel}`,
+    "",
+    "Mohon agar dapat segera diselesaikan.",
+    "",
+    "Atas kerjasamanya, terima kasih",
+    "",
+    "#Mohon koreksi bila data kami salah",
   ].join("\n");
 }
 
@@ -120,6 +151,8 @@ function buildAdminFallbackWhatsAppMessage({
   const typeLabel =
     notificationType === "birthday"
       ? "ucapan ulang tahun"
+      : notificationType === "current-month-payment"
+        ? "pengingat pembayaran bulan berjalan"
       : "pengingat tunggakan SPP";
   const nis = santri.nis ? ` (NIS ${santri.nis})` : "";
   return [
@@ -138,6 +171,7 @@ module.exports = {
   formatUnpaidMonths,
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
+  buildCurrentMonthPaymentWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   previousMonthParts,
   buildMonthlyAssessmentGroupMessage,

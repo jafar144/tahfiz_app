@@ -12,7 +12,7 @@ const {
   runMonthlyAssessmentReminder,
 } = require("./monthlyGroupNotifier");
 const {
-  runWhatsAppArrears,
+  runMonthEndPaymentWhatsApp,
   runBirthdayWhatsApp,
 } = require("./whatsappNotifier");
 const {
@@ -85,7 +85,7 @@ async function sendArrearsReminders(parts, { sendWhatsApp = false } = {}) {
     return {
       notified: 0,
       whatsapp: sendWhatsApp
-        ? await runWhatsAppArrears(parts, [])
+        ? await runMonthEndPaymentWhatsApp(parts, [])
         : { skipped: true },
     };
   }
@@ -106,7 +106,7 @@ async function sendArrearsReminders(parts, { sendWhatsApp = false } = {}) {
 
   logger.info(`[arrears] mengingatkan ${notified} santri menunggak.`);
   const whatsapp = sendWhatsApp
-    ? await runWhatsAppArrears(parts, unpaid)
+    ? await runMonthEndPaymentWhatsApp(parts, unpaid)
     : { skipped: true };
   return { notified, whatsapp };
 }
