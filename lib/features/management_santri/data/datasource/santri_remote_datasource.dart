@@ -17,6 +17,7 @@ abstract class SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
   });
@@ -31,6 +32,7 @@ abstract class SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,

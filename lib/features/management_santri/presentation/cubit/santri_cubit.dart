@@ -21,6 +21,7 @@ class SantriCubit extends Cubit<SantriState> {
   bool? _currentIsFree;
   bool? _currentHasPhoto;
   bool? _currentHasHalaqah;
+  bool? _currentHasGuardianPhone;
   SantriSortBy _currentSortBy = SantriSortBy.name;
   static const int _limit = 10;
   int _loadRequestId = 0;
@@ -37,6 +38,7 @@ class SantriCubit extends Cubit<SantriState> {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
   }) async {
     final requestId = ++_loadRequestId;
@@ -49,6 +51,7 @@ class SantriCubit extends Cubit<SantriState> {
     _currentIsFree = isFree;
     _currentHasPhoto = hasPhoto;
     _currentHasHalaqah = hasHalaqah;
+    _currentHasGuardianPhone = hasGuardianPhone;
     _currentSortBy = sortBy;
 
     emit(SantriLoading());
@@ -63,6 +66,7 @@ class SantriCubit extends Cubit<SantriState> {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
         sortBy: sortBy,
         limit: _limit,
       );
@@ -103,6 +107,7 @@ class SantriCubit extends Cubit<SantriState> {
         isFree: _currentIsFree,
         hasPhoto: _currentHasPhoto,
         hasHalaqah: _currentHasHalaqah,
+        hasGuardianPhone: _currentHasGuardianPhone,
         sortBy: _currentSortBy,
         limit: _limit,
         lastDocumentId: lastId,

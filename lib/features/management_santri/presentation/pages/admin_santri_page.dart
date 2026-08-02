@@ -34,6 +34,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
   bool? _selectedIsActive = true;
   bool? _selectedHasPhoto;
   bool? _selectedHasHalaqah;
+  bool? _selectedHasGuardianPhone;
   SantriSortBy _selectedSortBy = SantriSortBy.nis;
   String _searchKeyword = '';
 
@@ -64,6 +65,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
     if (_selectedIsFree != null) count++;
     if (_selectedHasPhoto != null) count++;
     if (_selectedHasHalaqah != null) count++;
+    if (_selectedHasGuardianPhone != null) count++;
     return count;
   }
 
@@ -95,6 +97,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       isFree: _selectedIsFree,
       hasPhoto: _selectedHasPhoto,
       hasHalaqah: _selectedHasHalaqah,
+      hasGuardianPhone: _selectedHasGuardianPhone,
       sortBy: _selectedSortBy,
     );
   }
@@ -135,6 +138,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       _selectedIsActive = true;
       _selectedHasPhoto = null;
       _selectedHasHalaqah = null;
+      _selectedHasGuardianPhone = null;
       _selectedSortBy = SantriSortBy.nis;
     });
     _fetchData();
@@ -328,248 +332,293 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
     bool? tempIsActive = _selectedIsActive;
     bool? tempHasPhoto = _selectedHasPhoto;
     bool? tempHasHalaqah = _selectedHasHalaqah;
+    bool? tempHasGuardianPhone = _selectedHasGuardianPhone;
 
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setModalState) {
-          void resetTemporaryFilters() {
-            setModalState(() {
-              tempSession = null;
-              tempGender = null;
-              tempClass = null;
-              tempAsatidzId = null;
-              tempIsFree = null;
-              tempIsActive = true;
-              tempHasPhoto = null;
-              tempHasHalaqah = null;
-            });
-          }
-
-          return AiwaBottomSheet(
-            title: 'Filter data santri',
-            onReset: resetTemporaryFilters,
-            onApply: () {
-              setState(() {
-                _selectedSession = tempSession;
-                _selectedGender = tempGender;
-                _selectedClass = tempClass;
-                _selectedAsatidzId = tempAsatidzId;
-                _selectedIsFree = tempIsFree;
-                _selectedIsActive = tempIsActive;
-                _selectedHasPhoto = tempHasPhoto;
-                _selectedHasHalaqah = tempHasHalaqah;
+      builder: (sheetContext) => SizedBox(
+        height: MediaQuery.sizeOf(sheetContext).height,
+        child: StatefulBuilder(
+          builder: (context, setModalState) {
+            void resetTemporaryFilters() {
+              setModalState(() {
+                tempSession = null;
+                tempGender = null;
+                tempClass = null;
+                tempAsatidzId = null;
+                tempIsFree = null;
+                tempIsActive = true;
+                tempHasPhoto = null;
+                tempHasHalaqah = null;
+                tempHasGuardianPhone = null;
               });
-              Navigator.pop(sheetContext);
-              _fetchData();
-            },
-            content: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.58,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _FilterSection(
-                      icon: Icons.verified_user_outlined,
-                      title: 'Status santri',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+            }
+
+            return AiwaBottomSheet(
+              title: 'Filter data santri',
+              onReset: resetTemporaryFilters,
+              onApply: () {
+                setState(() {
+                  _selectedSession = tempSession;
+                  _selectedGender = tempGender;
+                  _selectedClass = tempClass;
+                  _selectedAsatidzId = tempAsatidzId;
+                  _selectedIsFree = tempIsFree;
+                  _selectedIsActive = tempIsActive;
+                  _selectedHasPhoto = tempHasPhoto;
+                  _selectedHasHalaqah = tempHasHalaqah;
+                  _selectedHasGuardianPhone = tempHasGuardianPhone;
+                });
+                Navigator.pop(sheetContext);
+                _fetchData();
+              },
+              content: Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildModalChip(
-                            'Aktif',
-                            tempIsActive == true,
-                            () => setModalState(() => tempIsActive = true),
-                          ),
-                          _buildModalChip(
-                            'Tidak aktif',
-                            tempIsActive == false,
-                            () => setModalState(() => tempIsActive = false),
-                          ),
-                          _buildModalChip(
-                            'Semua',
-                            tempIsActive == null,
-                            () => setModalState(() => tempIsActive = null),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.people_outline_rounded,
-                      title: 'Jenis kelamin',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildNullableChip(
-                            label: 'Putra',
-                            selectedValue: tempGender,
-                            value: 'L',
-                            onChanged: (value) =>
-                                setModalState(() => tempGender = value),
-                          ),
-                          _buildNullableChip(
-                            label: 'Putri',
-                            selectedValue: tempGender,
-                            value: 'P',
-                            onChanged: (value) =>
-                                setModalState(() => tempGender = value),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.schedule_outlined,
-                      title: 'Sesi',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: AppConstants.classTypes.map((type) {
-                          return _buildNullableChip(
-                            label: type,
-                            selectedValue: tempSession,
-                            value: type,
-                            onChanged: (value) =>
-                                setModalState(() => tempSession = value),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.school_outlined,
-                      title: 'Kelas',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: AppConstants.santriClasses.map((kelas) {
-                          return _buildNullableChip(
-                            label: kelas,
-                            selectedValue: tempClass,
-                            value: kelas,
-                            onChanged: (value) =>
-                                setModalState(() => tempClass = value),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.account_circle_outlined,
-                      title: 'Foto profil',
-                      description: 'Kelengkapan foto pada profil santri.',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildNullableBoolChip(
-                            label: 'Ada foto',
-                            selectedValue: tempHasPhoto,
-                            value: true,
-                            onChanged: (value) =>
-                                setModalState(() => tempHasPhoto = value),
-                          ),
-                          _buildNullableBoolChip(
-                            label: 'Belum ada foto',
-                            selectedValue: tempHasPhoto,
-                            value: false,
-                            onChanged: (value) =>
-                                setModalState(() => tempHasPhoto = value),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.groups_2_outlined,
-                      title: 'Halaqah',
-                      description: 'Status penempatan santri di halaqah.',
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildNullableBoolChip(
-                            label: 'Sudah ada halaqah',
-                            selectedValue: tempHasHalaqah,
-                            value: true,
-                            onChanged: (value) => setModalState(() {
-                              tempHasHalaqah = value;
-                            }),
-                          ),
-                          _buildNullableBoolChip(
-                            label: 'Belum ada halaqah',
-                            selectedValue: tempHasHalaqah,
-                            value: false,
-                            onChanged: (value) => setModalState(() {
-                              tempHasHalaqah = value;
-                              if (value == false) tempAsatidzId = null;
-                            }),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.person_pin_circle_outlined,
-                      title: 'Asatidz pembimbing',
-                      child: _asatidzList.isEmpty
-                          ? Text(
-                              'Data asatidz belum tersedia.',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
+                          Expanded(
+                            child: _FilterSection(
+                              icon: Icons.people_outline_rounded,
+                              title: 'Jenis kelamin',
+                              showDivider: false,
+                              child: _FilterDropdown(
+                                key: const Key('santri_gender_filter'),
+                                value: tempGender,
+                                placeholder: 'Semua',
+                                options: const [
+                                  _FilterOption(value: 'L', label: 'Putra'),
+                                  _FilterOption(value: 'P', label: 'Putri'),
+                                ],
+                                onChanged: (value) =>
+                                    setModalState(() => tempGender = value),
                               ),
-                            )
-                          : Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: _asatidzList.map((asatidz) {
-                                return _buildNullableChip(
-                                  label: asatidz.name,
-                                  selectedValue: tempAsatidzId,
-                                  value: asatidz.id,
-                                  onChanged: (value) => setModalState(() {
-                                    tempAsatidzId = value;
-                                    if (value != null &&
-                                        tempHasHalaqah == false) {
-                                      tempHasHalaqah = null;
-                                    }
-                                  }),
-                                );
-                              }).toList(),
                             ),
-                    ),
-                    _FilterSection(
-                      icon: Icons.payments_outlined,
-                      title: 'Status pembayaran',
-                      showDivider: false,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildNullableBoolChip(
-                            label: 'Reguler',
-                            selectedValue: tempIsFree,
-                            value: false,
-                            onChanged: (value) =>
-                                setModalState(() => tempIsFree = value),
                           ),
-                          _buildNullableBoolChip(
-                            label: 'Gratis',
-                            selectedValue: tempIsFree,
-                            value: true,
-                            onChanged: (value) =>
-                                setModalState(() => tempIsFree = value),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _FilterSection(
+                              icon: Icons.schedule_outlined,
+                              title: 'Sesi',
+                              showDivider: false,
+                              child: _FilterDropdown(
+                                key: const Key('santri_session_filter'),
+                                value: tempSession,
+                                placeholder: 'Semua',
+                                options: AppConstants.classTypes
+                                    .map(
+                                      (type) => _FilterOption(
+                                        value: type,
+                                        label: type,
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) =>
+                                    setModalState(() => tempSession = value),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                      Divider(
+                        height: 30,
+                        thickness: 1,
+                        color: Colors.grey.shade100,
+                      ),
+                      _FilterSection(
+                        icon: Icons.school_outlined,
+                        title: 'Kelas',
+                        child: _FilterDropdown(
+                          key: const Key('santri_class_filter'),
+                          value: tempClass,
+                          placeholder: 'Semua kelas',
+                          options: AppConstants.santriClasses
+                              .map(
+                                (kelas) =>
+                                    _FilterOption(value: kelas, label: kelas),
+                              )
+                              .toList(),
+                          onChanged: (value) =>
+                              setModalState(() => tempClass = value),
+                        ),
+                      ),
+                      _FilterSection(
+                        icon: Icons.account_circle_outlined,
+                        title: 'Foto profil',
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildNullableBoolChip(
+                              key: const Key('santri_has_photo_filter'),
+                              label: 'Ada',
+                              selectedValue: tempHasPhoto,
+                              value: true,
+                              onChanged: (value) =>
+                                  setModalState(() => tempHasPhoto = value),
+                            ),
+                            _buildNullableBoolChip(
+                              key: const Key('santri_no_photo_filter'),
+                              label: 'Tidak Ada',
+                              selectedValue: tempHasPhoto,
+                              value: false,
+                              onChanged: (value) =>
+                                  setModalState(() => tempHasPhoto = value),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _FilterSection(
+                        icon: Icons.groups_2_outlined,
+                        title: 'Halaqah',
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildNullableBoolChip(
+                              key: const Key('santri_has_halaqah_filter'),
+                              label: 'Ada',
+                              selectedValue: tempHasHalaqah,
+                              value: true,
+                              onChanged: (value) => setModalState(() {
+                                tempHasHalaqah = value;
+                              }),
+                            ),
+                            _buildNullableBoolChip(
+                              key: const Key('santri_no_halaqah_filter'),
+                              label: 'Tidak Ada',
+                              selectedValue: tempHasHalaqah,
+                              value: false,
+                              onChanged: (value) => setModalState(() {
+                                tempHasHalaqah = value;
+                                if (value == false) tempAsatidzId = null;
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _FilterSection(
+                        icon: Icons.person_pin_circle_outlined,
+                        title: 'Asatidz pembimbing',
+                        child: _FilterDropdown(
+                          key: const Key('santri_asatidz_filter'),
+                          value: tempAsatidzId,
+                          placeholder: _asatidzList.isEmpty
+                              ? 'Data belum tersedia'
+                              : 'Semua asatidz',
+                          options: _asatidzList
+                              .map(
+                                (asatidz) => _FilterOption(
+                                  value: asatidz.id,
+                                  label: asatidz.name,
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _asatidzList.isEmpty
+                              ? null
+                              : (value) => setModalState(() {
+                                  tempAsatidzId = value;
+                                  if (value != null &&
+                                      tempHasHalaqah == false) {
+                                    tempHasHalaqah = null;
+                                  }
+                                }),
+                        ),
+                      ),
+                      _FilterSection(
+                        icon: Icons.phone_outlined,
+                        title: 'Nomor wali',
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildNullableBoolChip(
+                              key: const Key(
+                                'santri_has_guardian_phone_filter',
+                              ),
+                              label: 'Ada',
+                              selectedValue: tempHasGuardianPhone,
+                              value: true,
+                              onChanged: (value) => setModalState(
+                                () => tempHasGuardianPhone = value,
+                              ),
+                            ),
+                            _buildNullableBoolChip(
+                              key: const Key('santri_no_guardian_phone_filter'),
+                              label: 'Tidak Ada',
+                              selectedValue: tempHasGuardianPhone,
+                              value: false,
+                              onChanged: (value) => setModalState(
+                                () => tempHasGuardianPhone = value,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _FilterSection(
+                        icon: Icons.payments_outlined,
+                        title: 'Status pembayaran',
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildNullableBoolChip(
+                              label: 'Reguler',
+                              selectedValue: tempIsFree,
+                              value: false,
+                              onChanged: (value) =>
+                                  setModalState(() => tempIsFree = value),
+                            ),
+                            _buildNullableBoolChip(
+                              label: 'Gratis',
+                              selectedValue: tempIsFree,
+                              value: true,
+                              onChanged: (value) =>
+                                  setModalState(() => tempIsFree = value),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _FilterSection(
+                        key: const Key('santri_active_status_section'),
+                        icon: Icons.verified_user_outlined,
+                        title: 'Status santri',
+                        showDivider: false,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _buildModalChip(
+                              'Aktif',
+                              tempIsActive == true,
+                              () => setModalState(() => tempIsActive = true),
+                            ),
+                            _buildModalChip(
+                              'Tidak aktif',
+                              tempIsActive == false,
+                              () => setModalState(() => tempIsActive = false),
+                            ),
+                            _buildModalChip(
+                              'Semua',
+                              tempIsActive == null,
+                              () => setModalState(() => tempIsActive = null),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -620,24 +669,22 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
     );
   }
 
-  Widget _buildModalChip(String label, bool isSelected, VoidCallback onTap) {
-    return AiwaChoiceChip(label: label, isSelected: isSelected, onTap: onTap);
-  }
-
-  Widget _buildNullableChip({
-    required String label,
-    required String? selectedValue,
-    required String value,
-    required ValueChanged<String?> onChanged,
+  Widget _buildModalChip(
+    String label,
+    bool isSelected,
+    VoidCallback onTap, {
+    Key? key,
   }) {
-    return _buildModalChip(
-      label,
-      selectedValue == value,
-      () => onChanged(selectedValue == value ? null : value),
+    return AiwaChoiceChip(
+      key: key,
+      label: label,
+      isSelected: isSelected,
+      onTap: onTap,
     );
   }
 
   Widget _buildNullableBoolChip({
+    Key? key,
     required String label,
     required bool? selectedValue,
     required bool value,
@@ -647,6 +694,94 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
       label,
       selectedValue == value,
       () => onChanged(selectedValue == value ? null : value),
+      key: key,
+    );
+  }
+}
+
+class _FilterOption {
+  final String value;
+  final String label;
+
+  const _FilterOption({required this.value, required this.label});
+}
+
+class _FilterDropdown extends StatelessWidget {
+  final String? value;
+  final String placeholder;
+  final List<_FilterOption> options;
+  final ValueChanged<String?>? onChanged;
+
+  const _FilterDropdown({
+    super.key,
+    required this.value,
+    required this.placeholder,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final safeValue = options.any((option) => option.value == value)
+        ? value
+        : null;
+    final textColor = onChanged == null
+        ? Colors.grey.shade400
+        : Colors.grey.shade800;
+
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: onChanged == null ? Colors.grey.shade50 : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: safeValue,
+          isExpanded: true,
+          menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
+          borderRadius: BorderRadius.circular(12),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: onChanged == null
+                ? Colors.grey.shade400
+                : Colors.grey.shade700,
+          ),
+          hint: Text(
+            placeholder,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: textColor, fontSize: 12),
+          ),
+          items: [
+            DropdownMenuItem<String>(
+              value: '',
+              child: Text(
+                placeholder,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            for (final option in options)
+              DropdownMenuItem<String>(
+                value: option.value,
+                child: Text(
+                  option.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          style: TextStyle(color: Colors.grey.shade800, fontSize: 12),
+          onChanged: onChanged == null
+              ? null
+              : (selected) => onChanged!(
+                  selected == null || selected.isEmpty ? null : selected,
+                ),
+        ),
+      ),
     );
   }
 }
@@ -744,14 +879,13 @@ class _ListControlButton extends StatelessWidget {
 class _FilterSection extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String? description;
   final Widget child;
   final bool showDivider;
 
   const _FilterSection({
+    super.key,
     required this.icon,
     required this.title,
-    this.description,
     required this.child,
     this.showDivider = true,
   });
@@ -785,16 +919,6 @@ class _FilterSection extends StatelessWidget {
             ),
           ],
         ),
-        if (description != null) ...[
-          const SizedBox(height: 5),
-          Padding(
-            padding: const EdgeInsets.only(left: 40),
-            child: Text(
-              description!,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-            ),
-          ),
-        ],
         const SizedBox(height: 10),
         child,
         if (showDivider)

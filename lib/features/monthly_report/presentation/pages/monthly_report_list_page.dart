@@ -105,7 +105,7 @@ class _MonthlyReportListView extends StatelessWidget {
                               return _SantriReportCard(
                                 santri: santri,
                                 isGraded: isGraded,
-                                tertunggakCount: tertunggak,
+                                hasTertunggak: tertunggak > 0,
                               );
                             },
                           ),
@@ -234,20 +234,16 @@ class _MonthlyReportListView extends StatelessWidget {
 class _SantriReportCard extends StatelessWidget {
   final SantriEntity santri;
   final bool isGraded;
-
-  /// Jumlah penilaian bulan lampau yang belum diisi untuk santri ini.
-  final int tertunggakCount;
+  final bool hasTertunggak;
 
   const _SantriReportCard({
     required this.santri,
     required this.isGraded,
-    this.tertunggakCount = 0,
+    this.hasTertunggak = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasTertunggak = tertunggakCount > 0;
-
     // Tunggakan lebih mendesak, jadi border merah diprioritaskan.
     final Border? border = hasTertunggak
         ? Border.all(color: Colors.red.shade300, width: 2)
@@ -263,53 +259,13 @@ class _SantriReportCard extends StatelessWidget {
       child: SantriCard(
         santri,
         onTap: () => _onTap(context),
-        trailing: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (hasTertunggak) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.warning_amber_rounded,
-                      size: 13,
-                      color: Colors.red.shade600,
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      MonthlyReportStrings.tertunggakBadge(tertunggakCount),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.red.shade700,
-                      ),
-                    ),
-                  ],
-                ),
+        trailing: isGraded
+            ? Icon(Icons.check_circle, color: Colors.green.shade400, size: 24)
+            : Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.grey.shade400,
+                size: 24,
               ),
-              const SizedBox(height: 6),
-            ],
-            isGraded
-                ? Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade400,
-                    size: 24,
-                  )
-                : Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400,
-                    size: 24,
-                  ),
-          ],
-        ),
       ),
     );
   }

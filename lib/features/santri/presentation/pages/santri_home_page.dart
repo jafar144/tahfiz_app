@@ -12,6 +12,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_target_carousel.dart';
 import 'package:khoirunnasyien/features/journey/domain/journey_level.dart';
@@ -553,7 +554,13 @@ class _SantriHomePageState extends State<SantriHomePage> {
             ],
           ),
           const SizedBox(height: 12),
-          MonthlyReportCard(report: state.latestReport!),
+          MonthlyReportCard(
+            report: state.latestReport!,
+            periodTarget: MonthlyTargetProgress.forAssessment(
+              state.latestReport!,
+              state.monthlyReports,
+            ),
+          ),
         ],
       ),
     );

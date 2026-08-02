@@ -176,3 +176,94 @@ class MonthlyReport {
     return (bulan >= 1 && bulan <= 12) ? names[bulan] : '-';
   }
 }
+
+/// Target yang berlaku pada suatu periode beserta hasil penilaiannya.
+///
+/// Target bulan berjalan disimpan pada laporan bulan sebelumnya, sementara
+/// hasil capaiannya disimpan pada laporan bulan yang dinilai. Objek ini
+/// memasangkan kedua data tersebut agar UI tidak keliru menampilkan target
+/// bulan berikutnya sebagai target periode laporan.
+class MonthlyTargetProgress {
+  final String sourceReportId;
+  final MonthlyTarget target;
+  final MonthlyTargetResult result;
+
+  const MonthlyTargetProgress({
+    required this.sourceReportId,
+    required this.target,
+    required this.result,
+  });
+
+  /// Mencari target yang berlaku untuk [assessment] dan memasangkannya dengan
+  /// evaluasi yang tersimpan pada penilaian tersebut.
+  static MonthlyTargetProgress? forAssessment(
+    MonthlyReport assessment,
+    Iterable<MonthlyReport> reports,
+  ) {
+    MonthlyReport? source;
+
+    for (final report in reports) {
+      final target = report.target;
+      if (target == null ||
+          !target.appliesTo(assessment.bulan, assessment.tahun)) {
+        continue;
+      }
+
+      final evaluation = assessment.targetEvaluation;
+      if (evaluation?.evaluates(report.id, target) ?? false) {
+        source = report;
+        break;
+      }
+
+      // Data lama bisa belum memiliki evaluasi. Tetap tampilkan target yang
+      // periodenya cocok dan tandai sebagai belum dinilai.
+      source ??= report;
+    }
+
+    final target = source?.target;
+    if (source == null || target == null) return null;
+
+    final evaluation = assessment.targetEvaluation;
+    final result = evaluation?.evaluates(source.id, target) ?? false
+        ? evaluation!.result
+        : MonthlyTargetResult.notAssessed;
+
+    return MonthlyTargetProgress(
+      sourceReportId: source.id,
+      target: target,
+      result: result,
+    );
+  }
+
+  /// Mencari target untuk [bulan]/[tahun]. Hasil evaluasi ikut dipasangkan
+  /// bila laporan untuk periode tersebut sudah tersedia.
+  static MonthlyTargetProgress? forPeriod(
+    Iterable<MonthlyReport> reports, {
+    required int bulan,
+    required int tahun,
+  }) {
+    final allReports = reports is List<MonthlyReport>
+        ? reports
+        : reports.toList(growable: false);
+
+    for (final report in allReports) {
+      if (report.bulan == bulan && report.tahun == tahun) {
+        final progress = forAssessment(report, allReports);
+        if (progress != null) return progress;
+      }
+    }
+
+    for (final source in allReports) {
+      final target = source.target;
+      if (target?.appliesTo(bulan, tahun) ?? false) {
+        return MonthlyTargetProgress(
+          sourceReportId: source.id,
+          target: target!,
+          result: MonthlyTargetResult.notAssessed,
+        );
+      }
+    }
+
+    return null;
+  }
+}

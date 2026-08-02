@@ -51,6 +51,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
   }) async {
@@ -68,6 +69,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
         sortBy: sortBy,
         limit: limit,
       );
@@ -79,7 +81,8 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         normalizedKeyword.isNotEmpty ||
         isFree != null ||
         hasPhoto != null ||
-        hasHalaqah != null;
+        hasHalaqah != null ||
+        hasGuardianPhone != null;
 
     // Substring search serta filter presence/status kompatibilitas tidak dapat
     // dihitung akurat oleh satu aggregate query Firestore. Scan kandidat satu
@@ -95,6 +98,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
         sortBy: sortBy,
       );
       return SantriPageResult(items: allMatches, totalCount: allMatches.length);
@@ -131,6 +135,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
       );
       return SantriPageResult(items: allMatches, totalCount: allMatches.length);
     }
@@ -147,6 +152,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,
@@ -198,6 +204,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
                 isFree: isFree,
                 hasPhoto: hasPhoto,
                 hasHalaqah: hasHalaqah,
+                hasGuardianPhone: hasGuardianPhone,
               );
         }).toList()..sort((a, b) => _compareSantri(a, b, sortBy));
 
@@ -226,18 +233,24 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
                 isFree: isFree,
                 hasPhoto: hasPhoto,
                 hasHalaqah: hasHalaqah,
+                hasGuardianPhone: hasGuardianPhone,
               );
         }).toList();
       }
 
-      // Status gratis serta keberadaan field foto/halaqah diselesaikan di
-      // client. Dokumen lama dapat benar-benar tidak memiliki field tersebut.
-      if (isFree != null || hasPhoto != null || hasHalaqah != null) {
+      // Status gratis serta keberadaan foto, halaqah, dan nomor wali
+      // diselesaikan di client. Dokumen lama dapat benar-benar tidak memiliki
+      // field tersebut.
+      if (isFree != null ||
+          hasPhoto != null ||
+          hasHalaqah != null ||
+          hasGuardianPhone != null) {
         return _fetchWithClientFilters(
           baseQuery: query,
           isFree: isFree,
           hasPhoto: hasPhoto,
           hasHalaqah: hasHalaqah,
+          hasGuardianPhone: hasGuardianPhone,
           limit: limit,
           lastDocumentId: lastDocumentId,
         );
@@ -271,6 +284,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
         limit: limit,
         lastDocumentId: lastDocumentId,
       );
@@ -308,6 +322,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     required SantriSortBy sortBy,
   }) async {
     final query = _buildSantriQuery(
@@ -334,6 +349,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         isFree: isFree,
         hasPhoto: hasPhoto,
         hasHalaqah: hasHalaqah,
+        hasGuardianPhone: hasGuardianPhone,
       );
     }
 
@@ -349,6 +365,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             isFree: isFree,
             hasPhoto: hasPhoto,
             hasHalaqah: hasHalaqah,
+            hasGuardianPhone: hasGuardianPhone,
           );
     }).toList()..sort((a, b) => _compareSantri(a, b, sortBy));
   }
@@ -366,6 +383,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     required int limit,
     String? lastDocumentId,
   }) async {
@@ -378,6 +396,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       isFree: isFree,
       hasPhoto: hasPhoto,
       hasHalaqah: hasHalaqah,
+      hasGuardianPhone: hasGuardianPhone,
     );
 
     final normalizedKeyword = keyword?.trim().toLowerCase() ?? '';
@@ -408,6 +427,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
   }) async {
     final snapshot = await _buildSantriQuery(
       isActive: isActive,
@@ -428,6 +448,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
             isFree: isFree,
             hasPhoto: hasPhoto,
             hasHalaqah: hasHalaqah,
+            hasGuardianPhone: hasGuardianPhone,
           );
     }).toList()..sort((a, b) => _compareSantri(a, b, SantriSortBy.nis));
     return allMatches;
@@ -438,6 +459,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     required int limit,
     String? lastDocumentId,
   }) async {
@@ -467,6 +489,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
           isFree: isFree,
           hasPhoto: hasPhoto,
           hasHalaqah: hasHalaqah,
+          hasGuardianPhone: hasGuardianPhone,
         )) {
           result.add(santri);
           if (result.length >= limit) break;
@@ -508,10 +531,13 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
   }) {
     return (isFree == null || santri.isFree == isFree) &&
         (hasPhoto == null || santri.hasProfilePhoto == hasPhoto) &&
-        (hasHalaqah == null || santri.hasHalaqah == hasHalaqah);
+        (hasHalaqah == null || santri.hasHalaqah == hasHalaqah) &&
+        (hasGuardianPhone == null ||
+            santri.hasGuardianPhone == hasGuardianPhone);
   }
 
   static int _compareSantri(

@@ -21,7 +21,9 @@ class AdminAssessmentPage extends StatefulWidget {
 
 class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
   String _gender = 'L'; // 'L' = Putra, 'P' = Putri
-  final DateTime _now = DateTime.now();
+  late final DateTime _currentPeriod;
+  late final DateTime _previousPeriod;
+  late DateTime _selectedPeriod;
 
   static final _skeletonData = List.generate(
     4,
@@ -40,13 +42,27 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null);
+    final cubit = context.read<AdminAssessmentCubit>();
+    _currentPeriod = cubit.currentPeriod;
+    _previousPeriod = DateTime(_currentPeriod.year, _currentPeriod.month - 1);
+    _selectedPeriod = _currentPeriod;
     // Sekali muat untuk putra & putri; pindah tab tidak request ulang.
-    context.read<AdminAssessmentCubit>().load();
+    cubit.load();
   }
 
   void _onGenderChanged(String gender) {
     if (gender == _gender) return;
     setState(() => _gender = gender);
+  }
+
+  Future<void> _changePeriod(DateTime period) async {
+    if (_isSamePeriod(period, _selectedPeriod)) return;
+    setState(() => _selectedPeriod = period);
+    await _loadSelectedPeriod();
+  }
+
+  Future<void> _loadSelectedPeriod() {
+    return context.read<AdminAssessmentCubit>().load(period: _selectedPeriod);
   }
 
   Future<void> _remind(PembimbingAssessment data) async {
@@ -93,7 +109,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
   }
 
   String _buildReminderMessage(PembimbingAssessment data) {
-    final periode = _monthYearLabel();
+    final periode = _monthYearLabel(_selectedPeriod);
     final namaBergelar = _nameWithGelar(data.asatidzName, data.gender);
     final buffer = StringBuffer()
       ..writeln(
@@ -124,8 +140,12 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     return '$gelar ${cleaned.isEmpty ? name : cleaned}';
   }
 
-  String _monthYearLabel() {
-    return '${DateFormat('MMMM', 'id_ID').format(_now)} ${_now.year}';
+  bool _isSamePeriod(DateTime first, DateTime second) {
+    return first.year == second.year && first.month == second.month;
+  }
+
+  String _monthYearLabel(DateTime period) {
+    return '${DateFormat('MMMM', 'id_ID').format(period)} ${period.year}';
   }
 
   @override
@@ -146,10 +166,18 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
             final pembimbingList = state is AdminAssessmentLoaded
                 ? state.byGender(_gender)
                 : const <PembimbingAssessment>[];
+            final previousMonthHasIncompleteAssessment =
+                state is AdminAssessmentLoaded &&
+                state.previousMonthHasIncompleteAssessment;
 
             return Column(
               children: [
-                _buildHeader(isLoading, pembimbingList),
+                _buildHeader(
+                  isLoading,
+                  pembimbingList,
+                  previousMonthHasIncompleteAssessment:
+                      previousMonthHasIncompleteAssessment,
+                ),
                 _buildGenderToggle(),
                 Expanded(
                   child: isLoading
@@ -164,21 +192,71 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     );
   }
 
-  Widget _buildHeader(bool isLoading, List<PembimbingAssessment> list) {
+  Widget _buildHeader(
+    bool isLoading,
+    List<PembimbingAssessment> list, {
+    required bool previousMonthHasIncompleteAssessment,
+  }) {
     final completed = list.where((p) => p.isComplete).length;
+    final isCurrentPeriod = _isSamePeriod(_selectedPeriod, _currentPeriod);
+    final isPreviousPeriod = _isSamePeriod(_selectedPeriod, _previousPeriod);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Penilaian Bulan ${_monthYearLabel()}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          Row(
+            children: [
+              SizedBox.square(
+                dimension: 48,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: IconButton(
+                        key: const Key('admin_assessment_previous_month'),
+                        tooltip: 'Lihat ${_monthYearLabel(_previousPeriod)}',
+                        onPressed: !isLoading && isCurrentPeriod
+                            ? () => _changePeriod(_previousPeriod)
+                            : null,
+                        icon: const Icon(Icons.chevron_left_rounded),
+                      ),
+                    ),
+                    if (!isLoading &&
+                        isCurrentPeriod &&
+                        previousMonthHasIncompleteAssessment)
+                      const Positioned(
+                        right: 4,
+                        top: 4,
+                        child: _PreviousMonthIncompleteIndicator(),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  _monthYearLabel(_selectedPeriod),
+                  key: const Key('admin_assessment_period_label'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              SizedBox.square(
+                dimension: 48,
+                child: IconButton(
+                  key: const Key('admin_assessment_next_month'),
+                  tooltip: 'Lihat ${_monthYearLabel(_currentPeriod)}',
+                  onPressed: !isLoading && isPreviousPeriod
+                      ? () => _changePeriod(_currentPeriod)
+                      : null,
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -250,7 +328,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
 
   Widget _buildList(List<PembimbingAssessment> list) {
     return RefreshIndicator(
-      onRefresh: () => context.read<AdminAssessmentCubit>().load(),
+      onRefresh: _loadSelectedPeriod,
       child: list.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -301,11 +379,80 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
               style: TextStyle(color: Colors.grey.shade600, height: 1.5),
             ),
             const SizedBox(height: 20),
-            AiwaButton(
-              text: 'Coba Lagi',
-              onPressed: () => context.read<AdminAssessmentCubit>().load(),
-            ),
+            AiwaButton(text: 'Coba Lagi', onPressed: _loadSelectedPeriod),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviousMonthIncompleteIndicator extends StatefulWidget {
+  const _PreviousMonthIncompleteIndicator();
+
+  @override
+  State<_PreviousMonthIncompleteIndicator> createState() =>
+      _PreviousMonthIncompleteIndicatorState();
+}
+
+class _PreviousMonthIncompleteIndicatorState
+    extends State<_PreviousMonthIncompleteIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(count: 3);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Penilaian bulan sebelumnya belum lengkap',
+      child: SizedBox.square(
+        key: const Key('admin_assessment_previous_incomplete_indicator'),
+        dimension: 14,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                Opacity(
+                  opacity: 1 - _controller.value,
+                  child: Transform.scale(
+                    scale: 0.7 + (_controller.value * 1.15),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red.withValues(alpha: 0.35),
+                      ),
+                    ),
+                  ),
+                ),
+                child!,
+              ],
+            );
+          },
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.red,
+            ),
+          ),
         ),
       ),
     );

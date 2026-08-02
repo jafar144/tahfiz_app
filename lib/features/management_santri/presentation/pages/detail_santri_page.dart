@@ -353,7 +353,13 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                MonthlyReportCard(report: reports.first),
+                MonthlyReportCard(
+                  report: reports.first,
+                  periodTarget: MonthlyTargetProgress.forAssessment(
+                    reports.first,
+                    reports,
+                  ),
+                ),
               ],
             );
           },

@@ -16,12 +16,17 @@ class AdminAssessmentLoaded extends AdminAssessmentState {
   final int bulan;
   final int tahun;
 
+  /// `true` bila setidaknya ada satu santri yang belum dinilai pada bulan
+  /// sebelum bulan berjalan. Status ini mencakup pembimbing putra dan putri.
+  final bool previousMonthHasIncompleteAssessment;
+
   /// Seluruh pembimbing (putra & putri). Difilter per tab di UI.
   final List<PembimbingAssessment> pembimbingList;
 
   const AdminAssessmentLoaded({
     required this.bulan,
     required this.tahun,
+    this.previousMonthHasIncompleteAssessment = false,
     required this.pembimbingList,
   });
 

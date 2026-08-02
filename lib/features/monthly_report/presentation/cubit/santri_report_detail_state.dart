@@ -23,12 +23,22 @@ class SantriReportDetailLoaded extends SantriReportDetailState {
   /// "Edit" vs "Tambah").
   final bool currentMonthFilled;
 
+  /// Target yang berlaku untuk bulan berjalan. Target ini biasanya berasal
+  /// dari penilaian bulan sebelumnya.
+  final MonthlyTargetProgress? currentMonthTarget;
+
+  /// Target periode yang sudah dipasangkan dengan setiap laporan riwayat.
+  /// Key menggunakan ID laporan penilaian, bukan ID laporan pembuat target.
+  final Map<String, MonthlyTargetProgress> periodTargetsByReportId;
+
   const SantriReportDetailLoaded({
     required this.reports,
     required this.hasMore,
     this.isLoadingMore = false,
     this.missingPeriods = const [],
     this.currentMonthFilled = false,
+    this.currentMonthTarget,
+    this.periodTargetsByReportId = const {},
   });
 
   SantriReportDetailLoaded copyWith({
@@ -37,6 +47,8 @@ class SantriReportDetailLoaded extends SantriReportDetailState {
     bool? isLoadingMore,
     List<({int bulan, int tahun})>? missingPeriods,
     bool? currentMonthFilled,
+    MonthlyTargetProgress? currentMonthTarget,
+    Map<String, MonthlyTargetProgress>? periodTargetsByReportId,
   }) {
     return SantriReportDetailLoaded(
       reports: reports ?? this.reports,
@@ -44,6 +56,9 @@ class SantriReportDetailLoaded extends SantriReportDetailState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       missingPeriods: missingPeriods ?? this.missingPeriods,
       currentMonthFilled: currentMonthFilled ?? this.currentMonthFilled,
+      currentMonthTarget: currentMonthTarget ?? this.currentMonthTarget,
+      periodTargetsByReportId:
+          periodTargetsByReportId ?? this.periodTargetsByReportId,
     );
   }
 }

@@ -110,6 +110,19 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: SantriCard(widget.santri, onTap: () {}),
             ),
+            BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
+              builder: (context, state) {
+                final currentTarget = state is SantriReportDetailLoaded
+                    ? state.currentMonthTarget
+                    : null;
+                if (currentTarget == null) return const SizedBox.shrink();
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: CurrentMonthlyTargetCard(progress: currentTarget),
+                );
+              },
+            ),
             Expanded(
               child:
                   BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
@@ -178,7 +191,11 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
             child: MonthlyReportCard(report: MonthlyReport.dummy()),
           );
         }
-        return MonthlyReportCard(report: state.reports[reportIndex]);
+        final report = state.reports[reportIndex];
+        return MonthlyReportCard(
+          report: report,
+          periodTarget: state.periodTargetsByReportId[report.id],
+        );
       },
     );
   }

@@ -25,6 +25,7 @@ class SantriRepositoryImpl implements SantriRepository {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
   }) async {
@@ -38,6 +39,7 @@ class SantriRepositoryImpl implements SantriRepository {
       isFree: isFree,
       hasPhoto: hasPhoto,
       hasHalaqah: hasHalaqah,
+      hasGuardianPhone: hasGuardianPhone,
       sortBy: sortBy,
       limit: limit,
     );
@@ -58,6 +60,7 @@ class SantriRepositoryImpl implements SantriRepository {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,
@@ -72,6 +75,7 @@ class SantriRepositoryImpl implements SantriRepository {
       isFree: isFree,
       hasPhoto: hasPhoto,
       hasHalaqah: hasHalaqah,
+      hasGuardianPhone: hasGuardianPhone,
       sortBy: sortBy,
       limit: limit,
       lastDocumentId: lastDocumentId,

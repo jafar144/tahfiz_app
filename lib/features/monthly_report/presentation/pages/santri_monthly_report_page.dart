@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/constants/monthly_report_strings.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_monthly_report_state.dart';
@@ -88,7 +89,13 @@ class _SantriMonthlyReportView extends StatelessWidget {
                     index < state.reports.length;
                     index++
                   ) ...[
-                    MonthlyReportCard(report: state.reports[index]),
+                    MonthlyReportCard(
+                      report: state.reports[index],
+                      periodTarget: MonthlyTargetProgress.forAssessment(
+                        state.reports[index],
+                        state.reports,
+                      ),
+                    ),
                     if (index != state.reports.length - 1)
                       const SizedBox(height: 16),
                   ],

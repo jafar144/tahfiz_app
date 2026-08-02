@@ -18,6 +18,11 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
   /// Apakah penilaian bulan berjalan sudah ada, dipertahankan antar-paginasi.
   bool _currentMonthFilled = false;
 
+  /// Target bulan berjalan dan target per-laporan dihitung dari seluruh
+  /// riwayat agar tidak hilang di batas halaman paginasi.
+  MonthlyTargetProgress? _currentMonthTarget;
+  Map<String, MonthlyTargetProgress> _periodTargetsByReportId = const {};
+
   SantriReportDetailCubit({required this.repository})
     : super(SantriReportDetailLoading());
 
@@ -44,6 +49,19 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
             bulan: now.month,
             tahun: now.year,
           ));
+          _currentMonthTarget = MonthlyTargetProgress.forPeriod(
+            _all,
+            bulan: now.month,
+            tahun: now.year,
+          );
+          final targetsByReportId = <String, MonthlyTargetProgress>{};
+          for (final report in _all) {
+            final progress = MonthlyTargetProgress.forAssessment(report, _all);
+            if (progress != null) {
+              targetsByReportId[report.id] = progress;
+            }
+          }
+          _periodTargetsByReportId = targetsByReportId;
 
           final firstPage = _all.take(_pageSize).toList();
           emit(
@@ -52,6 +70,8 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
               hasMore: _all.length > firstPage.length,
               missingPeriods: _missingPeriods,
               currentMonthFilled: _currentMonthFilled,
+              currentMonthTarget: _currentMonthTarget,
+              periodTargetsByReportId: _periodTargetsByReportId,
             ),
           );
         },
@@ -84,6 +104,8 @@ class SantriReportDetailCubit extends Cubit<SantriReportDetailState> {
         isLoadingMore: false,
         missingPeriods: _missingPeriods,
         currentMonthFilled: _currentMonthFilled,
+        currentMonthTarget: _currentMonthTarget,
+        periodTargetsByReportId: _periodTargetsByReportId,
       ),
     );
   }

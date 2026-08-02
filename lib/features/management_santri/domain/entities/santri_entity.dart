@@ -54,4 +54,6 @@ class SantriEntity {
   bool get hasProfilePhoto => photoUrl?.trim().isNotEmpty ?? false;
 
   bool get hasHalaqah => halaqahId?.trim().isNotEmpty ?? false;
+
+  bool get hasGuardianPhone => nomorWali?.trim().isNotEmpty ?? false;
 }

@@ -92,6 +92,7 @@ class _PagingSantriRepository implements SantriRepository {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
   }) async {
@@ -109,6 +110,7 @@ class _PagingSantriRepository implements SantriRepository {
     bool? isFree,
     bool? hasPhoto,
     bool? hasHalaqah,
+    bool? hasGuardianPhone,
     SantriSortBy sortBy = SantriSortBy.name,
     int limit = 10,
     String? lastDocumentId,
