@@ -21,6 +21,7 @@ import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 
+import 'package:khoirunnasyien/features/syahadah/presentation/utils/kelulusan_share_flow.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_save_banner.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
@@ -102,8 +103,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Poster akan disimpan ke daftar Kelulusan Santri. '
-                  'Setelah berhasil, menu bagikan akan dibuka.',
+                  'Poster akan langsung dibagikan. Foto juga disimpan ke '
+                  'daftar Kelulusan Santri secara paralel.',
                   style: TextStyle(height: 1.45),
                 ),
               ),
@@ -128,8 +129,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                   SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'Pastikan aplikasi tetap terbuka sampai proses '
-                      'penyimpanan selesai.',
+                      'Anda boleh melanjutkan ke WhatsApp. Jangan tutup paksa '
+                      'Tahfiz App sampai banner menyatakan proses selesai.',
                       style: TextStyle(
                         color: Color(0xFF92400E),
                         fontSize: 12,
@@ -223,7 +224,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
     );
   }
 
-  Future<bool> _savePendingKelulusan(_PendingKelulusanSave job) async {
+  Future<void> _savePendingKelulusan(_PendingKelulusanSave job) async {
     var currentJob = job;
     if (mounted) {
       setState(() {
@@ -290,7 +291,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           _saveErrorMessage = null;
         });
       }
-      return true;
+      return;
     } on KelulusanAlreadyExistsException {
       if (mounted) {
         setState(() {
@@ -305,10 +306,10 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           _canRetrySave = true;
         });
       }
-      return false;
+      return;
     } on KelulusanNetworkException catch (error) {
       _showSaveFailure(error.message);
-      return false;
+      return;
     } on KelulusanRemoteException catch (error) {
       _showSaveFailure(
         error.message,
@@ -320,7 +321,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           'unauthenticated',
         }.contains(error.code),
       );
-      return false;
+      return;
     } catch (error) {
       if (_looksLikeNetworkFailure(error)) {
         _showSaveFailure(kelulusanNetworkErrorMessage);
@@ -329,7 +330,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           'Foto kelulusan belum berhasil disimpan. Silakan coba lagi.',
         );
       }
-      return false;
+      return;
     }
   }
 
@@ -388,8 +389,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
         });
       }
 
-      final saved = await _savePendingKelulusan(job);
-      if (saved && mounted) await _shareFile(job.file);
+      unawaited(_savePendingKelulusan(job));
     } on KelulusanNetworkException catch (error) {
       _showSaveFailure(error.message);
       _showSnackBar(error.message);
@@ -486,8 +486,10 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
         uploaderUid: authState.user.uid,
         replaceExisting: dailyStatus.exists,
       );
-      final saved = await _savePendingKelulusan(job);
-      if (saved && mounted) await _shareFile(file);
+      await shareKelulusanWhileSaving(
+        save: () => _savePendingKelulusan(job),
+        share: () => _shareFile(file),
+      );
     } on KelulusanNetworkException catch (error) {
       _showSnackBar(error.message);
     } on KelulusanRemoteException catch (error) {
@@ -511,8 +513,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
     } catch (_) {
       _showSnackBar(
-        'Foto sudah tersimpan, tetapi menu bagikan belum dapat dibuka. '
-        'Silakan coba bagikan kembali beberapa saat lagi.',
+        'Menu bagikan belum dapat dibuka. Status penyimpanan foto tetap dapat '
+        'dilihat pada banner.',
       );
     }
   }

@@ -478,6 +478,46 @@ test("pengingat penilaian dikirim personal ke nomor asatidz yang dinormalisasi",
   assert.equal(result.sent, 2);
 });
 
+test("WA susulan memakai bulan penilaian lama dan refId tanggal kirim", async () => {
+  const batches = [];
+  for (const day of [1, 2]) {
+    await runIncompleteAssessmentWhatsApp(
+      { day, month: 7, year: 2026 },
+      [
+        {
+          uid: "asatidz-a",
+          name: "Ahmad",
+          total: 10,
+          count: 2,
+          phone: "0812-3456-7890",
+        },
+      ],
+      {
+        enabled: true,
+        institution,
+        deliveryParts: { day, month: 8, year: 2026 },
+        send: async (messages) => {
+          batches.push(messages);
+          return { messageCount: messages.length };
+        },
+      },
+    );
+  }
+
+  assert.deepEqual(
+    batches.map((messages) => messages[0].refId),
+    [
+      "assessment-overdue-2026-07-2026-08-01-asatidz-a",
+      "assessment-overdue-2026-07-2026-08-02-asatidz-a",
+    ],
+  );
+  for (const messages of batches) {
+    assert.match(messages[0].message, /penilaian bulan Juli 2026/);
+    assert.doesNotMatch(messages[0].message, /Agustus 2026/);
+    assert.match(messages[0].message, /sebelum bulan ini berakhir/);
+  }
+});
+
 test("nomor asatidz invalid dilewati dan Wablas nonaktif tidak membaca nomor", async () => {
   let resolverCalls = 0;
   let sendCalls = 0;

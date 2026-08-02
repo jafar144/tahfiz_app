@@ -2,10 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/utils/profile_photo_picker.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
@@ -189,41 +188,16 @@ class _EditSantriPageState extends State<EditSantriPage> {
   }
 
   Future<void> _pickImage() async {
-    final file = await ImageUtils.pickImage(ImageSource.gallery);
-    if (file == null) return;
+    setState(() => _isPickingPhoto = true);
 
     try {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: file.path,
-        // Sama dengan rasio bidang foto pada template syahadah (500 x 560).
-        // Rasio dikunci agar semua foto santri memiliki komposisi seragam.
-        aspectRatio: const CropAspectRatio(ratioX: 25, ratioY: 28),
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 95,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Atur Foto Santri',
-            toolbarColor: const Color(0xFF004AAD),
-            toolbarWidgetColor: Colors.white,
-            activeControlsWidgetColor: const Color(0xFF004AAD),
-            lockAspectRatio: true,
-            showCropGrid: true,
-          ),
-          IOSUiSettings(
-            title: 'Atur Foto Santri',
-            doneButtonTitle: 'Simpan',
-            cancelButtonTitle: 'Batal',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-            aspectRatioPickerButtonHidden: true,
-          ),
-        ],
+      final file = await ProfilePhotoPicker.shared.pickAndEdit(
+        context,
+        type: ProfilePhotoType.santri,
       );
-      if (croppedFile == null || !mounted) return;
+      if (file == null || !mounted) return;
 
-      setState(() => _isPickingPhoto = true);
-
-      final compressed = await ImageUtils.compressImage(File(croppedFile.path));
+      final compressed = await ImageUtils.compressImage(file);
       if (!mounted) return;
 
       if (compressed != null) {

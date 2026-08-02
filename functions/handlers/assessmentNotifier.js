@@ -2,6 +2,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { logger } = require("firebase-functions");
 const { SCHEDULE_OPTIONS } = require("../lib/config");
 const { jakartaDateParts, monthNameId } = require("../lib/jakartaTime");
+const { previousMonthParts } = require("../lib/whatsappMessages");
 const { sendToRole, sendToUid } = require("../lib/messaging");
 const { computeIncompleteAsatidz } = require("../lib/assessmentStatus");
 const {
@@ -10,13 +11,14 @@ const {
 const {
   ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING,
   ASSESSMENT_LAST_DAYS_THRESHOLD,
+  ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS,
   ASSESSMENT_JOBS,
   assessmentJobNames,
   runScheduledJobs,
 } = require("../lib/notificationSchedule");
 
-// Kedua kebutuhan penilaian berbagi satu scheduler dan dipilih berdasarkan
-// posisi tanggal terhadap akhir bulan di zona Jakarta.
+// Seluruh kebutuhan penilaian berbagi satu scheduler dan dipilih berdasarkan
+// tanggal serta posisi terhadap akhir bulan di zona Jakarta.
 
 // WABLAS_ENABLED dari .env.<project> baru diterapkan setelah manifest dibuat.
 // Ikat secret tanpa kondisi agar tersedia ketika pengiriman runtime diaktifkan.
@@ -125,11 +127,71 @@ async function runIncomplete(parts = jakartaDateParts(), options = {}) {
   return { notified, pushFailed, whatsapp };
 }
 
+// --- Notif #3: susulan WA untuk penilaian bulan sebelumnya (tanggal 1 & 2) ---
+async function runPreviousMonthIncomplete(
+  parts = jakartaDateParts(),
+  options = {},
+) {
+  if (!ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS.includes(parts.day)) {
+    logger.info(
+      `[previousMonthIncomplete] dilewati (tanggal ${parts.day}).`,
+    );
+    return { skipped: true, reason: "not_reminder_day" };
+  }
+
+  const previous = previousMonthParts(parts);
+  const assessmentParts = {
+    day: parts.day,
+    month: previous.month,
+    year: previous.year,
+  };
+  const computeIncomplete =
+    options.computeIncomplete || computeIncompleteAsatidz;
+  const sendWhatsApp =
+    options.sendWhatsApp || runIncompleteAssessmentWhatsApp;
+  const incomplete = await computeIncomplete(previous.month, previous.year);
+
+  if (!incomplete.length) {
+    logger.info(
+      `[previousMonthIncomplete] penilaian ${monthNameId(previous.month)} ${previous.year} sudah lengkap.`,
+    );
+    return {
+      period: previous,
+      eligible: 0,
+      whatsapp: { skipped: true, reason: "no_recipients" },
+    };
+  }
+
+  try {
+    const whatsapp = await sendWhatsApp(assessmentParts, incomplete, {
+      deliveryParts: parts,
+    });
+    logger.info(
+      `[previousMonthIncomplete] ${incomplete.length} asatidz belum lengkap untuk ${monthNameId(previous.month)} ${previous.year}; WhatsApp terkirim ${whatsapp.sent || 0}.`,
+    );
+    return { period: previous, eligible: incomplete.length, whatsapp };
+  } catch (error) {
+    logger.error(
+      `[previousMonthIncomplete] pengiriman WhatsApp gagal: ${error.message}`,
+    );
+    return {
+      period: previous,
+      eligible: incomplete.length,
+      whatsapp: {
+        sent: 0,
+        failed: incomplete.length,
+        error: error.message,
+      },
+    };
+  }
+}
+
 async function runAssessmentNotifications(
   parts = jakartaDateParts(),
   runners = {
     [ASSESSMENT_JOBS.windowOpen]: runWindowOpen,
     [ASSESSMENT_JOBS.incomplete]: runIncomplete,
+    [ASSESSMENT_JOBS.previousMonthIncomplete]: runPreviousMonthIncomplete,
   }
 ) {
   const jobNames = assessmentJobNames(parts);
@@ -139,11 +201,14 @@ async function runAssessmentNotifications(
   return runScheduledJobs(jobNames, runners, parts);
 }
 
-// Satu penjadwal harian 19:30 WIB menangani kedua notifikasi penilaian.
+// Satu penjadwal harian 19:30 WIB menangani seluruh notifikasi penilaian.
 const scheduledAssessmentNotifications = onSchedule(
   ASSESSMENT_SCHEDULE_OPTIONS,
-  async () => {
-    await runAssessmentNotifications();
+  async (event) => {
+    const scheduledAt = event?.scheduleTime
+      ? new Date(event.scheduleTime)
+      : new Date();
+    await runAssessmentNotifications(jakartaDateParts(scheduledAt));
   }
 );
 
@@ -151,5 +216,6 @@ module.exports = {
   scheduledAssessmentNotifications,
   runWindowOpen,
   runIncomplete,
+  runPreviousMonthIncomplete,
   runAssessmentNotifications,
 };

@@ -21,13 +21,14 @@ void main() {
     );
   }
 
-  testWidgets('status menyimpan menunggu sebelum membuka menu bagikan', (
+  testWidgets('status menyimpan mengingatkan proses tetap berjalan', (
     tester,
   ) async {
     await tester.pumpWidget(buildBanner(KelulusanSaveStatus.saving));
 
     expect(find.text('Menyimpan foto kelulusan…'), findsOneWidget);
-    expect(find.textContaining('dibagikan setelah tersimpan'), findsOneWidget);
+    expect(find.textContaining('membuka WhatsApp'), findsOneWidget);
+    expect(find.textContaining('Jangan tutup paksa'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 

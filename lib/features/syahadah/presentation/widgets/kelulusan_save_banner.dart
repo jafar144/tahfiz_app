@@ -30,7 +30,8 @@ class KelulusanSaveBanner extends StatelessWidget {
         border: const Color(0xFFBFDBFE),
         foreground: const Color(0xFF1D4ED8),
         title: 'Menyimpan foto kelulusan…',
-        message: 'Tunggu sebentar. Poster akan dibagikan setelah tersimpan.',
+        message:
+            'Anda boleh membuka WhatsApp. Jangan tutup paksa Tahfiz App sampai proses selesai.',
       ),
       KelulusanSaveStatus.success => (
         background: const Color(0xFFECFDF3),

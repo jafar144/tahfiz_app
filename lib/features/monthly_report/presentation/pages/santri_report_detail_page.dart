@@ -103,57 +103,75 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
               },
             ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header santri "fixed" di paling atas.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: SantriCard(widget.santri, onTap: () {}),
-            ),
-            BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
-              builder: (context, state) {
-                final currentTarget = state is SantriReportDetailLoaded
-                    ? state.currentMonthTarget
-                    : null;
-                if (currentTarget == null) return const SizedBox.shrink();
+        child: BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
+          builder: (context, state) {
+            final currentTarget = state is SantriReportDetailLoaded
+                ? state.currentMonthTarget
+                : null;
 
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: CurrentMonthlyTargetCard(progress: currentTarget),
-                );
-              },
-            ),
-            Expanded(
-              child:
-                  BlocBuilder<SantriReportDetailCubit, SantriReportDetailState>(
-                    builder: (context, state) {
-                      if (state is SantriReportDetailLoading) {
-                        return _buildSkeleton();
-                      }
-
-                      if (state is SantriReportDetailError) {
-                        return _buildError(state.message);
-                      }
-
-                      if (state is SantriReportDetailLoaded) {
-                        if (state.reports.isEmpty &&
-                            state.missingPeriods.isEmpty) {
-                          return _buildEmptyState();
-                        }
-                        return _buildList(state);
-                      }
-
-                      return const SizedBox();
-                    },
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // Kartu santri ikut ter-scroll dan menghilang dari layar.
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  sliver: SliverToBoxAdapter(
+                    child: SantriCard(
+                      widget.santri,
+                      key: const Key('santri-report-detail-card'),
+                      onTap: () {},
+                    ),
                   ),
-            ),
-          ],
+                ),
+                if (currentTarget != null)
+                  PinnedHeaderSliver(
+                    key: const Key('current-month-target-pinned-header'),
+                    child: ColoredBox(
+                      color: const Color(0xFFFAFAFA),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: CurrentMonthlyTargetCard(
+                          progress: currentTarget,
+                        ),
+                      ),
+                    ),
+                  ),
+                ..._buildContentSlivers(state),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildList(SantriReportDetailLoaded state) {
+  List<Widget> _buildContentSlivers(SantriReportDetailState state) {
+    if (state is SantriReportDetailLoading) {
+      return [_buildSkeletonSliver()];
+    }
+
+    if (state is SantriReportDetailError) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _buildError(state.message),
+        ),
+      ];
+    }
+
+    if (state is SantriReportDetailLoaded) {
+      if (state.reports.isEmpty && state.missingPeriods.isEmpty) {
+        return [
+          SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState()),
+        ];
+      }
+      return [_buildListSliver(state)];
+    }
+
+    return const [SliverToBoxAdapter(child: SizedBox.shrink())];
+  }
+
+  Widget _buildListSliver(SantriReportDetailLoaded state) {
     final missing = state.missingPeriods;
     // Seksi tertunggak (header + kartu merah) ditaruh di paling atas.
     final missingItemCount = missing.isEmpty ? 0 : missing.length + 1;
@@ -161,54 +179,56 @@ class _SantriReportDetailViewState extends State<_SantriReportDetailView> {
     final itemCount =
         missingItemCount + state.reports.length + (showFooter ? 1 : 0);
 
-    return ListView.separated(
-      controller: _scrollController,
+    return SliverPadding(
       // Ruang ekstra di bawah agar item terakhir tidak tertutup FAB.
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-      itemCount: itemCount,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        // 1) Seksi tertunggak: header lalu daftar kartu merah.
-        if (missingItemCount > 0 && index < missingItemCount) {
-          if (index == 0) {
-            return const _SectionHeader(
-              MonthlyReportStrings.penilaianTertunggak,
+      sliver: SliverList.separated(
+        itemCount: itemCount,
+        separatorBuilder: (_, _) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          // 1) Seksi tertunggak: header lalu daftar kartu merah.
+          if (missingItemCount > 0 && index < missingItemCount) {
+            if (index == 0) {
+              return const _SectionHeader(
+                MonthlyReportStrings.penilaianTertunggak,
+              );
+            }
+            final period = missing[index - 1];
+            return MissingReportCard(
+              bulan: period.bulan,
+              tahun: period.tahun,
+              onTap: () => _openInput(period.bulan, period.tahun),
             );
           }
-          final period = missing[index - 1];
-          return MissingReportCard(
-            bulan: period.bulan,
-            tahun: period.tahun,
-            onTap: () => _openInput(period.bulan, period.tahun),
-          );
-        }
 
-        // 2) Daftar riwayat (paginasi) + footer skeleton saat memuat lagi.
-        final reportIndex = index - missingItemCount;
-        if (reportIndex >= state.reports.length) {
-          return Skeletonizer(
-            enabled: true,
-            child: MonthlyReportCard(report: MonthlyReport.dummy()),
+          // 2) Daftar riwayat (paginasi) + footer skeleton saat memuat lagi.
+          final reportIndex = index - missingItemCount;
+          if (reportIndex >= state.reports.length) {
+            return Skeletonizer(
+              enabled: true,
+              child: MonthlyReportCard(report: MonthlyReport.dummy()),
+            );
+          }
+          final report = state.reports[reportIndex];
+          return MonthlyReportCard(
+            report: report,
+            periodTarget: state.periodTargetsByReportId[report.id],
           );
-        }
-        final report = state.reports[reportIndex];
-        return MonthlyReportCard(
-          report: report,
-          periodTarget: state.periodTargetsByReportId[report.id],
-        );
-      },
+        },
+      ),
     );
   }
 
-  Widget _buildSkeleton() {
-    return Skeletonizer(
-      enabled: true,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-        physics: const NeverScrollableScrollPhysics(),
+  Widget _buildSkeletonSliver() {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      sliver: SliverList.separated(
         itemCount: 5,
         separatorBuilder: (_, _) => const SizedBox(height: 12),
-        itemBuilder: (_, _) => MonthlyReportCard(report: MonthlyReport.dummy()),
+        itemBuilder: (_, _) => Skeletonizer(
+          enabled: true,
+          child: MonthlyReportCard(report: MonthlyReport.dummy()),
+        ),
       ),
     );
   }

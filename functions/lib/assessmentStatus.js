@@ -1,4 +1,5 @@
 const { db } = require("./firebase");
+const { jakartaDateParts } = require("./jakartaTime");
 
 // Replikasi logika AdminAssessmentCubit (lib/.../admin_assessment_cubit.dart):
 // menentukan asatidz yang penilaian bulanannya BELUM lengkap pada bulan & tahun
@@ -10,9 +11,25 @@ const { db } = require("./firebase");
 // Mengembalikan array: { uid, name, total, count }
 //   total  = jumlah santri aktif yang menjadi tanggung jawab asatidz
 //   count  = jumlah santri yang belum dinilai bulan ini
-async function computeIncompleteAsatidz(bulan, tahun) {
+function wasEnrolledInPeriod(tanggalMasuk, bulan, tahun) {
+  if (!tanggalMasuk) return true;
+
+  try {
+    const date = typeof tanggalMasuk.toDate === "function"
+      ? tanggalMasuk.toDate()
+      : tanggalMasuk;
+    const entered = jakartaDateParts(date);
+    return entered.year * 12 + entered.month <= tahun * 12 + bulan;
+  } catch (_) {
+    // Data lama tanpa tanggal valid mengikuti fallback aplikasi: tetap
+    // dianggap terdaftar agar tidak hilang dari pemantauan.
+    return true;
+  }
+}
+
+async function computeIncompleteAsatidz(bulan, tahun, firestore = db) {
   // 1. Halaqah → peta halaqahId→teacherId dan teacherId→nama.
-  const halaqahsSnap = await db.collection("halaqahs").get();
+  const halaqahsSnap = await firestore.collection("halaqahs").get();
   const teacherByHalaqah = new Map();
   const teacherName = new Map();
   halaqahsSnap.forEach((doc) => {
@@ -24,20 +41,22 @@ async function computeIncompleteAsatidz(bulan, tahun) {
   });
 
   // 2. Asatidz aktif (filter sama seperti di app).
-  const asatidzSnap = await db
+  const asatidzSnap = await firestore
     .collection("asatidz_profiles")
     .where("is_active", "==", true)
     .get();
   const activeAsatidz = new Set(asatidzSnap.docs.map((doc) => doc.id));
 
   // 3. Santri aktif → kelompokkan id santri per asatidz lewat halaqah_id.
-  const santriSnap = await db
+  const santriSnap = await firestore
     .collection("santri_profiles")
     .where("is_active", "==", true)
     .get();
   const santriIdsByTeacher = new Map();
   santriSnap.forEach((doc) => {
-    const halaqahId = doc.data().halaqah_id;
+    const data = doc.data();
+    if (!wasEnrolledInPeriod(data.tanggal_masuk, bulan, tahun)) return;
+    const halaqahId = data.halaqah_id;
     if (!halaqahId) return;
     const teacherId = teacherByHalaqah.get(halaqahId);
     if (!teacherId) return;
@@ -46,7 +65,7 @@ async function computeIncompleteAsatidz(bulan, tahun) {
   });
 
   // 4. Santri yang sudah dinilai pada bulan & tahun tsb.
-  const reportsSnap = await db
+  const reportsSnap = await firestore
     .collection("monthly_reports")
     .where("bulan", "==", bulan)
     .where("tahun", "==", tahun)
@@ -76,4 +95,4 @@ async function computeIncompleteAsatidz(bulan, tahun) {
   return result;
 }
 
-module.exports = { computeIncompleteAsatidz };
+module.exports = { wasEnrolledInPeriod, computeIncompleteAsatidz };

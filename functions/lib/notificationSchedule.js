@@ -4,6 +4,7 @@
 
 const ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING = 6;
 const ASSESSMENT_LAST_DAYS_THRESHOLD = 1;
+const ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS = Object.freeze([1, 2]);
 const PAYMENT_DUE_DAY = 5;
 const ARREARS_MID_DAY = 15;
 const ARREARS_MONTH_END_DAYS_REMAINING = 3;
@@ -11,6 +12,7 @@ const ARREARS_MONTH_END_DAYS_REMAINING = 3;
 const ASSESSMENT_JOBS = Object.freeze({
   windowOpen: "windowOpen",
   incomplete: "incomplete",
+  previousMonthIncomplete: "previousMonthIncomplete",
 });
 
 const PAYMENT_JOBS = Object.freeze({
@@ -22,6 +24,9 @@ const PAYMENT_JOBS = Object.freeze({
 
 function assessmentJobNames(parts) {
   const jobs = [];
+  if (ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS.includes(parts.day)) {
+    jobs.push(ASSESSMENT_JOBS.previousMonthIncomplete);
+  }
   if (parts.daysRemaining === ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING) {
     jobs.push(ASSESSMENT_JOBS.windowOpen);
   }
@@ -67,6 +72,7 @@ async function runScheduledJobs(jobNames, runners, parts) {
 module.exports = {
   ASSESSMENT_WINDOW_OPEN_DAYS_REMAINING,
   ASSESSMENT_LAST_DAYS_THRESHOLD,
+  ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS,
   PAYMENT_DUE_DAY,
   ARREARS_MID_DAY,
   ARREARS_MONTH_END_DAYS_REMAINING,

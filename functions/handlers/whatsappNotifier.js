@@ -356,6 +356,20 @@ async function runIncompleteAssessmentWhatsApp(
       continue;
     }
 
+    const deliveryParts = options.deliveryParts;
+    const refId = deliveryParts
+      ? `assessment-overdue-${parts.year}-${String(parts.month).padStart(
+          2,
+          "0",
+        )}-${deliveryParts.year}-${String(deliveryParts.month).padStart(
+          2,
+          "0",
+        )}-${String(deliveryParts.day).padStart(2, "0")}-${asatidz.uid}`
+      : `assessment-incomplete-${parts.year}-${String(parts.month).padStart(
+          2,
+          "0",
+        )}-${String(parts.day).padStart(2, "0")}-${asatidz.uid}`;
+
     messages.push({
       phone,
       message: buildIncompleteAssessmentWhatsAppMessage(
@@ -364,9 +378,7 @@ async function runIncompleteAssessmentWhatsApp(
         institution,
       ),
       isGroup: "false",
-      refId: `assessment-incomplete-${parts.year}-${String(
-        parts.month,
-      ).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}-${asatidz.uid}`,
+      refId,
     });
   }
 

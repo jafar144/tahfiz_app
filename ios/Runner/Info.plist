@@ -3,7 +3,9 @@
 <plist version="1.0">
 	<dict>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Aplikasi membutuhkan akses galeri untuk memilih dan mengatur foto santri.</string>
+		<string>Aplikasi membutuhkan akses galeri untuk memilih dan mengatur foto profil santri dan asatidz.</string>
+		<key>NSCameraUsageDescription</key>
+		<string>Aplikasi membutuhkan akses kamera untuk mengambil foto profil santri dan asatidz.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>Aplikasi membutuhkan mikrofon untuk merekam dan memeriksa bacaan Al-Qur'an.</string>
 		<key>CFBundleDevelopmentRegion</key>

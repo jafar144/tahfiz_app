@@ -14,6 +14,14 @@ const { jakartaDateTimeParts } = require("../lib/jakartaTime");
 
 test("scheduler penilaian memilih hanya job pada hari yang tepat", () => {
   assert.deepEqual(
+    assessmentJobNames({ day: 1, daysRemaining: 30 }),
+    [ASSESSMENT_JOBS.previousMonthIncomplete],
+  );
+  assert.deepEqual(
+    assessmentJobNames({ day: 2, daysRemaining: 29 }),
+    [ASSESSMENT_JOBS.previousMonthIncomplete],
+  );
+  assert.deepEqual(
     assessmentJobNames({ day: 24, daysRemaining: 6 }),
     [ASSESSMENT_JOBS.windowOpen]
   );
@@ -25,6 +33,7 @@ test("scheduler penilaian memilih hanya job pada hari yang tepat", () => {
     assessmentJobNames({ day: 30, daysRemaining: 0 }),
     [ASSESSMENT_JOBS.incomplete]
   );
+  assert.deepEqual(assessmentJobNames({ day: 3, daysRemaining: 28 }), []);
   assert.deepEqual(assessmentJobNames({ day: 20, daysRemaining: 10 }), []);
 });
 
@@ -309,6 +318,102 @@ test("H-1 dan hari terakhir mengirim FCM serta WhatsApp ke asatidz belum lengkap
     notified: 1,
     pushFailed: 1,
     whatsapp: { sent: 2, failed: 0 },
+  });
+});
+
+test("tanggal 1 mengirim WA susulan untuk penilaian bulan sebelumnya", async () => {
+  const {
+    runPreviousMonthIncomplete,
+  } = require("../handlers/assessmentNotifier");
+  const incomplete = [
+    { uid: "asatidz-a", name: "Ahmad", total: 10, count: 2 },
+  ];
+  const computeCalls = [];
+  let whatsappInput;
+
+  const result = await runPreviousMonthIncomplete(
+    { day: 1, month: 8, year: 2026, daysRemaining: 30 },
+    {
+      computeIncomplete: async (month, year) => {
+        computeCalls.push({ month, year });
+        return incomplete;
+      },
+      sendWhatsApp: async (period, recipients, options) => {
+        whatsappInput = { period, recipients, options };
+        return { sent: recipients.length, failed: 0 };
+      },
+    },
+  );
+
+  assert.deepEqual(computeCalls, [{ month: 7, year: 2026 }]);
+  assert.deepEqual(whatsappInput, {
+    period: { day: 1, month: 7, year: 2026 },
+    recipients: incomplete,
+    options: {
+      deliveryParts: {
+        day: 1,
+        month: 8,
+        year: 2026,
+        daysRemaining: 30,
+      },
+    },
+  });
+  assert.deepEqual(result, {
+    period: { month: 7, year: 2026 },
+    eligible: 1,
+    whatsapp: { sent: 1, failed: 0 },
+  });
+});
+
+test("susulan menangani rollover Januari dan menghitung ulang pada tanggal 2", async () => {
+  const {
+    runPreviousMonthIncomplete,
+  } = require("../handlers/assessmentNotifier");
+  const computeCalls = [];
+  let sendCalls = 0;
+
+  const result = await runPreviousMonthIncomplete(
+    { day: 2, month: 1, year: 2027, daysRemaining: 29 },
+    {
+      computeIncomplete: async (month, year) => {
+        computeCalls.push({ month, year });
+        return [];
+      },
+      sendWhatsApp: async () => {
+        sendCalls += 1;
+      },
+    },
+  );
+
+  assert.deepEqual(computeCalls, [{ month: 12, year: 2026 }]);
+  assert.equal(sendCalls, 0);
+  assert.deepEqual(result, {
+    period: { month: 12, year: 2026 },
+    eligible: 0,
+    whatsapp: { skipped: true, reason: "no_recipients" },
+  });
+});
+
+test("runner susulan melewati tanggal selain 1 dan 2 tanpa query", async () => {
+  const {
+    runPreviousMonthIncomplete,
+  } = require("../handlers/assessmentNotifier");
+  let computeCalls = 0;
+
+  const result = await runPreviousMonthIncomplete(
+    { day: 3, month: 8, year: 2026, daysRemaining: 28 },
+    {
+      computeIncomplete: async () => {
+        computeCalls += 1;
+        return [];
+      },
+    },
+  );
+
+  assert.equal(computeCalls, 0);
+  assert.deepEqual(result, {
+    skipped: true,
+    reason: "not_reminder_day",
   });
 });
 

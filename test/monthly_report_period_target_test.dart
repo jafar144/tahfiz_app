@@ -1,11 +1,15 @@
 import 'package:dart_either/dart_either.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/santri_report_detail_state.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/pages/santri_report_detail_page.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
 
 void main() {
@@ -192,6 +196,75 @@ void main() {
       );
       expect(find.text('Minimum yang diisi asatidz'), findsOneWidget);
       expect(find.text('Optimum yang diisi asatidz'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'santri card scrolls away while the current target stays pinned',
+    (tester) async {
+      final now = DateTime.now();
+      final previous = DateTime(now.year, now.month - 1);
+      final reports = <MonthlyReport>[
+        _report(
+          id: 'target-source',
+          bulan: previous.month,
+          tahun: previous.year,
+          target: MonthlyTarget(
+            bulan: now.month,
+            tahun: now.year,
+            minimum: 'Minimum bulan berjalan',
+            optimum: 'Optimum bulan berjalan',
+          ),
+        ),
+        for (var index = 1; index < 10; index++)
+          _report(
+            id: 'history-$index',
+            bulan: DateTime(now.year, now.month - index - 1).month,
+            tahun: DateTime(now.year, now.month - index - 1).year,
+          ),
+      ];
+
+      getIt.pushNewScope();
+      getIt.registerSingleton<MonthlyReportRepository>(
+        _FakeMonthlyReportRepository(reports),
+      );
+      addTearDown(getIt.popScope);
+
+      final santri = SantriEntity(
+        id: 'student-1',
+        name: 'Muhammad Wildan Syahab',
+        nis: '20260001',
+        kelas: 'Tahfiz A',
+        jenisKelamin: 'L',
+        isActive: true,
+        isFree: false,
+        tanggalMasuk: DateTime(now.year, now.month),
+        pembimbing: 'Ustadz Ahmad',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SantriReportDetailPage(santri: santri, viewOnly: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final scrollView = find.byType(CustomScrollView);
+      final santriCard = find.byType(SantriCard);
+      final targetCard = find.byKey(const Key('current-month-target-card'));
+
+      expect(santriCard.hitTestable(), findsOneWidget);
+      expect(targetCard.hitTestable(), findsOneWidget);
+
+      await tester.drag(scrollView, const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      expect(santriCard.hitTestable(), findsNothing);
+      expect(targetCard.hitTestable(), findsOneWidget);
+      expect(
+        tester.getTopLeft(targetCard).dy,
+        closeTo(tester.getTopLeft(scrollView).dy, 2),
+      );
     },
   );
 

@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/utils/profile_photo_picker.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
@@ -202,13 +202,18 @@ class _AddSantriPageState extends State<AddSantriPage> {
   }
 
   Future<void> _pickImage() async {
-    final file = await ImageUtils.pickImage(ImageSource.gallery);
-    if (file == null) return;
-
     setState(() => _isPickingPhoto = true);
 
     try {
+      final file = await ProfilePhotoPicker.shared.pickAndEdit(
+        context,
+        type: ProfilePhotoType.santri,
+      );
+      if (file == null || !mounted) return;
+
       final compressed = await ImageUtils.compressImage(file);
+      if (!mounted) return;
+
       if (compressed != null) {
         setState(() => _localPhotoFile = compressed);
       }

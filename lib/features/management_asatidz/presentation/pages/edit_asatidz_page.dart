@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/utils/profile_photo_picker.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
@@ -101,38 +100,16 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
   }
 
   Future<void> _pickImage() async {
-    final file = await ImageUtils.pickImage(ImageSource.gallery);
-    if (file == null) return;
+    setState(() => _isPickingPhoto = true);
 
     try {
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: file.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-        compressFormat: ImageCompressFormat.jpg,
-        compressQuality: 95,
-        uiSettings: [
-          AndroidUiSettings(
-            toolbarTitle: 'Atur Foto Asatidz',
-            toolbarColor: const Color(0xFF004AAD),
-            toolbarWidgetColor: Colors.white,
-            activeControlsWidgetColor: const Color(0xFF004AAD),
-            lockAspectRatio: true,
-            showCropGrid: true,
-          ),
-          IOSUiSettings(
-            title: 'Atur Foto Asatidz',
-            doneButtonTitle: 'Simpan',
-            cancelButtonTitle: 'Batal',
-            aspectRatioLockEnabled: true,
-            resetAspectRatioEnabled: false,
-            aspectRatioPickerButtonHidden: true,
-          ),
-        ],
+      final editedFile = await ProfilePhotoPicker.shared.pickAndEdit(
+        context,
+        type: ProfilePhotoType.asatidz,
       );
-      if (croppedFile == null || !mounted) return;
+      if (editedFile == null || !mounted) return;
 
-      setState(() => _isPickingPhoto = true);
-      final compressed = await ImageUtils.compressImage(File(croppedFile.path));
+      final compressed = await ImageUtils.compressImage(editedFile);
       if (!mounted) return;
       if (compressed != null) {
         setState(() {
