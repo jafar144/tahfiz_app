@@ -15,12 +15,9 @@ const {
 const TEMPORARY_PASSWORD_ALPHABET =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
 
-const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
-  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase(),
-);
-const wablasSecrets = wablasEnabledAtDeploy
-  ? Object.values(require("../lib/wablasSecrets"))
-  : [];
+// Secret perlu tercantum pada manifest meski feature flag baru dibaca saat
+// runtime. Tanpa deklarasi ini, welcome WhatsApp gagal ketika Wablas aktif.
+const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
 const PROVISION_OPTIONS = {
   ...CALLABLE_OPTIONS,
   secrets: wablasSecrets,

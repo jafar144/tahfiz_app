@@ -18,12 +18,9 @@ const {
 // Kedua kebutuhan penilaian berbagi satu scheduler dan dipilih berdasarkan
 // posisi tanggal terhadap akhir bulan di zona Jakarta.
 
-const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
-  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase()
-);
-const wablasSecrets = wablasEnabledAtDeploy
-  ? Object.values(require("../lib/wablasSecrets"))
-  : [];
+// WABLAS_ENABLED dari .env.<project> baru diterapkan setelah manifest dibuat.
+// Ikat secret tanpa kondisi agar tersedia ketika pengiriman runtime diaktifkan.
+const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
 const ASSESSMENT_SCHEDULE_OPTIONS = {
   ...SCHEDULE_OPTIONS,
   schedule: "30 19 * * *",

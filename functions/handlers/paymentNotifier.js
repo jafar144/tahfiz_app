@@ -28,12 +28,11 @@ const {
 // tanggal Jakarta sebelum query Firestore dijalankan.
 
 // Reads penuh (santri_profiles + payments) butuh kelonggaran timeout.
-const wablasEnabledAtDeploy = ["1", "true", "yes", "on"].includes(
-  String(process.env.WABLAS_ENABLED || "").trim().toLowerCase()
-);
-const wablasSecrets = wablasEnabledAtDeploy
-  ? Object.values(require("../lib/wablasSecrets"))
-  : [];
+// Parameter dari .env.<project> belum tersedia saat Firebase CLI membangun
+// manifest. Karena itu secret harus selalu dideklarasikan pada fungsi yang
+// dapat mengirim lewat Wablas; pengecekan WABLAS_ENABLED tetap dilakukan saat
+// handler berjalan.
+const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
 
 const PAYMENT_SCHEDULE_OPTIONS = {
   ...SCHEDULE_OPTIONS,

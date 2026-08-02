@@ -432,6 +432,24 @@ test("manifest Firebase memuat tepat tiga jadwal di zona Jakarta", () => {
   assert.equal(cloudFunctions.notifyMonthlyAssessmentGroups, undefined);
 });
 
+test("fungsi yang memakai Wablas mengikat kedua secret pada manifest", () => {
+  const cloudFunctions = require("../index");
+  const expected = ["WABLAS_SECRET_KEY", "WABLAS_TOKEN"];
+
+  for (const functionName of [
+    "notifyAssessmentWindowOpen",
+    "notifyArrearsMonthEnd",
+    "provisionInstitutionUser",
+  ]) {
+    const names = (
+      cloudFunctions[functionName].__endpoint.secretEnvironmentVariables || []
+    )
+      .map((secret) => secret.key)
+      .sort();
+    assert.deepEqual(names, expected, functionName);
+  }
+});
+
 test("source hanya mendaftarkan tiga Cloud Scheduler", () => {
   const root = path.resolve(__dirname, "..");
   const handlerFiles = [
