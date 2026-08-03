@@ -137,8 +137,8 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         },
       );
 
-      // 5. Fetch laporan bulanan. Daftar lengkap dipakai untuk menyusun
-      // timeline target; item pertama tetap menjadi penilaian terbaru.
+      // 5. Fetch laporan bulanan. Daftar lengkap dipakai untuk memasangkan
+      // target dengan periode penilaiannya; item pertama tetap yang terbaru.
       MonthlyReport? latestReport;
       List<MonthlyReport> monthlyReports = const [];
       final reportResult = await monthlyReportRepository.getReportsBySantri(

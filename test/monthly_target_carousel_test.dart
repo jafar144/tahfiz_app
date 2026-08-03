@@ -5,7 +5,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/mont
 
 void main() {
   testWidgets(
-    'carousel prioritizes current month and navigates to upcoming target',
+    'shows only the current month target without carousel navigation',
     (tester) async {
       final reports = [
         _report(
@@ -52,76 +52,59 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Target Bulan Ini'), findsOneWidget);
       expect(find.text('Minimum tercapai').hitTestable(), findsOneWidget);
       expect(find.text('MINIMUM TERCAPAI').hitTestable(), findsOneWidget);
-      expect(find.text('1 / 2'), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('monthly-target-next')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Akan datang').hitTestable(), findsOneWidget);
-      expect(find.text('2 / 2'), findsOneWidget);
+      expect(find.text('Murojaah tiga halaman'), findsOneWidget);
+      expect(find.text('Murojaah empat halaman'), findsNothing);
+      expect(find.text('Ahmad'), findsOneWidget);
+      expect(find.text('Disusun bersama Ahmad'), findsNothing);
+      expect(
+        find.text('Ikhtiar terarah, dijaga sedikit demi sedikit'),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('monthly-target-page-view')), findsNothing);
+      expect(find.byKey(const Key('monthly-target-previous')), findsNothing);
+      expect(find.byKey(const Key('monthly-target-next')), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('monthly-target-2026-7'))).height,
+        lessThan(300),
+      );
     },
   );
 
-  test('timeline associates evaluation with its source target', () {
-    final source = _report(
-      id: 'source',
-      bulan: 6,
-      target: const MonthlyTarget(
-        bulan: 7,
-        tahun: 2026,
-        minimum: 'Minimum',
-        optimum: 'Optimum',
-      ),
-    );
-    final evaluator = _report(
-      id: 'evaluator',
-      bulan: 7,
-      evaluation: MonthlyTargetEvaluation(
-        sourceReportId: 'source',
-        targetBulan: 7,
-        targetTahun: 2026,
-        result: MonthlyTargetResult.optimumAchieved,
-        evaluatedAt: DateTime(2026, 7, 29),
-      ),
-    );
-
-    final timeline = MonthlyTargetTimelineEntry.fromReports([
-      evaluator,
-      source,
-    ]);
-
-    expect(timeline, hasLength(1));
-    expect(timeline.single.result, MonthlyTargetResult.optimumAchieved);
-  });
-
-  testWidgets(
-    'legacy report without target renders monthly target empty state',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: MonthlyTargetCarousel(
-                reports: [_report(id: 'legacy-report', bulan: 7)],
-                now: DateTime(2026, 7, 15),
-              ),
+  testWidgets('does not fall back to a past or future target', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: MonthlyTargetCarousel(
+              reports: [
+                _report(
+                  id: 'july-report',
+                  bulan: 7,
+                  target: const MonthlyTarget(
+                    bulan: 8,
+                    tahun: 2026,
+                    minimum: 'Target Agustus minimum',
+                    optimum: 'Target Agustus optimum',
+                  ),
+                ),
+              ],
+              now: DateTime(2026, 7, 15),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const Key('monthly-target-empty-state')),
-        findsOneWidget,
-      );
-      expect(find.text('Target Bulanan'), findsOneWidget);
-      expect(find.text('Target belum tersedia'), findsOneWidget);
-    },
-  );
+    expect(find.byKey(const Key('monthly-target-empty-state')), findsOneWidget);
+    expect(find.text('Target Bulan Ini'), findsOneWidget);
+    expect(find.text('Target bulan ini belum tersedia'), findsOneWidget);
+    expect(find.text('Target Agustus minimum'), findsNothing);
+  });
 
   testWidgets('empty reports keep monthly target carousel hidden', (
     tester,
@@ -134,7 +117,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('monthly-target-empty-state')), findsNothing);
-    expect(find.text('Target Bulanan'), findsNothing);
+    expect(find.text('Target Bulan Ini'), findsNothing);
   });
 }
 

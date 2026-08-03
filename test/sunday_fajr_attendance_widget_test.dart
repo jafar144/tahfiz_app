@@ -46,7 +46,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Kehadiran Minggu Subuh'), findsOneWidget);
+    expect(find.text('Absensi Minggu Subuh'), findsOneWidget);
     expect(find.text('Agustus 2026'), findsOneWidget);
     expect(find.text('Izin'), findsWidgets);
     expect(find.textContaining('Urusan keluarga'), findsNothing);
@@ -70,7 +70,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Kehadiran Minggu Subuh'), findsNothing);
+    expect(find.text('Absensi Minggu Subuh'), findsNothing);
   });
 
   testWidgets(

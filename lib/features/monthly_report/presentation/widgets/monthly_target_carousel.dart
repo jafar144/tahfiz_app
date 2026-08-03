@@ -1,56 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 
-class MonthlyTargetTimelineEntry {
-  final String sourceReportId;
+class _MonthlyTargetViewData {
   final String asatidzDisplayName;
   final MonthlyTarget target;
   final MonthlyTargetResult result;
 
-  const MonthlyTargetTimelineEntry({
-    required this.sourceReportId,
+  const _MonthlyTargetViewData({
     required this.asatidzDisplayName,
     required this.target,
     required this.result,
   });
-
-  static List<MonthlyTargetTimelineEntry> fromReports(
-    List<MonthlyReport> reports,
-  ) {
-    final entries = <MonthlyTargetTimelineEntry>[];
-    for (final source in reports) {
-      final target = source.target;
-      if (target == null) continue;
-
-      MonthlyTargetEvaluation? evaluation;
-      for (final report in reports) {
-        final candidate = report.targetEvaluation;
-        if (candidate?.evaluates(source.id, target) ?? false) {
-          evaluation = candidate;
-          break;
-        }
-      }
-
-      entries.add(
-        MonthlyTargetTimelineEntry(
-          sourceReportId: source.id,
-          asatidzDisplayName: source.asatidzDisplayName,
-          target: target,
-          result: evaluation?.result ?? MonthlyTargetResult.notAssessed,
-        ),
-      );
-    }
-
-    entries.sort((a, b) {
-      final year = a.target.tahun.compareTo(b.target.tahun);
-      if (year != 0) return year;
-      return a.target.bulan.compareTo(b.target.bulan);
-    });
-    return entries;
-  }
 }
 
-class MonthlyTargetCarousel extends StatefulWidget {
+/// Target yang berlaku pada bulan berjalan.
+///
+/// Nama kelas dipertahankan agar call site lama tidak pecah, tetapi widget ini
+/// tidak lagi berisi carousel atau navigasi riwayat.
+class MonthlyTargetCarousel extends StatelessWidget {
   final List<MonthlyReport> reports;
   final DateTime? now;
   final bool showTitle;
@@ -63,296 +30,99 @@ class MonthlyTargetCarousel extends StatefulWidget {
   });
 
   @override
-  State<MonthlyTargetCarousel> createState() => _MonthlyTargetCarouselState();
-}
-
-class _MonthlyTargetCarouselState extends State<MonthlyTargetCarousel> {
-  late List<MonthlyTargetTimelineEntry> _entries;
-  late PageController _pageController;
-  late int _currentIndex;
-
-  DateTime get _now => widget.now ?? DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeTimeline();
-  }
-
-  @override
-  void didUpdateWidget(covariant MonthlyTargetCarousel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final nextEntries = MonthlyTargetTimelineEntry.fromReports(widget.reports);
-    if (_signature(nextEntries) == _signature(_entries)) return;
-
-    _pageController.dispose();
-    _entries = nextEntries;
-    _currentIndex = _initialIndex(_entries);
-    _pageController = PageController(
-      initialPage: _currentIndex,
-      viewportFraction: 0.94,
-    );
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  void _initializeTimeline() {
-    _entries = MonthlyTargetTimelineEntry.fromReports(widget.reports);
-    _currentIndex = _initialIndex(_entries);
-    _pageController = PageController(
-      initialPage: _currentIndex,
-      viewportFraction: 0.94,
-    );
-  }
-
-  int _initialIndex(List<MonthlyTargetTimelineEntry> entries) {
-    if (entries.isEmpty) return 0;
-
-    final currentIndex = entries.indexWhere(
-      (entry) =>
-          entry.target.bulan == _now.month && entry.target.tahun == _now.year,
-    );
-    if (currentIndex >= 0) return currentIndex;
-
-    // Bila bulan berjalan belum punya target, tampilkan periode terdekat.
-    var bestIndex = entries.length - 1;
-    var bestDistance = 1 << 30;
-    final nowValue = _now.year * 12 + _now.month;
-    for (var i = 0; i < entries.length; i++) {
-      final target = entries[i].target;
-      final distance = (target.tahun * 12 + target.bulan - nowValue).abs();
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestIndex = i;
-      }
-    }
-    return bestIndex;
-  }
-
-  String _signature(List<MonthlyTargetTimelineEntry> entries) {
-    return entries
-        .map(
-          (entry) =>
-              '${entry.sourceReportId}|${entry.target.bulan}|'
-              '${entry.target.tahun}|${entry.target.minimum}|'
-              '${entry.target.optimum}|${entry.result.name}',
-        )
-        .join(';;');
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.reports.isEmpty) return const SizedBox.shrink();
-    if (_entries.isEmpty) {
-      return _MonthlyTargetEmptyState(showTitle: widget.showTitle);
+    if (reports.isEmpty) return const SizedBox.shrink();
+
+    final currentDate = now ?? DateTime.now();
+    final progress = MonthlyTargetProgress.forPeriod(
+      reports,
+      bulan: currentDate.month,
+      tahun: currentDate.year,
+    );
+    _MonthlyTargetViewData? currentTarget;
+    if (progress != null) {
+      MonthlyReport? source;
+      for (final report in reports) {
+        if (report.id == progress.sourceReportId) {
+          source = report;
+          break;
+        }
+      }
+      currentTarget = _MonthlyTargetViewData(
+        asatidzDisplayName: source?.asatidzDisplayName ?? '',
+        target: progress.target,
+        result: progress.result,
+      );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showTitle) ...[
-          const Row(
-            children: [
-              _TargetTitleIcon(),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Target Bulanan',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF163A36),
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Ikhtiar terarah, dijaga sedikit demi sedikit',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF6B817E),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        if (showTitle) ...[
+          const Text(
+            'Target Bulan Ini',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
-          const SizedBox(height: 13),
+          const SizedBox(height: 12),
         ],
-        SizedBox(
-          height: 316,
-          child: PageView.builder(
-            key: const Key('monthly-target-page-view'),
-            controller: _pageController,
-            itemCount: _entries.length,
-            onPageChanged: (index) => setState(() => _currentIndex = index),
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: _MonthlyTargetCard(entry: _entries[index], now: _now),
-              );
-            },
-          ),
-        ),
-        if (_entries.length > 1) ...[
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _NavigationButton(
-                key: const Key('monthly-target-previous'),
-                icon: Icons.chevron_left_rounded,
-                enabled: _currentIndex > 0,
-                onPressed: () => _goTo(_currentIndex - 1),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                constraints: const BoxConstraints(minWidth: 46),
-                alignment: Alignment.center,
-                child: Text(
-                  '${_currentIndex + 1} / ${_entries.length}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF56716C),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              _NavigationButton(
-                key: const Key('monthly-target-next'),
-                icon: Icons.chevron_right_rounded,
-                enabled: _currentIndex < _entries.length - 1,
-                onPressed: () => _goTo(_currentIndex + 1),
-              ),
-            ],
-          ),
-        ],
+        if (currentTarget == null)
+          const _MonthlyTargetEmptyState()
+        else
+          _MonthlyTargetCard(entry: currentTarget, now: currentDate),
       ],
-    );
-  }
-
-  void _goTo(int index) {
-    if (index < 0 || index >= _entries.length) return;
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
     );
   }
 }
 
 class _MonthlyTargetEmptyState extends StatelessWidget {
-  final bool showTitle;
-
-  const _MonthlyTargetEmptyState({required this.showTitle});
+  const _MonthlyTargetEmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (showTitle) ...[
-          const Row(
-            children: [
-              _TargetTitleIcon(),
-              SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Target Bulanan',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF163A36),
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Ikhtiar terarah, dijaga sedikit demi sedikit',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Color(0xFF6B817E),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return Container(
+      key: const Key('monthly-target-empty-state'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFDDEBE8)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF134E4A).withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
           ),
-          const SizedBox(height: 13),
         ],
-        Container(
-          key: const Key('monthly-target-empty-state'),
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFDDEBE8)),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF134E4A).withValues(alpha: 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 7),
-              ),
-            ],
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Target bulan ini belum tersedia',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF163A36),
+            ),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF0FDFA),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.flag_outlined,
-                  size: 25,
-                  color: Color(0xFF0F766E),
-                ),
-              ),
-              const SizedBox(height: 13),
-              const Text(
-                'Target belum tersedia',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF163A36),
-                ),
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'Target bulanan akan tampil setelah asatidz menyimpan '
-                'penilaian terbaru.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  height: 1.45,
-                  color: Color(0xFF6B817E),
-                ),
-              ),
-            ],
+          SizedBox(height: 4),
+          Text(
+            'Target akan tampil setelah asatidz menyimpannya.',
+            style: TextStyle(fontSize: 11.5, color: Color(0xFF6B817E)),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class _MonthlyTargetCard extends StatelessWidget {
-  final MonthlyTargetTimelineEntry entry;
+  final _MonthlyTargetViewData entry;
   final DateTime now;
 
   const _MonthlyTargetCard({required this.entry, required this.now});
@@ -455,29 +225,33 @@ class _MonthlyTargetCard extends StatelessWidget {
                   value: entry.target.optimum,
                   reached: optimumReached,
                 ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        entry.asatidzDisplayName.isEmpty
-                            ? 'Tetap istiqamah dalam setiap langkah.'
-                            : 'Disusun bersama ${entry.asatidzDisplayName}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          height: 1.3,
-                          color: Color(0xFF78908C),
-                        ),
-                      ),
-                    ),
-                    if (entry.result.isAchieved) ...[
-                      const SizedBox(width: 8),
-                      _AchievementStamp(result: entry.result),
+                if (entry.asatidzDisplayName.isNotEmpty ||
+                    entry.result.isAchieved) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      if (entry.asatidzDisplayName.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            entry.asatidzDisplayName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10.5,
+                              height: 1.3,
+                              color: Color(0xFF78908C),
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      if (entry.result.isAchieved) ...[
+                        const SizedBox(width: 8),
+                        _AchievementStamp(result: entry.result),
+                      ],
                     ],
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -680,54 +454,6 @@ class _TargetStatus {
   final IconData icon;
 
   const _TargetStatus(this.label, this.color, this.background, this.icon);
-}
-
-class _TargetTitleIcon extends StatelessWidget {
-  const _TargetTitleIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 39,
-      height: 39,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF115E59)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(13),
-      ),
-      child: const Icon(Icons.flag_rounded, size: 20, color: Colors.white),
-    );
-  }
-}
-
-class _NavigationButton extends StatelessWidget {
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onPressed;
-
-  const _NavigationButton({
-    super.key,
-    required this.icon,
-    required this.enabled,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: enabled ? onPressed : null,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      padding: EdgeInsets.zero,
-      icon: Icon(icon, size: 19),
-      color: const Color(0xFF0F766E),
-      disabledColor: const Color(0xFFCAD8D5),
-      style: IconButton.styleFrom(backgroundColor: const Color(0xFFF0F7F5)),
-    );
-  }
 }
 
 class _DecorativeOrb extends StatelessWidget {

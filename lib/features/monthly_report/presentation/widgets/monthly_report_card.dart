@@ -284,16 +284,6 @@ class _TargetProgressContent extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDFA),
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: const Icon(Icons.flag_outlined, size: 17, color: _teal),
-            ),
-            const SizedBox(width: 9),
             Expanded(
               child: Text(
                 'Target ${MonthlyReport.getNamaBulan(progress.target.bulan)} '

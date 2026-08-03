@@ -62,7 +62,9 @@ void main() {
       ),
     );
 
-    expect(find.text('Kehadiran Minggu Subuh'), findsOneWidget);
+    expect(find.text('Absensi Minggu Subuh'), findsOneWidget);
+    expect(find.text('Rekam ikhtiar hadir di setiap pekan'), findsNothing);
+    expect(find.byIcon(Icons.wb_twilight_rounded), findsNothing);
     expect(find.text('Agustus 2026'), findsOneWidget);
     expect(find.text('5 hari Minggu'), findsOneWidget);
     for (final day in [2, 9, 16, 23, 30]) {

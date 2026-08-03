@@ -87,22 +87,7 @@ class _CalendarLoading extends StatelessWidget {
       key: const ValueKey('sunday-fajr-calendar-loading'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          children: [
-            _LoadingBox(width: 40, height: 40, radius: 13),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _LoadingBox(width: 180, height: 14),
-                  SizedBox(height: 7),
-                  _LoadingBox(width: 145, height: 10),
-                ],
-              ),
-            ),
-          ],
-        ),
+        const _LoadingBox(width: 160, height: 14),
         const SizedBox(height: 12),
         Container(
           height: 226,
@@ -123,15 +108,10 @@ class _CalendarLoading extends StatelessWidget {
 }
 
 class _LoadingBox extends StatelessWidget {
-  const _LoadingBox({
-    required this.width,
-    required this.height,
-    this.radius = 5,
-  });
+  const _LoadingBox({required this.width, required this.height});
 
   final double width;
   final double height;
-  final double radius;
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +120,7 @@ class _LoadingBox extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: const Color(0xFFE2E8F0),
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(5),
       ),
     );
   }

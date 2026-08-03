@@ -289,51 +289,12 @@ class _CalendarTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        _DawnIcon(),
-        SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Kehadiran Minggu Subuh',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF173B37),
-                ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                'Rekam ikhtiar hadir di setiap pekan',
-                style: TextStyle(fontSize: 11, color: Color(0xFF718783)),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DawnIcon extends StatelessWidget {
-  const _DawnIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE6F5F1),
-        borderRadius: BorderRadius.circular(13),
-      ),
-      child: const Icon(
-        Icons.wb_twilight_rounded,
-        size: 21,
-        color: Color(0xFF0F766E),
+    return const Text(
+      'Absensi Minggu Subuh',
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
       ),
     );
   }
