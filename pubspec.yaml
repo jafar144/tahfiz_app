@@ -2,8 +2,8 @@ name: khoirunnasyien
 description: "Tahfiz App Project"
 publish_to: 'none'
 
-# update 19
-version: 1.6.3+19
+# update 20
+version: 1.6.4+20
 
 environment:
   sdk: ^3.10.8
