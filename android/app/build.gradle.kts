@@ -30,6 +30,8 @@ fun signingPropertiesFile(flavor: String) =
             flavor == "khoirunnasyien" && it.exists()
         }
 
+fun androidStringResource(value: String) = value.replace("'", "\\'")
+
 val signingPropertiesByFlavor = institutionFlavors.keys.mapNotNull { flavor ->
     val file = signingPropertiesFile(flavor) ?: return@mapNotNull null
     val properties = Properties().apply {
@@ -85,7 +87,7 @@ android {
                 resValue(
                     "string",
                     "app_name",
-                    properties.getProperty("appName"),
+                    androidStringResource(properties.getProperty("appName")),
                 )
                 versionName = System.getenv("APP_VERSION_NAME")
                     ?: properties.getProperty("defaultVersionName")

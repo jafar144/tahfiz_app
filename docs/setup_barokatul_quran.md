@@ -6,6 +6,14 @@ dipakai adalah `barokatul_quran`.
 
 ## Status teknis
 
+Status provisioning saat ini:
+
+- Firebase project `barokatul-apps` dan Android app dengan package sementara
+  `id.or.barokatulquran.tahfiz` sudah dibuat;
+- tahap tersebut baru mencakup pembuatan project dan registrasi Android app.
+  Billing, Authentication Email/Password, Firestore, Storage, App Check,
+  secrets, serta deploy Rules, indexes, dan Functions belum diselesaikan.
+
 Fondasi repository sudah mendukung:
 
 - product flavor Android yang ditemukan otomatis dari
@@ -32,9 +40,9 @@ Isi tabel ini sebelum membuat file. Jangan memakai nilai Khoirunnasyien.
 |---|---|---|
 | Nama flavor | `barokatul_quran` | tetap |
 | Nama aplikasi | `Barokatul Qur'an` | |
-| Android application ID | `id.or.barokatulquran.tahfiz` | |
-| Firebase project ID | `barokatul-quran-tahfiz` | |
-| Domain login internal | `barokatulquran.app` | |
+| Android application ID | `id.or.barokatulquran.tahfiz` | provisional |
+| Firebase project ID | `barokatul-apps` | sudah dibuat |
+| Domain login internal | `barokatulquran.app` | provisional |
 | Bank pembayaran | `BSI` | |
 | Nomor rekening | — | |
 | Nama pemilik rekening | — | |
@@ -46,6 +54,14 @@ Isi tabel ini sebelum membuat file. Jangan memakai nilai Khoirunnasyien.
 | Logo transparan | PNG | |
 | Akun Groq untuk transkripsi | API key | |
 | Wablas | aktif/tidak | |
+
+Firebase project ID `barokatul-apps` sudah final untuk project yang dibuat.
+Sebaliknya, application ID `id.or.barokatulquran.tahfiz` dan domain login
+internal `barokatulquran.app` masih provisional sampai dikonfirmasi oleh
+lembaga. Konfigurasi bisnis dan branding—termasuk rekening, nomor admin,
+kurikulum, warna, logo, splash, dan desain syahadah—juga masih provisional.
+Jika application ID berubah, daftarkan Android app baru pada Firebase lalu
+generate ulang konfigurasi Firebase sebelum build atau rilis.
 
 `applicationId` adalah identitas permanen di Google Play. Pastikan nama itu
 dimiliki lembaga dan belum pernah dipakai. Firebase project ID harus unik secara
@@ -88,7 +104,7 @@ Internal testing terbukti mengirim request valid.
 firebase login
 dart pub global activate flutterfire_cli
 
-$barokatulProjectId = "barokatul-quran-tahfiz"
+$barokatulProjectId = "barokatul-apps"
 firebase projects:list
 firebase use --add
 ```
@@ -97,7 +113,7 @@ Pada `firebase use --add`, pilih project Barokatul Qur'an dan buat alias
 `barokatul_quran`. Pastikan `.firebaserc` akhirnya mempunyai pemetaan:
 
 ```json
-"barokatul_quran": "barokatul-quran-tahfiz"
+"barokatul_quran": "barokatul-apps"
 ```
 
 Untuk perintah deploy tetap sertakan `--project $barokatulProjectId`. Alias
@@ -113,7 +129,8 @@ institutionName=Barokatul Qur'an
 applicationId=id.or.barokatulquran.tahfiz
 defaultVersionName=1.0.0
 defaultVersionCode=1
-firebaseProjectId=barokatul-quran-tahfiz
+firebaseProjectId=barokatul-apps
+functionsRegion=asia-southeast2
 dartEntryPoint=lib/main_barokatul_quran.dart
 authEmailDomain=barokatulquran.app
 paymentBankName=NAMA_BANK
@@ -304,7 +321,7 @@ bukan nama aplikasi yang terlihat pengguna dan bukan Firebase project.
 Salin `functions/.env.example` menjadi:
 
 ```text
-functions/.env.barokatul-quran-tahfiz
+functions/.env.barokatul-apps
 ```
 
 Isi nilai non-secret:

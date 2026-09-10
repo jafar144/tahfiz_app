@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:khoirunnasyien/flavors/barokatul_quran/firebase_options.dart';
 import 'package:khoirunnasyien/flavors/khoirunnasyien/firebase_options.dart';
 
 /// Resolver Firebase untuk entry point yang dapat berjalan di isolate terpisah
@@ -10,6 +11,7 @@ class FlavorFirebaseOptions {
   );
 
   static FirebaseOptions get currentPlatform => switch (flavor) {
+    'barokatul_quran' => BarokatulQuranFirebaseOptions.currentPlatform,
     'khoirunnasyien' => KhoirunnasyienFirebaseOptions.currentPlatform,
     _ => throw UnsupportedError(
       'Firebase belum dikonfigurasi untuk flavor "$flavor".',

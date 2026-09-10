@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "406302789936",
+    "project_id": "barokatul-apps",
+    "storage_bucket": "barokatul-apps.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:406302789936:android:55bdab2b4cd5201d80f8f5",
+        "android_client_info": {
+          "package_name": "id.or.barokatulquran.tahfiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUCNJa5Tc0NHFi_wC2hNVvJWD_99VBIrw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

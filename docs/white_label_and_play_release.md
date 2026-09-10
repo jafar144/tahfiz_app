@@ -35,6 +35,7 @@ applicationId=id.or.lembaga.tahfiz
 defaultVersionName=1.0.0
 defaultVersionCode=1
 firebaseProjectId=project-firebase
+functionsRegion=asia-southeast2
 dartEntryPoint=lib/main_nama_flavor.dart
 authEmailDomain=lembaga.app
 paymentBankName=Nama Bank

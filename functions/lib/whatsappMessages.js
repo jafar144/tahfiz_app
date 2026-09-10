@@ -33,7 +33,7 @@ function buildBirthdayWhatsAppMessage(santri, institution) {
   return [
     "Assalamu'alaikum warahmatullahi wabarakatuh.",
     "",
-    "Lembaga Tahsin dan Tahfizh Alquran Khoirunnasyien mengucapkan :",
+    `Lembaga Tahsin dan Tahfizh Alquran ${institution.institutionName} mengucapkan :`,
     "",
     "Barakallahu fii umrik",
     "",

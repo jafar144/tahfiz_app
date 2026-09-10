@@ -160,14 +160,14 @@ test("template WhatsApp memuat detail tunggakan dan naskah ulang tahun lembaga",
 
   const birthday = buildBirthdayWhatsAppMessage(
     { name: "Aisyah Zahra", age: 12 },
-    institution,
+    { ...institution, institutionName: "Barokatul Qur'an" },
   );
   assert.equal(
     birthday,
     [
       "Assalamu'alaikum warahmatullahi wabarakatuh.",
       "",
-      "Lembaga Tahsin dan Tahfizh Alquran Khoirunnasyien mengucapkan :",
+      "Lembaga Tahsin dan Tahfizh Alquran Barokatul Qur'an mengucapkan :",
       "",
       "Barakallahu fii umrik",
       "",
