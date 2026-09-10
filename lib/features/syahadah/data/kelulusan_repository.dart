@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:khoirunnasyien/core/institution/domain/institution_curriculum.dart';
 
 const kelulusanNetworkErrorMessage =
     'Tidak ada koneksi internet. Periksa jaringan Anda, lalu coba lagi.';
@@ -210,6 +211,7 @@ class KelulusanRepository {
     required String dateKey,
     required String operationId,
     required bool replaceExisting,
+    GraduationPromotion? promotion,
   }) async {
     try {
       await _functions
@@ -223,6 +225,7 @@ class KelulusanRepository {
             'dateKey': dateKey,
             'operationId': operationId,
             'replaceExisting': replaceExisting,
+            if (promotion != null) 'promotion': promotion.toJson(),
           })
           .timeout(const Duration(seconds: 20));
     } catch (error) {

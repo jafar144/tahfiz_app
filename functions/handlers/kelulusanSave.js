@@ -8,6 +8,10 @@ const {
 const { CALLABLE_OPTIONS } = require("../lib/config");
 const { storageObjectFromUrl } = require("../lib/storagePath");
 const {
+  normalizeGraduationClass,
+  resolveGraduationPromotion,
+} = require("../lib/graduationCurriculum");
+const {
   kelulusanDateKey,
   canonicalKelulusanId,
   kelulusanUploadPath,
@@ -75,6 +79,35 @@ function validateRevision(value) {
     );
   }
   return revision;
+}
+
+function validatePromotion(value, { kelas, hafalan }) {
+  if (value == null) return null;
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new HttpsError("invalid-argument", "Data kenaikan kelas tidak valid.");
+  }
+  const fromClass = requiredText(value.fromClass, "Kelas asal", 100);
+  const toClass = requiredText(value.toClass, "Kelas tujuan", 100);
+  const milestoneNumber = Number(value.milestoneNumber);
+  if (!Number.isInteger(milestoneNumber)) {
+    throw new HttpsError("invalid-argument", "Capaian kelulusan tidak valid.");
+  }
+  const promotion = resolveGraduationPromotion({
+    fromClass,
+    toClass,
+    milestoneNumber,
+    hafalan,
+  });
+  if (
+    !promotion ||
+    normalizeGraduationClass(kelas) !== promotion.fromClass
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Kenaikan kelas tidak sesuai kurikulum kelulusan.",
+    );
+  }
+  return promotion;
 }
 
 function recordsFromSnapshot(snapshot) {
@@ -477,6 +510,7 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
   const santriName = requiredText(input.santriName, "Nama santri", 160);
   const kelas = requiredText(input.kelas, "Kelas", 100);
   const hafalan = requiredText(input.hafalan, "Hafalan", 300);
+  const promotion = validatePromotion(input.promotion, { kelas, hafalan });
   const operationId = validateOperationId(input.operationId);
   const submittedDateKey = validateDateKey(input.dateKey);
   const imageUrl = requiredText(input.imageUrl, "URL foto", 2000);
@@ -532,6 +566,9 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
         canonicalKelulusanId(santriId, dateKey),
       );
       const markerReference = cleanupReference(firestore, imagePath);
+      const santriReference = promotion
+        ? firestore.collection("santri_profiles").doc(santriId)
+        : null;
 
       // Semua read dilakukan sebelum write. Marker dan canonical yang sama
       // juga menjadi lock untuk save, admin delete, serta cleanup worker.
@@ -542,6 +579,9 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
       const snapshot = await transaction.get(
         collection.where("santri_id", "==", santriId),
       );
+      const santriSnapshot = santriReference
+        ? await transaction.get(santriReference)
+        : null;
       const records = addCanonicalRecord(
         recordsFromSnapshot(snapshot),
         canonicalSnapshot,
@@ -573,6 +613,32 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
           cleanupPaths: [],
           existingCount: matching.length,
         };
+      }
+
+      let applyPromotion = false;
+      if (promotion) {
+        const currentClass = santriSnapshot?.exists
+          ? normalizeGraduationClass(santriSnapshot.data()?.kelas)
+          : "";
+        applyPromotion = currentClass === promotion.fromClass;
+        const isIdempotentPromotion =
+          alreadyActive && currentClass === promotion.toClass;
+        if (!applyPromotion && !isIdempotentPromotion) {
+          const cleanupPaths = alreadyActive ? [] : [imagePath];
+          queueInTransaction({
+            transaction,
+            firestore,
+            paths: cleanupPaths,
+            now,
+          });
+          return {
+            conflict: false,
+            invalidReservation: false,
+            invalidPromotion: true,
+            cleanupPaths,
+            existingCount: matching.length,
+          };
+        }
       }
 
       let replaceExisting = input.replaceExisting === true;
@@ -686,7 +752,19 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
           operation_id: operationId,
           created_by: request.auth.uid,
           created_at: createdAt,
+          ...(promotion
+            ? {
+                promoted_from_class: promotion.fromClass,
+                promoted_to_class: promotion.toClass,
+                promotion_milestone_number: promotion.milestoneNumber,
+              }
+            : {}),
         });
+        if (promotion && applyPromotion) {
+          transaction.update(santriReference, {
+            kelas: promotion.toClass,
+          });
+        }
         for (const documentId of plan.documentIdsToDelete) {
           transaction.delete(collection.doc(documentId));
         }
@@ -694,6 +772,8 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
       return {
         ...plan,
         invalidReservation: false,
+        invalidPromotion: false,
+        promotionApplied: promotion != null && applyPromotion,
         cleanupPaths,
       };
     },
@@ -717,6 +797,12 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
       "Sesi upload foto sudah tidak berlaku. Silakan generate ulang.",
     );
   }
+  if (outcome.invalidPromotion) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Kelas santri sudah berubah. Pilih ulang santri dan capaian kelulusan.",
+    );
+  }
 
   return {
     dateKey,
@@ -725,6 +811,8 @@ async function runSaveKelulusanPhoto(request, dependencies = {}) {
     removedDocuments: outcome.documentIdsToDelete.length,
     deletedFiles: cleanup.deleted,
     pendingFileCleanup: cleanup.failedPaths.length,
+    promotionApplied: outcome.promotionApplied === true,
+    promotedToClass: promotion?.toClass || null,
   };
 }
 

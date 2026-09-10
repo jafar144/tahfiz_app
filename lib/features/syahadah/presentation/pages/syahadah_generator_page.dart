@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/institution/domain/institution_curriculum.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/role.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
@@ -22,6 +24,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 
 import 'package:khoirunnasyien/features/syahadah/presentation/utils/kelulusan_share_flow.dart';
+import 'package:khoirunnasyien/features/syahadah/presentation/widgets/graduation_milestone_field.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/kelulusan_save_banner.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_template.dart';
 import 'package:path_provider/path_provider.dart';
@@ -42,6 +45,8 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   final GlobalKey _repaintBoundaryKey = GlobalKey();
 
   SantriEntity? _selectedSantri;
+  GraduationMilestone? _selectedMilestone;
+  GraduationPromotion? _pendingPromotion;
   bool _isGenerating = false;
   KelulusanSaveStatus? _saveStatus;
   _PendingKelulusanSave? _pendingSave;
@@ -75,6 +80,9 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       final santri = result as SantriEntity;
       setState(() {
         _selectedSantri = santri;
+        _selectedMilestone = null;
+        _pendingPromotion = null;
+        _hafalanController.clear();
         _namaController.text = santri.name;
       });
     }
@@ -83,6 +91,80 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
   bool get _isTahsin =>
       _selectedSantri != null &&
       _selectedSantri!.kelas.toLowerCase().startsWith('tahsin');
+
+  List<GraduationMilestone> get _availableMilestones => AppConfig
+      .current
+      .curriculum
+      .graduationMilestonesFor(_selectedSantri?.kelas);
+
+  Future<bool> _selectMilestone(GraduationMilestone milestone) async {
+    final santri = _selectedSantri;
+    if (santri == null) return false;
+    final promotion = AppConfig.current.curriculum.graduationPromotionFor(
+      santri.kelas,
+      milestone,
+    );
+    if (promotion != null) {
+      final confirmed = await _showPromotionConfirmSheet(promotion);
+      if (confirmed != true || !mounted) return false;
+    }
+    setState(() {
+      _selectedMilestone = milestone;
+      _pendingPromotion = promotion;
+      _hafalanController.text = milestone.label;
+    });
+    return true;
+  }
+
+  Future<bool?> _showPromotionConfirmSheet(GraduationPromotion promotion) {
+    return showAiwaActionSheet<bool>(
+      context: context,
+      title: 'Naikkan Kelas Santri?',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.upgrade_rounded, color: Colors.blue, size: 42),
+          const SizedBox(height: 12),
+          Text(
+            '${promotion.milestone.displayLabel} adalah capaian terakhir '
+            'kelas ${promotion.fromClass}.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(height: 1.45),
+          ),
+          const SizedBox(height: 12),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '${promotion.fromClass}  →  ${promotion.toClass}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.blue.shade800,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Kelas akan diperbarui otomatis setelah foto kelulusan berhasil '
+            'disimpan.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+          ),
+        ],
+      ),
+      confirmText: 'Ya, Naikkan Kelas',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.blue,
+    );
+  }
 
   Future<bool?> _showConfirmSheet() {
     return showAiwaActionSheet<bool>(
@@ -283,12 +365,22 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
         dateKey: currentJob.dateKey,
         operationId: currentJob.operationId,
         replaceExisting: currentJob.replaceExisting,
+        promotion: currentJob.promotion,
       );
       if (mounted) {
         setState(() {
           _pendingSave = currentJob;
           _saveStatus = KelulusanSaveStatus.success;
           _saveErrorMessage = null;
+          if (currentJob.promotion != null &&
+              _selectedSantri?.id == currentJob.santri.id) {
+            _selectedSantri = _selectedSantri!.withClass(
+              currentJob.promotion!.toClass,
+            );
+            _selectedMilestone = null;
+            _pendingPromotion = null;
+            _hafalanController.clear();
+          }
         });
       }
       return;
@@ -485,6 +577,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
         expectedRevision: dailyStatus.revision,
         uploaderUid: authState.user.uid,
         replaceExisting: dailyStatus.exists,
+        promotion: _pendingPromotion,
       );
       await shareKelulusanWhileSaving(
         save: () => _savePendingKelulusan(job),
@@ -738,16 +831,34 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Nama Surah & Juz
-                        AiwaTextField(
-                          label: 'Nama Surah & Juz',
-                          hint: 'Contoh: Q.s Al Muthofifin Juz 30',
-                          controller: _hafalanController,
-                          icon: Icons.menu_book,
-                          textCapitalization: TextCapitalization.words,
-                          enabled: !isBusy,
-                          onChanged: (val) => setState(() {}),
-                        ),
+                        if (_selectedSantri != null &&
+                            _availableMilestones.isNotEmpty)
+                          GraduationMilestoneField(
+                            className: _selectedSantri!.kelas,
+                            milestones: _availableMilestones,
+                            selected: _selectedMilestone,
+                            enabled: !isBusy,
+                            promotionFor: (milestone) => AppConfig
+                                .current
+                                .curriculum
+                                .graduationPromotionFor(
+                                  _selectedSantri!.kelas,
+                                  milestone,
+                                ),
+                            onSelected: _selectMilestone,
+                          )
+                        else
+                          AiwaTextField(
+                            label: 'Nama Surah & Juz',
+                            hint: _selectedSantri == null
+                                ? 'Pilih santri terlebih dahulu'
+                                : 'Contoh: Q.s Al Muthofifin Juz 30',
+                            controller: _hafalanController,
+                            icon: Icons.menu_book,
+                            textCapitalization: TextCapitalization.words,
+                            enabled: _selectedSantri != null && !isBusy,
+                            onChanged: (val) => setState(() {}),
+                          ),
                         const SizedBox(height: 24),
 
                         const AiwaFormSectionTitle(title: 'Preview'),
@@ -864,6 +975,7 @@ class _PendingKelulusanSave {
   final String expectedRevision;
   final String uploaderUid;
   final bool replaceExisting;
+  final GraduationPromotion? promotion;
   final String? uploadedUrl;
 
   const _PendingKelulusanSave({
@@ -876,6 +988,7 @@ class _PendingKelulusanSave {
     required this.expectedRevision,
     required this.uploaderUid,
     required this.replaceExisting,
+    required this.promotion,
     this.uploadedUrl,
   });
 
@@ -897,6 +1010,7 @@ class _PendingKelulusanSave {
       expectedRevision: expectedRevision ?? this.expectedRevision,
       uploaderUid: uploaderUid,
       replaceExisting: replaceExisting ?? this.replaceExisting,
+      promotion: promotion,
       uploadedUrl: clearUploadedUrl ? null : uploadedUrl ?? this.uploadedUrl,
     );
   }

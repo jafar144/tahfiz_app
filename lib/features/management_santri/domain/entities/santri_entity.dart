@@ -56,4 +56,23 @@ class SantriEntity {
   bool get hasHalaqah => halaqahId?.trim().isNotEmpty ?? false;
 
   bool get hasGuardianPhone => nomorWali?.trim().isNotEmpty ?? false;
+
+  SantriEntity withClass(String value) => SantriEntity(
+    id: id,
+    name: name,
+    nis: nis,
+    kelas: value,
+    kelasFiqih: kelasFiqih,
+    jenisKelamin: jenisKelamin,
+    isActive: isActive,
+    isFree: isFree,
+    freeUntil: freeUntil,
+    tanggalMasuk: tanggalMasuk,
+    pembimbing: pembimbing,
+    nomorWali: nomorWali,
+    tipeKelas: tipeKelas,
+    halaqahId: halaqahId,
+    halaqahName: halaqahName,
+    photoUrl: photoUrl,
+  );
 }

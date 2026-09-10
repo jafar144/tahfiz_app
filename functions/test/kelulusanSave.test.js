@@ -37,6 +37,8 @@ function request({
   operationId = "operation-new",
   replaceExisting = false,
   imageUrl,
+  hafalan = "Juz 30",
+  promotion,
 } = {}) {
   const path = kelulusanUploadPath({
     uploaderUid: STAFF_UID,
@@ -50,11 +52,12 @@ function request({
       santriId: SANTRI_ID,
       santriName: "Ahmad",
       kelas: "Mutawassith",
-      hafalan: "Juz 30",
+      hafalan,
       dateKey: DATE_KEY,
       operationId,
       replaceExisting,
       imageUrl: imageUrl ?? downloadUrl(path),
+      ...(promotion ? { promotion } : {}),
     },
   };
 }
@@ -73,6 +76,7 @@ function createHarness({
   reservationOperationId = "operation-new",
   reservationReplaceExisting = false,
   reservationData,
+  santriData = null,
   metadata = {
     contentType: "image/jpeg",
     size: "2048",
@@ -93,6 +97,11 @@ function createHarness({
     },
     where(field, operator, value) {
       return { kind: "query", field, operator, value };
+    },
+  };
+  const santriCollection = {
+    doc(id) {
+      return { kind: "document", collectionName: "santri_profiles", id };
     },
   };
   const revision = kelulusanRevision(
@@ -124,12 +133,12 @@ function createHarness({
     async get(target) {
       if (target.kind === "document") {
         events.push(`get-document:${target.collectionName}:${target.id}`);
-        return snapshot(
-          target.id,
-          target.collectionName === "kelulusan"
-            ? canonicalData
-            : marker,
-        );
+        const data = target.collectionName === "kelulusan"
+          ? canonicalData
+          : target.collectionName === "santri_profiles"
+            ? santriData
+            : marker;
+        return snapshot(target.id, data);
       }
       events.push(`get-query:${target.field}:${target.value}`);
       return {
@@ -146,6 +155,14 @@ function createHarness({
         data,
       });
     },
+    update(reference, data) {
+      events.push(`update-document:${reference.collectionName}:${reference.id}`);
+      writes.push({
+        collectionName: reference.collectionName,
+        id: reference.id,
+        data,
+      });
+    },
     delete(reference) {
       events.push(
         `delete-document:${reference.collectionName}:${reference.id}`,
@@ -156,6 +173,7 @@ function createHarness({
   const firestore = {
     collection(name) {
       if (name === "kelulusan") return kelulusanCollection;
+      if (name === "santri_profiles") return santriCollection;
       assert.equal(name, "kelulusan_storage_cleanup");
       return {
         doc(id) {
@@ -674,4 +692,72 @@ test("conflict reservation memberi grace untuk upload timeout yang masih berjala
     cleanupWrite.data.not_before.toDate().getTime() - NOW.getTime(),
     24 * 60 * 60 * 1000,
   );
+});
+
+test("save capaian terakhir menaikkan kelas dalam transaksi yang sama", async () => {
+  const operationId = "operation-promotion";
+  const harness = createHarness({
+    reservationOperationId: operationId,
+    santriData: { kelas: "Mutawassith" },
+  });
+
+  const result = await runSaveKelulusanPhoto(
+    request({
+      operationId,
+      hafalan: "JUZ 30",
+      promotion: {
+        fromClass: "Mutawassith",
+        toClass: "Pra Takhossus Awal",
+        milestoneNumber: 24,
+      },
+    }),
+    harness.dependencies,
+  );
+
+  const profileWrite = harness.writes.find(
+    (write) => write.collectionName === "santri_profiles",
+  );
+  const kelulusanWrite = harness.writes.find(
+    (write) => write.collectionName === "kelulusan",
+  );
+  assert.equal(profileWrite.data.kelas, "Pra Takhossus Awal");
+  assert.equal(kelulusanWrite.data.promoted_from_class, "Mutawassith");
+  assert.equal(kelulusanWrite.data.promoted_to_class, "Pra Takhossus Awal");
+  assert.equal(result.promotedToClass, "Pra Takhossus Awal");
+});
+
+test("save menolak kenaikan jika kelas santri berubah setelah konfirmasi", async () => {
+  const operationId = "operation-stale-promotion";
+  const harness = createHarness({
+    reservationOperationId: operationId,
+    santriData: { kelas: "Pra Takhossus Awal" },
+  });
+  const uploadPath = kelulusanUploadPath({
+    uploaderUid: STAFF_UID,
+    santriId: SANTRI_ID,
+    dateKey: DATE_KEY,
+    operationId,
+  });
+
+  await assert.rejects(
+    () => runSaveKelulusanPhoto(
+      request({
+        operationId,
+        hafalan: "JUZ 30",
+        promotion: {
+          fromClass: "Mutawassith",
+          toClass: "Pra Takhossus Awal",
+          milestoneNumber: 24,
+        },
+      }),
+      harness.dependencies,
+    ),
+    (error) => error.code === "failed-precondition",
+  );
+
+  assert.equal(
+    harness.writes.some((write) => write.collectionName === "kelulusan"),
+    false,
+  );
+  assert.deepEqual(harness.cleanupDeletes, [[uploadPath]]);
 });
