@@ -11,7 +11,7 @@ import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/family/data/family_repository.dart';
-import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
+import 'package:khoirunnasyien/features/family/domain/entities/family_account.dart';
 
 class SantriHomeCubit extends Cubit<SantriHomeState> {
   final SantriRepository santriRepository;
@@ -31,8 +31,6 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     required this.monthlyReportRepository,
     required this.familyRepository,
   }) : super(const SantriHomeState());
-
-  static String? overrideSantriId;
 
   String? _currentSantriId;
   String? _currentTeacherId;
@@ -153,19 +151,9 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       );
 
       // 6. Fetch saudara (akun lain dalam satu keluarga) untuk fitur ganti akun.
-      final List<SantriDetail> familyMembers = [];
+      var familyMembers = const <FamilyAccount>[];
       try {
-        final family = await familyRepository.getFamilyBySantriId(santriId);
-        if (family != null && family.santriIds.length >= 2) {
-          final otherIds = family.santriIds
-              .where((id) => id != santriId)
-              .toList();
-          for (final id in otherIds) {
-            try {
-              familyMembers.add(await santriRepository.getSantriDetail(id));
-            } catch (_) {}
-          }
-        }
+        familyMembers = await familyRepository.getFamilyAccounts();
       } catch (_) {}
 
       if (isClosed) return;

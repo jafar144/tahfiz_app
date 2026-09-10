@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:khoirunnasyien/features/family/domain/entities/family_account.dart';
 
 class FamilyEntity {
   final String id;
@@ -26,8 +28,9 @@ class FamilyEntity {
 
 class FamilyRepository {
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
-  FamilyRepository(this._firestore);
+  FamilyRepository(this._firestore, this._functions);
 
   CollectionReference get _collection => _firestore.collection('families');
 
@@ -74,5 +77,37 @@ class FamilyRepository {
       ids.addAll(List<String>.from(data['santri_ids'] ?? []));
     }
     return ids;
+  }
+
+  /// Mengambil profil minimum anggota keluarga melalui server. Callable
+  /// memverifikasi bahwa pengguna aktif benar-benar anggota keluarga tersebut,
+  /// sehingga profil santri lain tidak perlu dibuka lewat Firestore rules.
+  Future<List<FamilyAccount>> getFamilyAccounts() async {
+    final result = await _functions.httpsCallable('getFamilyAccounts').call();
+    final data = Map<Object?, Object?>.from(result.data as Map);
+    final accounts = data['accounts'];
+    if (accounts is! List) {
+      throw const FormatException('Respons akun keluarga tidak valid.');
+    }
+
+    return accounts
+        .whereType<Map>()
+        .map((item) => FamilyAccount.fromMap(Map<Object?, Object?>.from(item)))
+        .where((account) => account.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  /// Meminta token Firebase untuk berpindah ke akun santri lain yang telah
+  /// diverifikasi server sebagai anggota keluarga yang sama.
+  Future<String> createSwitchToken(String targetSantriId) async {
+    final result = await _functions.httpsCallable('switchFamilyAccount').call(
+      <String, dynamic>{'targetSantriId': targetSantriId},
+    );
+    final data = Map<Object?, Object?>.from(result.data as Map);
+    final token = data['customToken']?.toString().trim() ?? '';
+    if (token.isEmpty) {
+      throw const FormatException('Token ganti akun tidak tersedia.');
+    }
+    return token;
   }
 }

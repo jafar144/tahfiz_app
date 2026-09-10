@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/whatsapp_utils.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
+import 'package:khoirunnasyien/features/family/presentation/widgets/family_account_switcher.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
@@ -190,7 +191,6 @@ class _SantriHomePageState extends State<SantriHomePage> {
 
   Widget _buildHeader(SantriHomeState state) {
     final santri = state.santri;
-    final hasFamily = state.familyMembers.isNotEmpty;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -211,29 +211,16 @@ class _SantriHomePageState extends State<SantriHomePage> {
             ],
           ),
         ),
-        if (hasFamily) ...[
+        if (state.familyMembers.isNotEmpty) ...[
           const SizedBox(width: 12),
-          _buildSwitchAccountButton(),
+          FamilyAccountSwitcher(
+            accounts: state.familyMembers,
+            onSwitch: context.read<AuthCubit>().switchSantri,
+          ),
         ],
         const SizedBox(width: 12),
         _buildAvatar(santri),
       ],
-    );
-  }
-
-  Widget _buildSwitchAccountButton() {
-    final primary = Theme.of(context).primaryColor;
-    return Material(
-      color: primary.withValues(alpha: 0.1),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _showSwitchAccountSheet,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(Icons.swap_horiz_rounded, color: primary, size: 22),
-        ),
-      ),
     );
   }
 
@@ -256,77 +243,6 @@ class _SantriHomePageState extends State<SantriHomePage> {
               ),
             )
           : null,
-    );
-  }
-
-  void _showSwitchAccountSheet() {
-    final members = context.read<SantriHomeCubit>().state.familyMembers;
-    if (members.isEmpty) return;
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  'Ganti Akun',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
-                ),
-              ),
-              const Divider(height: 1),
-              ...members.map((member) {
-                final isMale = member.jenisKelamin == 'L';
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isMale
-                        ? Colors.blue.shade50
-                        : Colors.pink.shade50,
-                    child: Text(
-                      member.name.isNotEmpty
-                          ? member.name[0].toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isMale
-                            ? Colors.blue.shade700
-                            : Colors.pink.shade700,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    member.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    'NIS: ${member.nis} • ${member.kelas}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey.shade400,
-                  ),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    context.read<AuthCubit>().switchSantri(member.id);
-                  },
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

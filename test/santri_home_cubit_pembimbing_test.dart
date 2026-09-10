@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:dart_either/dart_either.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
@@ -6,6 +7,7 @@ import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.d
 import 'package:khoirunnasyien/features/asatidz/domain/repositories/asatidz_repository.dart'
     as learning;
 import 'package:khoirunnasyien/features/family/data/family_repository.dart';
+import 'package:khoirunnasyien/features/family/domain/entities/family_account.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart'
     as management;
@@ -208,6 +210,35 @@ void main() {
     expect(harness.cubit.state.pembimbingGender, 'P');
     expect(harness.cubit.state.pembimbingDisplayName, 'Ustadzah Khadijah');
   });
+
+  test(
+    'akun keluarga dari callable ditampilkan tanpa membaca profil langsung',
+    () async {
+      final harness = _Harness()
+        ..santriRepository.details['santri-a'] = _santri(
+          id: 'santri-a',
+          gender: 'L',
+          pembimbing: 'Belum ada',
+        )
+        ..familyRepository.accounts.add(
+          const FamilyAccount(
+            id: 'santri-b',
+            name: 'Santri B',
+            nis: '002',
+            kelas: 'Tahfidz 2',
+            jenisKelamin: 'P',
+          ),
+        );
+      addTearDown(harness.cubit.close);
+
+      await harness.cubit.loadData('santri-a');
+
+      expect(harness.cubit.state.status, SantriHomeStatus.success);
+      expect(harness.cubit.state.familyMembers, hasLength(1));
+      expect(harness.cubit.state.familyMembers.single.id, 'santri-b');
+      expect(harness.santriRepository.requestedIds, ['santri-a']);
+    },
+  );
 }
 
 class _Harness {
@@ -232,9 +263,13 @@ class _Harness {
 
 class _FakeSantriRepository implements SantriRepository {
   final Map<String, SantriDetail> details = {};
+  final List<String> requestedIds = [];
 
   @override
-  Future<SantriDetail> getSantriDetail(String id) async => details[id]!;
+  Future<SantriDetail> getSantriDetail(String id) async {
+    requestedIds.add(id);
+    return details[id]!;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -312,13 +347,23 @@ class _FakeMonthlyReportRepository implements MonthlyReportRepository {
 }
 
 class _FakeFamilyRepository extends FamilyRepository {
-  _FakeFamilyRepository() : super(_UnusedFirestore());
+  _FakeFamilyRepository() : super(_UnusedFirestore(), _UnusedFunctions());
+
+  final List<FamilyAccount> accounts = [];
 
   @override
   Future<FamilyEntity?> getFamilyBySantriId(String santriId) async => null;
+
+  @override
+  Future<List<FamilyAccount>> getFamilyAccounts() async => accounts;
 }
 
 class _UnusedFirestore implements FirebaseFirestore {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _UnusedFunctions implements FirebaseFunctions {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

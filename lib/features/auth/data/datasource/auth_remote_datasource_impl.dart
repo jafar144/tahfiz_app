@@ -18,6 +18,11 @@ class AuthRemoteDatasourceImpl implements AuthRemoteDatasource {
   }
 
   @override
+  Future<void> loginWithCustomToken(String token) async {
+    await firebaseAuth.signInWithCustomToken(token);
+  }
+
+  @override
   User? currentUser() => firebaseAuth.currentUser;
 
   @override

@@ -64,7 +64,7 @@ class _HomePageState extends State<HomePage> {
               );
 
             case UserRole.santri:
-              final santriId = SantriHomeCubit.overrideSantriId ?? user.uid;
+              final santriId = user.uid;
               return BlocProvider(
                 key: ValueKey(santriId),
                 create: (_) => getIt<SantriHomeCubit>()..loadData(santriId),

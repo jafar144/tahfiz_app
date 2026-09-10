@@ -187,7 +187,7 @@ Future<void> initDI() async {
   );
 
   // Cubit
-  getIt.registerFactory(() => AuthCubit(getIt(), getIt(), getIt()));
+  getIt.registerFactory(() => AuthCubit(getIt(), getIt(), getIt(), getIt()));
 
   getIt.registerFactory(() => AdminHomeCubit(getIt(), getIt()));
 
@@ -296,7 +296,9 @@ Future<void> initDI() async {
   );
 
   // Family
-  getIt.registerLazySingleton(() => FamilyRepository(getIt()));
+  getIt.registerLazySingleton(
+    () => FamilyRepository(getIt(), getIt<FirebaseFunctions>()),
+  );
 
   // Kelulusan (syahadah)
   getIt.registerLazySingleton(() => KelulusanRepository(getIt(), getIt()));

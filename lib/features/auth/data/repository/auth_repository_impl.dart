@@ -16,6 +16,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> loginWithCustomToken(String token) {
+    return remoteDatasource.loginWithCustomToken(token);
+  }
+
+  @override
   bool isLoggedIn() {
     return remoteDatasource.isLoggedIn();
   }

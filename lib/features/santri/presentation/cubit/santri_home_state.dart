@@ -2,6 +2,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/features/family/domain/entities/family_account.dart';
 
 enum SantriHomeStatus { initial, loading, success, failure }
 
@@ -21,7 +22,7 @@ class SantriHomeState {
   final List<MonthlyReport> monthlyReports;
 
   /// Saudara (akun lain dalam satu keluarga) untuk fitur ganti akun di home.
-  final List<SantriDetail> familyMembers;
+  final List<FamilyAccount> familyMembers;
 
   const SantriHomeState({
     this.status = SantriHomeStatus.initial,
@@ -62,7 +63,7 @@ class SantriHomeState {
     String? pembimbingGender,
     MonthlyReport? latestReport,
     List<MonthlyReport>? monthlyReports,
-    List<SantriDetail>? familyMembers,
+    List<FamilyAccount>? familyMembers,
   }) {
     return SantriHomeState(
       status: status ?? this.status,

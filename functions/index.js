@@ -23,6 +23,10 @@ const {
 const {
   provisionInstitutionUser,
 } = require("./handlers/provisionInstitutionUser");
+const {
+  getFamilyAccounts,
+  switchFamilyAccount,
+} = require("./handlers/familyAccounts");
 
 // Tiga export scheduler. Nama dua export lama dipertahankan agar deploy
 // memperbarui fungsi yang sudah ada, bukan membuat scheduler tambahan.
@@ -64,6 +68,10 @@ exports.saveKelulusanPhoto = saveKelulusanPhoto;
 
 // Provisioning akun dan role hanya melalui server, khusus admin.
 exports.provisionInstitutionUser = provisionInstitutionUser;
+
+// Daftar akun keluarga dan perpindahan sesi terverifikasi untuk santri.
+exports.getFamilyAccounts = getFamilyAccounts;
+exports.switchFamilyAccount = switchFamilyAccount;
 
 // Endpoint rekonsiliasi MySQL dan guest web adalah kebutuhan migrasi sistem
 // lama, bukan bagian aplikasi white-label. Default tidak diekspor agar project
