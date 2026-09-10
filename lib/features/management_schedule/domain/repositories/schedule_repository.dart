@@ -21,7 +21,9 @@ abstract class ScheduleRepository {
     String scheduleId,
   );
   Future<Either<Failure, List<Halaqah>>> getHalaqahsByTeacher(String teacherId);
-  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs();
+  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs({
+    bool hydrateTeacherNames = true,
+  });
   Future<Either<Failure, void>> updateHalaqah(
     Halaqah halaqah,
     List<String> finalSantriIds,
@@ -47,5 +49,7 @@ abstract class ScheduleRepository {
   Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(
     String halaqahId,
   );
+  Future<Either<Failure, Map<String, List<SantriEntity>>>>
+  getSantrisByHalaqahIds(Iterable<String> halaqahIds);
   Future<Either<Failure, void>> migrateHalaqahIds();
 }

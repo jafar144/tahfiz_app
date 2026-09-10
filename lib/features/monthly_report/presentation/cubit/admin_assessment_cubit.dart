@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asatidz_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
@@ -12,6 +13,8 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
   final MonthlyReportRepository reportRepository;
   final AsatidzRepository asatidzRepository;
   final DateTime Function() _now;
+  _AdminAssessmentRoster? _rosterCache;
+  final _reportedIdsCache = <({int bulan, int tahun}), Set<String>>{};
 
   AdminAssessmentCubit({
     required this.scheduleRepository,
@@ -42,7 +45,11 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
   /// (putra & putri) sekaligus. Pemilihan tab Putra/Putri dilakukan di UI
   /// tanpa request ulang. Periode dibatasi ke bulan berjalan dan satu bulan
   /// sebelumnya; tanpa [period], bulan berjalan yang dimuat.
-  Future<void> load({DateTime? period}) async {
+  Future<void> load({DateTime? period, bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      _rosterCache = null;
+      _reportedIdsCache.clear();
+    }
     emit(const AdminAssessmentLoading());
 
     try {
@@ -68,12 +75,10 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
       final bulan = selectedPeriod.month;
       final tahun = selectedPeriod.year;
 
-      // 1. Daftar asatidz aktif (semua gender) → untuk filter & gelar.
-      final asatidzList = await asatidzRepository.getAsatidzList(
-        isActive: true,
-        limit: 1000,
-      );
-      final asatidzById = {for (final a in asatidzList) a.id: a};
+      // Roster relatif stabil selama halaman terbuka. Pindah periode memakai
+      // cache yang sama; pull-to-refresh tetap mengambil data terbaru.
+      final roster = await _getRoster();
+      final asatidzById = roster.asatidzById;
       if (asatidzById.isEmpty) {
         emit(
           AdminAssessmentLoaded(
@@ -85,53 +90,23 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
         );
         return;
       }
+      final santriByTeacher = roster.santriByTeacher;
 
-      // 2. Semua halaqah, dikelompokkan per pembimbing.
-      final halaqahsResult = await scheduleRepository.getAllHalaqahs();
-      final halaqahsByTeacher = <String, List<Halaqah>>{};
-      halaqahsResult.fold(
-        ifLeft: (failure) => throw Exception(failure.message),
-        ifRight: (halaqahs) {
-          for (final h in halaqahs) {
-            if (!asatidzById.containsKey(h.teacherId)) continue;
-            halaqahsByTeacher.putIfAbsent(h.teacherId, () => []).add(h);
-          }
-        },
-      );
-
-      // 3. Ambil santri aktif per pembimbing sekali, kemudian iriskan dengan
-      // bulan masuk santri untuk masing-masing periode.
-      final santriByTeacher = <String, Map<String, SantriEntity>>{};
-      for (final entry in halaqahsByTeacher.entries) {
-        final teacherId = entry.key;
-        final santriById = <String, SantriEntity>{};
-        for (final halaqah in entry.value) {
-          final santrisResult = await scheduleRepository.getSantrisByHalaqahId(
-            halaqah.id,
-          );
-          santrisResult.fold(
-            ifLeft: (_) {},
-            ifRight: (santris) {
-              for (final s in santris) {
-                if (s.isActive) santriById[s.id] = s;
-              }
-            },
-          );
-        }
-
-        if (santriById.isNotEmpty) {
-          santriByTeacher[teacherId] = santriById;
-        }
-      }
-
-      // 4. Query laporan untuk periode terpilih. Status bulan sebelumnya
+      // Query laporan periode terpilih dan sebelumnya secara paralel. Hasil
+      // juga dicache agar navigasi antar dua periode tidak mengulang request.
       // selalu ikut dimuat agar UI dapat menampilkan penanda tunggakan.
-      final reportedIds = await _getReportedSantriIds(selectedPeriod);
-      final previousReportedIds = selectedPeriod == activePreviousPeriod
-          ? reportedIds
-          : await _getReportedSantriIds(activePreviousPeriod);
+      final reportedIdsFuture = _getReportedSantriIds(selectedPeriod);
+      final previousReportedIdsFuture = selectedPeriod == activePreviousPeriod
+          ? reportedIdsFuture
+          : _getReportedSantriIds(activePreviousPeriod);
+      final reportedResults = await Future.wait([
+        reportedIdsFuture,
+        previousReportedIdsFuture,
+      ]);
+      final reportedIds = reportedResults[0];
+      final previousReportedIds = reportedResults[1];
 
-      // 5. Susun ringkasan per pembimbing untuk periode terpilih.
+      // Susun ringkasan per pembimbing untuk periode terpilih.
       final pembimbingList = <PembimbingAssessment>[];
       for (final entry in santriByTeacher.entries) {
         final teacherId = entry.key;
@@ -194,14 +169,85 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
   }
 
   Future<Set<String>> _getReportedSantriIds(DateTime period) async {
+    final key = (bulan: period.month, tahun: period.year);
+    final cached = _reportedIdsCache[key];
+    if (cached != null) return cached;
+
     final result = await reportRepository.getReportedSantriIds(
       period.month,
       period.year,
     );
-    return result.fold(
+    final ids = result.fold(
       ifLeft: (failure) => throw Exception(failure.message),
       ifRight: (ids) => ids,
     );
+    final immutableIds = Set<String>.unmodifiable(ids);
+    _reportedIdsCache[key] = immutableIds;
+    return immutableIds;
+  }
+
+  Future<_AdminAssessmentRoster> _getRoster() async {
+    final cached = _rosterCache;
+    if (cached != null) return cached;
+
+    // Kedua sumber independen dimulai bersamaan. Nama pembimbing tidak perlu
+    // dihidrasi ulang dari halaqah karena profil aktif sudah menjadi sumbernya.
+    final asatidzFuture = asatidzRepository.getAsatidzList(
+      isActive: true,
+      limit: 1000,
+    );
+    final halaqahsFuture = scheduleRepository.getAllHalaqahs(
+      hydrateTeacherNames: false,
+    );
+    final asatidzList = await asatidzFuture;
+    final halaqahsResult = await halaqahsFuture;
+    final asatidzById = {
+      for (final asatidz in asatidzList) asatidz.id: asatidz,
+    };
+
+    final halaqahsByTeacher = <String, List<Halaqah>>{};
+    halaqahsResult.fold(
+      ifLeft: (failure) => throw Exception(failure.message),
+      ifRight: (halaqahs) {
+        for (final halaqah in halaqahs) {
+          if (!asatidzById.containsKey(halaqah.teacherId)) continue;
+          halaqahsByTeacher
+              .putIfAbsent(halaqah.teacherId, () => [])
+              .add(halaqah);
+        }
+      },
+    );
+
+    var santriByHalaqah = const <String, List<SantriEntity>>{};
+    if (halaqahsByTeacher.isNotEmpty) {
+      final result = await scheduleRepository.getSantrisByHalaqahIds(
+        halaqahsByTeacher.values.expand(
+          (halaqahs) => halaqahs.map((h) => h.id),
+        ),
+      );
+      result.fold(
+        ifLeft: (_) {},
+        ifRight: (santris) => santriByHalaqah = santris,
+      );
+    }
+
+    final santriByTeacher = <String, Map<String, SantriEntity>>{};
+    for (final entry in halaqahsByTeacher.entries) {
+      final santriById = <String, SantriEntity>{};
+      for (final halaqah in entry.value) {
+        for (final santri in santriByHalaqah[halaqah.id] ?? const []) {
+          if (santri.isActive) santriById[santri.id] = santri;
+        }
+      }
+      if (santriById.isNotEmpty) santriByTeacher[entry.key] = santriById;
+    }
+
+    final roster = _AdminAssessmentRoster(
+      asatidzById: Map.unmodifiable(asatidzById),
+      santriByTeacher: Map.unmodifiable(santriByTeacher),
+    );
+    _rosterCache = roster;
+    return roster;
   }
 
   bool _wasEnrolledIn(SantriEntity santri, DateTime period) {
@@ -222,4 +268,14 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
       return null;
     }
   }
+}
+
+class _AdminAssessmentRoster {
+  final Map<String, AsatidzEntity> asatidzById;
+  final Map<String, Map<String, SantriEntity>> santriByTeacher;
+
+  const _AdminAssessmentRoster({
+    required this.asatidzById,
+    required this.santriByTeacher,
+  });
 }

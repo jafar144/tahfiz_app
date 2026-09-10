@@ -13,7 +13,7 @@ abstract class ScheduleRemoteDataSource {
   Future<List<HalaqahModel>> getHalaqahs(String programId);
   Future<List<HalaqahModel>> getHalaqahsBySchedule(String scheduleId);
   Future<List<HalaqahModel>> getHalaqahsByTeacher(String teacherId);
-  Future<List<HalaqahModel>> getAllHalaqahs();
+  Future<List<HalaqahModel>> getAllHalaqahs({bool hydrateTeacherNames = true});
   Future<void> updateHalaqah(HalaqahModel halaqah, List<String> finalSantriIds);
   Future<void> createHalaqah(HalaqahModel halaqah, List<String> santriIds);
   Future<void> deleteHalaqah(String halaqahId);
@@ -25,6 +25,9 @@ abstract class ScheduleRemoteDataSource {
     String? newSession,
   });
   Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId);
+  Future<Map<String, List<SantriEntity>>> getSantrisByHalaqahIds(
+    Iterable<String> halaqahIds,
+  );
   Future<void> migrateHalaqahIds();
 }
 
@@ -188,12 +191,14 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
   }
 
   @override
-  Future<List<HalaqahModel>> getAllHalaqahs() async {
+  Future<List<HalaqahModel>> getAllHalaqahs({
+    bool hydrateTeacherNames = true,
+  }) async {
     final query = await firestore.collection('halaqahs').get();
     final halaqahs = query.docs
         .map((doc) => HalaqahModel.fromFirestore(doc))
         .toList();
-    return _hydrateTeacherNames(halaqahs);
+    return hydrateTeacherNames ? _hydrateTeacherNames(halaqahs) : halaqahs;
   }
 
   @override
@@ -379,31 +384,70 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
 
   @override
   Future<List<SantriEntity>> getSantrisByHalaqahId(String halaqahId) async {
-    final snapshot = await firestore
-        .collection('santri_profiles')
-        .where('halaqah_id', isEqualTo: halaqahId)
-        .get();
+    final grouped = await getSantrisByHalaqahIds([halaqahId]);
+    return grouped[halaqahId] ?? const <SantriEntity>[];
+  }
+
+  @override
+  Future<Map<String, List<SantriEntity>>> getSantrisByHalaqahIds(
+    Iterable<String> halaqahIds,
+  ) async {
+    final uniqueIds = halaqahIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (uniqueIds.isEmpty) return const <String, List<SantriEntity>>{};
+
+    final snapshots = await Future.wait([
+      for (var index = 0; index < uniqueIds.length; index += _whereInChunkSize)
+        firestore
+            .collection('santri_profiles')
+            .where(
+              'halaqah_id',
+              whereIn: uniqueIds.sublist(
+                index,
+                (index + _whereInChunkSize).clamp(0, uniqueIds.length),
+              ),
+            )
+            .get(),
+    ]);
 
     final now = DateTime.now();
-    return snapshot.docs.map((doc) {
+    final grouped = <String, List<SantriEntity>>{};
+    for (final doc in snapshots.expand((snapshot) => snapshot.docs)) {
       final data = doc.data();
-      final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
-      return SantriEntity(
-        id: doc.id,
-        name: data['name'] ?? '',
-        nis: data['nis'] ?? '',
-        kelas: data['kelas'] ?? '',
-        kelasFiqih: (data['kelas_fiqih'] as String?)?.trim(),
-        jenisKelamin: data['jenis_kelamin'] ?? '',
-        isActive: data['is_active'] ?? true,
-        isFree: freeUntil != null && freeUntil.isAfter(now),
-        freeUntil: freeUntil,
-        nomorWali: data['nomor_wali'],
-        tipeKelas: data['tipe_kelas'],
-        halaqahId: halaqahId,
-        tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
-      );
-    }).toList();
+      final halaqahId = data['halaqah_id']?.toString().trim() ?? '';
+      if (halaqahId.isEmpty) continue;
+      grouped
+          .putIfAbsent(halaqahId, () => [])
+          .add(_santriFromDocument(doc, now: now, halaqahId: halaqahId));
+    }
+    return grouped;
+  }
+
+  SantriEntity _santriFromDocument(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc, {
+    required DateTime now,
+    required String halaqahId,
+  }) {
+    final data = doc.data();
+    final freeUntil = (data['free_until'] as Timestamp?)?.toDate();
+    return SantriEntity(
+      id: doc.id,
+      name: data['name'] ?? '',
+      nis: data['nis'] ?? '',
+      kelas: data['kelas'] ?? '',
+      kelasFiqih: (data['kelas_fiqih'] as String?)?.trim(),
+      jenisKelamin: data['jenis_kelamin'] ?? '',
+      isActive: data['is_active'] ?? true,
+      isFree: freeUntil != null && freeUntil.isAfter(now),
+      freeUntil: freeUntil,
+      nomorWali: data['nomor_wali'],
+      tipeKelas: data['tipe_kelas'],
+      halaqahId: halaqahId,
+      tanggalMasuk: (data['tanggal_masuk'] as Timestamp?)?.toDate(),
+    );
   }
 
   @override

@@ -65,6 +65,13 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     return context.read<AdminAssessmentCubit>().load(period: _selectedPeriod);
   }
 
+  Future<void> _refreshSelectedPeriod() {
+    return context.read<AdminAssessmentCubit>().load(
+      period: _selectedPeriod,
+      forceRefresh: true,
+    );
+  }
+
   Future<void> _remind(PembimbingAssessment data) async {
     final messenger = ScaffoldMessenger.of(context);
     final cubit = context.read<AdminAssessmentCubit>();
@@ -82,10 +89,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     }
 
     final message = _buildReminderMessage(data);
-    final result = await WhatsAppUtils.launch(
-      rawPhone,
-      message: message,
-    );
+    final result = await WhatsAppUtils.launch(rawPhone, message: message);
     if (!mounted || result == WhatsAppLaunchResult.opened) return;
 
     final errorMessage = switch (result) {
@@ -318,7 +322,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
 
   Widget _buildList(List<PembimbingAssessment> list) {
     return RefreshIndicator(
-      onRefresh: _loadSelectedPeriod,
+      onRefresh: _refreshSelectedPeriod,
       child: list.isEmpty
           ? ListView(
               physics: const AlwaysScrollableScrollPhysics(),

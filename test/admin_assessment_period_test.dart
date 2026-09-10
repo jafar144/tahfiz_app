@@ -18,6 +18,8 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/pages/admin_
 
 void main() {
   late _FakeMonthlyReportRepository reportRepository;
+  late _FakeScheduleRepository scheduleRepository;
+  late _FakeAsatidzRepository asatidzRepository;
   late AdminAssessmentCubit cubit;
 
   setUp(() {
@@ -25,10 +27,12 @@ void main() {
       (bulan: 1, tahun: 2027): {'santri-lama'},
       (bulan: 12, tahun: 2026): <String>{},
     });
+    scheduleRepository = _FakeScheduleRepository();
+    asatidzRepository = _FakeAsatidzRepository();
     cubit = AdminAssessmentCubit(
-      scheduleRepository: _FakeScheduleRepository(),
+      scheduleRepository: scheduleRepository,
       reportRepository: reportRepository,
-      asatidzRepository: _FakeAsatidzRepository(),
+      asatidzRepository: asatidzRepository,
       now: () => DateTime(2027, 1, 15),
     );
     addTearDown(cubit.close);
@@ -54,6 +58,10 @@ void main() {
         (bulan: 1, tahun: 2027),
         (bulan: 12, tahun: 2026),
       ]);
+      expect(scheduleRepository.bulkRequests, 1);
+      expect(scheduleRepository.singleRequests, 0);
+      expect(scheduleRepository.hydrateTeacherNamesRequests, [false]);
+      expect(asatidzRepository.requests, 1);
 
       reportRepository.requests.clear();
       await cubit.load(period: DateTime(2026, 12));
@@ -64,7 +72,9 @@ void main() {
       expect(previous.pembimbingList.single.unassessedSantri.map((s) => s.id), [
         'santri-lama',
       ]);
-      expect(reportRepository.requests, [(bulan: 12, tahun: 2026)]);
+      expect(reportRepository.requests, isEmpty);
+      expect(scheduleRepository.bulkRequests, 1);
+      expect(asatidzRepository.requests, 1);
     },
   );
 
@@ -123,16 +133,19 @@ void main() {
       await refreshIndicator.onRefresh();
       await tester.pumpAndSettle();
       expect(reportRepository.requests, [(bulan: 12, tahun: 2026)]);
+      expect(scheduleRepository.bulkRequests, 2);
+      expect(asatidzRepository.requests, 2);
 
       await tester.tap(find.byKey(const Key('admin_assessment_next_month')));
       await tester.pumpAndSettle();
 
       expect(find.text('Januari 2027'), findsOneWidget);
-      expect(
-        reportRepository.requests.last,
+      expect(reportRepository.requests, [
         (bulan: 12, tahun: 2026),
-        reason: 'current reload also checks previous-month completeness',
-      );
+        (bulan: 1, tahun: 2027),
+      ]);
+      expect(scheduleRepository.bulkRequests, 2);
+      expect(asatidzRepository.requests, 2);
     },
   );
 
@@ -172,8 +185,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    reportRepository.failNext = (bulan: 12, tahun: 2026);
     await tester.tap(find.byKey(const Key('admin_assessment_previous_month')));
+    await tester.pumpAndSettle();
+    reportRepository.failNext = (bulan: 12, tahun: 2026);
+    final refreshIndicator = tester.widget<RefreshIndicator>(
+      find.byType(RefreshIndicator),
+    );
+    await refreshIndicator.onRefresh();
     await tester.pumpAndSettle();
     expect(find.textContaining('Gagal memuat data'), findsOneWidget);
 
@@ -186,6 +204,8 @@ void main() {
 }
 
 class _FakeAsatidzRepository implements AsatidzRepository {
+  int requests = 0;
+
   @override
   Future<List<AsatidzEntity>> getAsatidzList({
     String? keyword,
@@ -194,6 +214,7 @@ class _FakeAsatidzRepository implements AsatidzRepository {
     int limit = 10,
     String? lastDocumentId,
   }) async {
+    requests++;
     return [
       AsatidzEntity(
         id: 'asatidz-1',
@@ -227,8 +248,15 @@ class _FakeAsatidzRepository implements AsatidzRepository {
 }
 
 class _FakeScheduleRepository implements ScheduleRepository {
+  int singleRequests = 0;
+  int bulkRequests = 0;
+  final List<bool> hydrateTeacherNamesRequests = [];
+
   @override
-  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs() async {
+  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs({
+    bool hydrateTeacherNames = true,
+  }) async {
+    hydrateTeacherNamesRequests.add(hydrateTeacherNames);
     return const Right([
       Halaqah(
         id: 'halaqah-1',
@@ -247,7 +275,19 @@ class _FakeScheduleRepository implements ScheduleRepository {
   Future<Either<Failure, List<SantriEntity>>> getSantrisByHalaqahId(
     String halaqahId,
   ) async {
-    return Right([
+    singleRequests++;
+    return Right(_santris());
+  }
+
+  @override
+  Future<Either<Failure, Map<String, List<SantriEntity>>>>
+  getSantrisByHalaqahIds(Iterable<String> halaqahIds) async {
+    bulkRequests++;
+    return Right({for (final id in halaqahIds) id: _santris()});
+  }
+
+  List<SantriEntity> _santris() {
+    return [
       SantriEntity(
         id: 'santri-lama',
         name: 'Ali',
@@ -268,7 +308,7 @@ class _FakeScheduleRepository implements ScheduleRepository {
         isFree: false,
         tanggalMasuk: DateTime(2027, 1, 2),
       ),
-    ]);
+    ];
   }
 
   @override

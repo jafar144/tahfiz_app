@@ -166,9 +166,13 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
-  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs() async {
+  Future<Either<Failure, List<Halaqah>>> getAllHalaqahs({
+    bool hydrateTeacherNames = true,
+  }) async {
     try {
-      final result = await remoteDataSource.getAllHalaqahs();
+      final result = await remoteDataSource.getAllHalaqahs(
+        hydrateTeacherNames: hydrateTeacherNames,
+      );
       return Either.right(result);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
@@ -221,6 +225,17 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   ) async {
     try {
       final result = await remoteDataSource.getSantrisByHalaqahId(halaqahId);
+      return Either.right(result);
+    } catch (e) {
+      return Either.left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, List<SantriEntity>>>>
+  getSantrisByHalaqahIds(Iterable<String> halaqahIds) async {
+    try {
+      final result = await remoteDataSource.getSantrisByHalaqahIds(halaqahIds);
       return Either.right(result);
     } catch (e) {
       return Either.left(ServerFailure(e.toString()));
