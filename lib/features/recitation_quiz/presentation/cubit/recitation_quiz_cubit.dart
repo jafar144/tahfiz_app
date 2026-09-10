@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:dart_either/dart_either.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
@@ -111,6 +112,8 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   /// setelah permainan sudah aktif dan mengganti state sesi (termasuk poin yang
   /// baru didapat) dengan state kosong.
   bool _startingSession = false;
+  bool _finishingChallenge = false;
+  String? _activeAttemptId;
 
   bool get _isChallenge => _launch != null;
   QuizSessionKind get _sessionKind =>
@@ -342,6 +345,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     List<QuizQuestion> questions,
     QuizEnergy? energy,
   ) {
+    _activeAttemptId = _createAttemptId();
     _voiceBonusStreak.resetSession();
     emit(
       RecitationQuizState(
@@ -455,6 +459,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     List<QuizQuestion> questions, {
     QuizEnergy? energy,
   }) {
+    _activeAttemptId = _createAttemptId();
     _toppingUp = false;
     _choiceBonusStreak.resetSession();
     emit(
@@ -823,6 +828,20 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     await _finishChallenge(result);
   }
 
+  Future<void> _finishChallenge(
+    QuizResult result, {
+    List<QuizAnswer>? answers,
+    List<QuizReviewItem>? review,
+  }) async {
+    if (_finishingChallenge) return;
+    _finishingChallenge = true;
+    try {
+      await _finishChallengeOnce(result, answers: answers, review: review);
+    } finally {
+      _finishingChallenge = false;
+    }
+  }
+
   /// Selesaikan sesi TANTANGAN: tampilkan halaman "menghitung peringkat"
   /// (loading), simpan skor di baliknya, lalu — bila peringkat NAIK — putar
   /// animasi menyusul sebelum layar hasil. Bila tidak naik / data papan gagal
@@ -830,7 +849,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   ///
   /// [answers]/[review] hanya dikirim jalur mode SUARA (mode pilihan sudah
   /// menumpuk keduanya di state per jawaban).
-  Future<void> _finishChallenge(
+  Future<void> _finishChallengeOnce(
     QuizResult result, {
     List<QuizAnswer>? answers,
     List<QuizReviewItem>? review,
@@ -861,19 +880,7 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
     final before = beforeRes.fold(ifLeft: (_) => null, ifRight: (lb) => lb);
 
     // 2) Simpan skor (histori + leaderboard bila melampaui best).
-    final save = await repository.saveAttempt(
-      mode: mode,
-      difficulty: state.settings.difficulty,
-      score: result.leaderboardScore,
-      questionScores: result.scores,
-      juz: state.settings.sortedJuz,
-      bonusTotal: result.totalBonus,
-      earnedXp: result.earnedXp,
-      studentClass: _launch!.ownKelas,
-      scopeClass: _launch!.scopeKelas,
-      tier: tier,
-    );
-    await _awardResultXp(result);
+    final save = await _saveChallengeResult(result);
     // Layar berikutnya tak butuh Whisper — lepas lock untuk user lain.
     if (mode.isVoice) await _releaseSession();
     final saveError = save.fold(ifLeft: (f) => f.message, ifRight: (_) => null);
@@ -936,6 +943,71 @@ class RecitationQuizCubit extends Cubit<RecitationQuizState> {
   void continueToResult() {
     if (state.status != QuizStatus.rankReveal) return;
     emit(state.copyWith(status: QuizStatus.finished));
+  }
+
+  Future<void> retrySave() async {
+    final result = state.result;
+    if (!_isChallenge ||
+        result == null ||
+        state.saving ||
+        state.saveError == null) {
+      return;
+    }
+
+    emit(state.copyWith(saving: true, clearSaveError: true));
+    final save = await _saveChallengeResult(result);
+    if (isClosed) return;
+    final error = save.fold(
+      ifLeft: (failure) => failure.message,
+      ifRight: (_) => null,
+    );
+    emit(
+      state.copyWith(
+        saving: false,
+        saveError: error,
+        clearSaveError: error == null,
+      ),
+    );
+  }
+
+  Future<Either<Failure, void>> _saveChallengeResult(QuizResult result) {
+    final attemptId = _activeAttemptId ??= _createAttemptId();
+    if (kDebugMode) {
+      debugPrint(
+        '[TahfizArena] event=save_attempt request attempt_id=$attemptId '
+        'mode=${result.mode.key} score=${result.leaderboardScore}',
+      );
+    }
+    return repository
+        .saveAttempt(
+          attemptId: attemptId,
+          mode: result.mode,
+          difficulty: state.settings.difficulty,
+          score: result.leaderboardScore,
+          questionScores: result.scores,
+          juz: state.settings.sortedJuz,
+          bonusTotal: result.totalBonus,
+          earnedXp: result.earnedXp,
+          studentClass: _launch!.ownKelas,
+          scopeClass: _launch!.scopeKelas,
+          tier: _launch!.tier,
+        )
+        .then((result) {
+          if (kDebugMode) {
+            final outcome = result.isRight ? 'success' : 'failure';
+            debugPrint(
+              '[TahfizArena] event=save_attempt response '
+              'attempt_id=$attemptId outcome=$outcome',
+            );
+          }
+          return result;
+        });
+  }
+
+  String _createAttemptId() {
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final entropy = _rng.nextInt(0x7fffffff).toRadixString(16);
+    return 'quiz_${timestamp}_$entropy';
   }
 
   Future<void> _awardResultXp(QuizResult result) async {

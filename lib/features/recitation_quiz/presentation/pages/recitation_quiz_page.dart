@@ -180,6 +180,7 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
                                 saveError: state.saveError,
                                 energy: state.energy,
                                 onPlayAgain: cubit.playAgain,
+                                onRetrySave: cubit.retrySave,
                                 onRefillReady: cubit.loadEnergy,
                                 // "Selesai": latihan kembali ke layar awal;
                                 // Tantangan keluar halaman (jatah terpakai).

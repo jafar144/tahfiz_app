@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dart_either/dart_either.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/error/failure.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/ayah.dart';
 import 'package:khoirunnasyien/features/recitation_check/domain/entities/recitation_result.dart';
@@ -9,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_settings_store
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_leaderboard.dart';
+import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_launch.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_mode.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_question.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_settings.dart';
@@ -17,9 +19,11 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/repositories/quiz
 import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/choice_quiz_rules.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_cubit.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/recitation_quiz_state.dart';
+import 'package:khoirunnasyien/flavors/khoirunnasyien/app_config.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() => AppConfig.configure(khoirunnasyienAppConfig));
 
   test(
     'double tap Main Lagi tidak mereset poin sesi yang sudah dimulai',
@@ -55,6 +59,43 @@ void main() {
       await Future.wait([firstReplay, secondReplay]);
     },
   );
+
+  test(
+    'retry skor challenge memakai attempt id yang sama tepat satu kali',
+    () async {
+      final repository = _QuizRepositoryFake()..failNextSave = true;
+      final cubit = RecitationQuizCubit(repository, _QuizSettingsStoreFake());
+      addTearDown(cubit.close);
+
+      await cubit.init(
+        challenge: const QuizLaunch(
+          mode: QuizMode.choice,
+          difficulty: QuizDifficulty.easy,
+          ownKelas: 'Mutawassith',
+          scopeKelas: 'Mutawassith',
+          tier: QuizTier(
+            key: 'juz_30',
+            label: 'Juz 30',
+            scopeClass: 'Mutawassith',
+          ),
+        ),
+      );
+      cubit.pickOption(0);
+      await Future<void>.delayed(ChoiceQuizRules.feedbackDuration);
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+
+      expect(cubit.state.status, QuizStatus.finished);
+      expect(cubit.state.saveError, isNotNull);
+
+      await cubit.retrySave();
+
+      expect(cubit.state.saveError, isNull);
+      expect(repository.savedAttemptIds, hasLength(2));
+      expect(repository.savedAttemptIds.first, isNotEmpty);
+      expect(repository.savedAttemptIds.toSet(), hasLength(1));
+      expect(repository.awardXpCalls, 0);
+    },
+  );
 }
 
 const _choiceSettings = QuizSettings(
@@ -83,6 +124,9 @@ class _QuizSettingsStoreFake extends QuizSettingsStore {
 
 class _QuizRepositoryFake implements QuizRepository {
   bool controlQuestionGeneration = false;
+  bool failNextSave = false;
+  int awardXpCalls = 0;
+  final savedAttemptIds = <String>[];
   final pendingQuestionGenerations =
       <Completer<Either<Failure, List<QuizQuestion>>>>[];
 
@@ -107,7 +151,10 @@ class _QuizRepositoryFake implements QuizRepository {
   Future<bool> isCurrentUserAdmin() async => true;
 
   @override
-  Future<Either<Failure, void>> awardXp(int amount) async => const Right(null);
+  Future<Either<Failure, void>> awardXp(int amount) async {
+    awardXpCalls++;
+    return const Right(null);
+  }
 
   @override
   Future<Either<Failure, RecitationResult>> checkAnswer({
@@ -143,6 +190,7 @@ class _QuizRepositoryFake implements QuizRepository {
 
   @override
   Future<Either<Failure, void>> saveAttempt({
+    required String attemptId,
     required QuizMode mode,
     QuizDifficulty difficulty = QuizDifficulty.easy,
     required int score,
@@ -153,7 +201,14 @@ class _QuizRepositoryFake implements QuizRepository {
     required String studentClass,
     required String scopeClass,
     required QuizTier tier,
-  }) async => const Right(null);
+  }) async {
+    savedAttemptIds.add(attemptId);
+    if (failNextSave) {
+      failNextSave = false;
+      return const Left(NetworkFailure('Koneksi terputus'));
+    }
+    return const Right(null);
+  }
 
   @override
   Future<Either<Failure, QuizEnergy>> startSession({

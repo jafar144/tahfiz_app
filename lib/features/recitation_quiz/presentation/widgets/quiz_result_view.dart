@@ -32,6 +32,7 @@ class QuizResultView extends StatelessWidget {
   final String? saveError;
   final QuizEnergy? energy;
   final VoidCallback onPlayAgain;
+  final VoidCallback? onRetrySave;
   final VoidCallback? onRefillReady;
   final VoidCallback onFinish;
 
@@ -44,6 +45,7 @@ class QuizResultView extends StatelessWidget {
     required this.saveError,
     this.energy,
     required this.onPlayAgain,
+    this.onRetrySave,
     this.onRefillReady,
     required this.onFinish,
   });
@@ -68,7 +70,7 @@ class QuizResultView extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
+            SizedBox(height: isChallenge ? 20 : 28),
 
             _ResultScoreReveal(
               mode: result.mode,
@@ -81,7 +83,7 @@ class QuizResultView extends StatelessWidget {
               xp: result.earnedXp,
             ),
 
-            const SizedBox(height: 34),
+            SizedBox(height: isChallenge ? 24 : 34),
             // Latihan tidak disimpan → status simpan hanya untuk Tantangan.
             if (isChallenge) _saveStatus(context),
             const Spacer(),
@@ -201,21 +203,41 @@ class QuizResultView extends StatelessWidget {
       );
     }
     if (saveError != null) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      return Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
         children: [
           const Icon(
             Icons.cloud_off_rounded,
             size: 16,
             color: QuizColors.missingBright,
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'Gagal menyimpan hasil',
-              style: TextStyle(color: QuizColors.missingBright, fontSize: 12),
-            ),
+          const Text(
+            'Skor belum tersimpan',
+            style: TextStyle(color: QuizColors.missingBright, fontSize: 12),
           ),
+          if (onRetrySave != null)
+            Semantics(
+              button: true,
+              label: 'Coba simpan skor lagi',
+              child: GestureDetector(
+                key: const Key('quiz_retry_save'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onRetrySave,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Coba lagi',
+                    style: TextStyle(
+                      color: QuizColors.gold,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       );
     }

@@ -641,6 +641,7 @@ class QuizRepositoryImpl implements QuizRepository {
 
   @override
   Future<Either<Failure, void>> saveAttempt({
+    required String attemptId,
     required QuizMode mode,
     QuizDifficulty difficulty = QuizDifficulty.easy,
     required int score,
@@ -683,18 +684,43 @@ class QuizRepositoryImpl implements QuizRepository {
         return const Right(null);
       }
 
+      final normalizedAttemptId = attemptId.trim();
+      if (!RegExp(r'^[A-Za-z0-9_-]{16,160}$').hasMatch(normalizedAttemptId)) {
+        return const Left(
+          UnknownFailure('ID sesi kuis tidak valid. Silakan mulai ulang.'),
+        );
+      }
+
       final now = DateTime.now();
       String two(int n) => n.toString().padLeft(2, '0');
       final dateKey = '${now.year}-${two(now.month)}-${two(now.day)}';
 
-      // 1) HISTORI — selalu ditulis (arsip lengkap tiap sesi). Saat OFFLINE,
-      // Firestore mengantre tulisan ini di cache lokal & menyinkronkannya
-      // otomatis saat online — jadi bila menunggu ACK server melewati batas
-      // waktu, anggap tersimpan (data TIDAK hilang) daripada menggantung UI.
-      try {
-        await firestore
-            .collection(_collection)
-            .add({
+      final attemptRef = firestore
+          .collection(_collection)
+          .doc('${user.uid}_$normalizedAttemptId');
+      final leaderboardRef = _entriesRef(
+        _monthKey(now),
+        mode,
+        tier.key,
+      ).doc(user.uid);
+      final progressRef = firestore
+          .collection(_journeyProgressCollection)
+          .doc(user.uid);
+
+      // Histori, leaderboard, dan XP harus berhasil bersama. Dokumen attempt
+      // deterministik menjadi kunci idempotensi: retry sesudah respons putus
+      // akan melihat attempt yang sama dan tidak menambah skor/XP dua kali.
+      await firestore
+          .runTransaction((transaction) async {
+            final existingAttempt = await transaction.get(attemptRef);
+            if (existingAttempt.exists) return;
+
+            final leaderboard = await transaction.get(leaderboardRef);
+            final previousBest =
+                (leaderboard.data()?['best_score'] as num?)?.toInt() ?? -1;
+
+            transaction.set(attemptRef, {
+              'attempt_id': normalizedAttemptId,
               'user_id': user.uid,
               'user_name': name,
               'role': role,
@@ -707,39 +733,48 @@ class QuizRepositoryImpl implements QuizRepository {
               'question_scores': questionScores,
               'question_count': questionScores.length,
               'date_key': dateKey,
-              // Penanda Tantangan (challenge) + kelas terkait; null = latihan
-              // lama (data sebelum fitur Arena).
               'kind': 'challenge',
               'kelas': studentClass,
               'scope_kelas': scopeClass,
               'quiz_tier': tier.key,
               'quiz_tier_label': tier.label,
               'created_at': FieldValue.serverTimestamp(),
-            })
-            .timeout(const Duration(seconds: 6));
-      } on TimeoutException {
-        // Tersimpan di antrean lokal & akan tersinkron otomatis; lanjut.
-      }
+            });
 
-      // 2) LEADERBOARD — hanya diperbarui bila skor melampaui best (best-effort;
-      // histori di atas adalah sumber kebenaran, kegagalan di sini diabaikan).
-      try {
-        await _upsertLeaderboardEntry(
-          uid: user.uid,
-          name: name,
-          role: role,
-          mode: mode,
-          difficulty: difficulty,
-          monthKey: _monthKey(now),
-          score: score,
-          studentClass: studentClass,
-          scopeClass: scopeClass,
-          tier: tier,
-        ).timeout(const Duration(seconds: 6));
-      } catch (_) {
-        // Diabaikan (termasuk offline: transaksi butuh server); skor tetap
-        // tersimpan di histori sebagai sumber kebenaran.
-      }
+            final leaderboardData = <String, dynamic>{
+              'user_id': user.uid,
+              'user_name': name,
+              'role': role,
+              'month_key': _monthKey(now),
+              'mode': mode.key,
+              'last_difficulty': difficulty.key,
+              'kelas': studentClass,
+              'scope_kelas': scopeClass,
+              'quiz_tier': tier.key,
+              'quiz_tier_label': tier.label,
+              'last_score': score,
+              'play_count': FieldValue.increment(1),
+              'updated_at': FieldValue.serverTimestamp(),
+            };
+            if (score > previousBest) {
+              leaderboardData['best_score'] = score;
+              leaderboardData['best_difficulty'] = difficulty.key;
+              leaderboardData['best_at'] = FieldValue.serverTimestamp();
+            }
+            transaction.set(
+              leaderboardRef,
+              leaderboardData,
+              SetOptions(merge: true),
+            );
+
+            if (earnedXp > 0) {
+              transaction.set(progressRef, {
+                'xp': FieldValue.increment(earnedXp),
+                'updated_at': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+            }
+          })
+          .timeout(const Duration(seconds: 10));
 
       return const Right(null);
     } catch (e) {
@@ -773,51 +808,6 @@ class QuizRepositoryImpl implements QuizRepository {
     } catch (e) {
       return Left(ServerFailure('Gagal menambahkan XP kuis: $e'));
     }
-  }
-
-  /// Tulis best-score ke papan bulan + mode + tingkatan terkait hanya bila
-  /// [score] melebihi skor terbaik user pada papan tersebut. Satu user dapat
-  /// memiliki skor terbaik independen di beberapa tingkatan.
-  Future<void> _upsertLeaderboardEntry({
-    required String uid,
-    required String name,
-    required String role,
-    required QuizMode mode,
-    required QuizDifficulty difficulty,
-    required String monthKey,
-    required int score,
-    required String studentClass,
-    required String scopeClass,
-    required QuizTier tier,
-  }) {
-    final ref = _entriesRef(monthKey, mode, tier.key).doc(uid);
-    return firestore.runTransaction((tx) async {
-      final snap = await tx.get(ref);
-      final prevBest = (snap.data()?['best_score'] as num?)?.toInt() ?? -1;
-
-      final data = <String, dynamic>{
-        'user_id': uid,
-        'user_name': name,
-        'role': role,
-        'month_key': monthKey,
-        'mode': mode.key,
-        'last_difficulty': difficulty.key,
-        'kelas': studentClass,
-        'scope_kelas': scopeClass,
-        'quiz_tier': tier.key,
-        'quiz_tier_label': tier.label,
-        'last_score': score,
-        'play_count': FieldValue.increment(1),
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-      if (score > prevBest) {
-        data['best_score'] = score;
-        data['best_difficulty'] = difficulty.key;
-        // Tie-break: skor sama → yang lebih dulu mencapainya menang.
-        data['best_at'] = FieldValue.serverTimestamp();
-      }
-      tx.set(ref, data, SetOptions(merge: true));
-    });
   }
 
   @override

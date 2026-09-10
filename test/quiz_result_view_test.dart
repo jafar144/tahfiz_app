@@ -46,13 +46,20 @@ QuizResult _choiceResult({required List<int> scores, int bonus = 0}) {
   );
 }
 
-Widget _wrap(QuizResult result) => MaterialApp(
+Widget _wrap(
+  QuizResult result, {
+  bool isChallenge = false,
+  String? saveError,
+  VoidCallback? onRetrySave,
+}) => MaterialApp(
   home: Scaffold(
     body: QuizResultView(
       result: result,
+      isChallenge: isChallenge,
       saving: false,
-      saveError: null,
+      saveError: saveError,
       onPlayAgain: () {},
+      onRetrySave: onRetrySave,
       onFinish: () {},
     ),
   ),
@@ -110,5 +117,24 @@ void main() {
     expect(find.text('6'), findsWidgets);
     expect(find.text('9'), findsWidgets);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Skor challenge gagal dapat disimpan ulang dari layar hasil', (
+    tester,
+  ) async {
+    var retried = false;
+    await tester.pumpWidget(
+      _wrap(
+        _choiceResult(scores: [10]),
+        isChallenge: true,
+        saveError: 'Koneksi terputus',
+        onRetrySave: () => retried = true,
+      ),
+    );
+
+    expect(find.text('Skor belum tersimpan'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quiz_retry_save')));
+
+    expect(retried, isTrue);
   });
 }

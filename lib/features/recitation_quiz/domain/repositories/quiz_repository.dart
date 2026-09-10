@@ -43,6 +43,7 @@ abstract class QuizRepository {
   /// Skor terbaik dipisah berdasarkan [tier]; satu santri dapat tercatat pada
   /// beberapa tingkatan dalam bulan yang sama.
   Future<Either<Failure, void>> saveAttempt({
+    required String attemptId,
     required QuizMode mode,
     QuizDifficulty difficulty = QuizDifficulty.easy,
     required int score,
