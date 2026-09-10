@@ -3,13 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/utils/whatsapp_utils.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/theme/app_text_styles.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
@@ -725,24 +725,19 @@ class _SantriHomePageState extends State<SantriHomePage> {
   }
 
   Future<void> _launchWhatsApp(String rawPhone) async {
-    var phone = rawPhone.replaceAll(RegExp(r'\D'), '');
-    if (phone.isEmpty) return;
-    if (phone.startsWith('0')) {
-      phone = '62${phone.substring(1)}';
-    } else if (!phone.startsWith('62')) {
-      phone = '62$phone';
-    }
+    final result = await WhatsAppUtils.launch(rawPhone);
+    if (!mounted || result == WhatsAppLaunchResult.opened) return;
 
-    final url = Uri.parse('https://wa.me/$phone');
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal membuka WhatsApp')));
-      }
-    }
+    final message = switch (result) {
+      WhatsAppLaunchResult.invalidPhone =>
+        'Nomor WhatsApp pembimbing tidak valid. Hubungi admin untuk memperbarui nomor.',
+      WhatsAppLaunchResult.unavailable =>
+        'WhatsApp tidak dapat dibuka. Pastikan WhatsApp atau browser tersedia.',
+      WhatsAppLaunchResult.opened => '',
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _getInitials(String name) {

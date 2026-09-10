@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoirunnasyien/core/theme/app_colors.dart';
+import 'package:khoirunnasyien/core/utils/whatsapp_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/pembimbing_assessment.dart';
@@ -10,7 +11,6 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/pembimbing_assessment_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AdminAssessmentPage extends StatefulWidget {
   const AdminAssessmentPage({super.key});
@@ -81,31 +81,21 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
       return;
     }
 
-    var phone = rawPhone.replaceAll(RegExp(r'\D'), '');
-    if (phone.isEmpty) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Nomor WhatsApp pembimbing tidak valid')),
-      );
-      return;
-    }
-    if (phone.startsWith('0')) {
-      phone = '62${phone.substring(1)}';
-    } else if (!phone.startsWith('62')) {
-      phone = '62$phone';
-    }
-
     final message = _buildReminderMessage(data);
-    final url = Uri.parse(
-      'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
+    final result = await WhatsAppUtils.launch(
+      rawPhone,
+      message: message,
     );
+    if (!mounted || result == WhatsAppLaunchResult.opened) return;
 
-    try {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Gagal membuka WhatsApp')),
-      );
-    }
+    final errorMessage = switch (result) {
+      WhatsAppLaunchResult.invalidPhone =>
+        'Nomor WhatsApp pembimbing tidak valid',
+      WhatsAppLaunchResult.unavailable =>
+        'WhatsApp tidak dapat dibuka. Pastikan WhatsApp atau browser tersedia.',
+      WhatsAppLaunchResult.opened => '',
+    };
+    messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
   }
 
   String _buildReminderMessage(PembimbingAssessment data) {
