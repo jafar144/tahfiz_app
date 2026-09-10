@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:khoirunnasyien/features/monthly_report/data/utils/monthly_report_period_compat.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 
 class MonthlyReportModel extends MonthlyReport {
@@ -39,8 +40,8 @@ class MonthlyReportModel extends MonthlyReport {
       asatidzGender: data['asatidz_gender'] ?? '',
       santriId: data['santri_id'] ?? '',
       santriName: data['santri_name'] ?? '',
-      bulan: data['bulan'] ?? 1,
-      tahun: data['tahun'] ?? 2026,
+      bulan: parseMonthlyReportPeriod(data['bulan']) ?? 1,
+      tahun: parseMonthlyReportPeriod(data['tahun']) ?? 2026,
       hafalanTerakhir: data['hafalan_terakhir'] ?? '',
       nilaiPerkembangan: _parseNilai(data['nilai_perkembangan']),
       nilaiAkhlaq: _parseNilai(data['nilai_akhlaq']),

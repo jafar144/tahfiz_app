@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:khoirunnasyien/features/monthly_report/data/models/monthly_report_model.dart';
+import 'package:khoirunnasyien/features/monthly_report/data/utils/monthly_report_period_compat.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 
 abstract class MonthlyReportRemoteDataSource {
@@ -237,16 +238,21 @@ class MonthlyReportRemoteDataSourceImpl
 
   @override
   Future<Set<String>> getReportedSantriIds(int bulan, int tahun) async {
-    final snapshot = await firestore
-        .collection(_collection)
-        .where('bulan', isEqualTo: bulan)
-        .where('tahun', isEqualTo: tahun)
-        .get();
+    final snapshots = await Future.wait([
+      for (final storedMonth in monthlyReportPeriodStorageValues(bulan))
+        for (final storedYear in monthlyReportPeriodStorageValues(tahun))
+          firestore
+              .collection(_collection)
+              .where('bulan', isEqualTo: storedMonth)
+              .where('tahun', isEqualTo: storedYear)
+              .get(),
+    ]);
 
-    return snapshot.docs
-        .map((doc) => (doc.data()['santri_id'] ?? '').toString())
-        .where((id) => id.isNotEmpty)
-        .toSet();
+    return collectReportedSantriIds(
+      snapshots.expand((snapshot) => snapshot.docs).map((doc) => doc.data()),
+      bulan: bulan,
+      tahun: tahun,
+    );
   }
 }
 

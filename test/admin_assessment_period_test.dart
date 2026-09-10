@@ -136,6 +136,31 @@ void main() {
     },
   );
 
+  testWidgets('hides incomplete pulse when previous month is complete', (
+    tester,
+  ) async {
+    reportRepository.reportedByPeriod[(bulan: 12, tahun: 2026)] = {
+      'santri-lama',
+    };
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider.value(
+          value: cubit,
+          child: const AdminAssessmentPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = cubit.state as AdminAssessmentLoaded;
+    expect(state.previousMonthHasIncompleteAssessment, isFalse);
+    expect(
+      find.byKey(const Key('admin_assessment_previous_incomplete_indicator')),
+      findsNothing,
+    );
+  });
+
   testWidgets('error retry keeps the selected previous period', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
