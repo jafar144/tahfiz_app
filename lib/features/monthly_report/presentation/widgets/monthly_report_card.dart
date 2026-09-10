@@ -187,10 +187,10 @@ class MonthlyReportCard extends StatelessWidget {
           children: [
             const Icon(Icons.sticky_note_2_outlined, size: 15, color: _muted),
             const SizedBox(width: 8),
-            const Expanded(
+            Expanded(
               child: Text(
-                MonthlyReportStrings.adaCatatan,
-                style: TextStyle(
+                MonthlyReportStrings.adaCatatan(report.asatidzTitle),
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: _subtle,
@@ -493,9 +493,11 @@ class _NotesBottomSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        MonthlyReportStrings.catatanUstadz,
-                        style: TextStyle(
+                      Text(
+                        MonthlyReportStrings.catatanPengajar(
+                          report.asatidzTitle,
+                        ),
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF111827),

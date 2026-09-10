@@ -69,8 +69,17 @@ class MonthlyReportStrings {
 
   // ── Kartu penilaian (riwayat santri) ────────────────────────────────
   static const nilaiKosong = '—';
-  static const adaCatatan = 'Ada catatan dari ustadz';
-  static const catatanUstadz = 'Catatan Ustadz';
+
+  static String adaCatatan(String asatidzTitle) =>
+      'Ada catatan dari ${_authorLabel(asatidzTitle).toLowerCase()}';
+
+  static String catatanPengajar(String asatidzTitle) =>
+      'Catatan ${_authorLabel(asatidzTitle)}';
+
+  static String _authorLabel(String asatidzTitle) {
+    final title = asatidzTitle.trim();
+    return title.isEmpty ? 'Pengajar' : title;
+  }
 
   static String dinilaiOleh(String namaPengajar) =>
       'Dinilai oleh $namaPengajar';

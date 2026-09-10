@@ -119,7 +119,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                             ),
                             const SizedBox(height: 20),
                             AiwaTextField(
-                              label: 'Catatan Ustadz',
+                              label: 'Catatan Pengajar',
                               hint:
                                   'Tulis catatan perbaikan makhroj atau tajwid...',
                               icon: Icons.edit_note_rounded,

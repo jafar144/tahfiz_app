@@ -165,6 +165,68 @@ void main() {
     );
   });
 
+  testWidgets('note labels follow the assessment author gender', (
+    tester,
+  ) async {
+    final report = _report(
+      id: 'female-teacher',
+      bulan: 8,
+      tahun: 2026,
+      asatidzGender: 'P',
+      notes: 'Pertahankan murojaah setiap hari.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+    );
+
+    expect(find.text('Ada catatan dari ustadzah'), findsOneWidget);
+    expect(find.text('Ada catatan dari ustadz'), findsNothing);
+
+    await tester.tap(find.text('Ada catatan dari ustadzah'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Catatan Ustadzah'), findsOneWidget);
+    expect(find.text('Catatan Ustadz'), findsNothing);
+    expect(find.text('Pertahankan murojaah setiap hari.'), findsOneWidget);
+  });
+
+  testWidgets('male author uses ustadz note labels', (tester) async {
+    final report = _report(
+      id: 'male-teacher',
+      bulan: 8,
+      tahun: 2026,
+      asatidzGender: 'L',
+      notes: 'Lanjutkan hafalan berikutnya.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+    );
+
+    expect(find.text('Ada catatan dari ustadz'), findsOneWidget);
+    await tester.tap(find.text('Ada catatan dari ustadz'));
+    await tester.pumpAndSettle();
+    expect(find.text('Catatan Ustadz'), findsOneWidget);
+  });
+
+  testWidgets('note labels use a neutral fallback when gender is unknown', (
+    tester,
+  ) async {
+    final report = _report(
+      id: 'legacy-teacher',
+      bulan: 7,
+      tahun: 2026,
+      notes: 'Catatan dari data lama.',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+    );
+
+    expect(find.text('Ada catatan dari pengajar'), findsOneWidget);
+  });
+
   testWidgets(
     'current target card shows minimum and optimum below the header',
     (tester) async {
@@ -317,6 +379,8 @@ MonthlyReport _report({
   required String id,
   required int bulan,
   required int tahun,
+  String asatidzGender = '',
+  String notes = '',
   MonthlyTarget? target,
   MonthlyTargetEvaluation? evaluation,
 }) {
@@ -324,6 +388,7 @@ MonthlyReport _report({
     id: id,
     asatidzId: 'teacher-1',
     asatidzName: 'Ahmad',
+    asatidzGender: asatidzGender,
     santriId: 'student-1',
     santriName: 'Ali',
     bulan: bulan,
@@ -331,6 +396,7 @@ MonthlyReport _report({
     hafalanTerakhir: 'An-Naba',
     nilaiPerkembangan: 4,
     nilaiAkhlaq: 5,
+    notes: notes,
     target: target,
     targetEvaluation: evaluation,
     createdAt: DateTime(tahun, bulan, 28),
