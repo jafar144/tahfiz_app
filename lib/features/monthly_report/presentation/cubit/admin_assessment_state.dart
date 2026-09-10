@@ -1,4 +1,5 @@
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/pembimbing_assessment.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/target_achievement_recap.dart';
 
 abstract class AdminAssessmentState {
   const AdminAssessmentState();
@@ -22,12 +23,14 @@ class AdminAssessmentLoaded extends AdminAssessmentState {
 
   /// Seluruh pembimbing (putra & putri). Difilter per tab di UI.
   final List<PembimbingAssessment> pembimbingList;
+  final TargetAchievementRecap targetAchievementRecap;
 
   const AdminAssessmentLoaded({
     required this.bulan,
     required this.tahun,
     this.previousMonthHasIncompleteAssessment = false,
     required this.pembimbingList,
+    this.targetAchievementRecap = const TargetAchievementRecap(),
   });
 
   /// Pembimbing untuk gender tertentu ('L'/'P'), tanpa request ulang.

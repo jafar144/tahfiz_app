@@ -58,6 +58,19 @@ class MonthlyReportRepositoryImpl implements MonthlyReportRepository {
   }
 
   @override
+  Future<Either<Failure, List<MonthlyReport>>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  ) async {
+    try {
+      final result = await remoteDataSource.getReportsByPeriod(bulan, tahun);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, MonthlyReport?>> getReport(
     String santriId,
     int bulan,

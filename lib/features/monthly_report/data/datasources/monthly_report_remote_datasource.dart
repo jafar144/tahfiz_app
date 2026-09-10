@@ -18,6 +18,8 @@ abstract class MonthlyReportRemoteDataSource {
     int tahun,
   );
 
+  Future<List<MonthlyReportModel>> getReportsByPeriod(int bulan, int tahun);
+
   Future<MonthlyReportModel?> getReport(String santriId, int bulan, int tahun);
 
   Future<MonthlyReportModel> createOrUpdateReport(MonthlyReport report);
@@ -238,6 +240,29 @@ class MonthlyReportRemoteDataSourceImpl
 
   @override
   Future<Set<String>> getReportedSantriIds(int bulan, int tahun) async {
+    final documents = await _getPeriodDocuments(bulan, tahun);
+    return collectReportedSantriIds(
+      documents.map((document) => document.data()),
+      bulan: bulan,
+      tahun: tahun,
+    );
+  }
+
+  @override
+  Future<List<MonthlyReportModel>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  ) async {
+    final documents = await _getPeriodDocuments(bulan, tahun);
+    return documents
+        .map((document) => MonthlyReportModel.fromFirestore(document))
+        .toList(growable: false);
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _getPeriodDocuments(
+    int bulan,
+    int tahun,
+  ) async {
     final snapshots = await Future.wait([
       for (final storedMonth in monthlyReportPeriodStorageValues(bulan))
         for (final storedYear in monthlyReportPeriodStorageValues(tahun))
@@ -247,12 +272,11 @@ class MonthlyReportRemoteDataSourceImpl
               .where('tahun', isEqualTo: storedYear)
               .get(),
     ]);
-
-    return collectReportedSantriIds(
-      snapshots.expand((snapshot) => snapshot.docs).map((doc) => doc.data()),
-      bulan: bulan,
-      tahun: tahun,
-    );
+    final byId = <String, QueryDocumentSnapshot<Map<String, dynamic>>>{};
+    for (final document in snapshots.expand((snapshot) => snapshot.docs)) {
+      byId[document.id] = document;
+    }
+    return byId.values.toList(growable: false);
   }
 }
 

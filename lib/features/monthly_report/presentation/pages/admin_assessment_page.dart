@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/monthly_report/domain/entities/pembimbin
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/pembimbing_assessment_card.dart';
+import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/target_achievement_recap_panel.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class AdminAssessmentPage extends StatefulWidget {
@@ -157,12 +158,12 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
             final isLoading =
                 state is AdminAssessmentLoading ||
                 state is AdminAssessmentInitial;
-            final pembimbingList = state is AdminAssessmentLoaded
-                ? state.byGender(_gender)
+            final loadedState = state is AdminAssessmentLoaded ? state : null;
+            final pembimbingList = loadedState != null
+                ? loadedState.byGender(_gender)
                 : const <PembimbingAssessment>[];
             final previousMonthHasIncompleteAssessment =
-                state is AdminAssessmentLoaded &&
-                state.previousMonthHasIncompleteAssessment;
+                loadedState?.previousMonthHasIncompleteAssessment ?? false;
 
             return Column(
               children: [
@@ -172,6 +173,10 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
                   previousMonthHasIncompleteAssessment:
                       previousMonthHasIncompleteAssessment,
                 ),
+                if (loadedState != null)
+                  TargetAchievementRecapPanel(
+                    recap: loadedState.targetAchievementRecap,
+                  ),
                 _buildGenderToggle(),
                 Expanded(
                   child: isLoading

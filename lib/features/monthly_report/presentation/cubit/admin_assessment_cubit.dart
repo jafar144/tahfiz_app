@@ -4,7 +4,9 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/repository/asa
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/pembimbing_assessment.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/target_achievement_recap.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/repositories/monthly_report_repository.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_state.dart';
 
@@ -15,6 +17,7 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
   final DateTime Function() _now;
   _AdminAssessmentRoster? _rosterCache;
   final _reportedIdsCache = <({int bulan, int tahun}), Set<String>>{};
+  final _reportsCache = <({int bulan, int tahun}), List<MonthlyReport>>{};
 
   AdminAssessmentCubit({
     required this.scheduleRepository,
@@ -49,6 +52,7 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
     if (forceRefresh) {
       _rosterCache = null;
       _reportedIdsCache.clear();
+      _reportsCache.clear();
     }
     emit(const AdminAssessmentLoading());
 
@@ -92,19 +96,22 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
       }
       final santriByTeacher = roster.santriByTeacher;
 
-      // Query laporan periode terpilih dan sebelumnya secara paralel. Hasil
-      // juga dicache agar navigasi antar dua periode tidak mengulang request.
-      // selalu ikut dimuat agar UI dapat menampilkan penanda tunggakan.
-      final reportedIdsFuture = _getReportedSantriIds(selectedPeriod);
+      // Laporan lengkap periode terpilih dipakai sekaligus untuk status
+      // penilaian dan rekap target, sehingga tidak ada query duplikat.
+      final reportsFuture = _getReports(selectedPeriod);
       final previousReportedIdsFuture = selectedPeriod == activePreviousPeriod
-          ? reportedIdsFuture
+          ? null
           : _getReportedSantriIds(activePreviousPeriod);
-      final reportedResults = await Future.wait([
-        reportedIdsFuture,
-        previousReportedIdsFuture,
-      ]);
-      final reportedIds = reportedResults[0];
-      final previousReportedIds = reportedResults[1];
+      final reports = await reportsFuture;
+      final reportedIds = reports.map((report) => report.santriId).toSet();
+      final previousReportedIds = previousReportedIdsFuture == null
+          ? reportedIds
+          : await previousReportedIdsFuture;
+      final targetAchievementRecap = TargetAchievementRecap.fromReports(
+        reports,
+        bulan: bulan,
+        tahun: tahun,
+      );
 
       // Susun ringkasan per pembimbing untuk periode terpilih.
       final pembimbingList = <PembimbingAssessment>[];
@@ -160,6 +167,7 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
           previousMonthHasIncompleteAssessment:
               previousMonthHasIncompleteAssessment,
           pembimbingList: pembimbingList,
+          targetAchievementRecap: targetAchievementRecap,
         ),
       );
     } catch (e) {
@@ -184,6 +192,26 @@ class AdminAssessmentCubit extends Cubit<AdminAssessmentState> {
     final immutableIds = Set<String>.unmodifiable(ids);
     _reportedIdsCache[key] = immutableIds;
     return immutableIds;
+  }
+
+  Future<List<MonthlyReport>> _getReports(DateTime period) async {
+    final key = (bulan: period.month, tahun: period.year);
+    final cached = _reportsCache[key];
+    if (cached != null) return cached;
+
+    final result = await reportRepository.getReportsByPeriod(
+      period.month,
+      period.year,
+    );
+    final reports = result.fold(
+      ifLeft: (failure) => throw Exception(failure.message),
+      ifRight: (reports) => List<MonthlyReport>.unmodifiable(reports),
+    );
+    _reportsCache[key] = reports;
+    _reportedIdsCache[key] = Set<String>.unmodifiable(
+      reports.map((report) => report.santriId),
+    );
+    return reports;
   }
 
   Future<_AdminAssessmentRoster> _getRoster() async {

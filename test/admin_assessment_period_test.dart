@@ -23,10 +23,23 @@ void main() {
   late AdminAssessmentCubit cubit;
 
   setUp(() {
-    reportRepository = _FakeMonthlyReportRepository({
-      (bulan: 1, tahun: 2027): {'santri-lama'},
-      (bulan: 12, tahun: 2026): <String>{},
-    });
+    reportRepository = _FakeMonthlyReportRepository(
+      {
+        (bulan: 1, tahun: 2027): {'santri-lama'},
+        (bulan: 12, tahun: 2026): <String>{},
+      },
+      reportsByPeriod: {
+        (bulan: 1, tahun: 2027): [
+          _report(
+            santriId: 'santri-lama',
+            bulan: 1,
+            tahun: 2027,
+            result: MonthlyTargetResult.minimumAchieved,
+          ),
+        ],
+        (bulan: 12, tahun: 2026): const [],
+      },
+    );
     scheduleRepository = _FakeScheduleRepository();
     asatidzRepository = _FakeAsatidzRepository();
     cubit = AdminAssessmentCubit(
@@ -54,16 +67,15 @@ void main() {
       expect(current.pembimbingList.single.unassessedSantri.map((s) => s.id), [
         'santri-baru',
       ]);
-      expect(reportRepository.requests, [
-        (bulan: 1, tahun: 2027),
-        (bulan: 12, tahun: 2026),
-      ]);
+      expect(reportRepository.requests, [(bulan: 12, tahun: 2026)]);
+      expect(reportRepository.reportListRequests, [(bulan: 1, tahun: 2027)]);
       expect(scheduleRepository.bulkRequests, 1);
       expect(scheduleRepository.singleRequests, 0);
       expect(scheduleRepository.hydrateTeacherNamesRequests, [false]);
       expect(asatidzRepository.requests, 1);
 
       reportRepository.requests.clear();
+      reportRepository.reportListRequests.clear();
       await cubit.load(period: DateTime(2026, 12));
 
       final previous = cubit.state as AdminAssessmentLoaded;
@@ -73,6 +85,7 @@ void main() {
         'santri-lama',
       ]);
       expect(reportRepository.requests, isEmpty);
+      expect(reportRepository.reportListRequests, [(bulan: 12, tahun: 2026)]);
       expect(scheduleRepository.bulkRequests, 1);
       expect(asatidzRepository.requests, 1);
     },
@@ -92,6 +105,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Januari 2027'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('target_recap_minimum')),
+          matching: find.text('1'),
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('Penilaian Bulan Januari'), findsNothing);
       expect(
         find.byKey(const Key('admin_assessment_previous_incomplete_indicator')),
@@ -114,6 +134,13 @@ void main() {
 
       expect(find.text('Desember 2026'), findsOneWidget);
       expect(
+        find.descendant(
+          of: find.byKey(const Key('target_recap_minimum')),
+          matching: find.text('0'),
+        ),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const Key('admin_assessment_previous_incomplete_indicator')),
         findsNothing,
       );
@@ -127,12 +154,14 @@ void main() {
       expect(nextButton.onPressed, isNotNull);
 
       reportRepository.requests.clear();
+      reportRepository.reportListRequests.clear();
       final refreshIndicator = tester.widget<RefreshIndicator>(
         find.byType(RefreshIndicator),
       );
       await refreshIndicator.onRefresh();
       await tester.pumpAndSettle();
-      expect(reportRepository.requests, [(bulan: 12, tahun: 2026)]);
+      expect(reportRepository.requests, isEmpty);
+      expect(reportRepository.reportListRequests, [(bulan: 12, tahun: 2026)]);
       expect(scheduleRepository.bulkRequests, 2);
       expect(asatidzRepository.requests, 2);
 
@@ -140,7 +169,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Januari 2027'), findsOneWidget);
-      expect(reportRepository.requests, [
+      expect(reportRepository.requests, isEmpty);
+      expect(reportRepository.reportListRequests, [
         (bulan: 12, tahun: 2026),
         (bulan: 1, tahun: 2027),
       ]);
@@ -187,7 +217,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('admin_assessment_previous_month')));
     await tester.pumpAndSettle();
-    reportRepository.failNext = (bulan: 12, tahun: 2026);
+    reportRepository.failNextReports = (bulan: 12, tahun: 2026);
     final refreshIndicator = tester.widget<RefreshIndicator>(
       find.byType(RefreshIndicator),
     );
@@ -201,6 +231,38 @@ void main() {
     expect(find.text('Desember 2026'), findsOneWidget);
     expect(reportRepository.requests.last, (bulan: 12, tahun: 2026));
   });
+}
+
+MonthlyReport _report({
+  required String santriId,
+  required int bulan,
+  required int tahun,
+  MonthlyTargetResult? result,
+}) {
+  final timestamp = DateTime(tahun, bulan, 28);
+  return MonthlyReport(
+    id: 'report-$santriId-$tahun-$bulan',
+    asatidzId: 'asatidz-1',
+    asatidzName: 'Ahmad',
+    santriId: santriId,
+    santriName: santriId == 'santri-lama' ? 'Ali' : 'Budi',
+    bulan: bulan,
+    tahun: tahun,
+    hafalanTerakhir: 'An-Naba',
+    nilaiPerkembangan: 4,
+    nilaiAkhlaq: 4,
+    targetEvaluation: result == null
+        ? null
+        : MonthlyTargetEvaluation(
+            sourceReportId: 'target-source',
+            targetBulan: bulan,
+            targetTahun: tahun,
+            result: result,
+            evaluatedAt: timestamp,
+          ),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  );
 }
 
 class _FakeAsatidzRepository implements AsatidzRepository {
@@ -317,10 +379,16 @@ class _FakeScheduleRepository implements ScheduleRepository {
 
 class _FakeMonthlyReportRepository implements MonthlyReportRepository {
   final Map<({int bulan, int tahun}), Set<String>> reportedByPeriod;
+  final Map<({int bulan, int tahun}), List<MonthlyReport>> reportsByPeriod;
   final List<({int bulan, int tahun})> requests = [];
+  final List<({int bulan, int tahun})> reportListRequests = [];
   ({int bulan, int tahun})? failNext;
+  ({int bulan, int tahun})? failNextReports;
 
-  _FakeMonthlyReportRepository(this.reportedByPeriod);
+  _FakeMonthlyReportRepository(
+    this.reportedByPeriod, {
+    this.reportsByPeriod = const {},
+  });
 
   @override
   Future<Either<Failure, Set<String>>> getReportedSantriIds(
@@ -334,6 +402,20 @@ class _FakeMonthlyReportRepository implements MonthlyReportRepository {
       return const Left(ServerFailure('gangguan sementara'));
     }
     return Right(reportedByPeriod[period] ?? const <String>{});
+  }
+
+  @override
+  Future<Either<Failure, List<MonthlyReport>>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  ) async {
+    final period = (bulan: bulan, tahun: tahun);
+    reportListRequests.add(period);
+    if (failNextReports == period) {
+      failNextReports = null;
+      return const Left(ServerFailure('gangguan sementara'));
+    }
+    return Right(reportsByPeriod[period] ?? const []);
   }
 
   @override

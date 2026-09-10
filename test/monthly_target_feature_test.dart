@@ -354,6 +354,18 @@ class _FakeMonthlyReportRepository implements MonthlyReportRepository {
   }
 
   @override
+  Future<Either<Failure, List<MonthlyReport>>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  ) async {
+    return Right(
+      reports
+          .where((report) => report.bulan == bulan && report.tahun == tahun)
+          .toList(),
+    );
+  }
+
+  @override
   Future<Either<Failure, List<MonthlyReport>>> getReportsBySantri(
     String santriId, {
     int? bulan,

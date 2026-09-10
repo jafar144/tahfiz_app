@@ -19,6 +19,11 @@ abstract class MonthlyReportRepository {
     int tahun,
   );
 
+  Future<Either<Failure, List<MonthlyReport>>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  );
+
   Future<Either<Failure, MonthlyReport?>> getReport(
     String santriId,
     int bulan,

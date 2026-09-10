@@ -177,7 +177,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+      MaterialApp(
+        home: Scaffold(body: MonthlyReportCard(report: report)),
+      ),
     );
 
     expect(find.text('Ada catatan dari ustadzah'), findsOneWidget);
@@ -201,7 +203,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+      MaterialApp(
+        home: Scaffold(body: MonthlyReportCard(report: report)),
+      ),
     );
 
     expect(find.text('Ada catatan dari ustadz'), findsOneWidget);
@@ -221,7 +225,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: MonthlyReportCard(report: report))),
+      MaterialApp(
+        home: Scaffold(body: MonthlyReportCard(report: report)),
+      ),
     );
 
     expect(find.text('Ada catatan dari pengajar'), findsOneWidget);
@@ -438,6 +444,16 @@ class _FakeMonthlyReportRepository implements MonthlyReportRepository {
     int bulan,
     int tahun,
   ) async => Right(reports);
+
+  @override
+  Future<Either<Failure, List<MonthlyReport>>> getReportsByPeriod(
+    int bulan,
+    int tahun,
+  ) async => Right(
+    reports
+        .where((report) => report.bulan == bulan && report.tahun == tahun)
+        .toList(),
+  );
 
   @override
   Future<Either<Failure, List<MonthlyReport>>> getReportsBySantri(
