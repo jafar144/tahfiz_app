@@ -89,9 +89,13 @@ async function fetchPaidMonths() {
 // Santri reguler aktif yang punya tunggakan pada bulan berjalan (parts) ke bawah.
 // Mengembalikan array { uid, name, nis, namaWali, nomorWali, count,
 // months: [{year, month}] } (terurut dari bulan terlama).
-async function computeUnpaidSantri(parts = jakartaDateParts(), now = new Date()) {
+async function computeUnpaidSantri(
+  parts = jakartaDateParts(),
+  now = new Date(),
+  payingSantri = null,
+) {
   const [santri, paidBySantri] = await Promise.all([
-    fetchPayingSantri(now),
+    payingSantri ? Promise.resolve(payingSantri) : fetchPayingSantri(now),
     fetchPaidMonths(),
   ]);
 

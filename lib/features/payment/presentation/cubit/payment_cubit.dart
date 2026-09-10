@@ -3,6 +3,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state.dart';
 import 'package:khoirunnasyien/core/utils/error_handler.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
@@ -75,6 +76,17 @@ class PaymentCubit extends Cubit<PaymentState> {
             // Urutkan terbaru di atas (descending sesuai tanggal dibuat).
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+      // Preview reminder bersifat pelengkap. Dashboard pembayaran tetap dapat
+      // dipakai bila callable belum ter-deploy atau koneksi sedang terganggu.
+      PaymentReminderSchedule? reminderSchedule;
+      try {
+        reminderSchedule = await paymentRepository.getReminderSchedule(
+          selectedDate,
+        );
+      } catch (_) {
+        reminderSchedule = null;
+      }
+
       emit(
         PaymentLoaded(
           paidCount: paidStudents.length,
@@ -83,6 +95,7 @@ class PaymentCubit extends Cubit<PaymentState> {
           unpaidStudents: unpaidStudents,
           recentTransactions: recentTransactions,
           selectedDate: selectedDate,
+          reminderSchedule: reminderSchedule,
         ),
       );
     } catch (e) {

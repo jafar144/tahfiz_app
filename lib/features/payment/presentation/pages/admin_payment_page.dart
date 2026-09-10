@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/payment/presentation/cubit/payment_state
 import 'package:khoirunnasyien/features/payment/presentation/widgets/student_payment_list_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_period_picker_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_list_item.dart';
+import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_reminder_schedule_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
 
@@ -122,6 +123,21 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
             showWhatsApp: showWhatsApp,
           );
         },
+      ),
+    );
+  }
+
+  void _showReminderSchedule(BuildContext context, PaymentLoaded state) {
+    final schedule = state.reminderSchedule;
+    if (schedule == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.white,
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: PaymentReminderScheduleSheet(schedule: schedule),
       ),
     );
   }
@@ -284,6 +300,15 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                         ],
                       ),
                       const SizedBox(height: 24),
+
+                      if (state is PaymentLoaded &&
+                          state.reminderSchedule != null) ...[
+                        PaymentReminderScheduleCard(
+                          schedule: state.reminderSchedule!,
+                          onTap: () => _showReminderSchedule(context, state),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
 
                       // Transaction History Title
                       Row(

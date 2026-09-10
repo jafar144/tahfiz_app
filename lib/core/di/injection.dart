@@ -201,7 +201,7 @@ Future<void> initDI() async {
 
   // Payment
   getIt.registerLazySingleton<PaymentRemoteDataSource>(
-    () => PaymentRemoteDataSourceImpl(getIt()),
+    () => PaymentRemoteDataSourceImpl(getIt(), getIt()),
   );
 
   getIt.registerLazySingleton<PaymentRepository>(

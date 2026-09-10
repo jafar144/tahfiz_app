@@ -7,7 +7,7 @@ const ASSESSMENT_LAST_DAYS_THRESHOLD = 1;
 const ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS = Object.freeze([1, 2]);
 const PAYMENT_DUE_DAY = 5;
 const ARREARS_MID_DAY = 15;
-const ARREARS_MONTH_END_DAYS_REMAINING = 3;
+const { FIRST_REMINDER_DAY } = require("./paymentReminderSchedule");
 
 const ASSESSMENT_JOBS = Object.freeze({
   windowOpen: "windowOpen",
@@ -18,7 +18,7 @@ const ASSESSMENT_JOBS = Object.freeze({
 const PAYMENT_JOBS = Object.freeze({
   paymentDue: "paymentDue",
   arrearsMidMonth: "arrearsMidMonth",
-  arrearsMonthEnd: "arrearsMonthEnd",
+  paymentReminderQueue: "paymentReminderQueue",
   birthdayWhatsApp: "birthdayWhatsApp",
 });
 
@@ -44,8 +44,8 @@ function paymentJobNames(parts) {
   if (parts.day === ARREARS_MID_DAY) {
     jobs.push(PAYMENT_JOBS.arrearsMidMonth);
   }
-  if (parts.daysRemaining === ARREARS_MONTH_END_DAYS_REMAINING) {
-    jobs.push(PAYMENT_JOBS.arrearsMonthEnd);
+  if (parts.day >= FIRST_REMINDER_DAY) {
+    jobs.push(PAYMENT_JOBS.paymentReminderQueue);
   }
   // Scheduler pembayaran berjalan harian; pemeriksaan ulang tahun menumpang di
   // sini agar tidak menambah Cloud Scheduler keempat.
@@ -75,7 +75,7 @@ module.exports = {
   ASSESSMENT_PREVIOUS_MONTH_REMINDER_DAYS,
   PAYMENT_DUE_DAY,
   ARREARS_MID_DAY,
-  ARREARS_MONTH_END_DAYS_REMAINING,
+  FIRST_REMINDER_DAY,
   ASSESSMENT_JOBS,
   PAYMENT_JOBS,
   assessmentJobNames,

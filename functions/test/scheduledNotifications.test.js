@@ -37,7 +37,7 @@ test("scheduler penilaian memilih hanya job pada hari yang tepat", () => {
   assert.deepEqual(assessmentJobNames({ day: 20, daysRemaining: 10 }), []);
 });
 
-test("scheduler pembayaran mempertahankan tanggal 5, 15, dan H-3", () => {
+test("scheduler pembayaran mempertahankan tanggal 5, 15, dan antrean 20-akhir", () => {
   assert.deepEqual(paymentJobNames({ day: 5, daysRemaining: 25 }), [
     PAYMENT_JOBS.paymentDue,
     PAYMENT_JOBS.birthdayWhatsApp,
@@ -47,7 +47,11 @@ test("scheduler pembayaran mempertahankan tanggal 5, 15, dan H-3", () => {
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 27, daysRemaining: 3 }), [
-    PAYMENT_JOBS.arrearsMonthEnd,
+    PAYMENT_JOBS.paymentReminderQueue,
+    PAYMENT_JOBS.birthdayWhatsApp,
+  ]);
+  assert.deepEqual(paymentJobNames({ day: 20, daysRemaining: 10 }), [
+    PAYMENT_JOBS.paymentReminderQueue,
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 10, daysRemaining: 20 }), [
@@ -545,6 +549,7 @@ test("fungsi yang memakai Wablas mengikat kedua secret pada manifest", () => {
     "notifyAssessmentWindowOpen",
     "notifyArrearsMonthEnd",
     "provisionInstitutionUser",
+    "sendScheduledPaymentWhatsApp",
   ]) {
     const names = (
       cloudFunctions[functionName].__endpoint.secretEnvironmentVariables || []

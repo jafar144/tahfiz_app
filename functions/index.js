@@ -27,6 +27,10 @@ const {
   resetSantriPasswordFromBirthDate,
 } = require("./handlers/resetSantriPasswordFromBirthDate");
 const {
+  getPaymentReminderSchedule,
+  sendScheduledPaymentWhatsApp,
+} = require("./handlers/paymentReminderScheduler");
+const {
   getFamilyAccounts,
   switchFamilyAccount,
 } = require("./handlers/familyAccounts");
@@ -74,6 +78,10 @@ exports.provisionInstitutionUser = provisionInstitutionUser;
 // Perubahan tanggal lahir mereset password santri tanpa mengirimkan password
 // tersebut kembali ke perangkat admin.
 exports.resetSantriPasswordFromBirthDate = resetSantriPasswordFromBirthDate;
+
+// Preview admin + worker Cloud Tasks untuk reminder pembayaran yang tersebar.
+exports.getPaymentReminderSchedule = getPaymentReminderSchedule;
+exports.sendScheduledPaymentWhatsApp = sendScheduledPaymentWhatsApp;
 
 // Daftar akun keluarga dan perpindahan sesi terverifikasi untuk santri.
 exports.getFamilyAccounts = getFamilyAccounts;

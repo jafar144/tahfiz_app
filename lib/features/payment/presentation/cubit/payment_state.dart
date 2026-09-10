@@ -1,5 +1,6 @@
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
 
 sealed class PaymentState {}
 
@@ -14,6 +15,7 @@ class PaymentLoaded extends PaymentState {
   final List<SantriEntity> unpaidStudents;
   final List<PaymentEntity> recentTransactions;
   final DateTime selectedDate;
+  final PaymentReminderSchedule? reminderSchedule;
 
   PaymentLoaded({
     required this.paidCount,
@@ -22,6 +24,7 @@ class PaymentLoaded extends PaymentState {
     required this.unpaidStudents,
     required this.recentTransactions,
     required this.selectedDate,
+    this.reminderSchedule,
   });
 }
 

@@ -12,13 +12,14 @@ const {
   runMonthlyAssessmentReminder,
 } = require("./monthlyGroupNotifier");
 const {
-  runMonthEndPaymentWhatsApp,
   runBirthdayWhatsApp,
 } = require("./whatsappNotifier");
 const {
+  runPaymentReminderQueue,
+} = require("./paymentReminderScheduler");
+const {
   PAYMENT_DUE_DAY,
   ARREARS_MID_DAY,
-  ARREARS_MONTH_END_DAYS_REMAINING,
   PAYMENT_JOBS,
   paymentJobNames,
   runScheduledJobs,
@@ -77,16 +78,11 @@ async function runPaymentDue(parts = jakartaDateParts()) {
 }
 
 // --- Notif #2 & #3: pengingat tunggakan SPP (per santri) ---
-async function sendArrearsReminders(parts, { sendWhatsApp = false } = {}) {
+async function sendArrearsReminders(parts) {
   const unpaid = await computeUnpaidSantri(parts);
   if (!unpaid.length) {
     logger.info("[arrears] tidak ada santri menunggak.");
-    return {
-      notified: 0,
-      whatsapp: sendWhatsApp
-        ? await runMonthEndPaymentWhatsApp(parts, [])
-        : { skipped: true },
-    };
+    return { notified: 0 };
   }
 
   let notified = 0;
@@ -104,10 +100,7 @@ async function sendArrearsReminders(parts, { sendWhatsApp = false } = {}) {
   }
 
   logger.info(`[arrears] mengingatkan ${notified} santri menunggak.`);
-  const whatsapp = sendWhatsApp
-    ? await runMonthEndPaymentWhatsApp(parts, unpaid)
-    : { skipped: true };
-  return { notified, whatsapp };
+  return { notified };
 }
 
 // Tanggal 15: jalankan pengingat tunggakan.
@@ -119,21 +112,12 @@ async function runArrearsMidMonth(parts = jakartaDateParts()) {
   return sendArrearsReminders(parts);
 }
 
-// 3 hari sebelum akhir bulan: jalankan pengingat tunggakan.
-async function runArrearsMonthEnd(parts = jakartaDateParts()) {
-  if (parts.daysRemaining !== ARREARS_MONTH_END_DAYS_REMAINING) {
-    logger.info(`[arrearsEnd] dilewati (sisa ${parts.daysRemaining} hari).`);
-    return { skipped: true };
-  }
-  return sendArrearsReminders(parts, { sendWhatsApp: true });
-}
-
 async function runPaymentNotifications(
   parts = jakartaDateParts(),
   runners = {
     [PAYMENT_JOBS.paymentDue]: runPaymentDue,
     [PAYMENT_JOBS.arrearsMidMonth]: runArrearsMidMonth,
-    [PAYMENT_JOBS.arrearsMonthEnd]: runArrearsMonthEnd,
+    [PAYMENT_JOBS.paymentReminderQueue]: runPaymentReminderQueue,
     [PAYMENT_JOBS.birthdayWhatsApp]: runBirthdayWhatsApp,
   }
 ) {
@@ -190,7 +174,7 @@ module.exports = {
   scheduledPaymentNotifications,
   runPaymentDue,
   runArrearsMidMonth,
-  runArrearsMonthEnd,
+  runPaymentReminderQueue,
   runBirthdayWhatsApp,
   runPaymentNotifications,
   morningNotificationJobNames,

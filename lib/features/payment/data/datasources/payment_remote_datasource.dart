@@ -1,4 +1,5 @@
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
 
 abstract class PaymentRemoteDataSource {
   Future<List<PaymentEntity>> getPayments(String month, String year);
@@ -19,4 +20,5 @@ abstract class PaymentRemoteDataSource {
   Future<void> addPayment(PaymentEntity payment);
   Future<void> addPayments(List<PaymentEntity> payments);
   Future<void> deletePayment(String paymentId);
+  Future<PaymentReminderSchedule> getReminderSchedule(DateTime month);
 }

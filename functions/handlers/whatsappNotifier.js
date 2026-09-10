@@ -78,6 +78,9 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
           ? "format nomor wali tidak valid"
           : "nomor wali belum diisi";
         messages.push({
+          recipientUid: item.uid,
+          santriName: item.name,
+          notificationType: type,
           phone: normalizedAdminPhone,
           message: buildAdminFallbackWhatsAppMessage({
             santri: item,
@@ -98,6 +101,9 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
     const dateSuffix =
       type === "birthday" ? `-${String(parts.day).padStart(2, "0")}` : "";
     messages.push({
+      recipientUid: item.uid,
+      santriName: item.name,
+      notificationType: type,
       phone,
       message: originalMessage,
       isGroup: "false",
@@ -108,6 +114,44 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
     });
   }
   return { messages, invalidPhoneCount, adminFallbackCount };
+}
+
+function prepareScheduledPaymentMessages(parts, unpaid, options = {}) {
+  const adminPhone =
+    options.adminPhone === undefined
+      ? WHATSAPP_ADMIN_PHONE.value()
+      : options.adminPhone;
+  const institution =
+    options.institution === undefined
+      ? institutionMessagingConfig()
+      : options.institution;
+  const longOverdue = selectLongOverdueSantri(unpaid, parts);
+  const longOverdueIds = new Set(longOverdue.map((santri) => santri.uid));
+  const currentMonth = selectCurrentMonthUnpaidSantri(unpaid, parts).filter(
+    (santri) => !longOverdueIds.has(santri.uid),
+  );
+  const arrears = prepareMessages(
+    longOverdue,
+    parts,
+    "arrears",
+    (item) => buildArrearsWhatsAppMessage(item, institution),
+    adminPhone,
+  );
+  const current = prepareMessages(
+    currentMonth,
+    parts,
+    "current-month-payment",
+    (item) => buildCurrentMonthPaymentWhatsAppMessage(item, parts),
+    adminPhone,
+  );
+
+  return {
+    messages: [...arrears.messages, ...current.messages],
+    invalidPhoneCount:
+      arrears.invalidPhoneCount + current.invalidPhoneCount,
+    adminFallbackCount:
+      arrears.adminFallbackCount + current.adminFallbackCount,
+  };
 }
 
 async function dispatch(messages, label, send = sendTextMessages) {
@@ -400,6 +444,7 @@ module.exports = {
   billingPeriodsSinceEntry,
   selectLongOverdueSantri,
   selectCurrentMonthUnpaidSantri,
+  prepareScheduledPaymentMessages,
   prepareMessages,
   runWhatsAppArrears,
   runCurrentMonthPaymentWhatsApp,

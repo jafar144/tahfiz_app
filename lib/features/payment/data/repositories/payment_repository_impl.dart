@@ -1,5 +1,6 @@
 import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 
@@ -128,4 +129,8 @@ class PaymentRepositoryImpl implements PaymentRepository {
   Future<void> deletePayment(String paymentId) async {
     await remoteDataSource.deletePayment(paymentId);
   }
+
+  @override
+  Future<PaymentReminderSchedule> getReminderSchedule(DateTime month) =>
+      remoteDataSource.getReminderSchedule(month);
 }

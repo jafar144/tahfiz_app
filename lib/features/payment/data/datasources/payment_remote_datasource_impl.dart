@@ -1,12 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:khoirunnasyien/features/payment/data/datasources/payment_remote_datasource.dart';
 import 'package:khoirunnasyien/features/payment/data/models/payment_model.dart';
+import 'package:khoirunnasyien/features/payment/data/models/payment_reminder_schedule_model.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
 
 class PaymentRemoteDataSourceImpl implements PaymentRemoteDataSource {
   final FirebaseFirestore firestore;
+  final FirebaseFunctions functions;
 
-  PaymentRemoteDataSourceImpl(this.firestore);
+  PaymentRemoteDataSourceImpl(this.firestore, this.functions);
+
+  @override
+  Future<PaymentReminderSchedule> getReminderSchedule(DateTime month) async {
+    final response = await functions
+        .httpsCallable('getPaymentReminderSchedule')
+        .call(<String, dynamic>{'year': month.year, 'month': month.month});
+    return PaymentReminderScheduleModel.fromMap(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
 
   @override
   Future<List<PaymentEntity>> getPayments(String month, String year) async {
