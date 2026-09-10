@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class ErrorHandler {
   static String getMessage(dynamic e) {
@@ -12,6 +13,13 @@ class ErrorHandler {
     // adalah turunannya — jika tidak, error login jatuh ke pesan generik.
     if (e is FirebaseAuthException) {
       return _authMessage(e.code);
+    }
+
+    // FirebaseFunctionsException juga merupakan FirebaseException. Tangani
+    // lebih dulu agar pesan validasi dari callable (misalnya NIS duplikat)
+    // tidak berubah menjadi pesan basis data generik.
+    if (e is FirebaseFunctionsException) {
+      return functionsMessage(code: e.code, message: e.message);
     }
 
     // Handling Firebase exceptions
@@ -67,6 +75,27 @@ class ErrorHandler {
         return 'Koneksi internet bermasalah. Periksa jaringan Anda.';
       default:
         return 'Gagal masuk. Pastikan NIS dan password Anda benar.';
+    }
+  }
+
+  static String functionsMessage({required String code, String? message}) {
+    final serverMessage = message?.trim() ?? '';
+    if (serverMessage.isNotEmpty) return serverMessage;
+
+    switch (code) {
+      case 'already-exists':
+        return 'NIS sudah mempunyai akun. Gunakan NIS lain.';
+      case 'invalid-argument':
+        return 'Data yang dikirim tidak valid. Periksa kembali formulir.';
+      case 'permission-denied':
+        return 'Hanya admin yang dapat melakukan tindakan ini.';
+      case 'unauthenticated':
+        return 'Sesi login berakhir. Silakan masuk kembali.';
+      case 'unavailable':
+      case 'deadline-exceeded':
+        return 'Server sedang tidak dapat dijangkau. Silakan coba lagi.';
+      default:
+        return 'Gagal memproses permintaan. Silakan coba lagi.';
     }
   }
 

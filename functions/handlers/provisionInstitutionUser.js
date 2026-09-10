@@ -76,22 +76,22 @@ function randomTemporaryPassword(length = 16) {
   return password;
 }
 
+function isValidStaffPassword(password) {
+  return (
+    password.length >= 12 &&
+    password.length <= 128 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /[0-9]/.test(password)
+  );
+}
+
 function staffInitialPassword(configuredValue) {
   const password = String(configuredValue ?? "").trim();
   if (!password) return randomTemporaryPassword();
-  if (
-    password.length < 12 ||
-    password.length > 128 ||
-    !/[a-z]/.test(password) ||
-    !/[A-Z]/.test(password) ||
-    !/[0-9]/.test(password)
-  ) {
-    throw new HttpsError(
-      "failed-precondition",
-      "STAFF_INITIAL_PASSWORD harus 12-128 karakter dan memuat huruf besar, huruf kecil, serta angka.",
-    );
-  }
-  return password;
+  return isValidStaffPassword(password)
+    ? password
+    : randomTemporaryPassword();
 }
 
 async function rollbackAuthUser(uid) {
@@ -168,6 +168,14 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
     };
   } else {
     const configuredStaffPassword = STAFF_INITIAL_PASSWORD.value();
+    if (
+      configuredStaffPassword &&
+      !isValidStaffPassword(configuredStaffPassword.trim())
+    ) {
+      console.warn(
+        "STAFF_INITIAL_PASSWORD tidak memenuhi kebijakan; menggunakan password sementara acak.",
+      );
+    }
     temporaryPassword = staffInitialPassword(configuredStaffPassword);
     profileData = {
       is_active: data.isActive !== false,
@@ -273,6 +281,7 @@ module.exports = {
   _private: {
     requiredText,
     dateOnly,
+    isValidStaffPassword,
     randomTemporaryPassword,
     staffInitialPassword,
   },

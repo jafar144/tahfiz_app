@@ -5,6 +5,7 @@ const test = require("node:test");
 const {
   _private: {
     dateOnly,
+    isValidStaffPassword,
     randomTemporaryPassword,
     staffInitialPassword,
   },
@@ -23,7 +24,16 @@ test("password sementara pengguna acak, panjang, dan mudah disalin", () => {
 test("password awal staff dapat ditetapkan per lembaga", () => {
   assert.equal(staffInitialPassword("Barokatul123"), "Barokatul123");
   assert.equal(staffInitialPassword("").length, 16);
-  assert.throws(() => staffInitialPassword("terlalulemah"));
+});
+
+test("konfigurasi password staff yang lemah diganti password acak kuat", () => {
+  assert.equal(isValidStaffPassword("Khoirun123"), false);
+
+  const password = staffInitialPassword("Khoirun123");
+
+  assert.equal(password.length, 16);
+  assert.match(password, /^[A-Za-z0-9!@#$]+$/);
+  assert.notEqual(password, "Khoirun123");
 });
 
 test("password awal santri memakai tanggal lahir dalam urutan YYYYMMDD", () => {
