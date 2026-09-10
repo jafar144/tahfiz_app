@@ -126,6 +126,12 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                             onTap: () =>
                                 context.pushNamed(RouteNames.adminSyahadah),
                           ),
+                          MenuCard(
+                            icon: Icons.casino_rounded,
+                            title: 'Spin Santri',
+                            onTap: () =>
+                                context.pushNamed(RouteNames.sessionSpin),
+                          ),
                           if (showTahfizArena)
                             MenuCard(
                               icon: Icons.sports_esports_rounded,

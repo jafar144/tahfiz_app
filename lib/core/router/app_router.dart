@@ -45,6 +45,7 @@ import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/page
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/pages/sunday_fajr_santri_history_page.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/syahadah_generator_page.dart';
 import 'package:khoirunnasyien/features/syahadah/presentation/pages/kelulusan_photo_list_page.dart';
+import 'package:khoirunnasyien/features/session_spin/presentation/pages/session_spin_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_payment_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/cubit/santri_payment_history_cubit.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
@@ -393,6 +394,13 @@ class AppRouter {
         path: RoutePaths.adminSyahadahPhotos,
         name: RouteNames.adminSyahadahPhotos,
         builder: (context, state) => const KelulusanPhotoListPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.sessionSpin,
+        name: RouteNames.sessionSpin,
+        builder: (context, state) => SessionSpinPage(
+          teacherId: getIt<FirebaseAuth>().currentUser?.uid ?? '',
+        ),
       ),
       GoRoute(
         path: RoutePaths.santriPayment,
