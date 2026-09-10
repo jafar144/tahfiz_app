@@ -20,7 +20,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
     }
   }
 
-  Future<void> updateSantri(String id, SantriParams params) async {
+  Future<bool> updateSantri(String id, SantriParams params) async {
     emit(SantriDetailLoading());
     try {
       String? finalPhotoUrl = params.photoUrl;
@@ -45,7 +45,7 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
         );
         if (finalPhotoUrl == null) {
           emit(SantriDetailError('Gagal mengupload foto'));
-          return;
+          return false;
         }
       } else if (params.removePhoto) {
         // Hapus foto lama dari Storage lalu kosongkan url
@@ -76,9 +76,11 @@ class SantriDetailCubit extends Cubit<SantriDetailState> {
       );
 
       await repository.updateSantri(id, finalParams);
-      loadDetail(id);
+      await loadDetail(id);
+      return true;
     } catch (e) {
       emit(SantriDetailError(ErrorHandler.getMessage(e)));
+      return false;
     }
   }
 }

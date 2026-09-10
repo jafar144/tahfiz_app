@@ -14,7 +14,9 @@ import 'package:khoirunnasyien/core/di/injection.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/services/santri_birth_date_policy.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
+import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
 
 class EditSantriPage extends StatefulWidget {
@@ -251,6 +253,22 @@ class _EditSantriPageState extends State<EditSantriPage> {
     );
   }
 
+  Future<bool?> _confirmBirthDatePasswordReset() {
+    return showAiwaActionSheet<bool>(
+      context: context,
+      title: 'Reset Password Santri?',
+      content: const Text(
+        'Tanggal lahir berubah. Setelah disimpan, password login santri akan '
+        'di-reset mengikuti tanggal lahir baru dan sesi lama akan dicabut. '
+        'Password tidak akan ditampilkan di perangkat admin.',
+      ),
+      confirmText: 'Reset & Simpan',
+      confirmValue: true,
+      cancelValue: false,
+      confirmColor: Colors.orange,
+    );
+  }
+
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
       if (_birthDate == null) {
@@ -270,6 +288,14 @@ class _EditSantriPageState extends State<EditSantriPage> {
           const SnackBar(content: Text('Tipe kelas harus dipilih')),
         );
         return;
+      }
+
+      if (SantriBirthDatePolicy.hasChanged(
+        widget.santri.tanggalLahir,
+        _birthDate!,
+      )) {
+        final confirmed = await _confirmBirthDatePasswordReset();
+        if (!mounted || confirmed != true) return;
       }
 
       // Bila status diubah ke Tidak Aktif & santri masih terhubung ke halaqah,
@@ -340,29 +366,24 @@ class _EditSantriPageState extends State<EditSantriPage> {
         removePhoto: _photoRemoved,
       );
 
-      // Call Cubit to update
-      // We assume this page is pushed on top of DetailPage which provides the Cubit
-      // Or we can pass the Cubit context or use BlocProvider.value/listener
-      context
-          .read<SantriDetailCubit>()
-          .updateSantri(widget.santri.id, params)
-          .then((_) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              Navigator.pop(context); // Go back to Detail
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Santri berhasil diperbarui')),
-              );
-            }
-          })
-          .catchError((e) {
-            if (mounted) {
-              setState(() => _isLoading = false);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('Gagal: $e')));
-            }
-          });
+      final cubit = context.read<SantriDetailCubit>();
+      final updated = await cubit.updateSantri(widget.santri.id, params);
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (!updated) {
+        final state = cubit.state;
+        final message = state is SantriDetailError
+            ? state.message
+            : 'Gagal memperbarui santri. Silakan coba lagi.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+        return;
+      }
+      Navigator.pop(context); // Go back to Detail
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Santri berhasil diperbarui')),
+      );
     }
   }
 

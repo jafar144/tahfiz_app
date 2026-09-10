@@ -24,6 +24,9 @@ const {
   provisionInstitutionUser,
 } = require("./handlers/provisionInstitutionUser");
 const {
+  resetSantriPasswordFromBirthDate,
+} = require("./handlers/resetSantriPasswordFromBirthDate");
+const {
   getFamilyAccounts,
   switchFamilyAccount,
 } = require("./handlers/familyAccounts");
@@ -68,6 +71,9 @@ exports.saveKelulusanPhoto = saveKelulusanPhoto;
 
 // Provisioning akun dan role hanya melalui server, khusus admin.
 exports.provisionInstitutionUser = provisionInstitutionUser;
+// Perubahan tanggal lahir mereset password santri tanpa mengirimkan password
+// tersebut kembali ke perangkat admin.
+exports.resetSantriPasswordFromBirthDate = resetSantriPasswordFromBirthDate;
 
 // Daftar akun keluarga dan perpindahan sesi terverifikasi untuk santri.
 exports.getFamilyAccounts = getFamilyAccounts;

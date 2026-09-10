@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_page_result.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
+import 'package:khoirunnasyien/features/management_santri/domain/services/santri_birth_date_policy.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
 
 class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
@@ -640,7 +641,22 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     // di-set saat transisi aktif → nonaktif (bukan tiap edit), dan dihapus
     // kembali bila santri diaktifkan ulang.
     final snap = await docRef.get();
-    final wasActive = (snap.data()?['is_active'] as bool?) ?? true;
+    final previousData = snap.data() ?? const <String, dynamic>{};
+    final wasActive = (previousData['is_active'] as bool?) ?? true;
+    final previousBirthDate = (previousData['tanggal_lahir'] as Timestamp?)
+        ?.toDate();
+    final pendingBirthDate =
+        previousData['password_reset_pending_birth_date'] as String?;
+    if (SantriBirthDatePolicy.requiresPasswordReset(
+      previous: previousBirthDate,
+      next: params.birthDate,
+      pendingDateKey: pendingBirthDate,
+    )) {
+      await functions.httpsCallable('resetSantriPasswordFromBirthDate').call({
+        'santriId': id,
+        'birthDate': SantriBirthDatePolicy.dateKey(params.birthDate),
+      });
+    }
 
     // Update Santri Profile
     await docRef.update({
