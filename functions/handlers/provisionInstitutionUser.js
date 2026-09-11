@@ -14,6 +14,7 @@ const {
 
 const TEMPORARY_PASSWORD_ALPHABET =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
+const MIN_STAFF_PASSWORD_LENGTH = 10;
 
 // Secret perlu tercantum pada manifest meski feature flag baru dibaca saat
 // runtime. Tanpa deklarasi ini, welcome WhatsApp gagal ketika Wablas aktif.
@@ -78,7 +79,7 @@ function randomTemporaryPassword(length = 16) {
 
 function isValidStaffPassword(password) {
   return (
-    password.length >= 12 &&
+    password.length >= MIN_STAFF_PASSWORD_LENGTH &&
     password.length <= 128 &&
     /[a-z]/.test(password) &&
     /[A-Z]/.test(password) &&
@@ -173,7 +174,7 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
       !isValidStaffPassword(configuredStaffPassword.trim())
     ) {
       console.warn(
-        "STAFF_INITIAL_PASSWORD tidak memenuhi kebijakan; menggunakan password sementara acak.",
+        `STAFF_INITIAL_PASSWORD tidak memenuhi kebijakan minimal ${MIN_STAFF_PASSWORD_LENGTH} karakter; menggunakan password sementara acak.`,
       );
     }
     temporaryPassword = staffInitialPassword(configuredStaffPassword);

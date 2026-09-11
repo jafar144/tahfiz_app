@@ -26,14 +26,19 @@ test("password awal staff dapat ditetapkan per lembaga", () => {
   assert.equal(staffInitialPassword("").length, 16);
 });
 
-test("konfigurasi password staff yang lemah diganti password acak kuat", () => {
-  assert.equal(isValidStaffPassword("Khoirun123"), false);
+test("password awal asatidz Khoirun mengikuti konfigurasi lembaga", () => {
+  assert.equal(isValidStaffPassword("Khoirun123"), true);
+  assert.equal(staffInitialPassword("Khoirun123"), "Khoirun123");
+});
 
-  const password = staffInitialPassword("Khoirun123");
+test("konfigurasi password staff tanpa huruf besar diganti password acak kuat", () => {
+  assert.equal(isValidStaffPassword("khoirun123"), false);
+
+  const password = staffInitialPassword("khoirun123");
 
   assert.equal(password.length, 16);
   assert.match(password, /^[A-Za-z0-9!@#$]+$/);
-  assert.notEqual(password, "Khoirun123");
+  assert.notEqual(password, "khoirun123");
 });
 
 test("password awal santri memakai tanggal lahir dalam urutan YYYYMMDD", () => {
