@@ -33,6 +33,9 @@ class PaymentReminderScheduleItem {
     required this.intervalMinutes,
   });
 
-  String get typeLabel =>
-      type == 'arrears' ? 'Tunggakan 3+ periode' : 'Tagihan bulan berjalan';
+  String get typeLabel => switch (type) {
+    'two-month-arrears' => 'Tunggakan 2 bulan',
+    'arrears' => 'Tunggakan 3+ periode',
+    _ => 'Tagihan bulan berjalan',
+  };
 }

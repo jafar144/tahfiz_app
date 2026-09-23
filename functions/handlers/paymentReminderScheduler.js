@@ -140,7 +140,13 @@ function validateDelivery(data) {
   if (!/^[A-Za-z0-9_-]{1,240}$/.test(refId)) {
     throw new Error("Reference ID reminder pembayaran tidak valid.");
   }
-  if (!['arrears', 'current-month-payment'].includes(notificationType)) {
+  if (
+    ![
+      "arrears",
+      "two-month-arrears",
+      "current-month-payment",
+    ].includes(notificationType)
+  ) {
     throw new Error("Tipe reminder pembayaran tidak valid.");
   }
   return { phone, message, refId, notificationType };

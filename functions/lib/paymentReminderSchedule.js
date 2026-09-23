@@ -2,7 +2,7 @@ const crypto = require("node:crypto");
 
 const FIRST_REMINDER_DAY = 20;
 const MIN_INTERVAL_MINUTES = 1;
-const MAX_INTERVAL_MINUTES = 20;
+const MAX_INTERVAL_MINUTES = 10;
 const START_MINUTE_WIB = 8 * 60;
 const END_MINUTE_WIB = 21 * 60;
 

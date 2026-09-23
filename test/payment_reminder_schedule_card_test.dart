@@ -12,16 +12,16 @@ void main() {
       firstDay: 20,
       lastDay: 30,
       minIntervalMinutes: 1,
-      maxIntervalMinutes: 20,
+      maxIntervalMinutes: 10,
       invalidPhoneCount: 0,
       adminFallbackCount: 0,
       items: [
         PaymentReminderScheduleItem(
           santriId: 'santri-1',
           santriName: 'Ahmad',
-          type: 'current-month-payment',
+          type: 'two-month-arrears',
           scheduledAt: DateTime(2026, 9, 22, 8, 14),
-          intervalMinutes: 14,
+          intervalMinutes: 7,
         ),
       ],
     );
@@ -45,11 +45,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Tanggal 20–30 • jeda 1–20 menit'), findsOneWidget);
+    expect(find.text('Tanggal 20–30 • jeda 1–10 menit'), findsOneWidget);
     await tester.tap(find.byKey(const Key('payment_reminder_schedule_card')));
     await tester.pumpAndSettle();
 
     expect(find.text('Ahmad'), findsOneWidget);
-    expect(find.textContaining('Tagihan bulan berjalan'), findsOneWidget);
+    expect(find.textContaining('Tunggakan 2 bulan'), findsOneWidget);
   });
 }

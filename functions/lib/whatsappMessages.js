@@ -70,6 +70,40 @@ function buildCurrentMonthPaymentWhatsAppMessage(santri, parts) {
   ].join("\n");
 }
 
+function buildTwoMonthArrearsWhatsAppMessage(santri, institution) {
+  const monthLabels = santri.months.map(
+    (item) => `${monthNameId(item.month)} ${item.year}`,
+  );
+  const institutionName = String(institution.institutionName || "").toUpperCase();
+  return [
+    "Assalamu’alaikum warahmatullahi wabarakatuh, Bapak/Ibu 🙏",
+    "",
+    "Mohon izin menyampaikan pemberitahuan terkait administrasi ananda:",
+    "",
+    `Nama Santri: ${santri.name}`,
+    `NIS: ${santri.nis || "-"}`,
+    "Tunggakan: 2 bulan",
+    `Bulan: ${monthLabels[0]} dan ${monthLabels[1]}`,
+    "",
+    "Sesuai dengan aturan administrasi yang berlaku di lembaga, kami mohon kepada Bapak/Ibu untuk dapat menyelesaikan tunggakan tersebut.",
+    "",
+    "Untuk sementara, demi menjaga ketertiban administrasi dan kelancaran kegiatan bersama, ananda kami istirahatkan terlebih dahulu dari kegiatan lembaga sampai tunggakan dapat diselesaikan.",
+    "",
+    "Kami mohon pengertian dan kerja sama Bapak/Ibu. Apabila ada kendala dalam penyelesaian administrasi, silakan disampaikan kepada pihak lembaga agar dapat kita komunikasikan dengan baik.",
+    "",
+    "Demikian kami sampaikan. Mohon maaf apabila ada kekurangan dalam penyampaian kami.",
+    "",
+    "Jazakumullahu khairan atas perhatian dan kerja samanya. 🙏",
+    "",
+    "Wassalamu’alaikum warahmatullahi wabarakatuh.",
+    "",
+    "Lembaga Tahsin dan Tahfizh Al-Qur’an",
+    institutionName,
+    "",
+    "#pesan ini dikirim secara otomatis, koreksi bila terdapat kesalahan data",
+  ].join("\n");
+}
+
 function buildSantriWelcomeWhatsAppMessage({
   santri,
   password,
@@ -151,6 +185,8 @@ function buildAdminFallbackWhatsAppMessage({
   const typeLabel =
     notificationType === "birthday"
       ? "ucapan ulang tahun"
+      : notificationType === "two-month-arrears"
+        ? "pemberitahuan tunggakan 2 bulan"
       : notificationType === "current-month-payment"
         ? "pengingat pembayaran bulan berjalan"
       : "pengingat tunggakan SPP";
@@ -172,6 +208,7 @@ module.exports = {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
   buildCurrentMonthPaymentWhatsAppMessage,
+  buildTwoMonthArrearsWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   previousMonthParts,
   buildMonthlyAssessmentGroupMessage,

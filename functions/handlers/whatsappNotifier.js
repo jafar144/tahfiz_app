@@ -20,6 +20,7 @@ const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
   buildCurrentMonthPaymentWhatsAppMessage,
+  buildTwoMonthArrearsWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
   buildIncompleteAssessmentWhatsAppMessage,
@@ -61,6 +62,22 @@ function selectCurrentMonthUnpaidSantri(unpaid, parts) {
       (month) => month.year === parts.year && month.month === parts.month,
     ),
   );
+}
+
+function classifyPaymentReminderRecipients(unpaid, parts) {
+  const twoMonth = unpaid.filter((santri) => santri.months?.length === 2);
+  const twoMonthIds = new Set(twoMonth.map((santri) => santri.uid));
+  const arrears = selectLongOverdueSantri(unpaid, parts).filter(
+    (santri) => !twoMonthIds.has(santri.uid),
+  );
+  const excludedIds = new Set([
+    ...twoMonthIds,
+    ...arrears.map((santri) => santri.uid),
+  ]);
+  const currentMonth = selectCurrentMonthUnpaidSantri(unpaid, parts).filter(
+    (santri) => !excludedIds.has(santri.uid),
+  );
+  return { twoMonth, arrears, currentMonth };
 }
 
 function prepareMessages(items, parts, type, builder, adminPhone) {
@@ -116,7 +133,7 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
   return { messages, invalidPhoneCount, adminFallbackCount };
 }
 
-function prepareScheduledPaymentMessages(parts, unpaid, options = {}) {
+function prepareScheduledPaymentMessageGroups(parts, unpaid, options = {}) {
   const adminPhone =
     options.adminPhone === undefined
       ? WHATSAPP_ADMIN_PHONE.value()
@@ -125,32 +142,48 @@ function prepareScheduledPaymentMessages(parts, unpaid, options = {}) {
     options.institution === undefined
       ? institutionMessagingConfig()
       : options.institution;
-  const longOverdue = selectLongOverdueSantri(unpaid, parts);
-  const longOverdueIds = new Set(longOverdue.map((santri) => santri.uid));
-  const currentMonth = selectCurrentMonthUnpaidSantri(unpaid, parts).filter(
-    (santri) => !longOverdueIds.has(santri.uid),
+  const recipients = classifyPaymentReminderRecipients(unpaid, parts);
+  const twoMonth = prepareMessages(
+    recipients.twoMonth,
+    parts,
+    "two-month-arrears",
+    (item) => buildTwoMonthArrearsWhatsAppMessage(item, institution),
+    adminPhone,
   );
   const arrears = prepareMessages(
-    longOverdue,
+    recipients.arrears,
     parts,
     "arrears",
     (item) => buildArrearsWhatsAppMessage(item, institution),
     adminPhone,
   );
   const current = prepareMessages(
-    currentMonth,
+    recipients.currentMonth,
     parts,
     "current-month-payment",
     (item) => buildCurrentMonthPaymentWhatsAppMessage(item, parts),
     adminPhone,
   );
 
+  return { recipients, twoMonth, arrears, current };
+}
+
+function prepareScheduledPaymentMessages(parts, unpaid, options = {}) {
+  const groups = prepareScheduledPaymentMessageGroups(parts, unpaid, options);
   return {
-    messages: [...arrears.messages, ...current.messages],
+    messages: [
+      ...groups.twoMonth.messages,
+      ...groups.arrears.messages,
+      ...groups.current.messages,
+    ],
     invalidPhoneCount:
-      arrears.invalidPhoneCount + current.invalidPhoneCount,
+      groups.twoMonth.invalidPhoneCount +
+      groups.arrears.invalidPhoneCount +
+      groups.current.invalidPhoneCount,
     adminFallbackCount:
-      arrears.adminFallbackCount + current.adminFallbackCount,
+      groups.twoMonth.adminFallbackCount +
+      groups.arrears.adminFallbackCount +
+      groups.current.adminFallbackCount,
   };
 }
 
@@ -238,20 +271,51 @@ async function runMonthEndPaymentWhatsApp(parts, unpaid, options = {}) {
     options.enabled === undefined ? isWablasEnabled() : options.enabled;
   if (!enabled) return { skipped: true, reason: "wablas_disabled" };
 
-  const longOverdue = selectLongOverdueSantri(unpaid, parts);
-  const arrears = await runWhatsAppArrears(parts, unpaid, {
-    ...options,
-    enabled: true,
-  });
-  const currentMonth = await runCurrentMonthPaymentWhatsApp(parts, unpaid, {
-    ...options,
-    enabled: true,
-    excludeUids: longOverdue.map((santri) => santri.uid),
-  });
+  const groups = prepareScheduledPaymentMessageGroups(parts, unpaid, options);
+  const twoMonthDelivery = await dispatch(
+    groups.twoMonth.messages,
+    "whatsappTwoMonthArrears",
+    options.send,
+  );
+  const arrearsDelivery = await dispatch(
+    groups.arrears.messages,
+    "whatsappArrears",
+    options.send,
+  );
+  const currentMonthDelivery = await dispatch(
+    groups.current.messages,
+    "whatsappCurrentMonthPayment",
+    options.send,
+  );
+  const twoMonth = {
+    eligible: groups.recipients.twoMonth.length,
+    invalidPhone: groups.twoMonth.invalidPhoneCount,
+    adminFallback: groups.twoMonth.adminFallbackCount,
+    ...twoMonthDelivery,
+  };
+  const arrears = {
+    eligible: groups.recipients.arrears.length,
+    invalidPhone: groups.arrears.invalidPhoneCount,
+    adminFallback: groups.arrears.adminFallbackCount,
+    ...arrearsDelivery,
+  };
+  const currentMonth = {
+    eligible: groups.recipients.currentMonth.length,
+    invalidPhone: groups.current.invalidPhoneCount,
+    adminFallback: groups.current.adminFallbackCount,
+    ...currentMonthDelivery,
+  };
 
   return {
-    sent: (arrears.sent || 0) + (currentMonth.sent || 0),
-    failed: (arrears.failed || 0) + (currentMonth.failed || 0),
+    sent:
+      (twoMonth.sent || 0) +
+      (arrears.sent || 0) +
+      (currentMonth.sent || 0),
+    failed:
+      (twoMonth.failed || 0) +
+      (arrears.failed || 0) +
+      (currentMonth.failed || 0),
+    twoMonth,
     arrears,
     currentMonth,
   };
@@ -444,6 +508,7 @@ module.exports = {
   billingPeriodsSinceEntry,
   selectLongOverdueSantri,
   selectCurrentMonthUnpaidSantri,
+  classifyPaymentReminderRecipients,
   prepareScheduledPaymentMessages,
   prepareMessages,
   runWhatsAppArrears,

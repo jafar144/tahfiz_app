@@ -11,7 +11,7 @@ const {
 } = require("../handlers/whatsappNotifier");
 const {
   runPaymentReminderQueue,
-  _private: { runScheduledPaymentDelivery },
+  _private: { runScheduledPaymentDelivery, validateDelivery },
 } = require("../handlers/paymentReminderScheduler");
 
 const parts = {
@@ -38,7 +38,7 @@ function santri(index) {
   };
 }
 
-test("jadwal deterministik tersebar tanggal 20-akhir dengan interval 1-20 menit", () => {
+test("jadwal deterministik tersebar tanggal 20-akhir dengan interval 1-10 menit", () => {
   const recipients = Array.from({ length: 80 }, (_, index) => santri(index));
   const messages = recipients.map((item) => ({
     recipientUid: item.uid,
@@ -64,36 +64,48 @@ test("jadwal deterministik tersebar tanggal 20-akhir dengan interval 1-20 menit"
   assert.equal(new Set(first.map((item) => item.uid)).size, first.length);
   for (const item of first) {
     assert.ok(item.day >= 20 && item.day <= 30);
-    assert.ok(item.intervalMinutes >= 1 && item.intervalMinutes <= 20);
+    assert.ok(item.intervalMinutes >= 1 && item.intervalMinutes <= 10);
   }
   assert.ok(new Set(first.map((item) => item.day)).size > 1);
 });
 
-test("santri tunggakan panjang hanya mendapat satu jenis reminder", () => {
-  const long = {
+test("setiap kategori pembayaran saling eksklusif", () => {
+  const twoMonth = {
     ...santri(1),
     months: [
+      { year: 2026, month: 8 },
+      { year: 2026, month: 9 },
+    ],
+  };
+  const long = {
+    ...santri(2),
+    months: [
       { year: 2026, month: 7 },
+      { year: 2026, month: 8 },
       { year: 2026, month: 9 },
     ],
   };
   const current = {
-    ...santri(2),
+    ...santri(3),
     months: [{ year: 2026, month: 9 }],
   };
-  const prepared = prepareScheduledPaymentMessages(parts, [long, current], {
-    institution,
-    adminPhone: "",
-  });
+  const prepared = prepareScheduledPaymentMessages(
+    parts,
+    [twoMonth, long, current],
+    {
+      institution,
+      adminPhone: "",
+    },
+  );
 
-  assert.equal(prepared.messages.length, 2);
+  assert.equal(prepared.messages.length, 3);
   assert.deepEqual(
     prepared.messages.map((message) => message.notificationType).sort(),
-    ["arrears", "current-month-payment"],
+    ["arrears", "current-month-payment", "two-month-arrears"],
   );
   assert.equal(
     new Set(prepared.messages.map((message) => message.recipientUid)).size,
-    2,
+    3,
   );
 });
 
@@ -136,6 +148,17 @@ test("scheduler hanya mengantre slot hari ini dengan task id idempoten", async (
     queueCalls[0].options.id,
     taskIdForRef("current-month-payment-2026-09-santri-1"),
   );
+});
+
+test("worker menerima tipe reminder tunggakan dua bulan", () => {
+  const delivery = validateDelivery({
+    phone: "081234567890",
+    message: "Tunggakan dua bulan",
+    refId: "two-month-arrears-2026-09-santri-1",
+    notificationType: "two-month-arrears",
+  });
+
+  assert.equal(delivery.notificationType, "two-month-arrears");
 });
 
 test("worker tidak mengirim ulang delivery yang sudah terkirim", async () => {

@@ -12,6 +12,7 @@ const {
   buildArrearsWhatsAppMessage,
   buildBirthdayWhatsAppMessage,
   buildCurrentMonthPaymentWhatsAppMessage,
+  buildTwoMonthArrearsWhatsAppMessage,
   buildSantriWelcomeWhatsAppMessage,
   buildMonthlyAssessmentGroupMessage,
   buildIncompleteAssessmentWhatsAppMessage,
@@ -212,7 +213,52 @@ test("template H-3 menyebut bulan berjalan, nama, dan NIS", () => {
   );
 });
 
-test("H-3 memisahkan tunggakan tiga periode dari tagihan bulan berjalan", async () => {
+test("template tunggakan dua bulan mengikuti naskah lembaga", () => {
+  const message = buildTwoMonthArrearsWhatsAppMessage(
+    {
+      name: "Aisyah Zahra",
+      nis: "1234",
+      months: [
+        { month: 8, year: 2026 },
+        { month: 9, year: 2026 },
+      ],
+    },
+    { ...institution, institutionName: "Khoirunasyien" },
+  );
+
+  assert.equal(
+    message,
+    [
+      "Assalamu’alaikum warahmatullahi wabarakatuh, Bapak/Ibu 🙏",
+      "",
+      "Mohon izin menyampaikan pemberitahuan terkait administrasi ananda:",
+      "",
+      "Nama Santri: Aisyah Zahra",
+      "NIS: 1234",
+      "Tunggakan: 2 bulan",
+      "Bulan: Agustus 2026 dan September 2026",
+      "",
+      "Sesuai dengan aturan administrasi yang berlaku di lembaga, kami mohon kepada Bapak/Ibu untuk dapat menyelesaikan tunggakan tersebut.",
+      "",
+      "Untuk sementara, demi menjaga ketertiban administrasi dan kelancaran kegiatan bersama, ananda kami istirahatkan terlebih dahulu dari kegiatan lembaga sampai tunggakan dapat diselesaikan.",
+      "",
+      "Kami mohon pengertian dan kerja sama Bapak/Ibu. Apabila ada kendala dalam penyelesaian administrasi, silakan disampaikan kepada pihak lembaga agar dapat kita komunikasikan dengan baik.",
+      "",
+      "Demikian kami sampaikan. Mohon maaf apabila ada kekurangan dalam penyampaian kami.",
+      "",
+      "Jazakumullahu khairan atas perhatian dan kerja samanya. 🙏",
+      "",
+      "Wassalamu’alaikum warahmatullahi wabarakatuh.",
+      "",
+      "Lembaga Tahsin dan Tahfizh Al-Qur’an",
+      "KHOIRUNASYIEN",
+      "",
+      "#pesan ini dikirim secara otomatis, koreksi bila terdapat kesalahan data",
+    ].join("\n"),
+  );
+});
+
+test("reminder akhir bulan memilih tepat satu template per santri", async () => {
   const parts = { year: 2026, month: 7, day: 28 };
   const longAndCurrent = {
     uid: "long-current",
@@ -261,17 +307,19 @@ test("H-3 memisahkan tunggakan tiga periode dari tagihan bulan berjalan", async 
   const sent = batches.flat();
 
   assert.equal(result.sent, 3);
-  assert.equal(result.arrears.sent, 2);
+  assert.equal(result.twoMonth.sent, 1);
+  assert.equal(result.arrears.sent, 1);
   assert.equal(result.currentMonth.sent, 1);
   assert.deepEqual(
     sent.map((message) => message.refId),
     [
-      "arrears-2026-07-long-current",
+      "two-month-arrears-2026-07-long-current",
       "arrears-2026-07-long-old",
       "current-month-payment-2026-07-current-only",
     ],
   );
-  assert.match(sent[0].message, /masih terdapat tunggakan SPP/);
+  assert.match(sent[0].message, /Tunggakan: 2 bulan/);
+  assert.match(sent[1].message, /masih terdapat tunggakan SPP/);
   assert.match(sent[2].message, /Bulan yg belum dibayar : Juli 2026/);
 });
 
