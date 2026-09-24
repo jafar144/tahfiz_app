@@ -69,6 +69,44 @@ test("jadwal deterministik tersebar tanggal 20-akhir dengan interval 1-10 menit"
   assert.ok(new Set(first.map((item) => item.day)).size > 1);
 });
 
+test("interval 1-10 menit dihitung hanya antar penerima aktual", () => {
+  const recipients = Array.from({ length: 1000 }, (_, index) => santri(index));
+  const allMessages = recipients.map((item) => ({
+    recipientUid: item.uid,
+    santriName: item.name,
+    notificationType: "current-month-payment",
+    phone: item.nomorWali,
+    message: `Pesan ${item.uid}`,
+    refId: `current-month-payment-2026-09-${item.uid}`,
+  }));
+  const fullSchedule = buildPaymentReminderSchedule(
+    recipients,
+    allMessages,
+    parts,
+  );
+  const byDay = Map.groupBy(fullSchedule, (item) => item.day);
+  const denseDay = [...byDay.values()].find((items) => items.length > 11);
+  assert.ok(denseDay);
+
+  const selected = [denseDay[0], denseDay[denseDay.length - 1]];
+  assert.ok(
+    (selected[1].scheduledAt - selected[0].scheduledAt) / 60_000 > 10,
+  );
+  const selectedIds = new Set(selected.map((item) => item.uid));
+  const actualSchedule = buildPaymentReminderSchedule(
+    recipients,
+    allMessages.filter((message) => selectedIds.has(message.recipientUid)),
+    parts,
+  );
+
+  assert.equal(actualSchedule.length, 2);
+  assert.equal(actualSchedule[0].day, selected[0].day);
+  assert.equal(actualSchedule[1].day, selected[1].day);
+  const actualGapMinutes =
+    (actualSchedule[1].scheduledAt - actualSchedule[0].scheduledAt) / 60_000;
+  assert.ok(actualGapMinutes >= 1 && actualGapMinutes <= 10);
+});
+
 test("setiap kategori pembayaran saling eksklusif", () => {
   const twoMonth = {
     ...santri(1),
@@ -107,6 +145,10 @@ test("setiap kategori pembayaran saling eksklusif", () => {
     new Set(prepared.messages.map((message) => message.recipientUid)).size,
     3,
   );
+  for (const message of prepared.messages) {
+    assert.equal(message.pushNotification.title, "Pengingat Pembayaran SPP");
+    assert.equal(message.pushNotification.data.type, "payment_arrears");
+  }
 });
 
 test("scheduler hanya mengantre slot hari ini dengan task id idempoten", async () => {
@@ -119,6 +161,11 @@ test("scheduler hanya mengantre slot hari ini dengan task id idempoten", async (
       phone: recipient.nomorWali,
       message: "Pengingat pembayaran",
       refId: "current-month-payment-2026-09-santri-1",
+      pushNotification: {
+        title: "Pengingat Pembayaran SPP",
+        body: "Pembayaran belum kami terima.",
+        data: { type: "payment_arrears" },
+      },
     },
   ];
   const schedule = buildPaymentReminderSchedule([recipient], messages, parts);
@@ -147,6 +194,11 @@ test("scheduler hanya mengantre slot hari ini dengan task id idempoten", async (
   assert.equal(
     queueCalls[0].options.id,
     taskIdForRef("current-month-payment-2026-09-santri-1"),
+  );
+  assert.equal(queueCalls[0].data.recipientUid, recipient.uid);
+  assert.equal(
+    queueCalls[0].data.pushNotification.data.type,
+    "payment_arrears",
   );
 });
 
@@ -182,4 +234,89 @@ test("worker tidak mengirim ulang delivery yang sudah terkirim", async () => {
 
   assert.deepEqual(result, { duplicate: true });
   assert.equal(sendCalls, 0);
+});
+
+test("worker mengirim WhatsApp dan notifikasi HP pada task yang sama", async () => {
+  let whatsappCalls = 0;
+  let pushCalls = 0;
+  const patches = [];
+  const result = await runScheduledPaymentDelivery(
+    {
+      data: {
+        recipientUid: "santri-1",
+        phone: "081234567890",
+        message: "Pengingat pembayaran",
+        refId: "current-month-payment-2026-09-santri-1",
+        notificationType: "current-month-payment",
+        pushNotification: {
+          title: "Pengingat Pembayaran SPP",
+          body: "Pembayaran belum kami terima.",
+          data: { type: "payment_arrears" },
+        },
+      },
+    },
+    {
+      claim: async () => ({ status: "claimed" }),
+      send: async () => {
+        whatsappCalls += 1;
+      },
+      sendPush: async (uid, notification) => {
+        pushCalls += 1;
+        assert.equal(uid, "santri-1");
+        assert.equal(notification.data.type, "payment_arrears");
+        return { successCount: 1, failureCount: 0 };
+      },
+      persist: async (patch) => patches.push(patch),
+    },
+  );
+
+  assert.equal(whatsappCalls, 1);
+  assert.equal(pushCalls, 1);
+  assert.equal(result.sent, true);
+  assert.equal(result.appNotification.status, "sent");
+  assert.ok(patches.some((patch) => patch.whatsapp_status === "sent"));
+  assert.ok(
+    patches.some((patch) => patch.app_notification_status === "sent"),
+  );
+  assert.equal(patches.at(-1).status, "sent");
+});
+
+test("retry notifikasi HP tidak mengirim ulang WhatsApp", async () => {
+  let whatsappCalls = 0;
+  let pushCalls = 0;
+  const result = await runScheduledPaymentDelivery(
+    {
+      data: {
+        recipientUid: "santri-1",
+        phone: "081234567890",
+        message: "Pengingat pembayaran",
+        refId: "current-month-payment-2026-09-santri-1",
+        notificationType: "current-month-payment",
+        pushNotification: {
+          title: "Pengingat Pembayaran SPP",
+          body: "Pembayaran belum kami terima.",
+          data: { type: "payment_arrears" },
+        },
+      },
+    },
+    {
+      claim: async () => ({
+        status: "claimed",
+        whatsappComplete: true,
+        appNotificationComplete: false,
+      }),
+      send: async () => {
+        whatsappCalls += 1;
+      },
+      sendPush: async () => {
+        pushCalls += 1;
+        return { successCount: 1, failureCount: 0 };
+      },
+      persist: async () => {},
+    },
+  );
+
+  assert.equal(whatsappCalls, 0);
+  assert.equal(pushCalls, 1);
+  assert.equal(result.whatsapp, "already-complete");
 });

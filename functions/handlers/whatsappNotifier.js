@@ -25,6 +25,9 @@ const {
   buildAdminFallbackWhatsAppMessage,
   buildIncompleteAssessmentWhatsAppMessage,
 } = require("../lib/whatsappMessages");
+const {
+  buildPaymentArrearsPushNotification,
+} = require("../lib/paymentPushNotifications");
 
 // Dihitung inklusif: pada Juli, tunggakan Mei berumur 3 periode tagihan.
 const MIN_ARREARS_BILLING_PERIODS = 3;
@@ -80,13 +83,21 @@ function classifyPaymentReminderRecipients(unpaid, parts) {
   return { twoMonth, arrears, currentMonth };
 }
 
-function prepareMessages(items, parts, type, builder, adminPhone) {
+function prepareMessages(
+  items,
+  parts,
+  type,
+  builder,
+  adminPhone,
+  pushBuilder = null,
+) {
   const messages = [];
   let invalidPhoneCount = 0;
   let adminFallbackCount = 0;
   const normalizedAdminPhone = normalizeWhatsAppPhone(adminPhone);
   for (const item of items) {
     const originalMessage = builder(item);
+    const pushNotification = pushBuilder ? pushBuilder(item) : null;
     const phone = normalizeWhatsAppPhone(item.nomorWali);
     if (!phone) {
       invalidPhoneCount += 1;
@@ -110,6 +121,7 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
             2,
             "0"
           )}-${item.uid}`,
+          ...(pushNotification ? { pushNotification } : {}),
         });
         adminFallbackCount += 1;
       }
@@ -128,6 +140,7 @@ function prepareMessages(items, parts, type, builder, adminPhone) {
         2,
         "0"
       )}${dateSuffix}-${item.uid}`,
+      ...(pushNotification ? { pushNotification } : {}),
     });
   }
   return { messages, invalidPhoneCount, adminFallbackCount };
@@ -149,6 +162,7 @@ function prepareScheduledPaymentMessageGroups(parts, unpaid, options = {}) {
     "two-month-arrears",
     (item) => buildTwoMonthArrearsWhatsAppMessage(item, institution),
     adminPhone,
+    (item) => buildPaymentArrearsPushNotification(item, parts),
   );
   const arrears = prepareMessages(
     recipients.arrears,
@@ -156,6 +170,7 @@ function prepareScheduledPaymentMessageGroups(parts, unpaid, options = {}) {
     "arrears",
     (item) => buildArrearsWhatsAppMessage(item, institution),
     adminPhone,
+    (item) => buildPaymentArrearsPushNotification(item, parts),
   );
   const current = prepareMessages(
     recipients.currentMonth,
@@ -163,6 +178,7 @@ function prepareScheduledPaymentMessageGroups(parts, unpaid, options = {}) {
     "current-month-payment",
     (item) => buildCurrentMonthPaymentWhatsAppMessage(item, parts),
     adminPhone,
+    (item) => buildPaymentArrearsPushNotification(item, parts),
   );
 
   return { recipients, twoMonth, arrears, current };

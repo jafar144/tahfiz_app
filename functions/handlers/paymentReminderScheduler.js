@@ -5,6 +5,7 @@ const { logger } = require("firebase-functions");
 const { admin, db } = require("../lib/firebase");
 const { assertAdmin } = require("../lib/authz");
 const { CALLABLE_OPTIONS } = require("../lib/config");
+const { sendToUid } = require("../lib/messaging");
 const {
   fetchPayingSantri,
   computeUnpaidSantri,
@@ -97,10 +98,12 @@ async function runPaymentReminderQueue(parts, overrides = {}) {
     try {
       await queue.enqueue(
         {
+          recipientUid: item.uid,
           phone: item.phone,
           message: item.message,
           refId: item.refId,
           notificationType: item.notificationType,
+          pushNotification: item.pushNotification,
           scheduledAt: item.scheduledAt.toISOString(),
         },
         {
@@ -130,6 +133,7 @@ async function runPaymentReminderQueue(parts, overrides = {}) {
 }
 
 function validateDelivery(data) {
+  const recipientUid = String(data?.recipientUid || "").trim();
   const phone = normalizeWhatsAppPhone(data?.phone);
   const message = String(data?.message || "").trim();
   const refId = String(data?.refId || "").trim();
@@ -149,7 +153,35 @@ function validateDelivery(data) {
   ) {
     throw new Error("Tipe reminder pembayaran tidak valid.");
   }
-  return { phone, message, refId, notificationType };
+
+  const rawPush = data?.pushNotification;
+  let pushNotification = null;
+  if (rawPush !== undefined && rawPush !== null) {
+    if (!recipientUid || recipientUid.length > 128) {
+      throw new Error("UID penerima notifikasi pembayaran tidak valid.");
+    }
+    const title = String(rawPush?.title || "").trim();
+    const body = String(rawPush?.body || "").trim();
+    if (!title || title.length > 200 || !body || body.length > 1000) {
+      throw new Error("Konten notifikasi pembayaran tidak valid.");
+    }
+    const rawData = rawPush?.data;
+    if (
+      rawData !== undefined &&
+      (rawData === null || typeof rawData !== "object" || Array.isArray(rawData))
+    ) {
+      throw new Error("Data notifikasi pembayaran tidak valid.");
+    }
+    pushNotification = { title, body, data: rawData || {} };
+  }
+  return {
+    recipientUid: recipientUid || null,
+    phone,
+    message,
+    refId,
+    notificationType,
+    pushNotification,
+  };
 }
 
 async function claimDelivery(delivery, overrides = {}) {
@@ -159,14 +191,14 @@ async function claimDelivery(delivery, overrides = {}) {
   return firestore.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const current = snapshot.data() || {};
-    if (current.status === "sent") return "sent";
+    if (current.status === "sent") return { status: "sent" };
     const leaseUntil = current.lease_until?.toDate?.();
     if (
       current.status === "sending" &&
       leaseUntil &&
       leaseUntil.getTime() > now.getTime()
     ) {
-      return "busy";
+      return { status: "busy" };
     }
     transaction.set(
       ref,
@@ -182,46 +214,114 @@ async function claimDelivery(delivery, overrides = {}) {
       },
       { merge: true },
     );
-    return "claimed";
+    return {
+      status: "claimed",
+      whatsappComplete: current.whatsapp_status === "sent",
+      appNotificationComplete: ["sent", "partial", "no-device"].includes(
+        current.app_notification_status,
+      ),
+    };
   });
+}
+
+function normalizeClaimState(value) {
+  if (typeof value === "string") return { status: value };
+  return value || { status: "claimed" };
+}
+
+function errorCode(error) {
+  return String(error?.code || "provider_error").slice(0, 80);
 }
 
 async function runScheduledPaymentDelivery(request, overrides = {}) {
   const delivery = validateDelivery(request.data);
   const claim = overrides.claim || claimDelivery;
-  const claimStatus = await claim(delivery, overrides);
-  if (claimStatus === "sent") return { duplicate: true };
-  if (claimStatus === "busy") {
+  const claimState = normalizeClaimState(await claim(delivery, overrides));
+  if (claimState.status === "sent") return { duplicate: true };
+  if (claimState.status === "busy") {
     throw new Error("Pengiriman reminder masih diproses.");
   }
 
-  const send = overrides.send || sendTextMessages;
+  const sendWhatsApp = overrides.send || sendTextMessages;
+  const sendPush = overrides.sendPush || sendToUid;
   const firestore = overrides.firestore || db;
   const ref = firestore.collection(DELIVERY_COLLECTION).doc(delivery.refId);
-  try {
-    await send([delivery]);
-    await ref.set(
-      {
-        status: "sent",
-        sent_at: admin.firestore.FieldValue.serverTimestamp(),
-        lease_until: admin.firestore.FieldValue.delete(),
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-    return { sent: true };
-  } catch (error) {
-    await ref.set(
-      {
+  const persist =
+    overrides.persist || ((data) => ref.set(data, { merge: true }));
+  const serverTimestamp = () => admin.firestore.FieldValue.serverTimestamp();
+  const deleteField = () => admin.firestore.FieldValue.delete();
+
+  if (!claimState.whatsappComplete) {
+    try {
+      await sendWhatsApp([delivery]);
+      await persist({
+        whatsapp_status: "sent",
+        whatsapp_sent_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+    } catch (error) {
+      await persist({
         status: "failed",
-        last_error_code: String(error?.code || "provider_error").slice(0, 80),
-        lease_until: admin.firestore.FieldValue.delete(),
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-    throw error;
+        whatsapp_status: "failed",
+        last_error_code: errorCode(error),
+        lease_until: deleteField(),
+        updated_at: serverTimestamp(),
+      });
+      throw error;
+    }
   }
+
+  let appNotification = { status: "not-applicable" };
+  if (delivery.pushNotification && !claimState.appNotificationComplete) {
+    try {
+      const result = await sendPush(
+        delivery.recipientUid,
+        delivery.pushNotification,
+      );
+      const successCount = Number(result?.successCount || 0);
+      const failureCount = Number(result?.failureCount || 0);
+      const status =
+        successCount > 0
+          ? failureCount > 0
+            ? "partial"
+            : "sent"
+          : "no-device";
+      appNotification = { status, successCount, failureCount };
+      await persist({
+        app_notification_status: status,
+        app_notification_success_count: successCount,
+        app_notification_failure_count: failureCount,
+        app_notification_sent_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+    } catch (error) {
+      await persist({
+        status: "failed",
+        app_notification_status: "failed",
+        last_error_code: errorCode(error),
+        lease_until: deleteField(),
+        updated_at: serverTimestamp(),
+      });
+      throw error;
+    }
+  } else if (claimState.appNotificationComplete) {
+    appNotification = { status: "already-complete" };
+  }
+
+  await persist(
+    {
+      status: "sent",
+      sent_at: serverTimestamp(),
+      lease_until: deleteField(),
+      last_error_code: deleteField(),
+      updated_at: serverTimestamp(),
+    },
+  );
+  return {
+    sent: true,
+    whatsapp: claimState.whatsappComplete ? "already-complete" : "sent",
+    appNotification,
+  };
 }
 
 const sendScheduledPaymentWhatsApp = onTaskDispatched(

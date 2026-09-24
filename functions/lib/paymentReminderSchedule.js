@@ -30,8 +30,9 @@ function taskIdForRef(refId) {
     .slice(0, 40)}`;
 }
 
-// Assigns every active paying santri a stable slot, then retains only those
-// with a message. This keeps a santri's slot independent of who has paid.
+// Assign each active paying santri a stable day, then calculate times only for
+// actual message recipients. A santri's day remains stable while the visible
+// delivery gaps stay within the configured interval.
 function buildPaymentReminderSchedule(recipients, messages, parts) {
   const lastDay = daysInMonth(parts);
   if (lastDay < FIRST_REMINDER_DAY) return [];
@@ -49,10 +50,18 @@ function buildPaymentReminderSchedule(recipients, messages, parts) {
     if (uid && !uniqueMessages.has(uid)) uniqueMessages.set(uid, message);
   }
 
-  const groups = new Map();
-  for (const [uid, recipient] of uniqueRecipients) {
+  const dayByUid = new Map();
+  for (const [uid] of uniqueRecipients) {
     const day =
       FIRST_REMINDER_DAY + hashNumber(`${key}|day|${uid}`) % dayCount;
+    dayByUid.set(uid, day);
+  }
+
+  const groups = new Map();
+  for (const [uid] of uniqueMessages) {
+    const recipient = uniqueRecipients.get(uid);
+    const day = dayByUid.get(uid);
+    if (!recipient || !day) continue;
     if (!groups.has(day)) groups.set(day, []);
     groups.get(day).push({ uid, recipient });
   }
@@ -108,6 +117,7 @@ function buildPaymentReminderSchedule(recipients, messages, parts) {
       refId: message.refId,
       phone: message.phone,
       message: message.message,
+      pushNotification: message.pushNotification,
       scheduledAt,
       dateKey,
       day: slot.day,

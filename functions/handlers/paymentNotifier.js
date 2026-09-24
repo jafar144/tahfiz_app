@@ -4,9 +4,12 @@ const { SCHEDULE_OPTIONS } = require("../lib/config");
 const {
   jakartaDateParts,
   jakartaDateTimeParts,
-  monthNameId,
 } = require("../lib/jakartaTime");
 const { sendToUid } = require("../lib/messaging");
+const {
+  buildPaymentDuePushNotification,
+  buildPaymentArrearsPushNotification,
+} = require("../lib/paymentPushNotifications");
 const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
 const {
   runMonthlyAssessmentReminder,
@@ -46,13 +49,6 @@ const MORNING_NOTIFICATION_JOBS = Object.freeze({
   monthlyAssessment: "monthlyAssessment",
 });
 
-// Susun teks daftar bulan tunggakan, dipadatkan bila banyak.
-function formatArrearsList(months) {
-  const labels = months.map((m) => `${monthNameId(m.month)} ${m.year}`);
-  if (labels.length <= 4) return labels.join(", ");
-  return `${labels.slice(0, 3).join(", ")}, dan ${labels.length - 3} bulan lainnya`;
-}
-
 // --- Notif #1: pemberitahuan pembayaran SPP bulan berjalan (per santri) ---
 async function runPaymentDue(parts = jakartaDateParts()) {
   const { day, month, year } = parts;
@@ -62,14 +58,10 @@ async function runPaymentDue(parts = jakartaDateParts()) {
   }
 
   const santri = await fetchPayingSantri();
-  const namaBulan = monthNameId(month);
+  const notification = buildPaymentDuePushNotification({ month, year });
   let notified = 0;
   for (const s of santri) {
-    await sendToUid(s.uid, {
-      title: `Pembayaran SPP ${namaBulan}`,
-      body: `Pembayaran SPP bulan ${namaBulan} ${year} sudah dapat ditunaikan. Abaikan pesan ini jika sudah membayar.`,
-      data: { type: "payment_due", bulan: month, tahun: year },
-    });
+    await sendToUid(s.uid, notification);
     notified += 1;
   }
 
@@ -87,15 +79,7 @@ async function sendArrearsReminders(parts) {
 
   let notified = 0;
   for (const s of unpaid) {
-    const body =
-      s.count === 1
-        ? `Pembayaran SPP bulan ${formatArrearsList(s.months)} belum kami terima. Mohon segera melakukan pembayaran.`
-        : `Anda memiliki tunggakan SPP ${s.count} bulan: ${formatArrearsList(s.months)}. Mohon segera melakukan pembayaran.`;
-    await sendToUid(s.uid, {
-      title: "Pengingat Pembayaran SPP",
-      body,
-      data: { type: "payment_arrears", count: s.count, bulan: parts.month, tahun: parts.year },
-    });
+    await sendToUid(s.uid, buildPaymentArrearsPushNotification(s, parts));
     notified += 1;
   }
 
