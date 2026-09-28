@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/payment/domain/repositories/payment_repository.dart';
@@ -108,7 +109,9 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
       );
 
       await halaqahResult.fold(
-        ifLeft: (l) async {},
+        ifLeft: (failure) async {
+          debugPrint('[SantriHome] Gagal memuat halaqah: ${failure.message}');
+        },
         ifRight: (r) async {
           if (r != null) {
             _currentTeacherId = r.teacherId;
@@ -126,7 +129,8 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
               }
               pembimbingPhone = _normalizePhone(asatidzDetail.phone);
               pembimbingGender = _normalizeGender(asatidzDetail.jenisKelamin);
-            } catch (_) {
+            } catch (error) {
+              debugPrint('[SantriHome] Gagal memuat kontak pembimbing: $error');
               // Halaqah memasangkan pengajar dan santri dengan gender yang
               // sama. Gelar tetap bisa ditampilkan saat kontak tidak tersedia.
               pembimbingGender = _normalizeGender(santri.jenisKelamin);
@@ -152,9 +156,13 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
 
       // 6. Fetch saudara (akun lain dalam satu keluarga) untuk fitur ganti akun.
       var familyMembers = const <FamilyAccount>[];
+      var familyMembersLoadFailed = false;
       try {
         familyMembers = await familyRepository.getFamilyAccounts();
-      } catch (_) {}
+      } catch (error) {
+        familyMembersLoadFailed = true;
+        debugPrint('[SantriHome] Gagal memuat akun keluarga: $error');
+      }
 
       if (isClosed) return;
 
@@ -171,6 +179,7 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
           latestReport: latestReport,
           monthlyReports: monthlyReports,
           familyMembers: familyMembers,
+          familyMembersLoadFailed: familyMembersLoadFailed,
         ),
       );
     } catch (e) {
@@ -181,15 +190,54 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
     }
   }
 
+  Future<void> retryFamilyAccounts() async {
+    final santriId = _currentSantriId;
+    if (isClosed || santriId == null || state.isLoadingFamilyMembers) return;
+    emit(state.copyWith(isLoadingFamilyMembers: true));
+    try {
+      final accounts = await familyRepository.getFamilyAccounts();
+      if (isClosed || _currentSantriId != santriId) return;
+      emit(
+        state.copyWith(
+          familyMembers: accounts,
+          familyMembersLoadFailed: false,
+          isLoadingFamilyMembers: false,
+        ),
+      );
+    } catch (error) {
+      debugPrint('[SantriHome] Gagal memuat ulang akun keluarga: $error');
+      if (isClosed || _currentSantriId != santriId) return;
+      emit(
+        state.copyWith(
+          familyMembersLoadFailed: true,
+          isLoadingFamilyMembers: false,
+        ),
+      );
+    }
+  }
+
   /// Mengambil ulang kontak tanpa me-reload seluruh halaman.
   Future<String?> retryPembimbingContact() async {
-    final teacherId = _currentTeacherId;
-    if (teacherId == null || teacherId.trim().isEmpty || isClosed) return null;
+    final santriId = _currentSantriId;
+    if (santriId == null || isClosed) return null;
 
     try {
+      var teacherId = _currentTeacherId;
+      if (teacherId == null || teacherId.trim().isEmpty) {
+        final result = await scheduleRepository.getHalaqahBySantriId(santriId);
+        teacherId = result.fold(
+          ifLeft: (_) => null,
+          ifRight: (halaqah) => halaqah?.teacherId,
+        );
+        if (isClosed || _currentSantriId != santriId) return null;
+        if (teacherId == null || teacherId.trim().isEmpty) return null;
+        _currentTeacherId = teacherId;
+      }
       final detail = await mgmtAsatidzRepository.getAsatidzDetail(teacherId);
       final phone = _normalizePhone(detail.phone);
-      if (phone == null || isClosed) return null;
+      if (phone == null || isClosed || _currentSantriId != santriId) {
+        return null;
+      }
 
       emit(
         state.copyWith(
@@ -202,7 +250,8 @@ class SantriHomeCubit extends Cubit<SantriHomeState> {
         ),
       );
       return phone;
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[SantriHome] Gagal memuat ulang kontak pembimbing: $error');
       return null;
     }
   }

@@ -23,6 +23,71 @@ import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cu
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_state.dart';
 
 void main() {
+  test('retry kontak mengambil ulang halaqah yang sebelumnya gagal', () async {
+    final harness = _Harness()
+      ..santriRepository.details['santri-a'] = _santri(
+        id: 'santri-a',
+        gender: 'L',
+        pembimbing: 'Ahmad',
+      )
+      ..scheduleRepository.shouldFail = true
+      ..scheduleRepository.halaqahs['santri-a'] = _halaqah(
+        santriId: 'santri-a',
+        teacherId: 'teacher-a',
+        teacherName: 'Ahmad',
+      )
+      ..teacherRepository.details['teacher-a'] = _teacher(
+        id: 'teacher-a',
+        name: 'Ahmad',
+        phone: '081200000001',
+        gender: 'L',
+      );
+    addTearDown(harness.cubit.close);
+
+    await harness.cubit.loadData('santri-a');
+    expect(harness.cubit.state.pembimbingPhone, isNull);
+
+    harness.scheduleRepository.shouldFail = false;
+    expect(await harness.cubit.retryPembimbingContact(), '081200000001');
+    expect(harness.cubit.state.pembimbingPhone, '081200000001');
+    expect(harness.santriRepository.requestedIds, ['santri-a']);
+  });
+
+  test(
+    'kegagalan daftar keluarga dapat dicoba ulang tanpa reload beranda',
+    () async {
+      final harness = _Harness()
+        ..santriRepository.details['santri-a'] = _santri(
+          id: 'santri-a',
+          gender: 'L',
+          pembimbing: 'Belum ada',
+        )
+        ..familyRepository.shouldFail = true;
+      addTearDown(harness.cubit.close);
+
+      await harness.cubit.loadData('santri-a');
+      expect(harness.cubit.state.status, SantriHomeStatus.success);
+      expect(harness.cubit.state.familyMembersLoadFailed, isTrue);
+
+      harness.familyRepository.shouldFail = false;
+      harness.familyRepository.accounts.add(
+        const FamilyAccount(
+          id: 'santri-b',
+          name: 'Saudara',
+          nis: '002',
+          kelas: 'Tahfidz',
+          jenisKelamin: 'L',
+        ),
+      );
+      await harness.cubit.retryFamilyAccounts();
+
+      expect(harness.cubit.state.familyMembers.single.id, 'santri-b');
+      expect(harness.cubit.state.familyMembersLoadFailed, isFalse);
+      expect(harness.cubit.state.isLoadingFamilyMembers, isFalse);
+      expect(harness.santriRepository.requestedIds, ['santri-a']);
+    },
+  );
+
   test('detail pengajar sukses mengisi nama, kontak, dan gelar', () async {
     final harness = _Harness()
       ..santriRepository.details['santri-a'] = _santri(
@@ -290,11 +355,13 @@ class _FakePaymentRepository implements PaymentRepository {
 
 class _FakeScheduleRepository implements ScheduleRepository {
   final Map<String, Halaqah> halaqahs = {};
+  bool shouldFail = false;
 
   @override
   Future<Either<Failure, Halaqah?>> getHalaqahBySantriId(
     String santriId,
   ) async {
+    if (shouldFail) return const Left(ServerFailure('permission-denied'));
     return Right(halaqahs[santriId]);
   }
 
@@ -350,12 +417,18 @@ class _FakeFamilyRepository extends FamilyRepository {
   _FakeFamilyRepository() : super(_UnusedFirestore(), _UnusedFunctions());
 
   final List<FamilyAccount> accounts = [];
+  bool shouldFail = false;
 
   @override
   Future<FamilyEntity?> getFamilyBySantriId(String santriId) async => null;
 
   @override
-  Future<List<FamilyAccount>> getFamilyAccounts() async => accounts;
+  Future<List<FamilyAccount>> getFamilyAccounts() async {
+    if (shouldFail) {
+      throw FirebaseFunctionsException(code: 'not-found', message: 'NOT FOUND');
+    }
+    return accounts;
+  }
 }
 
 class _UnusedFirestore implements FirebaseFirestore {

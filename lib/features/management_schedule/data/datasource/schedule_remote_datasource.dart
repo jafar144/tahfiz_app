@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/halaqah_model.dart';
 import 'package:khoirunnasyien/features/management_schedule/data/models/program_schedule_model.dart';
@@ -234,6 +235,16 @@ class ScheduleRemoteDataSourceImpl implements ScheduleRemoteDataSource {
       // dan detail halaqah tetap valid; gunakan cached count dokumen sebagai
       // fallback agar halaman Beranda Santri tidak ikut gagal.
       if (error.code != 'permission-denied') rethrow;
+    } on PlatformException catch (error) {
+      // Aggregate Android dapat meneruskan PlatformException mentah, bukan
+      // FirebaseException. Izin hitungan tidak menentukan akses pembimbing.
+      final details = error.details;
+      if (error.code != 'permission-denied' &&
+          !(error.code == 'firebase_firestore' &&
+              details is Map &&
+              details['code'] == 'permission-denied')) {
+        rethrow;
+      }
     }
 
     return halaqah.copyWith(santriCount: santriCount);

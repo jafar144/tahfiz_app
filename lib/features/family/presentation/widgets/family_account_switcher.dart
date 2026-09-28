@@ -6,30 +6,55 @@ typedef SwitchFamilyAccount = Future<String?> Function(String santriId);
 class FamilyAccountSwitcher extends StatelessWidget {
   final List<FamilyAccount> accounts;
   final SwitchFamilyAccount onSwitch;
+  final bool loadFailed;
+  final bool isLoading;
+  final Future<void> Function()? onRetry;
 
   const FamilyAccountSwitcher({
     required this.accounts,
     required this.onSwitch,
+    this.loadFailed = false,
+    this.isLoading = false,
+    this.onRetry,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (accounts.isEmpty) return const SizedBox.shrink();
+    if (accounts.isEmpty && !loadFailed && !isLoading) {
+      return const SizedBox.shrink();
+    }
 
     final primary = Theme.of(context).primaryColor;
     return Tooltip(
-      message: 'Ganti akun keluarga',
+      message: loadFailed
+          ? 'Akun keluarga gagal dimuat. Ketuk untuk mencoba lagi.'
+          : 'Ganti akun keluarga',
       child: Material(
         key: const ValueKey('family-account-switcher'),
         color: primary.withValues(alpha: 0.1),
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => _showAccounts(context),
+          onTap: isLoading
+              ? null
+              : loadFailed
+              ? onRetry
+              : () => _showAccounts(context),
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Icon(Icons.swap_horiz_rounded, color: primary, size: 22),
+            child: isLoading
+                ? const SizedBox.square(
+                    dimension: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    loadFailed
+                        ? Icons.refresh_rounded
+                        : Icons.swap_horiz_rounded,
+                    color: primary,
+                    size: 22,
+                  ),
           ),
         ),
       ),

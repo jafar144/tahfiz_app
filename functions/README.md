@@ -91,6 +91,21 @@ Password awal:
   kosong, password dibuat acak;
 - aplikasi tidak memaksa pengguna mengganti password setelah login.
 
+Fitur ganti akun keluarga memerlukan kedua callable `getFamilyAccounts` dan
+`switchFamilyAccount` di project lembaga yang sama dengan aplikasi. Memasang APK
+saja tidak memasang callable tersebut. Deploy terarah:
+
+```powershell
+firebase deploy --project FIREBASE_PROJECT_ID --only functions:getFamilyAccounts,functions:switchFamilyAccount
+```
+
+`switchFamilyAccount` membuat Firebase custom token setelah memverifikasi relasi
+keluarga dan akun tujuan. Aktifkan IAM Service Account Credentials API dan berikan
+runtime service account Functions role `roles/iam.serviceAccountTokenCreator`
+pada resource service account itu sendiri. Role Editor saja tidak mencakup
+`iam.serviceAccounts.signBlob`. Izin ini tidak perlu diberikan pada seluruh
+project atau kepada akun santri. Jangan menyimpan service account key di aplikasi.
+
 Akun admin pertama dibuat secara manual di Firebase Console mengikuti runbook
 lembaga. Tidak ada endpoint bootstrap admin publik.
 

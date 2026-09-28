@@ -211,11 +211,16 @@ class _SantriHomePageState extends State<SantriHomePage> {
             ],
           ),
         ),
-        if (state.familyMembers.isNotEmpty) ...[
+        if (state.familyMembers.isNotEmpty ||
+            state.familyMembersLoadFailed ||
+            state.isLoadingFamilyMembers) ...[
           const SizedBox(width: 12),
           FamilyAccountSwitcher(
             accounts: state.familyMembers,
             onSwitch: context.read<AuthCubit>().switchSantri,
+            loadFailed: state.familyMembersLoadFailed,
+            isLoading: state.isLoadingFamilyMembers,
+            onRetry: context.read<SantriHomeCubit>().retryFamilyAccounts,
           ),
         ],
         const SizedBox(width: 12),

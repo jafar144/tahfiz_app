@@ -4,6 +4,59 @@ import 'package:khoirunnasyien/features/family/domain/entities/family_account.da
 import 'package:khoirunnasyien/features/family/presentation/widgets/family_account_switcher.dart';
 
 void main() {
+  testWidgets('daftar keluarga gagal tetap menampilkan tombol coba lagi', (
+    tester,
+  ) async {
+    var retried = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FamilyAccountSwitcher(
+            accounts: const [],
+            onSwitch: (_) async => null,
+            loadFailed: true,
+            onRetry: () async {
+              retried = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey('family-account-switcher')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('family-account-switcher')));
+    expect(retried, isTrue);
+    expect(find.text('Ganti Akun'), findsNothing);
+  });
+
+  testWidgets('pemuatan ulang keluarga menonaktifkan tombol selama menunggu', (
+    tester,
+  ) async {
+    var retried = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FamilyAccountSwitcher(
+            accounts: const [],
+            onSwitch: (_) async => null,
+            loadFailed: true,
+            isLoading: true,
+            onRetry: () async {
+              retried = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('family-account-switcher')));
+    expect(retried, isFalse);
+  });
+
   testWidgets('akun tunggal tidak menampilkan switcher', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

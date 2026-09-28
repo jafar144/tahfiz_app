@@ -252,6 +252,51 @@ test("asatidz dapat menulis kegiatan belajar tetapi bukan data master", async ()
   );
 });
 
+test("santri hanya dapat meng-query riwayat setoran miliknya", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    const createdAt = Timestamp.fromDate(new Date("2026-07-30T03:00:00.000Z"));
+    await Promise.all([
+      setDoc(doc(firestore, "meetings/pertemuan-santri/members/santri"), {
+        santri_id: "santri",
+        santri_name: "Santri Sendiri",
+        setoran_value: "Al-Fatihah",
+        created_at: createdAt,
+      }),
+      setDoc(
+        doc(firestore, "meetings/pertemuan-lain/members/santri-lain"),
+        {
+          santri_id: "santri-lain",
+          santri_name: "Santri Lain",
+          setoran_value: "An-Nas",
+          created_at: createdAt,
+        },
+      ),
+    ]);
+  });
+
+  const santri = testEnv.authenticatedContext("santri").firestore();
+  const ownQuery = query(
+    collectionGroup(santri, "members"),
+    where("santri_id", "==", "santri"),
+  );
+  const otherQuery = query(
+    collectionGroup(santri, "members"),
+    where("santri_id", "==", "santri-lain"),
+  );
+
+  const ownSnapshot = await assertSucceeds(getDocs(ownQuery));
+  assert.equal(ownSnapshot.size, 1);
+  assert.equal(ownSnapshot.docs[0].data().setoran_value, "Al-Fatihah");
+  await assertFails(getDocs(otherQuery));
+
+  const asatidz = testEnv.authenticatedContext("asatidz").firestore();
+  const staffSnapshot = await assertSucceeds(
+    getDocs(collectionGroup(asatidz, "members")),
+  );
+  assert.equal(staffSnapshot.size, 2);
+});
+
 test("foto kelulusan hanya dapat ditulis callable dan tetap dapat dibaca setelah login", async () => {
   const existingId = "santri_2026-07-30";
   const existingData = {
@@ -367,6 +412,34 @@ test("santri hanya dapat membaca profil pengajar yang ditugaskan", async () => {
   await assertSucceeds(getDoc(doc(santri, "asatidz_profiles/asatidz")));
   await assertSucceeds(getDoc(doc(santri, "users/asatidz")));
   await assertFails(getDoc(doc(santri, "asatidz_profiles/asatidz-lain")));
+  await assertFails(getDoc(doc(santri, "users/asatidz-lain")));
+});
+
+test("santri lama tanpa flag is_admin dapat membaca kontak pembimbingnya", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    await Promise.all([
+      setDoc(doc(firestore, "users/santri"), { role: "santri" }),
+      setDoc(doc(firestore, "santri_profiles/santri"), {
+        halaqah_id: "halaqah-santri",
+      }),
+      setDoc(doc(firestore, "halaqahs/halaqah-santri"), {
+        asatidz: { id: "asatidz" },
+      }),
+      setDoc(doc(firestore, "asatidz_profiles/asatidz"), {
+        name: "Pembimbing",
+      }),
+      setDoc(doc(firestore, "users/asatidz"), {
+        role: "asatidz",
+        phone: "081200000001",
+      }),
+    ]);
+  });
+
+  const santri = testEnv.authenticatedContext("santri").firestore();
+  await assertSucceeds(getDoc(doc(santri, "asatidz_profiles/asatidz")));
+  const contact = await assertSucceeds(getDoc(doc(santri, "users/asatidz")));
+  assert.equal(contact.data().phone, "081200000001");
   await assertFails(getDoc(doc(santri, "users/asatidz-lain")));
 });
 

@@ -363,6 +363,18 @@ service cloud.firestore {
         );
     }
 
+    // Riwayat setoran santri dibaca dengan collectionGroup('members').
+    // Query tetap wajib dibatasi ke santri_id milik akun yang sedang aktif;
+    // staf dapat membaca seluruh anggota pertemuan untuk kebutuhan pengelolaan.
+    match /{path=**}/members/{memberId} {
+      allow read: if isStaff()
+        || isOwner(memberId)
+        || (
+          signedIn()
+          && resource.data.santri_id == request.auth.uid
+        );
+    }
+
     match /meetings/{meetingId} {
       allow read, create, update: if isStaff();
       allow delete: if isAdmin();

@@ -115,6 +115,9 @@ class AuthCubit extends Cubit<AuthState> {
 
     try {
       final token = await familyRepository.createSwitchToken(santriId);
+      // Dokumen token FCM dimiliki akun yang sedang login. Hapus selagi sesi
+      // lama masih aktif agar akun tujuan dapat mendaftarkan token yang sama.
+      await notificationService.clear();
       await authRepository.loginWithCustomToken(token);
 
       final firebaseUser = authRepository.currentUser();
@@ -123,10 +126,20 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       final user = await userRepository.getUserByUid(firebaseUser.uid);
-      _registerNotifications(user.role, user.uid);
+      // Tunggu registrasi pada alur switch agar delete akun lama dan save akun
+      // baru tidak saling mendahului.
+      await notificationService.registerForUser(
+        uid: user.uid,
+        role: user.role.toRoleString(),
+      );
       emit(AuthAuthenticated(user));
       return null;
     } catch (error) {
+      // Bila perpindahan gagal sebelum sesi berubah, pulihkan notifikasi akun
+      // semula yang tadi dibersihkan.
+      if (authRepository.currentUser()?.uid == currentState.user.uid) {
+        _registerNotifications(currentState.user.role, currentState.user.uid);
+      }
       return ErrorHandler.getMessage(error);
     }
   }

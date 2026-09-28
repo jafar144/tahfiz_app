@@ -23,6 +23,8 @@ class SantriHomeState {
 
   /// Saudara (akun lain dalam satu keluarga) untuk fitur ganti akun di home.
   final List<FamilyAccount> familyMembers;
+  final bool familyMembersLoadFailed;
+  final bool isLoadingFamilyMembers;
 
   const SantriHomeState({
     this.status = SantriHomeStatus.initial,
@@ -37,6 +39,8 @@ class SantriHomeState {
     this.latestReport,
     this.monthlyReports = const [],
     this.familyMembers = const [],
+    this.familyMembersLoadFailed = false,
+    this.isLoadingFamilyMembers = false,
   });
 
   /// Nama pembimbing lengkap dengan gelar, mis. "Ustadz Fulan".
@@ -64,6 +68,8 @@ class SantriHomeState {
     MonthlyReport? latestReport,
     List<MonthlyReport>? monthlyReports,
     List<FamilyAccount>? familyMembers,
+    bool? familyMembersLoadFailed,
+    bool? isLoadingFamilyMembers,
   }) {
     return SantriHomeState(
       status: status ?? this.status,
@@ -78,6 +84,10 @@ class SantriHomeState {
       latestReport: latestReport ?? this.latestReport,
       monthlyReports: monthlyReports ?? this.monthlyReports,
       familyMembers: familyMembers ?? this.familyMembers,
+      familyMembersLoadFailed:
+          familyMembersLoadFailed ?? this.familyMembersLoadFailed,
+      isLoadingFamilyMembers:
+          isLoadingFamilyMembers ?? this.isLoadingFamilyMembers,
     );
   }
 }
