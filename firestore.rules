@@ -57,6 +57,24 @@ service cloud.firestore {
         ).data.get('asatidz', {}).get('id', '') == uid;
     }
 
+    function targetSantriHalaqahId(uid) {
+      return get(
+        /databases/$(database)/documents/santri_profiles/$(uid)
+      ).data.get('halaqah_id', '');
+    }
+
+    // Asatidz hanya boleh membaca dokumen akun santri yang benar-benar berada
+    // di halaqah binaannya. Detail profil umum tetap berasal dari
+    // santri_profiles; izin ini dibutuhkan untuk data akun pelengkap.
+    function isSantriAssignedToCurrentAsatidz(uid) {
+      return isAsatidz()
+        && targetSantriHalaqahId(uid) is string
+        && targetSantriHalaqahId(uid).size() > 0
+        && get(
+          /databases/$(database)/documents/halaqahs/$(targetSantriHalaqahId(uid))
+        ).data.get('asatidz', {}).get('id', '') == request.auth.uid;
+    }
+
     // Tanggal absensi disimpan sebagai date-only UTC yang mewakili kalender
     // WIB. Penambahan tujuh jam di sini memastikan batas hari mengikuti WIB,
     // bukan timezone perangkat atau UTC.
@@ -190,7 +208,10 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isOwner(uid) || isAdmin() || isAssignedAsatidz(uid);
+      allow read: if isOwner(uid)
+        || isAdmin()
+        || isAssignedAsatidz(uid)
+        || isSantriAssignedToCurrentAsatidz(uid);
       allow create, delete: if false;
       allow update: if isAdmin()
         || (

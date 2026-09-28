@@ -60,13 +60,16 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isAdmin = _isAdmin;
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => _cubit),
-        BlocProvider(
-          create: (_) =>
-              getIt<SantriPaymentHistoryCubit>()..loadHistory(widget.santriId),
-        ),
+        if (isAdmin)
+          BlocProvider(
+            create: (_) =>
+                getIt<SantriPaymentHistoryCubit>()
+                  ..loadHistory(widget.santriId),
+          ),
       ],
       child: Scaffold(
         backgroundColor: Colors.grey[50],
@@ -268,10 +271,12 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   const SizedBox(height: 20),
                   _buildLatestReport(detail),
                 ],
-                const SizedBox(height: 20),
-                const AiwaFormSectionTitle(title: 'Riwayat Pembayaran'),
-                const SizedBox(height: 10),
-                _buildPaymentSection(detail),
+                if (_isAdmin) ...[
+                  const SizedBox(height: 20),
+                  const AiwaFormSectionTitle(title: 'Riwayat Pembayaran'),
+                  const SizedBox(height: 10),
+                  _buildPaymentSection(detail),
+                ],
                 if (_isAdmin &&
                     isSundayFajrEligible(
                       isActive: detail.isActive,

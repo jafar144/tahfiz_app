@@ -415,6 +415,58 @@ test("santri hanya dapat membaca profil pengajar yang ditugaskan", async () => {
   await assertFails(getDoc(doc(santri, "users/asatidz-lain")));
 });
 
+test("asatidz hanya dapat membaca akun santri binaannya", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const firestore = context.firestore();
+    await Promise.all([
+      setDoc(
+        doc(firestore, "santri_profiles/santri"),
+        { halaqah_id: "halaqah-asatidz" },
+        { merge: true },
+      ),
+      setDoc(
+        doc(firestore, "santri_profiles/santri-lain"),
+        { halaqah_id: "halaqah-asatidz-lain" },
+        { merge: true },
+      ),
+      setDoc(doc(firestore, "halaqahs/halaqah-asatidz"), {
+        asatidz: { id: "asatidz" },
+      }),
+      setDoc(doc(firestore, "halaqahs/halaqah-asatidz-lain"), {
+        asatidz: { id: "asatidz-lain" },
+      }),
+      setDoc(
+        doc(firestore, "users/santri"),
+        { phone: "081200000001" },
+        { merge: true },
+      ),
+      setDoc(
+        doc(firestore, "users/santri-lain"),
+        { phone: "081200000002" },
+        { merge: true },
+      ),
+      setDoc(doc(firestore, "users/asatidz-lain"), {
+        uid: "asatidz-lain",
+        role: "asatidz",
+        is_admin: false,
+      }),
+    ]);
+  });
+
+  const asatidz = testEnv.authenticatedContext("asatidz").firestore();
+  const assigned = await assertSucceeds(
+    getDoc(doc(asatidz, "users/santri")),
+  );
+  assert.equal(assigned.data().phone, "081200000001");
+  await assertFails(getDoc(doc(asatidz, "users/santri-lain")));
+
+  const otherAsatidz = testEnv
+    .authenticatedContext("asatidz-lain")
+    .firestore();
+  await assertSucceeds(getDoc(doc(otherAsatidz, "users/santri-lain")));
+  await assertFails(getDoc(doc(otherAsatidz, "users/santri")));
+});
+
 test("santri lama tanpa flag is_admin dapat membaca kontak pembimbingnya", async () => {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     const firestore = context.firestore();
