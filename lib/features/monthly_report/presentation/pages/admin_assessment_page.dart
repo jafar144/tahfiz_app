@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/core/utils/whatsapp_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/pembimbing_assessment.dart';
+import 'package:khoirunnasyien/features/monthly_report/domain/entities/target_achievement_recap.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/admin_assessment_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/pembimbing_assessment_card.dart';
@@ -22,6 +23,7 @@ class AdminAssessmentPage extends StatefulWidget {
 
 class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
   String _gender = 'L'; // 'L' = Putra, 'P' = Putri
+  bool _showRecap = false;
   late final DateTime _currentPeriod;
   late final DateTime _previousPeriod;
   late DateTime _selectedPeriod;
@@ -47,7 +49,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     _currentPeriod = cubit.currentPeriod;
     _previousPeriod = DateTime(_currentPeriod.year, _currentPeriod.month - 1);
     _selectedPeriod = _currentPeriod;
-    // Sekali muat untuk putra & putri; pindah tab tidak request ulang.
+    // Sekali muat untuk putra & putri; pindah menu tidak request ulang.
     cubit.load();
   }
 
@@ -148,13 +150,11 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AiwaAppBar(title: 'Penilaian Bulanan'),
+      bottomNavigationBar: _buildBottomNavigation(),
       body: SafeArea(
+        bottom: false,
         child: BlocBuilder<AdminAssessmentCubit, AdminAssessmentState>(
           builder: (context, state) {
-            if (state is AdminAssessmentError) {
-              return _buildError(state.message);
-            }
-
             final isLoading =
                 state is AdminAssessmentLoading ||
                 state is AdminAssessmentInitial;
@@ -169,19 +169,15 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
               children: [
                 _buildHeader(
                   isLoading,
-                  pembimbingList,
                   previousMonthHasIncompleteAssessment:
                       previousMonthHasIncompleteAssessment,
                 ),
-                if (loadedState != null)
-                  TargetAchievementRecapPanel(
-                    recap: loadedState.targetAchievementRecap,
-                  ),
-                _buildGenderToggle(),
                 Expanded(
-                  child: isLoading
-                      ? _buildSkeleton()
-                      : _buildList(pembimbingList),
+                  child: state is AdminAssessmentError
+                      ? _buildError(state.message)
+                      : _showRecap
+                      ? _buildRecap(loadedState?.targetAchievementRecap)
+                      : _buildAssessment(pembimbingList, isLoading: isLoading),
                 ),
               ],
             );
@@ -191,16 +187,58 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
     );
   }
 
+  Widget _buildBottomNavigation() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: BottomNavigationBar(
+        key: const Key('admin_assessment_bottom_navigation'),
+        currentIndex: _showRecap ? 1 : 0,
+        onTap: (index) {
+          final showRecap = index == 1;
+          if (showRecap == _showRecap) return;
+          setState(() => _showRecap = showRecap);
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        selectedLabelStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w500,
+        ),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fact_check_outlined),
+            activeIcon: Icon(Icons.fact_check_rounded),
+            label: 'Penilaian',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart_outlined),
+            activeIcon: Icon(Icons.bar_chart_rounded),
+            label: 'Rekap Bulanan',
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHeader(
-    bool isLoading,
-    List<PembimbingAssessment> list, {
+    bool isLoading, {
     required bool previousMonthHasIncompleteAssessment,
   }) {
-    final completed = list.where((p) => p.isComplete).length;
     final isCurrentPeriod = _isSamePeriod(_selectedPeriod, _currentPeriod);
     final isPreviousPeriod = _isSamePeriod(_selectedPeriod, _previousPeriod);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -257,14 +295,6 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            isLoading
-                ? 'Memuat data penilaian…'
-                : '$completed dari ${list.length} pembimbing sudah menilai',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
         ],
       ),
     );
@@ -288,61 +318,120 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
   Widget _genderTab(String label, String value) {
     final isSelected = _gender == value;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => _onGenderChanged(value),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+      child: Semantics(
+        selected: isSelected,
+        child: TextButton(
+          onPressed: () => _onGenderChanged(value),
+          style: TextButton.styleFrom(
+            backgroundColor: isSelected
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+            foregroundColor: isSelected
+                ? AppColors.primary
+                : AppColors.textSecondary,
+            minimumSize: const Size(0, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
-          alignment: Alignment.center,
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSkeleton() {
-    return Skeletonizer(
-      enabled: true,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: _skeletonData.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (_, i) =>
-            PembimbingAssessmentCard(data: _skeletonData[i], onRemind: () {}),
+  Widget _buildAssessment(
+    List<PembimbingAssessment> list, {
+    required bool isLoading,
+  }) {
+    final completed = list.where((p) => p.isComplete).length;
+    final visibleList = isLoading ? _skeletonData : list;
+    return RefreshIndicator(
+      onRefresh: _refreshSelectedPeriod,
+      child: CustomScrollView(
+        key: const PageStorageKey('admin_assessment_list'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Status penilaian',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        isLoading
+                            ? 'Memuat data penilaian…'
+                            : '$completed dari ${list.length} pembimbing sudah menilai',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildGenderToggle(),
+              ],
+            ),
+          ),
+          if (visibleList.isEmpty)
+            SliverToBoxAdapter(child: _buildEmpty())
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+              sliver: SliverList.separated(
+                itemCount: visibleList.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
+                itemBuilder: (_, i) => Skeletonizer(
+                  enabled: isLoading,
+                  child: PembimbingAssessmentCard(
+                    data: visibleList[i],
+                    onRemind: () => _remind(visibleList[i]),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildList(List<PembimbingAssessment> list) {
+  Widget _buildRecap(TargetAchievementRecap? recap) {
+    if (recap == null) {
+      return const Center(
+        child: CircularProgressIndicator(
+          semanticsLabel: 'Memuat rekap bulanan',
+        ),
+      );
+    }
     return RefreshIndicator(
       onRefresh: _refreshSelectedPeriod,
-      child: list.isEmpty
-          ? ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [_buildEmpty()],
-            )
-          : ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
-              itemCount: list.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 14),
-              itemBuilder: (_, i) => PembimbingAssessmentCard(
-                data: list[i],
-                onRemind: () => _remind(list[i]),
-              ),
-            ),
+      child: ListView(
+        key: const PageStorageKey('admin_target_recap'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 28),
+        children: [
+          TargetAchievementRecapPanel(
+            recap: recap,
+            periodLabel: _monthYearLabel(_selectedPeriod),
+          ),
+        ],
+      ),
     );
   }
 
@@ -365,7 +454,7 @@ class _AdminAssessmentPageState extends State<AdminAssessmentPage> {
 
   Widget _buildError(String message) {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,

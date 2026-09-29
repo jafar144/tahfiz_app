@@ -105,6 +105,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Januari 2027'), findsOneWidget);
+      expect(find.text('Status penilaian'), findsOneWidget);
+      expect(find.byKey(const Key('target_recap_minimum')), findsNothing);
+      await _selectSection(tester, recap: true);
+      expect(find.text('Status penilaian'), findsNothing);
       expect(
         find.descendant(
           of: find.byKey(const Key('target_recap_minimum')),
@@ -133,13 +137,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Desember 2026'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('target_recap_minimum')),
-          matching: find.text('0'),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Belum ada evaluasi target'), findsOneWidget);
       expect(
         find.byKey(const Key('admin_assessment_previous_incomplete_indicator')),
         findsNothing,
@@ -179,6 +177,86 @@ void main() {
     },
   );
 
+  testWidgets(
+    'switching sections preserves gender and period without fetching',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider.value(
+            value: cubit,
+            child: const AdminAssessmentPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Putri'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Belum ada pembimbing'), findsOneWidget);
+
+      reportRepository.requests.clear();
+      reportRepository.reportListRequests.clear();
+      await _selectSection(tester, recap: false);
+      expect(find.textContaining('Belum ada pembimbing'), findsOneWidget);
+      expect(find.text('Januari 2027'), findsOneWidget);
+      await _selectSection(tester, recap: true);
+      expect(find.text('Semua pembimbing · putra & putri'), findsOneWidget);
+      expect(find.text('Putri'), findsNothing);
+      await tester.tap(find.byKey(const Key('target_recap_minimum')));
+      await tester.pumpAndSettle();
+      expect(find.text('Ali'), findsOneWidget);
+      expect(find.text('Januari 2027 · 1 santri'), findsOneWidget);
+      await tester.tap(find.byTooltip('Tutup daftar santri'));
+      await tester.pumpAndSettle();
+      expect(reportRepository.requests, isEmpty);
+      expect(reportRepository.reportListRequests, isEmpty);
+      expect(scheduleRepository.bulkRequests, 1);
+
+      await tester.tap(
+        find.byKey(const Key('admin_assessment_previous_month')),
+      );
+      await tester.pumpAndSettle();
+      await _selectSection(tester, recap: false);
+      expect(find.text('Desember 2026'), findsOneWidget);
+      expect(find.textContaining('Belum ada pembimbing'), findsOneWidget);
+      expect(reportRepository.reportListRequests, [(bulan: 12, tahun: 2026)]);
+    },
+  );
+
+  testWidgets(
+    'sections and recap details scroll on a small screen with large text',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(1.5)),
+            child: child!,
+          ),
+          home: BlocProvider.value(
+            value: cubit,
+            child: const AdminAssessmentPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await _selectSection(tester, recap: true);
+      final minimum = find.byKey(const Key('target_recap_minimum'));
+      await tester.ensureVisible(minimum);
+      await tester.pumpAndSettle();
+      await tester.tap(minimum);
+      await tester.pumpAndSettle();
+      expect(find.text('Ali'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('hides incomplete pulse when previous month is complete', (
     tester,
   ) async {
@@ -204,33 +282,65 @@ void main() {
     );
   });
 
-  testWidgets('error retry keeps the selected previous period', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: BlocProvider.value(
-          value: cubit,
-          child: const AdminAssessmentPage(),
-        ),
-      ),
+  for (final showRecap in [false, true]) {
+    testWidgets(
+      'error retry keeps the selected period and section (recap: $showRecap)',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: BlocProvider.value(
+              value: cubit,
+              child: const AdminAssessmentPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        if (showRecap) {
+          await _selectSection(tester, recap: true);
+        }
+        await tester.tap(
+          find.byKey(const Key('admin_assessment_previous_month')),
+        );
+        await tester.pumpAndSettle();
+        reportRepository.failNextReports = (bulan: 12, tahun: 2026);
+        final refreshIndicator = tester.widget<RefreshIndicator>(
+          find.byType(RefreshIndicator),
+        );
+        await refreshIndicator.onRefresh();
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Gagal memuat data'), findsOneWidget);
+
+        await tester.tap(find.text('Coba Lagi'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Desember 2026'), findsOneWidget);
+        expect(
+          find.text(
+            showRecap ? 'Belum ada evaluasi target' : 'Status penilaian',
+          ),
+          findsOneWidget,
+        );
+        expect(reportRepository.requests.last, (bulan: 12, tahun: 2026));
+      },
     );
-    await tester.pumpAndSettle();
+  }
+}
 
-    await tester.tap(find.byKey(const Key('admin_assessment_previous_month')));
-    await tester.pumpAndSettle();
-    reportRepository.failNextReports = (bulan: 12, tahun: 2026);
-    final refreshIndicator = tester.widget<RefreshIndicator>(
-      find.byType(RefreshIndicator),
-    );
-    await refreshIndicator.onRefresh();
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Gagal memuat data'), findsOneWidget);
-
-    await tester.tap(find.text('Coba Lagi'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Desember 2026'), findsOneWidget);
-    expect(reportRepository.requests.last, (bulan: 12, tahun: 2026));
-  });
+Future<void> _selectSection(WidgetTester tester, {required bool recap}) async {
+  final navigation = find.byType(BottomNavigationBar);
+  final destination = find.descendant(
+    of: navigation,
+    matching: find.text(recap ? 'Rekap Bulanan' : 'Penilaian'),
+  );
+  await tester.tap(destination);
+  await tester.pumpAndSettle();
+  expect(
+    tester.widget<BottomNavigationBar>(navigation).currentIndex,
+    recap ? 1 : 0,
+  );
+  expect(find.byType(BottomSheet), findsNothing);
+  expect(tester.takeException(), isNull);
 }
 
 MonthlyReport _report({

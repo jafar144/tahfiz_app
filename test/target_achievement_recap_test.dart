@@ -58,7 +58,16 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(body: TargetAchievementRecapPanel(recap: recap)),
+        home: Scaffold(
+          body: ListView(
+            children: [
+              TargetAchievementRecapPanel(
+                recap: recap,
+                periodLabel: 'Agustus 2026',
+              ),
+            ],
+          ),
+        ),
       ),
     );
 
@@ -69,7 +78,7 @@ void main() {
     await tester.tap(find.byKey(const Key('target_recap_minimum')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Target minimum'), findsOneWidget);
+    expect(find.text('Agustus 2026 · 1 santri'), findsOneWidget);
     expect(find.text('Bilal'), findsOneWidget);
     expect(find.text('Pembimbing: Ustadz Ahmad'), findsOneWidget);
   });
