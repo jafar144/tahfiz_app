@@ -33,7 +33,6 @@ INSTITUTION_NAME="Nama Lembaga"
 PAYMENT_BANK_NAME=NAMA_BANK
 PAYMENT_ACCOUNT_NUMBER=NOMOR_REKENING
 PAYMENT_ACCOUNT_HOLDER=NAMA_PEMILIK
-STAFF_INITIAL_PASSWORD=
 APP_CHECK_ENFORCED=false
 
 WABLAS_ENABLED=false
@@ -87,8 +86,8 @@ Password awal:
 
 - santri memakai tanggal lahir dengan urutan `YYYYMMDD`, misalnya
   `09/03/2012` menjadi `20120309`;
-- asatidz dapat memakai nilai `STAFF_INITIAL_PASSWORD` per lembaga; jika
-  kosong, password dibuat acak;
+- password semua akun asatidz ditetapkan ke `Khoirun123` oleh server dan tidak
+  dapat diubah dari form;
 - aplikasi tidak memaksa pengguna mengganti password setelah login.
 
 Fitur ganti akun keluarga memerlukan kedua callable `getFamilyAccounts` dan

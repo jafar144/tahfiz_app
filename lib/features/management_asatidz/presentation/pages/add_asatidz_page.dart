@@ -87,13 +87,12 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Simpan dan kirimkan kredensial berikut secara aman. '
-              'Password hanya ditampilkan sekali.',
+              'Kirimkan kredensial berikut kepada asatidz.',
             ),
             const SizedBox(height: 16),
             SelectableText('NIS: ${state.nis}'),
             const SizedBox(height: 8),
-            SelectableText('Password sementara: ${state.temporaryPassword}'),
+            SelectableText('Password: ${state.temporaryPassword}'),
           ],
         ),
         actions: [
@@ -103,7 +102,7 @@ class _AddAsatidzPageState extends State<AddAsatidzPage> {
                 ClipboardData(
                   text:
                       'NIS: ${state.nis}\n'
-                      'Password sementara: ${state.temporaryPassword}',
+                      'Password: ${state.temporaryPassword}',
                 ),
               );
               if (dialogContext.mounted) {

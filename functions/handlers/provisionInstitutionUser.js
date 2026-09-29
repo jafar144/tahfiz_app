@@ -1,20 +1,16 @@
-const crypto = require("node:crypto");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
 const { assertAdmin } = require("../lib/authz");
 const {
   AUTH_EMAIL_DOMAIN,
   CALLABLE_OPTIONS,
-  STAFF_INITIAL_PASSWORD,
 } = require("../lib/config");
 const { normNis, passwordFromBirthDate } = require("../lib/utils");
 const {
   runSantriWelcomeWhatsApp,
 } = require("./whatsappNotifier");
 
-const TEMPORARY_PASSWORD_ALPHABET =
-  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$";
-const MIN_STAFF_PASSWORD_LENGTH = 10;
+const ASATIDZ_PASSWORD = "Khoirun123";
 
 // Secret perlu tercantum pada manifest meski feature flag baru dibaca saat
 // runtime. Tanpa deklarasi ini, welcome WhatsApp gagal ketika Wablas aktif.
@@ -63,36 +59,6 @@ function dateOnly(value, field, { required = true } = {}) {
     throw new HttpsError("invalid-argument", `${field} tidak valid.`);
   }
   return { text, timestamp: admin.firestore.Timestamp.fromDate(date) };
-}
-
-function randomTemporaryPassword(length = 16) {
-  const bytes = crypto.randomBytes(length);
-  let password = "";
-  for (let index = 0; index < length; index += 1) {
-    password +=
-      TEMPORARY_PASSWORD_ALPHABET[
-        bytes[index] % TEMPORARY_PASSWORD_ALPHABET.length
-      ];
-  }
-  return password;
-}
-
-function isValidStaffPassword(password) {
-  return (
-    password.length >= MIN_STAFF_PASSWORD_LENGTH &&
-    password.length <= 128 &&
-    /[a-z]/.test(password) &&
-    /[A-Z]/.test(password) &&
-    /[0-9]/.test(password)
-  );
-}
-
-function staffInitialPassword(configuredValue) {
-  const password = String(configuredValue ?? "").trim();
-  if (!password) return randomTemporaryPassword();
-  return isValidStaffPassword(password)
-    ? password
-    : randomTemporaryPassword();
 }
 
 async function rollbackAuthUser(uid) {
@@ -168,16 +134,7 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
       ...(photoUrl ? { photo_url: photoUrl } : {}),
     };
   } else {
-    const configuredStaffPassword = STAFF_INITIAL_PASSWORD.value();
-    if (
-      configuredStaffPassword &&
-      !isValidStaffPassword(configuredStaffPassword.trim())
-    ) {
-      console.warn(
-        `STAFF_INITIAL_PASSWORD tidak memenuhi kebijakan minimal ${MIN_STAFF_PASSWORD_LENGTH} karakter; menggunakan password sementara acak.`,
-      );
-    }
-    temporaryPassword = staffInitialPassword(configuredStaffPassword);
+    temporaryPassword = ASATIDZ_PASSWORD;
     profileData = {
       is_active: data.isActive !== false,
       jenis_kelamin: jenisKelamin,
@@ -280,10 +237,8 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
 module.exports = {
   provisionInstitutionUser,
   _private: {
+    ASATIDZ_PASSWORD,
     requiredText,
     dateOnly,
-    isValidStaffPassword,
-    randomTemporaryPassword,
-    staffInitialPassword,
   },
 };

@@ -5,9 +5,6 @@ const INSTITUTION_NAME = defineString("INSTITUTION_NAME");
 const PAYMENT_BANK_NAME = defineString("PAYMENT_BANK_NAME");
 const PAYMENT_ACCOUNT_NUMBER = defineString("PAYMENT_ACCOUNT_NUMBER");
 const PAYMENT_ACCOUNT_HOLDER = defineString("PAYMENT_ACCOUNT_HOLDER");
-const STAFF_INITIAL_PASSWORD = defineString("STAFF_INITIAL_PASSWORD", {
-  default: "",
-});
 const WABLAS_BASE_URL = defineString("WABLAS_BASE_URL", {
   default: "https://disabled.invalid",
 });
@@ -100,7 +97,6 @@ module.exports = {
   PAYMENT_BANK_NAME,
   PAYMENT_ACCOUNT_NUMBER,
   PAYMENT_ACCOUNT_HOLDER,
-  STAFF_INITIAL_PASSWORD,
   WABLAS_BASE_URL,
   WABLAS_ENABLED,
   WHATSAPP_ADMIN_PHONE,
