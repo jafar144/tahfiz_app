@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_detail_widgets.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
+import 'package:khoirunnasyien/core/widgets/zoomable_network_photo.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_detail.dart';
@@ -623,6 +624,24 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
   }
 
   Widget _buildHeader(SantriDetail detail) {
+    final photoUrl = detail.photoUrl?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+    final avatar = CircleAvatar(
+      radius: 40,
+      backgroundColor: Colors.white,
+      backgroundImage: hasPhoto ? NetworkImage(photoUrl) : null,
+      child: !hasPhoto
+          ? Text(
+              detail.name.isNotEmpty ? detail.name[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade800,
+              ),
+            )
+          : null,
+    );
+
     return Stack(
       alignment: Alignment.bottomCenter,
       clipBehavior: Clip.none,
@@ -654,26 +673,20 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                     ),
                   ],
                 ),
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.white,
-                  backgroundImage:
-                      detail.photoUrl != null && detail.photoUrl!.isNotEmpty
-                      ? NetworkImage(detail.photoUrl!)
-                      : null,
-                  child: detail.photoUrl == null || detail.photoUrl!.isEmpty
-                      ? Text(
-                          detail.name.isNotEmpty
-                              ? detail.name[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
+                child: hasPhoto
+                    ? Semantics(
+                        button: true,
+                        label: 'Perbesar foto profil ${detail.name}',
+                        child: GestureDetector(
+                          onTap: () => showZoomableNetworkPhoto(
+                            context,
+                            imageUrl: photoUrl,
+                            semanticLabel: 'Foto profil ${detail.name}',
                           ),
-                        )
-                      : null,
-                ),
+                          child: avatar,
+                        ),
+                      )
+                    : avatar,
               ),
             ],
           ),

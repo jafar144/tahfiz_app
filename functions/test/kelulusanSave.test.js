@@ -708,7 +708,7 @@ test("save capaian terakhir menaikkan kelas dalam transaksi yang sama", async ()
       promotion: {
         fromClass: "Mutawassith",
         toClass: "Pra Takhossus Awal",
-        milestoneNumber: 24,
+        milestoneNumber: 25,
       },
     }),
     harness.dependencies,
@@ -747,7 +747,7 @@ test("save menolak kenaikan jika kelas santri berubah setelah konfirmasi", async
         promotion: {
           fromClass: "Mutawassith",
           toClass: "Pra Takhossus Awal",
-          milestoneNumber: 24,
+          milestoneNumber: 25,
         },
       }),
       harness.dependencies,

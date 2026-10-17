@@ -13,13 +13,13 @@ test("promotion hanya valid pada capaian terakhir kelas", () => {
     resolveGraduationPromotion({
       fromClass: "Mutawassith",
       toClass: "Pra Takhossus Awal",
-      milestoneNumber: 24,
+      milestoneNumber: 25,
       hafalan: "JUZ 30",
     }),
     {
       fromClass: "Mutawassith",
       toClass: "Pra Takhossus Awal",
-      milestoneNumber: 24,
+      milestoneNumber: 25,
     },
   );
   assert.equal(
@@ -60,7 +60,7 @@ test("alias Rabi mengikuti kelas canonical Robi", () => {
     resolveGraduationPromotion({
       fromClass: "Takhossus Rabi",
       toClass: "Takhossus Khomis",
-      milestoneNumber: 62,
+      milestoneNumber: 63,
       hafalan: "JUZ 1-20",
     })?.fromClass,
     "Takhossus Robi",

@@ -15,12 +15,12 @@ const PROMOTIONS = new Map([
   ],
   [
     "Mutawassith",
-    { milestoneNumber: 24, hafalan: "JUZ 30", toClass: "Pra Takhossus Awal" },
+    { milestoneNumber: 25, hafalan: "JUZ 30", toClass: "Pra Takhossus Awal" },
   ],
   [
     "Pra Takhossus Awal",
     {
-      milestoneNumber: 31,
+      milestoneNumber: 32,
       hafalan: "PRA TAKHOSSUS AWWAL",
       toClass: "Pra Takhossus Akhir",
     },
@@ -28,34 +28,34 @@ const PROMOTIONS = new Map([
   [
     "Pra Takhossus Akhir",
     {
-      milestoneNumber: 37,
+      milestoneNumber: 38,
       hafalan: "PRA TAKHOSSUS AKHIR",
       toClass: "Takhossus Awal",
     },
   ],
   [
     "Takhossus Awal",
-    { milestoneNumber: 44, hafalan: "JUZ 1-5", toClass: "Takhossus Tsani" },
+    { milestoneNumber: 45, hafalan: "JUZ 1-5", toClass: "Takhossus Tsani" },
   ],
   [
     "Takhossus Tsani",
     {
-      milestoneNumber: 50,
+      milestoneNumber: 51,
       hafalan: "JUZ 1-10",
       toClass: "Takhossus Tsalits",
     },
   ],
   [
     "Takhossus Tsalits",
-    { milestoneNumber: 56, hafalan: "JUZ 1-15", toClass: "Takhossus Robi" },
+    { milestoneNumber: 57, hafalan: "JUZ 1-15", toClass: "Takhossus Robi" },
   ],
   [
     "Takhossus Robi",
-    { milestoneNumber: 62, hafalan: "JUZ 1-20", toClass: "Takhossus Khomis" },
+    { milestoneNumber: 63, hafalan: "JUZ 1-20", toClass: "Takhossus Khomis" },
   ],
   [
     "Takhossus Khomis",
-    { milestoneNumber: 68, hafalan: "JUZ 1-25", toClass: "Takhossus Akhir" },
+    { milestoneNumber: 69, hafalan: "JUZ 1-25", toClass: "Takhossus Akhir" },
   ],
 ]);
 
