@@ -26,7 +26,10 @@
     "firebase-tools": "^15.24.0"
   },
   "overrides": {
-    "brace-expansion": "5.0.9",
+    "@fastify/busboy": "3.2.4",
+    "@grpc/grpc-js": "1.14.6",
+    "brace-expansion": "5.0.12",
+    "proxy-addr": "2.0.8",
     "uuid": "11.1.1"
   },
   "private": true
