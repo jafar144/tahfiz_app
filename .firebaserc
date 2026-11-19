@@ -4,5 +4,14 @@
     "khoirunnasyien": "khoirun-app",
     "barokatul_quran": "barokatul-apps",
     "al_jauhar": "al-jauhar-app"
+  },
+  "targets": {
+    "al-jauhar-app": {
+      "hosting": {
+        "al_jauhar": [
+          "al-jauhar-app"
+        ]
+      }
+    }
   }
 }

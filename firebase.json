@@ -14,5 +14,32 @@
       "firebase-debug.log",
       "*.local"
     ]
-  }
+  },
+  "hosting": [
+    {
+      "target": "al_jauhar",
+      "public": "hosting/al_jauhar",
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "ignore": [
+        "firebase.json",
+        "**/.*"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Referrer-Policy",
+              "value": "strict-origin-when-cross-origin"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

@@ -217,6 +217,14 @@ Dirilis memakai akun Play developer yang sama dengan Khoirunnasyien.
   Ditandatangani upload key Al-Jauhar (SHA-256 `DC:27:E6:…:C9:D8`).
 - Aset store di `store/al_jauhar/`: ikon 512×512 dan feature graphic
   1024×500. Screenshot ponsel (minimal 2) belum dibuat.
+- Kebijakan privasi: **https://al-jauhar-app.web.app/kebijakan-privasi**
+  (permintaan hapus akun: `#hapus-akun`). Sumber di `hosting/al_jauhar/`,
+  Firebase Hosting target `al_jauhar` yang hanya dipetakan ke
+  `al-jauhar-app` di `.firebaserc`. Deploy ulang setelah mengubah isi:
+  `firebase deploy --only hosting:al_jauhar --project al-jauhar-app`.
+  Project lain tidak memiliki target hosting; tetap gunakan `--only` saat
+  deploy agar tidak ikut mencoba hosting. Kontak di halaman memakai WhatsApp
+  dan alamat dari situs lembaga.
 - Logo sumber: 626×597 PNG transparan dari situs lembaga; dipakai untuk logo
   aplikasi, launcher icon, splash (termasuk Android 12, di dalam lingkaran
   aman), dan `logo_bg.png` syahadah.
