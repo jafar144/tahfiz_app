@@ -45,7 +45,8 @@ al-jauhar-app`** saat menjalankan perintah Al-Jauhar.
 - `app_config/runtime.features.tahfiz_arena=true`, mengikuti konfigurasi
   Khoirunnasyien. Database diawali hanya akun admin dan konfigurasi tersebut.
 - Kelas, tipe kelas, materi hafalan, fiqih, milestone, serta template syahadah
-  disalin ke direktori flavor sendiri. Logo/ikon/splash masih gambar Khoirun.
+  disalin ke direktori flavor sendiri. Logo/ikon/splash memakai logo resmi
+  dari https://lttq-aljauharbdi.com/img/logo.png (diperbarui 19 Nov 2026).
 - Rekening sementara sama: BSI `7117245448`, a.n. Fahmi Ramdani.
 - `GROQ_API_KEY` disalin ke Secret Manager Al-Jauhar dengan persetujuan pemilik;
   kuota Groq masih berbagi. Rotasi key di Khoirun tidak otomatis memperbarui
@@ -205,6 +206,28 @@ Catatan token: `ADMIN_HTTP_TOKEN` Al-Jauhar (versi 1–2) tersimpan dengan CRLF
 di ujung. Server kini mengabaikan spasi/baris baru di ujung token, jadi secret
 tidak perlu dibuat ulang; saat membuat secret baru, gunakan nilai tanpa baris
 baru.
+
+## Google Play
+
+Dirilis memakai akun Play developer yang sama dengan Khoirunnasyien.
+
+- Package: `id.or.aljauhar.tahfiz`; AAB pertama `1.0.0+1`, targetSdk 36.
+- Build: `flutter build appbundle --release --flavor al_jauhar --target lib/main_al_jauhar.dart --build-name 1.0.0 --build-number 1 --dart-define=APP_FLAVOR=al_jauhar`
+  → `build/app/outputs/bundle/al_jauharRelease/app-al_jauhar-release.aab`.
+  Ditandatangani upload key Al-Jauhar (SHA-256 `DC:27:E6:…:C9:D8`).
+- Aset store di `store/al_jauhar/`: ikon 512×512 dan feature graphic
+  1024×500. Screenshot ponsel (minimal 2) belum dibuat.
+- Logo sumber: 626×597 PNG transparan dari situs lembaga; dipakai untuk logo
+  aplikasi, launcher icon, splash (termasuk Android 12, di dalam lingkaran
+  aman), dan `logo_bg.png` syahadah.
+
+Urutan Play Console: buat app (Indonesia, App, Gratis) → Internal testing →
+upload AAB pertama secara manual (Play App Signing aktif otomatis) → lengkapi
+"Siapkan aplikasi" (kebijakan privasi, akses aplikasi untuk reviewer, iklan,
+rating konten, target audiens — pengguna termasuk anak, Data safety) → store
+listing. Setelah AAB pertama diterima, rilis berikutnya lewat CI dengan tag
+`al_jauhar-v<versi>+<versionCode>` setelah GitHub Environment `al_jauhar` dan
+service account Play dibuat.
 
 ## Ketika kelas/kurikulum final tersedia
 
