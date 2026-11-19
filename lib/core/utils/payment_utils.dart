@@ -1,7 +1,12 @@
-class PaymentUtils {
-  static final DateTime firstSupportedPeriod = DateTime(2026, 2);
+import 'package:khoirunnasyien/core/config/app_config.dart';
 
-  /// Menormalisasi periode pembayaran agar tidak pernah sebelum Februari 2026.
+class PaymentUtils {
+  static DateTime get firstSupportedPeriod =>
+      AppConfig.configured?.payment.firstSupportedPaymentPeriod ??
+      DateTime(2026, 2);
+
+  /// Menormalisasi periode pembayaran agar tidak pernah sebelum periode awal
+  /// lembaga yang sedang berjalan.
   static DateTime clampToSupportedPeriod(DateTime date) {
     final period = DateTime(date.year, date.month);
     return period.isBefore(firstSupportedPeriod)
@@ -40,12 +45,13 @@ class PaymentUtils {
     if (tanggalMasuk == null) return null;
     final entryMonth = DateTime(tanggalMasuk.year, tanggalMasuk.month);
 
+    DateTime start = entryMonth;
     if (freeUntil != null && !freeUntil.isAfter(DateTime.now())) {
       final afterFree = DateTime(freeUntil.year, freeUntil.month + 1);
       final afterFreeMonth = DateTime(afterFree.year, afterFree.month);
-      return afterFreeMonth.isAfter(entryMonth) ? afterFreeMonth : entryMonth;
+      start = afterFreeMonth.isAfter(entryMonth) ? afterFreeMonth : entryMonth;
     }
-    return entryMonth;
+    return start.isBefore(firstSupportedPeriod) ? firstSupportedPeriod : start;
   }
 
   /// Apakah santri sudah terdaftar (dan wajib bayar/dihitung) pada [month]/[year].
@@ -58,7 +64,8 @@ class PaymentUtils {
     if (tanggalMasuk == null) return false;
     final enrolledAt = DateTime(tanggalMasuk.year, tanggalMasuk.month);
     final target = DateTime(year, month);
-    return !enrolledAt.isAfter(target);
+    return !target.isBefore(firstSupportedPeriod) &&
+        !enrolledAt.isAfter(target);
   }
 
   static String getMonthName(int month) {

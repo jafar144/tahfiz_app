@@ -1,11 +1,9 @@
 const {
-  scheduledAssessmentNotifications,
-} = require("./handlers/assessmentNotifier");
-const {
-  scheduledPaymentNotifications,
-} = require("./handlers/paymentNotifier");
-const { cleanupExpiredSyahadah } = require("./handlers/cleanupExpiredSyahadah");
-const { transcribeRecitation } = require("./handlers/transcribeRecitation");
+  shouldDeployScheduledFunctions,
+  shouldDeployLegacyHttpFunctions,
+  shouldDeployNotificationFunctions,
+  shouldDeployTranscriptionFunction,
+} = require("./lib/deploymentConfig");
 const {
   getQuizEnergy,
   startQuizSession,
@@ -27,29 +25,40 @@ const {
   resetSantriPasswordFromBirthDate,
 } = require("./handlers/resetSantriPasswordFromBirthDate");
 const {
-  getPaymentReminderSchedule,
-  sendScheduledPaymentWhatsApp,
-} = require("./handlers/paymentReminderScheduler");
-const {
   getFamilyAccounts,
   switchFamilyAccount,
 } = require("./handlers/familyAccounts");
 
-// Tiga export scheduler. Nama dua export lama dipertahankan agar deploy
-// memperbarui fungsi yang sudah ada, bukan membuat scheduler tambahan.
+// Konfigurasi checked-in dibaca juga saat discovery manifest (sebelum .env
+// dimuat Firebase CLI), sehingga project baru tidak mendapat scheduler.
+if (shouldDeployScheduledFunctions()) {
+  const {
+    scheduledAssessmentNotifications,
+  } = require("./handlers/assessmentNotifier");
+  const {
+    scheduledPaymentNotifications,
+  } = require("./handlers/paymentNotifier");
+  const {
+    cleanupExpiredSyahadah,
+  } = require("./handlers/cleanupExpiredSyahadah");
+  // #1 Penilaian bulanan: semua kondisi, tiap hari 19:30 WIB.
+  exports.notifyAssessmentWindowOpen = scheduledAssessmentNotifications;
 
-// #1 Penilaian bulanan: semua kondisi, tiap hari 19:30 WIB.
-exports.notifyAssessmentWindowOpen = scheduledAssessmentNotifications;
+  // #2 Tugas pagi: SPP pukul 08:00, reminder bulanan tanggal 3 pukul 09:00 WIB.
+  exports.notifyArrearsMonthEnd = scheduledPaymentNotifications;
 
-// #2 Tugas pagi: SPP pukul 08:00, reminder bulanan tanggal 3 pukul 09:00 WIB.
-exports.notifyArrearsMonthEnd = scheduledPaymentNotifications;
-
-// #3 Pembersih foto kelulusan kedaluwarsa, tiap Senin 03:00 WIB.
-exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
+  // #3 Pembersih foto kelulusan kedaluwarsa, tiap Senin 03:00 WIB.
+  exports.cleanupExpiredSyahadah = cleanupExpiredSyahadah;
+}
 
 // Pendeteksi bacaan Quran (Fase 0): proxy transkripsi Groq Whisper.
 // onCall, butuh login. Secret GROQ_API_KEY.
-exports.transcribeRecitation = transcribeRecitation;
+// Deployment parsial boleh melewati fungsi ini agar tidak memerlukan secret
+// Groq milik fitur yang tidak ikut dirilis.
+if (shouldDeployTranscriptionFunction()) {
+  exports.transcribeRecitation =
+    require("./handlers/transcribeRecitation").transcribeRecitation;
+}
 
 // Energi Kuis Hafalan (server-side, anti ubah-jam). onCall, butuh login.
 // KUOTA MINGGUAN tanpa cron: dokumen per-minggu quiz_energy_weeks/{uid}_{senin};
@@ -79,9 +88,17 @@ exports.provisionInstitutionUser = provisionInstitutionUser;
 // tersebut kembali ke perangkat admin.
 exports.resetSantriPasswordFromBirthDate = resetSantriPasswordFromBirthDate;
 
-// Preview admin + worker Cloud Tasks untuk reminder pembayaran yang tersebar.
-exports.getPaymentReminderSchedule = getPaymentReminderSchedule;
-exports.sendScheduledPaymentWhatsApp = sendScheduledPaymentWhatsApp;
+// Monitoring dan pengiriman notifikasi pembayaran dapat dimatikan per project.
+if (shouldDeployNotificationFunctions()) {
+  const {
+    getPaymentReminderSchedule,
+    sendManualPaymentReminder,
+    sendScheduledPaymentWhatsApp,
+  } = require("./handlers/paymentReminderScheduler");
+  exports.getPaymentReminderSchedule = getPaymentReminderSchedule;
+  exports.sendManualPaymentReminder = sendManualPaymentReminder;
+  exports.sendScheduledPaymentWhatsApp = sendScheduledPaymentWhatsApp;
+}
 
 // Daftar akun keluarga dan perpindahan sesi terverifikasi untuk santri.
 exports.getFamilyAccounts = getFamilyAccounts;
@@ -90,13 +107,16 @@ exports.switchFamilyAccount = switchFamilyAccount;
 // Endpoint rekonsiliasi MySQL dan guest web adalah kebutuhan migrasi sistem
 // lama, bukan bagian aplikasi white-label. Default tidak diekspor agar project
 // lembaga baru tidak meminta credential database/guest milik lembaga lain.
-if (process.env.DEPLOY_LEGACY_HTTP_FUNCTIONS === "true") {
+if (shouldDeployLegacyHttpFunctions()) {
   exports.compareSantri = require("./handlers/compareSantri").compareSantri;
   exports.checkBirthDates =
     require("./handlers/checkBirthDates").checkBirthDates;
   exports.resetSantriPasswords =
     require("./handlers/resetSantriPasswords").resetSantriPasswords;
   exports.importSantri = require("./handlers/importSantri").importSantri;
+  // Jalankan setelah importSantri dan sebelum importMonthlyReports agar
+  // penilaian hasil migrasi tertaut ke asatidz_id.
+  exports.importAsatidz = require("./handlers/importAsatidz").importAsatidz;
   exports.importPayments =
     require("./handlers/importPayments").importPayments;
   exports.importMonthlyReports =
@@ -105,5 +125,9 @@ if (process.env.DEPLOY_LEGACY_HTTP_FUNCTIONS === "true") {
     require("./handlers/migrateSantriFiqihClasses").migrateSantriFiqihClasses;
   exports.groupPengajarSantri =
     require("./handlers/groupPengajarSantri").groupPengajarSantri;
-  exports.guestLookup = require("./handlers/guestLookup").guestLookup;
+  // Endpoint guest web memakai secret terpisah dan bukan kebutuhan import
+  // MySQL. Aktifkan hanya pada project lama yang memang masih memakainya.
+  if (process.env.DEPLOY_LEGACY_GUEST_LOOKUP === "true") {
+    exports.guestLookup = require("./handlers/guestLookup").guestLookup;
+  }
 }

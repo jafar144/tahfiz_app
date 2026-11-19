@@ -1,7 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { db } = require("../lib/firebase");
 const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
-const { createConnection } = require("../lib/mysql");
+const { openLegacySource } = require("../lib/legacySource");
 const { normNis, escapeHtml } = require("../lib/utils");
 const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
@@ -61,10 +61,10 @@ function renderHtml(summary, inWebNotMobile, inMobileNotWeb) {
 
 exports.compareSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
   if (!authorizeLegacyAdminHttp(req, res)) return;
-  let connection;
+  let source;
   try {
-    connection = await createConnection();
-    const [rows] = await connection.execute("SELECT nama, nis FROM santris");
+    source = await openLegacySource(req);
+    const rows = await source.santris();
 
     const snap = await db
       .collection("users")
@@ -138,6 +138,6 @@ exports.compareSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
       .set("Content-Type", "text/html; charset=utf-8")
       .send(`<h1>Error</h1><pre>${escapeHtml(err.message)}</pre>`);
   } finally {
-    if (connection) await connection.end().catch(() => {});
+    if (source) await source.close();
   }
 });

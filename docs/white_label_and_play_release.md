@@ -6,6 +6,7 @@ konfigurasi pembayaran, signing key, dan Google Play app sendiri.
 
 Runbook konkret untuk lembaga kedua:
 [`setup_barokatul_quran.md`](setup_barokatul_quran.md).
+Al-Jauhar: [`setup_al_jauhar.md`](setup_al_jauhar.md).
 
 ## Struktur satu flavor
 

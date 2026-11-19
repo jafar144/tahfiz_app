@@ -267,6 +267,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
               _menuSection('Lainnya', [
                 MenuCard(
+                  icon: Icons.schedule_send_rounded,
+                  title: 'Penjadwalan',
+                  color: Colors.blue,
+                  onTap: () => context.pushNamed(RouteNames.adminScheduling),
+                ),
+                MenuCard(
                   icon: Icons.family_restroom_rounded,
                   title: 'Keluarga',
                   color: Colors.blue,

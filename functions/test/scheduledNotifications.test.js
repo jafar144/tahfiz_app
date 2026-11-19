@@ -37,13 +37,11 @@ test("scheduler penilaian memilih hanya job pada hari yang tepat", () => {
   assert.deepEqual(assessmentJobNames({ day: 20, daysRemaining: 10 }), []);
 });
 
-test("scheduler pembayaran mempertahankan tanggal 5, 15, dan antrean 20-akhir", () => {
+test("reminder pembayaran kedua kanal hanya mulai tanggal 25", () => {
   assert.deepEqual(paymentJobNames({ day: 5, daysRemaining: 25 }), [
-    PAYMENT_JOBS.paymentDue,
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 15, daysRemaining: 15 }), [
-    PAYMENT_JOBS.arrearsMidMonth,
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 27, daysRemaining: 3 }), [
@@ -51,6 +49,9 @@ test("scheduler pembayaran mempertahankan tanggal 5, 15, dan antrean 20-akhir", 
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
   assert.deepEqual(paymentJobNames({ day: 20, daysRemaining: 10 }), [
+    PAYMENT_JOBS.birthdayWhatsApp,
+  ]);
+  assert.deepEqual(paymentJobNames({ day: 25, daysRemaining: 5 }), [
     PAYMENT_JOBS.paymentReminderQueue,
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
@@ -142,7 +143,6 @@ test("handler gabungan meneruskan hanya job yang dipilih planner", async () => {
 
   assert.deepEqual(calls, [
     ASSESSMENT_JOBS.windowOpen,
-    PAYMENT_JOBS.arrearsMidMonth,
     PAYMENT_JOBS.birthdayWhatsApp,
   ]);
 });
@@ -159,6 +159,10 @@ test("satu scheduler pagi memisahkan tugas pukul 08 dan 09", async () => {
       calls.push(["payment", parts.hour, parts.day]);
       return { channel: "payment" };
     },
+    [MORNING_NOTIFICATION_JOBS.sundayFajrAlpha]: async (parts) => {
+      calls.push(["sunday-fajr", parts.hour, parts.day]);
+      return { channel: "sunday-fajr" };
+    },
     [MORNING_NOTIFICATION_JOBS.monthlyAssessment]: async (parts) => {
       calls.push(["monthly", parts.hour, parts.day]);
       return { channel: "monthly" };
@@ -166,14 +170,24 @@ test("satu scheduler pagi memisahkan tugas pukul 08 dan 09", async () => {
   };
 
   assert.deepEqual(
-    morningNotificationJobNames({ day: 3, hour: 8 }),
+    morningNotificationJobNames({ year: 2026, month: 8, day: 3, hour: 8 }),
+    [
+      MORNING_NOTIFICATION_JOBS.sundayFajrAlpha,
+      MORNING_NOTIFICATION_JOBS.payment,
+    ],
+  );
+  assert.deepEqual(
+    morningNotificationJobNames({ year: 2026, month: 8, day: 3, hour: 9 }),
+    [MORNING_NOTIFICATION_JOBS.monthlyAssessment],
+  );
+  assert.deepEqual(
+    morningNotificationJobNames({ year: 2026, month: 8, day: 4, hour: 8 }),
     [MORNING_NOTIFICATION_JOBS.payment],
   );
   assert.deepEqual(
-    morningNotificationJobNames({ day: 3, hour: 9 }),
-    [MORNING_NOTIFICATION_JOBS.monthlyAssessment],
+    morningNotificationJobNames({ year: 2026, month: 8, day: 4, hour: 9 }),
+    [],
   );
-  assert.deepEqual(morningNotificationJobNames({ day: 4, hour: 9 }), []);
 
   await runMorningNotifications(
     {
@@ -210,6 +224,7 @@ test("satu scheduler pagi memisahkan tugas pukul 08 dan 09", async () => {
   );
 
   assert.deepEqual(calls, [
+    ["sunday-fajr", 8, 3],
     ["payment", 8, 3],
     ["monthly", 9, 3],
   ]);
@@ -567,6 +582,7 @@ test("source hanya mendaftarkan tiga Cloud Scheduler", () => {
     "handlers/paymentNotifier.js",
     "handlers/cleanupExpiredSyahadah.js",
     "handlers/monthlyGroupNotifier.js",
+    "handlers/sundayFajrNotifier.js",
   ];
   const registrationCount = handlerFiles.reduce((total, file) => {
     const source = fs.readFileSync(path.join(root, file), "utf8");

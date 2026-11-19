@@ -8,7 +8,18 @@ function suppliedAdminHttpToken(req) {
   const headerToken = req.get("x-admin-token") || "";
   const authorization = req.get("authorization") || "";
   const bearer = authorization.match(/^Bearer\s+(.+)$/i);
-  return headerToken || (bearer ? bearer[1] : "");
+  return (headerToken || (bearer ? bearer[1] : "")).trim();
+}
+
+// Secret yang dibuat dari file (mis. `--data-file`) sering membawa CRLF di
+// ujung. Header HTTP tidak dapat memuat baris baru, sehingga tanpa trim token
+// seperti itu selalu ditolak 401.
+function expectedAdminHttpToken() {
+  try {
+    return String(ADMIN_HTTP_TOKEN.value() || "").trim();
+  } catch (_) {
+    return "";
+  }
 }
 
 function authorizeLegacyAdminHttp(req, res) {
@@ -17,12 +28,7 @@ function authorizeLegacyAdminHttp(req, res) {
     return false;
   }
 
-  let expected = "";
-  try {
-    expected = ADMIN_HTTP_TOKEN.value();
-  } catch (_) {
-    expected = "";
-  }
+  const expected = expectedAdminHttpToken();
 
   if (!expected) {
     console.error("ADMIN_HTTP_TOKEN belum dikonfigurasi.");

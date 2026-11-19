@@ -1,0 +1,12 @@
+{
+  "al-jauhar-app": {
+    "scheduledFunctions": false,
+    "legacyHttpFunctions": false
+  },
+  "barokatul-apps": {
+    "scheduledFunctions": false,
+    "notificationFunctions": false,
+    "wablasSecrets": false,
+    "transcriptionFunction": false
+  }
+}

@@ -97,6 +97,9 @@ flutter:
 
   assets:
     - assets/images/
+    - path: assets/flavors/al_jauhar/images/
+      flavors:
+        - al_jauhar
     - path: assets/flavors/khoirunnasyien/images/
       flavors:
         - khoirunnasyien

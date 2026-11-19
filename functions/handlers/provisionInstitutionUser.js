@@ -4,20 +4,27 @@ const { assertAdmin } = require("../lib/authz");
 const {
   AUTH_EMAIL_DOMAIN,
   CALLABLE_OPTIONS,
+  DEFAULT_ASATIDZ_INITIAL_PASSWORD,
+  asatidzInitialPassword,
 } = require("../lib/config");
 const { normNis, passwordFromBirthDate } = require("../lib/utils");
 const {
   runSantriWelcomeWhatsApp,
 } = require("./whatsappNotifier");
 
-const ASATIDZ_PASSWORD = "Khoirun123";
-
 // Secret perlu tercantum pada manifest meski feature flag baru dibaca saat
 // runtime. Tanpa deklarasi ini, welcome WhatsApp gagal ketika Wablas aktif.
-const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
+const { shouldBindWablasSecrets } = require("../lib/deploymentConfig");
+const wablasSecrets = shouldBindWablasSecrets()
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
 const PROVISION_OPTIONS = {
   ...CALLABLE_OPTIONS,
-  secrets: wablasSecrets,
+  // Project white-label yang tidak memakai Wablas tidak perlu mengaktifkan
+  // Secret Manager hanya untuk membuat akun santri/asatidz.
+  ...(wablasSecrets.length > 0
+    ? { secrets: wablasSecrets }
+    : {}),
 };
 
 function requiredText(value, field, maxLength = 160) {
@@ -134,7 +141,7 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
       ...(photoUrl ? { photo_url: photoUrl } : {}),
     };
   } else {
-    temporaryPassword = ASATIDZ_PASSWORD;
+    temporaryPassword = asatidzInitialPassword();
     profileData = {
       is_active: data.isActive !== false,
       jenis_kelamin: jenisKelamin,
@@ -237,7 +244,7 @@ const provisionInstitutionUser = onCall(PROVISION_OPTIONS, async (request) => {
 module.exports = {
   provisionInstitutionUser,
   _private: {
-    ASATIDZ_PASSWORD,
+    DEFAULT_ASATIDZ_INITIAL_PASSWORD,
     requiredText,
     dateOnly,
   },

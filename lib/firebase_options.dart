@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:khoirunnasyien/flavors/al_jauhar/firebase_options.dart';
 import 'package:khoirunnasyien/flavors/barokatul_quran/firebase_options.dart';
 import 'package:khoirunnasyien/flavors/khoirunnasyien/firebase_options.dart';
 
@@ -11,6 +12,7 @@ class FlavorFirebaseOptions {
   );
 
   static FirebaseOptions get currentPlatform => switch (flavor) {
+    'al_jauhar' => AlJauharFirebaseOptions.currentPlatform,
     'barokatul_quran' => BarokatulQuranFirebaseOptions.currentPlatform,
     'khoirunnasyien' => KhoirunnasyienFirebaseOptions.currentPlatform,
     _ => throw UnsupportedError(

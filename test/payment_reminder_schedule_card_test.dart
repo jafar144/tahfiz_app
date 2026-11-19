@@ -9,10 +9,10 @@ void main() {
 
   testWidgets('admin dapat membuka rincian jadwal reminder', (tester) async {
     final schedule = PaymentReminderSchedule(
-      firstDay: 20,
+      firstDay: 25,
       lastDay: 30,
       minIntervalMinutes: 1,
-      maxIntervalMinutes: 10,
+      maxIntervalMinutes: 15,
       invalidPhoneCount: 0,
       adminFallbackCount: 0,
       items: [
@@ -20,7 +20,7 @@ void main() {
           santriId: 'santri-1',
           santriName: 'Ahmad',
           type: 'two-month-arrears',
-          scheduledAt: DateTime(2026, 9, 22, 8, 14),
+          scheduledAt: DateTime.utc(2026, 9, 25, 1, 14),
           intervalMinutes: 7,
         ),
       ],
@@ -45,7 +45,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Tanggal 20–30 • jeda 1–10 menit'), findsOneWidget);
+    expect(
+      find.text('Mulai tanggal 25 • 08.00–15.00 WIB\njeda 1–15 menit'),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('payment_reminder_schedule_card')));
     await tester.pumpAndSettle();
 

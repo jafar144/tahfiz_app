@@ -66,19 +66,20 @@ class _PaymentPeriodPickerBottomSheetState
                 color: AppColors.primary.withValues(alpha: 0.16),
               ),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
+                const Icon(
                   Icons.info_outline_rounded,
                   size: 20,
                   color: AppColors.primary,
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Pencatatan pembayaran tersedia mulai Februari 2026.',
-                    style: TextStyle(
+                    'Pencatatan pembayaran tersedia mulai '
+                    '${DateFormat('MMMM yyyy', 'id_ID').format(PaymentUtils.firstSupportedPeriod)}.',
+                    style: const TextStyle(
                       height: 1.35,
                       fontSize: 13,
                       color: AppColors.textPrimary,

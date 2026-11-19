@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/notifications/fcm_token_datasource.dart';
 import 'package:khoirunnasyien/core/notifications/notification_router.dart';
 
@@ -38,6 +39,7 @@ class NotificationService {
 
   /// Dipanggil sekali saat aplikasi start (lihat main.dart).
   Future<void> init() async {
+    if (!AppConfig.current.notificationsEnabled) return;
     if (_initialized) return;
     _initialized = true;
 
@@ -82,6 +84,7 @@ class NotificationService {
     required String uid,
     required String role,
   }) async {
+    if (!AppConfig.current.notificationsEnabled) return;
     _uid = uid;
     _role = role;
     try {
@@ -95,6 +98,11 @@ class NotificationService {
 
   /// Hapus token saat logout (dipanggil sebelum sign-out agar lolos rules).
   Future<void> clear() async {
+    if (!AppConfig.current.notificationsEnabled) {
+      _uid = null;
+      _role = null;
+      return;
+    }
     try {
       final token = await _messaging.getToken();
       if (token != null) await _tokenDataSource.deleteToken(token);

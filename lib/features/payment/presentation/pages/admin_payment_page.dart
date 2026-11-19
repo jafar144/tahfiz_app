@@ -128,17 +128,9 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
   }
 
   void _showReminderSchedule(BuildContext context, PaymentLoaded state) {
-    final schedule = state.reminderSchedule;
-    if (schedule == null) return;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.white,
-      builder: (_) => FractionallySizedBox(
-        heightFactor: 0.9,
-        child: PaymentReminderScheduleSheet(schedule: schedule),
-      ),
+    context.pushNamed(
+      RouteNames.adminPaymentScheduling,
+      extra: state.selectedDate,
     );
   }
 

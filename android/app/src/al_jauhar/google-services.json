@@ -1,0 +1,21 @@
+{
+  "project_info": {
+    "project_number": "469727255045",
+    "project_id": "al-jauhar-app",
+    "storage_bucket": "al-jauhar-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:469727255045:android:0f24a420b6a4d50bea5a6c",
+        "android_client_info": {
+          "package_name": "id.or.aljauhar.tahfiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [{ "current_key": "AIzaSyDLCUOfyyMfWQ6dyM1nvaCXoaDYYXJprzQ" }],
+      "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+    }
+  ],
+  "configuration_version": "1"
+}

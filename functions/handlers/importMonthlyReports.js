@@ -1,29 +1,29 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
-const { createConnection } = require("../lib/mysql");
+const {
+  FUNCTION_OPTIONS,
+  legacyMigrationConfig,
+} = require("../lib/legacyConfig");
+const { openLegacySource } = require("../lib/legacySource");
 const { normNis, dateTimeToJakartaTimestamp } = require("../lib/utils");
 const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
-
-const TARGET_YEAR = 2026;
 
 exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
   if (!authorizeLegacyAdminHttp(req, res)) return;
   const apply = req.query.apply === "true";
-  let connection;
+  const { year: targetYear, startMonth } = legacyMigrationConfig();
+  let source;
   try {
-    connection = await createConnection({ dateStrings: true });
+    source = await openLegacySource(req);
 
-    const [santriRows] = await connection.execute(
-      "SELECT id, nis, nama FROM santris"
-    );
-    const [operatorRows] = await connection.execute(
-      "SELECT id, name, username AS nis FROM users"
-    );
-    const [nilaiRows] = await connection.execute(
-      "SELECT santri_id, hafalan, perkembangan, akhlak, tahun, bulan, operator_id, created_at, updated_at FROM nilais WHERE tahun = ?",
-      [TARGET_YEAR]
-    );
+    const santriRows = await source.santris();
+    const { rows: userRows } = await source.users();
+    const operatorRows = userRows.map((u) => ({
+      id: u.id,
+      name: u.name,
+      nis: u.username,
+    }));
+    const nilaiRows = await source.nilais(targetYear, startMonth);
 
     const mysqlSantri = new Map();
     for (const s of santriRows) mysqlSantri.set(String(s.id), s);
@@ -60,12 +60,12 @@ exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     const [snapInt, snapStr] = await Promise.all([
       db
         .collection("monthly_reports")
-        .where("tahun", "==", TARGET_YEAR)
+        .where("tahun", "==", targetYear)
         .select("santri_id", "bulan")
         .get(),
       db
         .collection("monthly_reports")
-        .where("tahun", "==", String(TARGET_YEAR))
+        .where("tahun", "==", String(targetYear))
         .select("santri_id", "bulan")
         .get(),
     ]);
@@ -118,7 +118,7 @@ exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
         asatidz_id: asatidz ? asatidz.uid : "",
         asatidz_name: asatidz ? asatidz.name : operator ? operator.name : "",
         bulan,
-        tahun: TARGET_YEAR,
+        tahun: targetYear,
         hafalan_terakhir: n.hafalan == null ? "" : String(n.hafalan),
         nilai_perkembangan: parseInt(n.perkembangan, 10) || 0,
         nilai_akhlaq: parseInt(n.akhlak, 10) || 0,
@@ -148,7 +148,9 @@ exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     res.json({
       summary: {
         mode: apply ? "APPLY (data ditulis)" : "DRY-RUN (tidak ada perubahan)",
-        tahun: TARGET_YEAR,
+        sumber: source.kind,
+        tahun: targetYear,
+        bulanMulai: startMonth,
         totalNilaiMysql: nilaiRows.length,
         existingReportFirestore2026: existing.size,
         akanDibuat: toInsert.length,
@@ -160,8 +162,8 @@ exports.importMonthlyReports = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     });
   } catch (err) {
     console.error("importMonthlyReports error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   } finally {
-    if (connection) await connection.end().catch(() => {});
+    if (source) await source.close();
   }
 });

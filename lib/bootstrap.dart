@@ -59,10 +59,14 @@ Future<void> bootstrap({
         ? const AppleDebugProvider()
         : const AppleAppAttestWithDeviceCheckFallbackProvider(),
   );
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  if (config.notificationsEnabled) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  }
   await initializeDateFormatting('id_ID', null);
   await initDI();
-  unawaited(getIt<NotificationService>().init());
+  if (config.notificationsEnabled) {
+    unawaited(getIt<NotificationService>().init());
+  }
 
   runApp(
     MultiBlocProvider(

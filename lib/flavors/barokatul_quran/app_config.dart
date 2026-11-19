@@ -10,6 +10,7 @@ final barokatulQuranAppConfig = AppConfig(
   syahadahLogoAsset: 'assets/flavors/barokatul_quran/images/logo_bg.png',
   functionsRegion: 'asia-southeast2',
   authEmailDomain: 'barokatulquran.app',
+  notificationsEnabled: false,
   // Nilai pembayaran sengaja eksplisit sebagai placeholder agar tidak
   // menampilkan rekening lembaga lain sebelum data Barokatul dikonfirmasi.
   payment: const InstitutionPaymentConfig(

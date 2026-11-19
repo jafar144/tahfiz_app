@@ -157,6 +157,30 @@ function buildMonthlyAssessmentGroupMessage(parts, institution) {
   ].join("\n");
 }
 
+function buildSundayFajrAlphaAnnouncement(eventParts, participants) {
+  const names = participants
+    .map((participant) => String(participant.name || "").trim())
+    .filter(Boolean);
+  const numberedNames = names.map((name, index) => `${index + 1}. ${name}`);
+
+  return [
+    "PENGUMUMAN",
+    "",
+    "Daftar Santri yang Tidak Mengikuti Sholat Subuh Tanpa Uzur",
+    `Ahad, ${eventParts.day} ${monthNameId(eventParts.month)} ${eventParts.year}`,
+    "",
+    "Berikut nama-nama santri yang tercatat tidak mengikuti Sholat Subuh berjamaah tanpa uzur:",
+    "",
+    ...numberedNames,
+    "",
+    "Sesuai dengan peraturan yang telah ditetapkan, santri yang bersangkutan tidak diperkenankan mengikuti kegiatan belajar selama 3 (tiga) kali pertemuan pada pekan ini.",
+    "",
+    "Demikian pengumuman ini disampaikan untuk menjadi perhatian bersama. Mohon kerja sama dan pengertiannya.",
+    "",
+    "Terima kasih atas perhatian dan kerja samanya.",
+  ].join("\n");
+}
+
 function buildIncompleteAssessmentWhatsAppMessage(
   asatidz,
   parts,
@@ -212,6 +236,7 @@ module.exports = {
   buildSantriWelcomeWhatsAppMessage,
   previousMonthParts,
   buildMonthlyAssessmentGroupMessage,
+  buildSundayFajrAlphaAnnouncement,
   buildIncompleteAssessmentWhatsAppMessage,
   buildAdminFallbackWhatsAppMessage,
 };

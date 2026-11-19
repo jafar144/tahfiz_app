@@ -2,7 +2,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
 const { AUTH_EMAIL_DOMAIN } = require("../lib/config");
 const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
-const { createConnection } = require("../lib/mysql");
+const { openLegacySource } = require("../lib/legacySource");
 const {
   normNis,
   jenisKelaminFromGolongan,
@@ -13,15 +13,35 @@ const {
 } = require("../lib/utils");
 const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
 
+// Tanggal masuk menentukan apakah santri dihitung pada tagihan/laporan. Web
+// lama tidak selalu mengisi created_at, jadi bulan aktivitas pertama
+// (pembayaran atau penilaian) dipakai sebagai pengganti.
+function resolveEntryDate(row, firstActivity) {
+  const fromCreated = String(row.created_at ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(fromCreated)) {
+    return { value: fromCreated, source: "created_at" };
+  }
+  const fromActivity = firstActivity.get(String(row.id));
+  if (fromActivity) return { value: fromActivity, source: "aktivitas_pertama" };
+  return { value: null, source: "kosong" };
+}
+
+function entryTimestamp(entry) {
+  if (!entry.value) return null;
+  return entry.source === "created_at"
+    ? dateTimeToJakartaTimestamp(entry.value) ||
+        dateOnlyToJakartaTimestamp(entry.value)
+    : dateOnlyToJakartaTimestamp(entry.value);
+}
+
 exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
   if (!authorizeLegacyAdminHttp(req, res)) return;
   const apply = req.query.apply === "true";
-  let connection;
+  let source;
   try {
-    connection = await createConnection({ dateStrings: true });
-    const [rows] = await connection.execute(
-      "SELECT nama, nis, tanggal_lahir, kelas, golongan, phone, tempat_lahir, created_at FROM santris"
-    );
+    source = await openLegacySource(req);
+    const rows = await source.santris();
+    const firstActivity = await source.firstActivityBySantri();
 
     const snap = await db
       .collection("users")
@@ -46,7 +66,9 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
         continue;
       }
       webNisSet.add(nis);
-      if (!mobileByNis.has(nis)) toCreate.push({ ...r, _nis: nis });
+      if (!mobileByNis.has(nis)) {
+        toCreate.push({ ...r, _nis: nis, _entry: resolveEntryDate(r, firstActivity) });
+      }
     }
     const toDeactivate = [];
     for (const [nis, v] of mobileByNis) {
@@ -64,7 +86,11 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
         try {
           let userRecord;
           try {
-            userRecord = await admin.auth().createUser({ email, password });
+            userRecord = await admin.auth().createUser({
+              email,
+              password,
+              displayName: r.nama,
+            });
           } catch (e) {
             if (e.code === "auth/email-already-exists") {
               userRecord = await admin.auth().getUserByEmail(email);
@@ -101,7 +127,7 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
             name: r.nama,
             nis,
             tanggal_lahir: dateOnlyToJakartaTimestamp(r.tanggal_lahir),
-            tanggal_masuk: dateTimeToJakartaTimestamp(r.created_at),
+            tanggal_masuk: entryTimestamp(r._entry),
             tempat_lahir: r.tempat_lahir ?? "",
             tipe_kelas: tipeKelasFromGolongan(r.golongan),
             uid,
@@ -125,13 +151,18 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
       }
     }
 
+    const entrySources = { created_at: 0, aktivitas_pertama: 0, kosong: 0 };
+    for (const r of toCreate) entrySources[r._entry.source] += 1;
+
     const summary = {
       mode: apply ? "APPLY (data ditulis)" : "DRY-RUN (tidak ada perubahan)",
+      sumber: source.kind,
       totalWeb: rows.length,
       totalMobile: snap.size,
       akanDibuat: toCreate.length,
       akanDinonaktifkan: toDeactivate.length,
       nisKosongDilewati: skipped.length,
+      tanggalMasuk: entrySources,
       berhasilDibuat: apply ? created.length : null,
       gagal: apply ? failed.length : null,
     };
@@ -150,7 +181,8 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
               kelas: r.kelas,
               tempat_lahir: r.tempat_lahir,
               tanggal_lahir: r.tanggal_lahir,
-              tanggal_masuk: r.created_at,
+              tanggal_masuk: r._entry.value,
+              tanggal_masuk_dari: r._entry.source,
               nomor_wali: r.phone || "",
             })),
           }),
@@ -159,8 +191,10 @@ exports.importSantri = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     });
   } catch (err) {
     console.error("importSantri error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   } finally {
-    if (connection) await connection.end().catch(() => {});
+    if (source) await source.close();
   }
 });
+
+exports._private = { resolveEntryDate };

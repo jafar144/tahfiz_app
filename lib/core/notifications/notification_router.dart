@@ -25,6 +25,9 @@ void handleNotificationTap(Map<String, dynamic> data) {
       // Target bulan berjalan ditampilkan pada beranda/detail akun santri.
       AppRouter.router.push(RoutePaths.home);
       break;
+    case 'sunday_fajr_alpha':
+      AppRouter.router.push(RoutePaths.santriSundayFajrHistory);
+      break;
     default:
       break;
   }

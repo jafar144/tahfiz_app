@@ -13,6 +13,8 @@ abstract class RouteNames {
   static const editAsatidz = 'edit_asatidz';
 
   static const adminPayment = 'admin_payment';
+  static const adminScheduling = 'admin_scheduling';
+  static const adminPaymentScheduling = 'admin_payment_scheduling';
   static const inputPayment = 'input_payment';
   static const paymentHistory = 'payment_history';
   static const financialReport = 'financial_report';

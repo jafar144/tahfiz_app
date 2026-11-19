@@ -15,6 +15,10 @@ const {
   runMonthlyAssessmentReminder,
 } = require("./monthlyGroupNotifier");
 const {
+  isMonday,
+  runSundayFajrAlphaNotifications,
+} = require("./sundayFajrNotifier");
+const {
   runBirthdayWhatsApp,
 } = require("./whatsappNotifier");
 const {
@@ -32,20 +36,22 @@ const {
 // tanggal Jakarta sebelum query Firestore dijalankan.
 
 // Reads penuh (santri_profiles + payments) butuh kelonggaran timeout.
-// Parameter dari .env.<project> belum tersedia saat Firebase CLI membangun
-// manifest. Karena itu secret harus selalu dideklarasikan pada fungsi yang
-// dapat mengirim lewat Wablas; pengecekan WABLAS_ENABLED tetap dilakukan saat
-// handler berjalan.
-const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
+const { shouldBindWablasSecrets } = require("../lib/deploymentConfig");
+const wablasSecrets = shouldBindWablasSecrets()
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
 
 const PAYMENT_SCHEDULE_OPTIONS = {
   ...SCHEDULE_OPTIONS,
   timeoutSeconds: 300,
-  secrets: wablasSecrets,
+  ...(wablasSecrets.length > 0
+    ? { secrets: wablasSecrets }
+    : {}),
 };
 
 const MORNING_NOTIFICATION_JOBS = Object.freeze({
   payment: "payment",
+  sundayFajrAlpha: "sundayFajrAlpha",
   monthlyAssessment: "monthlyAssessment",
 });
 
@@ -114,7 +120,10 @@ async function runPaymentNotifications(
 
 function morningNotificationJobNames(parts) {
   if (parts.hour === 8) {
-    return [MORNING_NOTIFICATION_JOBS.payment];
+    return [
+      ...(isMonday(parts) ? [MORNING_NOTIFICATION_JOBS.sundayFajrAlpha] : []),
+      MORNING_NOTIFICATION_JOBS.payment,
+    ];
   }
   if (parts.hour === 9 && parts.day === 3) {
     return [MORNING_NOTIFICATION_JOBS.monthlyAssessment];
@@ -126,6 +135,8 @@ async function runMorningNotifications(
   parts = jakartaDateTimeParts(),
   runners = {
     [MORNING_NOTIFICATION_JOBS.payment]: runPaymentNotifications,
+    [MORNING_NOTIFICATION_JOBS.sundayFajrAlpha]:
+      runSundayFajrAlphaNotifications,
     [MORNING_NOTIFICATION_JOBS.monthlyAssessment]:
       runMonthlyAssessmentReminder,
   },
@@ -142,7 +153,8 @@ async function runMorningNotifications(
 }
 
 // Satu Cloud Scheduler dipakai bersama: pembayaran tetap pukul 08:00 WIB,
-// sedangkan penilaian + target hanya tanggal 3 pukul 09:00 WIB.
+// pengumuman alpha Minggu Subuh ikut slot Senin pukul 08:00 WIB, sedangkan
+// penilaian + target hanya tanggal 3 pukul 09:00 WIB.
 const scheduledPaymentNotifications = onSchedule(
   { ...PAYMENT_SCHEDULE_OPTIONS, schedule: "0 8,9 * * *" },
   async (event) => {
@@ -160,6 +172,7 @@ module.exports = {
   runArrearsMidMonth,
   runPaymentReminderQueue,
   runBirthdayWhatsApp,
+  runSundayFajrAlphaNotifications,
   runPaymentNotifications,
   morningNotificationJobNames,
   runMorningNotifications,

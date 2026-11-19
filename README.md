@@ -7,6 +7,7 @@ sendiri dalam satu repo.
 Panduan lengkap:
 
 - [White-label, menambah lembaga, dan CI/CD Google Play](docs/white_label_and_play_release.md)
+- [Setup dan pengoperasian Al-Jauhar](docs/setup_al_jauhar.md)
 - [Aturan soal, probabilitas, poin, dan bonus Kuis Tahfiz Arena](docs/tahfiz_arena_quiz_rules.md)
 - [Aturan tiga fase Kosa Kata Journey](docs/surah_journey_vocab_learning.md)
 - [Setup fitur uji bacaan](docs/recitation_check_setup.md)

@@ -7,16 +7,35 @@ class InstitutionPaymentConfig {
   final String bankName;
   final String accountNumber;
   final String accountHolder;
+  final int monthlyFee;
+  final int? femaleMorningMonthlyFee;
+  final int firstSupportedPaymentYear;
+  final int firstSupportedPaymentMonth;
 
   const InstitutionPaymentConfig({
     required this.bankName,
     required this.accountNumber,
     required this.accountHolder,
+    this.monthlyFee = 200000,
+    this.femaleMorningMonthlyFee = 100000,
+    this.firstSupportedPaymentYear = 2026,
+    this.firstSupportedPaymentMonth = 2,
   });
 
   String get transferInstruction =>
       'Pembayaran bisa via transfer: Bank $bankName '
       '$accountNumber a.n. $accountHolder';
+
+  DateTime get firstSupportedPaymentPeriod =>
+      DateTime(firstSupportedPaymentYear, firstSupportedPaymentMonth);
+
+  int monthlyFeeFor({required String gender, required String? classType}) {
+    final isFemaleMorning =
+        gender.toUpperCase() == 'P' && classType?.toLowerCase() == 'pagi';
+    return isFemaleMorning && femaleMorningMonthlyFee != null
+        ? femaleMorningMonthlyFee!
+        : monthlyFee;
+  }
 }
 
 /// Konfigurasi runtime untuk satu hasil build white-label.
@@ -33,6 +52,7 @@ class AppConfig {
   final String syahadahLogoAsset;
   final String functionsRegion;
   final String authEmailDomain;
+  final bool notificationsEnabled;
   final InstitutionPaymentConfig payment;
   final InstitutionCurriculum curriculum;
   final FirebaseOptionsProvider firebaseOptionsProvider;
@@ -45,6 +65,7 @@ class AppConfig {
     required this.syahadahLogoAsset,
     required this.functionsRegion,
     required this.authEmailDomain,
+    this.notificationsEnabled = true,
     required this.payment,
     required this.curriculum,
     required this.firebaseOptionsProvider,
@@ -60,6 +81,9 @@ class AppConfig {
     }
     return config;
   }
+
+  /// Null sebelum bootstrap; dipakai utility murni agar tetap dapat diuji.
+  static AppConfig? get configured => _current;
 
   static void configure(AppConfig config) {
     final current = _current;

@@ -1,27 +1,24 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { admin, db } = require("../lib/firebase");
-const { FUNCTION_OPTIONS } = require("../lib/legacyConfig");
-const { createConnection } = require("../lib/mysql");
+const {
+  FUNCTION_OPTIONS,
+  legacyMigrationConfig,
+} = require("../lib/legacyConfig");
+const { openLegacySource } = require("../lib/legacySource");
 const { normNis, plusYearsJakartaTimestamp } = require("../lib/utils");
 const { authorizeLegacyAdminHttp } = require("../lib/legacyHttpAuthz");
-
-const TARGET_YEAR = 2026;
-const TOTAL = 200000;
 
 exports.importPayments = onRequest(FUNCTION_OPTIONS, async (req, res) => {
   if (!authorizeLegacyAdminHttp(req, res)) return;
   const apply = req.query.apply === "true";
-  let connection;
+  const { year: targetYear, startMonth, paymentAmount } =
+    legacyMigrationConfig();
+  let source;
   try {
-    connection = await createConnection({ dateStrings: true });
+    source = await openLegacySource(req);
 
-    const [santriRows] = await connection.execute(
-      "SELECT id, nis, status_spp, created_at FROM santris"
-    );
-    const [payRows] = await connection.execute(
-      "SELECT santri_id, bulan, tahun FROM payments WHERE status = 1 AND tahun = ?",
-      [TARGET_YEAR]
-    );
+    const santriRows = await source.santris();
+    const payRows = await source.paidPayments(targetYear, startMonth);
 
     const mysqlSantri = new Map();
     for (const s of santriRows) mysqlSantri.set(String(s.id), s);
@@ -41,12 +38,12 @@ exports.importPayments = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     const [snapInt, snapStr] = await Promise.all([
       db
         .collection("payments")
-        .where("tahun", "==", TARGET_YEAR)
+        .where("tahun", "==", targetYear)
         .select("santri_id", "bulan")
         .get(),
       db
         .collection("payments")
-        .where("tahun", "==", String(TARGET_YEAR))
+        .where("tahun", "==", String(targetYear))
         .select("santri_id", "bulan")
         .get(),
     ]);
@@ -130,8 +127,8 @@ exports.importPayments = onRequest(FUNCTION_OPTIONS, async (req, res) => {
           batch.set(db.collection("payments").doc(), {
             santri_id: t.uid,
             bulan: t.bulan,
-            tahun: TARGET_YEAR,
-            total: TOTAL,
+            tahun: targetYear,
+            total: paymentAmount,
             metode: "migrasi",
             created_by: "SYSTEM_MIGRATION",
             created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -145,7 +142,10 @@ exports.importPayments = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     res.json({
       summary: {
         mode: apply ? "APPLY (data ditulis)" : "DRY-RUN (tidak ada perubahan)",
-        tahun: TARGET_YEAR,
+        sumber: source.kind,
+        tahun: targetYear,
+        bulanMulai: startMonth,
+        nominalSPP: paymentAmount,
         totalSantriMysql: santriRows.length,
         totalPaymentStatus1Mysql: payRows.length,
         existingPaymentFirestore2026: existing.size,
@@ -171,8 +171,8 @@ exports.importPayments = onRequest(FUNCTION_OPTIONS, async (req, res) => {
     });
   } catch (err) {
     console.error("importPayments error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(err.status || 500).json({ error: err.message });
   } finally {
-    if (connection) await connection.end().catch(() => {});
+    if (source) await source.close();
   }
 });

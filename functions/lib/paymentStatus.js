@@ -1,5 +1,6 @@
 const { db } = require("./firebase");
 const { jakartaDateParts } = require("./jakartaTime");
+const { paymentStartPeriod } = require("./config");
 
 // Replikasi logika pembayaran SPP di app (PaymentUtils.resolveStartDate +
 // SantriHomeCubit.loadData):
@@ -28,27 +29,33 @@ function resolveStartMonth(freeUntil, tanggalMasuk, now) {
   const entryParts = jakartaDateParts(tanggalMasuk);
   const entryMonth = { year: entryParts.year, month: entryParts.month };
 
+  let start = entryMonth;
   if (freeUntil && freeUntil.getTime() <= now.getTime()) {
     const { year, month } = jakartaDateParts(freeUntil);
     const afterFree = shiftMonth(year, month, 1);
     const entryIdx = entryMonth.year * 12 + entryMonth.month - 1;
     const afterFreeIdx = afterFree.year * 12 + afterFree.month - 1;
-    return afterFreeIdx > entryIdx ? afterFree : entryMonth;
+    start = afterFreeIdx > entryIdx ? afterFree : entryMonth;
   }
-  return entryMonth;
+  const paymentStart = paymentStartPeriod();
+  const startIdx = start.year * 12 + start.month - 1;
+  const paymentStartIdx = paymentStart.year * 12 + paymentStart.month - 1;
+  return paymentStartIdx > startIdx ? paymentStart : start;
 }
 
 // Ambil santri yang berhak ditagih SPP: is_active == true & tidak sedang gratis.
 // Mengembalikan profil yang dibutuhkan FCM dan pengingat WhatsApp.
-async function fetchPayingSantri(now = new Date()) {
-  const snap = await db
-    .collection("santri_profiles")
-    .where("is_active", "==", true)
-    .get();
+async function fetchPayingSantri(now = new Date(), uid = null) {
+  const collection = db.collection("santri_profiles");
+  const snap = uid
+    ? [await collection.doc(uid).get()]
+    : await collection.where("is_active", "==", true).get();
 
   const result = [];
   snap.forEach((doc) => {
+    if (!doc.exists) return;
     const data = doc.data();
+    if (data.is_active !== true) return;
     const freeUntil = data.free_until ? data.free_until.toDate() : null;
     // Lewati santri yang masih dalam masa gratis (free_until di masa depan).
     if (freeUntil && freeUntil.getTime() > now.getTime()) return;
@@ -67,9 +74,9 @@ async function fetchPayingSantri(now = new Date()) {
 
 // Peta santri_id → Set(year*100+month) bulan yang SUDAH dibayar. `bulan`/`tahun`
 // dinormalisasi ke angka karena data tersimpan campur (int / "1" / "01").
-async function fetchPaidMonths() {
-  const snap = await db
-    .collection("payments")
+async function fetchPaidMonths(uid = null) {
+  const collection = db.collection("payments");
+  const snap = await (uid ? collection.where("santri_id", "==", uid) : collection)
     .select("santri_id", "bulan", "tahun")
     .get();
 
@@ -94,9 +101,10 @@ async function computeUnpaidSantri(
   now = new Date(),
   payingSantri = null,
 ) {
+  if (payingSantri?.length === 0) return [];
   const [santri, paidBySantri] = await Promise.all([
     payingSantri ? Promise.resolve(payingSantri) : fetchPayingSantri(now),
-    fetchPaidMonths(),
+    fetchPaidMonths(payingSantri?.length === 1 ? payingSantri[0].uid : null),
   ]);
 
   const currentIdx = parts.year * 12 + (parts.month - 1);

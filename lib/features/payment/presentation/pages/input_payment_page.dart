@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/config/app_config.dart';
 import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/core/utils/payment_utils.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
@@ -158,14 +159,12 @@ class _InputPaymentViewState extends State<InputPaymentView> {
     }
   }
 
-  /// Nominal default berdasarkan santri.
-  /// Putri Pagi (jenis_kelamin "P" & tipe_kelas "Pagi") → 100.000,
-  /// selain itu → 200.000.
+  /// Nominal default mengikuti kebijakan pembayaran lembaga aktif.
   String _defaultAmountFor(SantriEntity santri) {
-    final isPutriPagi =
-        santri.jenisKelamin.toUpperCase() == 'P' &&
-        (santri.tipeKelas?.toLowerCase() == 'pagi');
-    final amount = isPutriPagi ? 100000 : 200000;
+    final amount = AppConfig.current.payment.monthlyFeeFor(
+      gender: santri.jenisKelamin,
+      classType: santri.tipeKelas,
+    );
     return _formatCurrency(amount);
   }
 

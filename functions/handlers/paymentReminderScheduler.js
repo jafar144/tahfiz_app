@@ -6,182 +6,143 @@ const { admin, db } = require("../lib/firebase");
 const { assertAdmin } = require("../lib/authz");
 const { CALLABLE_OPTIONS } = require("../lib/config");
 const { sendToUid } = require("../lib/messaging");
+const { fetchPayingSantri, computeUnpaidSantri } = require("../lib/paymentStatus");
+const { jakartaDateTimeParts } = require("../lib/jakartaTime");
 const {
-  fetchPayingSantri,
-  computeUnpaidSantri,
-} = require("../lib/paymentStatus");
-const {
-  FIRST_REMINDER_DAY,
-  MIN_INTERVAL_MINUTES,
-  MAX_INTERVAL_MINUTES,
-  buildPaymentReminderSchedule,
-  taskIdForRef,
+  FIRST_REMINDER_DAY, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES,
+  START_MINUTE_WIB, monthKey, reminderRefId,
+  atMinute, inDeliveryWindow, orderedMessages, buildPaymentReminderSchedule,
 } = require("../lib/paymentReminderSchedule");
 const {
-  prepareScheduledPaymentMessages,
-} = require("./whatsappNotifier");
-const {
-  isWablasEnabled,
-  normalizeWhatsAppPhone,
-  sendTextMessages,
-} = require("../lib/wablas");
+  DELIVERY_COLLECTION, MAX_ATTEMPTS, asDate, loadDeliveryRecords,
+  hasActiveTask, reserveDelivery,
+} = require("../lib/paymentReminderStore");
+const { prepareScheduledPaymentMessages } = require("./whatsappNotifier");
+const { buildArrearsWhatsAppMessage } = require("../lib/whatsappMessages");
+const { buildPaymentArrearsPushNotification } = require("../lib/paymentPushNotifications");
+const { institutionMessagingConfig } = require("../lib/config");
+const { isWablasEnabled, normalizeWhatsAppPhone, sendTextMessages } = require("../lib/wablas");
 
-const DELIVERY_COLLECTION = "scheduled_payment_notifications";
-const TASK_FUNCTION_NAME =
-  "locations/asia-southeast2/functions/sendScheduledPaymentWhatsApp";
-const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
-
-function referenceDate(parts) {
-  return new Date(
-    `${parts.year}-${String(parts.month).padStart(2, "0")}-20T08:00:00+07:00`,
-  );
-}
+const TASK_FUNCTION_NAME = "locations/asia-southeast2/functions/sendScheduledPaymentWhatsApp";
+const { shouldBindWablasSecrets } = require("../lib/deploymentConfig");
+const wablasSecrets = shouldBindWablasSecrets()
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
+const timestamp = () => admin.firestore.FieldValue.serverTimestamp();
+const deleteField = () => admin.firestore.FieldValue.delete();
 
 function validMonthParts(yearValue, monthValue) {
   const year = Number(yearValue);
   const month = Number(monthValue);
-  if (!Number.isInteger(year) || year < 2020 || year > 2100) {
-    throw new HttpsError("invalid-argument", "Tahun jadwal tidak valid.");
-  }
-  if (!Number.isInteger(month) || month < 1 || month > 12) {
-    throw new HttpsError("invalid-argument", "Bulan jadwal tidak valid.");
+  if (!Number.isInteger(year) || year < 2020 || year > 2100 ||
+      !Number.isInteger(month) || month < 1 || month > 12) {
+    throw new HttpsError("invalid-argument", "Periode pembayaran tidak valid.");
   }
   const daysInMonth = new Date(year, month, 0).getDate();
-  return {
-    year,
-    month,
-    day: FIRST_REMINDER_DAY,
-    daysInMonth,
-    daysRemaining: daysInMonth - FIRST_REMINDER_DAY,
-  };
+  return { year, month, day: FIRST_REMINDER_DAY, daysInMonth,
+    daysRemaining: daysInMonth - FIRST_REMINDER_DAY };
+}
+
+function referenceDate(parts) {
+  return atMinute({ ...parts, day: FIRST_REMINDER_DAY }, START_MINUTE_WIB);
 }
 
 async function loadPaymentReminderPlan(parts, overrides = {}) {
-  const date = overrides.now || referenceDate(parts);
-  const fetchSantri = overrides.fetchPayingSantri || fetchPayingSantri;
-  const computeUnpaid = overrides.computeUnpaidSantri || computeUnpaidSantri;
-  const prepareMessages =
-    overrides.prepareMessages || prepareScheduledPaymentMessages;
-  const recipients = await fetchSantri(date);
-  const unpaid = await computeUnpaid(parts, date, recipients);
-  const prepared = prepareMessages(parts, unpaid, overrides.messageOptions);
-  return {
-    schedule: buildPaymentReminderSchedule(
-      recipients,
-      prepared.messages,
-      parts,
-    ),
-    invalidPhoneCount: prepared.invalidPhoneCount,
-    adminFallbackCount: prepared.adminFallbackCount,
-  };
+  const now = overrides.now || new Date();
+  const recipients = await (overrides.fetchPayingSantri || fetchPayingSantri)(now, overrides.recipientUid);
+  const unpaid = await (overrides.computeUnpaidSantri || computeUnpaidSantri)(parts, now, recipients);
+  const prepared = (overrides.prepareMessages || prepareScheduledPaymentMessages)(
+    parts, unpaid, overrides.messageOptions,
+  );
+  const byUid = new Map(prepared.messages.map((item) => [item.recipientUid, item]));
+  // Include every unpaid santri: invalid/missing phones still receive the app
+  // notification, and a single older unpaid month must not fall between groups.
+  const messages = unpaid.map((santri) => {
+    const existing = byUid.get(santri.uid);
+    return {
+      ...(existing || {
+        recipientUid: santri.uid,
+        notificationType: "arrears",
+        phone: normalizeWhatsAppPhone(santri.nomorWali),
+        message: buildArrearsWhatsAppMessage(
+          santri, overrides.messageOptions?.institution || institutionMessagingConfig(),
+        ),
+        pushNotification: buildPaymentArrearsPushNotification(santri, parts),
+      }),
+      uid: santri.uid,
+      santriName: santri.name,
+      arrearsCount: santri.months.length,
+      months: santri.months,
+      adminFallback: Boolean(existing && !normalizeWhatsAppPhone(santri.nomorWali)),
+      refId: reminderRefId(parts, santri.uid),
+    };
+  });
+  const records = overrides.skipRecords ? new Map() : await (overrides.loadRecords || loadDeliveryRecords)(
+    parts, unpaid, overrides.firestore || db,
+  );
+  return { unpaid, messages, records, now, invalidPhoneCount: prepared.invalidPhoneCount,
+    adminFallbackCount: prepared.adminFallbackCount };
 }
 
 function isDuplicateTaskError(error) {
   const code = String(error?.code || "");
-  return code.includes("task-already-exists") || code === "already-exists";
+  return code.includes("task-already-exists") || ["already-exists", "6"].includes(code);
+}
+
+async function enqueueReservation(reservation, parts, overrides = {}) {
+  const queue = overrides.queue || getFunctions().taskQueue(TASK_FUNCTION_NAME);
+  try {
+    await queue.enqueue({
+      recipientUid: reservation.recipient_uid,
+      refId: reservation.refId,
+      year: parts.year,
+      month: parts.month,
+      generation: reservation.generation,
+    }, {
+      id: reservation.task_id,
+      scheduleTime: reservation.scheduledAt,
+      dispatchDeadlineSeconds: 60,
+    });
+    return true;
+  } catch (error) {
+    if (!isDuplicateTaskError(error)) throw error;
+    return false;
+  }
 }
 
 async function runPaymentReminderQueue(parts, overrides = {}) {
-  if (parts.day < FIRST_REMINDER_DAY) return { skipped: true };
-  const enabled =
-    overrides.enabled === undefined ? isWablasEnabled() : overrides.enabled;
-  if (!enabled) return { skipped: true, reason: "wablas_disabled" };
-
-  const plan = await loadPaymentReminderPlan(parts, overrides);
-  const dueToday = plan.schedule.filter((item) => item.day === parts.day);
-  const queue =
-    overrides.queue || getFunctions().taskQueue(TASK_FUNCTION_NAME);
+  // Use the actual execution time for catch-up; event.scheduleTime can be stale.
+  const now = overrides.now || new Date();
+  const today = jakartaDateTimeParts(now);
+  if (today.day < FIRST_REMINDER_DAY) return { skipped: true };
+  parts = today;
+  const plan = await loadPaymentReminderPlan(parts, { ...overrides, now });
   let queued = 0;
   let duplicate = 0;
-
-  for (const item of dueToday) {
-    try {
-      await queue.enqueue(
-        {
-          recipientUid: item.uid,
-          phone: item.phone,
-          message: item.message,
-          refId: item.refId,
-          notificationType: item.notificationType,
-          pushNotification: item.pushNotification,
-          scheduledAt: item.scheduledAt.toISOString(),
-        },
-        {
-          id: taskIdForRef(item.refId),
-          scheduleTime: item.scheduledAt,
-          dispatchDeadlineSeconds: 60,
-        },
-      );
-      queued += 1;
-    } catch (error) {
-      if (!isDuplicateTaskError(error)) throw error;
-      duplicate += 1;
-    }
+  for (const item of orderedMessages(plan.messages, parts)) {
+    const reservation = await (overrides.reserve || reserveDelivery)(item, parts, {
+      ...overrides, now, seed: plan.records.get(item.uid),
+    });
+    if (reservation.reason === "day_full") break;
+    if (reservation.skipped) continue;
+    if (await enqueueReservation(reservation, parts, overrides)) queued += 1;
+    else duplicate += 1;
   }
-
-  logger.info(
-    `[paymentReminderQueue] tanggal ${parts.day}: antre ${queued}, ` +
-      `duplikat ${duplicate}, nomor invalid ${plan.invalidPhoneCount}.`,
-  );
-  return {
-    queued,
-    duplicate,
-    scheduledToday: dueToday.length,
-    invalidPhone: plan.invalidPhoneCount,
-    adminFallback: plan.adminFallbackCount,
-  };
+  logger.info(`[paymentReminderQueue] tanggal ${parts.day}: antre ${queued}, duplikat ${duplicate}, nomor invalid ${plan.invalidPhoneCount}.`);
+  return { queued, duplicate, invalidPhone: plan.invalidPhoneCount,
+    adminFallback: plan.adminFallbackCount };
 }
 
 function validateDelivery(data) {
+  const parts = validMonthParts(data?.year, data?.month);
   const recipientUid = String(data?.recipientUid || "").trim();
-  const phone = normalizeWhatsAppPhone(data?.phone);
-  const message = String(data?.message || "").trim();
-  const refId = String(data?.refId || "").trim();
-  const notificationType = String(data?.notificationType || "").trim();
-  if (!phone || !message || message.length > 5000) {
-    throw new Error("Payload reminder pembayaran tidak valid.");
+  const generation = Number(data?.generation);
+  if (!recipientUid || recipientUid.length > 128 || recipientUid.includes("/") ||
+      !Number.isInteger(generation) || generation < 1 ||
+      data?.refId !== reminderRefId(parts, recipientUid)) {
+    throw new HttpsError("invalid-argument", "Identitas reminder pembayaran tidak valid.");
   }
-  if (!/^[A-Za-z0-9_-]{1,240}$/.test(refId)) {
-    throw new Error("Reference ID reminder pembayaran tidak valid.");
-  }
-  if (
-    ![
-      "arrears",
-      "two-month-arrears",
-      "current-month-payment",
-    ].includes(notificationType)
-  ) {
-    throw new Error("Tipe reminder pembayaran tidak valid.");
-  }
-
-  const rawPush = data?.pushNotification;
-  let pushNotification = null;
-  if (rawPush !== undefined && rawPush !== null) {
-    if (!recipientUid || recipientUid.length > 128) {
-      throw new Error("UID penerima notifikasi pembayaran tidak valid.");
-    }
-    const title = String(rawPush?.title || "").trim();
-    const body = String(rawPush?.body || "").trim();
-    if (!title || title.length > 200 || !body || body.length > 1000) {
-      throw new Error("Konten notifikasi pembayaran tidak valid.");
-    }
-    const rawData = rawPush?.data;
-    if (
-      rawData !== undefined &&
-      (rawData === null || typeof rawData !== "object" || Array.isArray(rawData))
-    ) {
-      throw new Error("Data notifikasi pembayaran tidak valid.");
-    }
-    pushNotification = { title, body, data: rawData || {} };
-  }
-  return {
-    recipientUid: recipientUid || null,
-    phone,
-    message,
-    refId,
-    notificationType,
-    pushNotification,
-  };
+  return { recipientUid, refId: data.refId, generation, parts };
 }
 
 async function claimDelivery(delivery, overrides = {}) {
@@ -191,190 +152,227 @@ async function claimDelivery(delivery, overrides = {}) {
   return firestore.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref);
     const current = snapshot.data() || {};
-    if (current.status === "sent") return { status: "sent" };
-    const leaseUntil = current.lease_until?.toDate?.();
-    if (
-      current.status === "sending" &&
-      leaseUntil &&
-      leaseUntil.getTime() > now.getTime()
-    ) {
-      return { status: "busy" };
-    }
-    transaction.set(
-      ref,
-      {
-        ref_id: delivery.refId,
-        notification_type: delivery.notificationType,
-        status: "sending",
-        attempts: admin.firestore.FieldValue.increment(1),
-        lease_until: admin.firestore.Timestamp.fromDate(
-          new Date(now.getTime() + 2 * 60 * 1000),
-        ),
-        updated_at: admin.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-    return {
-      status: "claimed",
-      whatsappComplete: current.whatsapp_status === "sent",
-      appNotificationComplete: ["sent", "partial", "no-device"].includes(
-        current.app_notification_status,
-      ),
-    };
+    if (!snapshot.exists || current.generation !== delivery.generation) return { status: "obsolete" };
+    if (["sent", "cancelled"].includes(current.status)) return { status: "complete" };
+    if (current.status === "sending" && asDate(current.lease_until) > now) return { status: "busy" };
+    transaction.set(ref, {
+      status: "sending",
+      attempts: admin.firestore.FieldValue.increment(1),
+      cycle_attempts: admin.firestore.FieldValue.increment(1),
+      lease_until: admin.firestore.Timestamp.fromDate(new Date(now.getTime() + 2 * 60000)),
+      updated_at: timestamp(),
+    }, { merge: true });
+    return { ...current, status: "claimed" };
   });
 }
 
-function normalizeClaimState(value) {
-  if (typeof value === "string") return { status: value };
-  return value || { status: "claimed" };
-}
-
-function errorCode(error) {
-  return String(error?.code || "provider_error").slice(0, 80);
-}
-
 async function runScheduledPaymentDelivery(request, overrides = {}) {
+  // Old queued payloads are re-reserved under the new calendar and identity.
+  if (!request.data?.generation && request.data?.recipientUid) {
+    const match = String(request.data.refId || "").match(/-(\d{4})-(\d{2})-/);
+    if (match) {
+      const parts = validMonthParts(match[1], match[2]);
+      const plan = await loadPaymentReminderPlan(parts, overrides);
+      const item = plan.messages.find((value) => value.uid === request.data.recipientUid);
+      if (!item) return { skipped: true, reason: "paid" };
+      const now = overrides.now || new Date();
+      const today = jakartaDateTimeParts(now);
+      if (monthKey(today) !== monthKey(parts) || today.day < FIRST_REMINDER_DAY) {
+        return { skipped: true, reason: "outside_period" };
+      }
+      const reservation = await (overrides.reserve || reserveDelivery)(item, today, {
+        ...overrides, now, seed: plan.records.get(item.uid),
+      });
+      if (!reservation.skipped) await enqueueReservation(reservation, parts, overrides);
+      return { migrated: true };
+    }
+  }
   const delivery = validateDelivery(request.data);
-  const claim = overrides.claim || claimDelivery;
-  const claimState = normalizeClaimState(await claim(delivery, overrides));
-  if (claimState.status === "sent") return { duplicate: true };
-  if (claimState.status === "busy") {
-    throw new Error("Pengiriman reminder masih diproses.");
-  }
-
-  const sendWhatsApp = overrides.send || sendTextMessages;
-  const sendPush = overrides.sendPush || sendToUid;
-  const firestore = overrides.firestore || db;
-  const ref = firestore.collection(DELIVERY_COLLECTION).doc(delivery.refId);
-  const persist =
-    overrides.persist || ((data) => ref.set(data, { merge: true }));
-  const serverTimestamp = () => admin.firestore.FieldValue.serverTimestamp();
-  const deleteField = () => admin.firestore.FieldValue.delete();
-
-  if (!claimState.whatsappComplete) {
-    try {
-      await sendWhatsApp([delivery]);
-      await persist({
-        whatsapp_status: "sent",
-        whatsapp_sent_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      });
-    } catch (error) {
-      await persist({
-        status: "failed",
-        whatsapp_status: "failed",
-        last_error_code: errorCode(error),
-        lease_until: deleteField(),
-        updated_at: serverTimestamp(),
-      });
-      throw error;
-    }
-  }
-
-  let appNotification = { status: "not-applicable" };
-  if (delivery.pushNotification && !claimState.appNotificationComplete) {
-    try {
-      const result = await sendPush(
-        delivery.recipientUid,
-        delivery.pushNotification,
+  const deliveryNow = () => overrides.clock?.() || overrides.now || new Date();
+  const now = deliveryNow();
+  const claim = await (overrides.claim || claimDelivery)(delivery, { ...overrides, now });
+  if (["complete", "obsolete"].includes(claim.status)) return { duplicate: true };
+  if (claim.status === "busy") throw new Error("Pengiriman reminder masih diproses.");
+  const ref = (overrides.firestore || db).collection(DELIVERY_COLLECTION).doc(delivery.refId);
+  const persist = overrides.persist || ((data) => ref.set(data, { merge: true }));
+  const today = jakartaDateTimeParts(now);
+  const defer = async () => {
+    await persist({ status: "deferred", lease_until: deleteField(), updated_at: timestamp() });
+    // Automatic tasks resume at the next daily run. A manual follow-up can be
+    // for a previous period, so explicitly retain its next-day continuation.
+    if (claim.manual) {
+      const reservation = await (overrides.reserve || reserveDelivery)(
+        { uid: delivery.recipientUid, notificationType: claim.notification_type },
+        delivery.parts, { ...overrides, now: deliveryNow(), manual: true },
       );
-      const successCount = Number(result?.successCount || 0);
-      const failureCount = Number(result?.failureCount || 0);
-      const status =
-        successCount > 0
-          ? failureCount > 0
-            ? "partial"
-            : "sent"
-          : "no-device";
-      appNotification = { status, successCount, failureCount };
-      await persist({
-        app_notification_status: status,
-        app_notification_success_count: successCount,
-        app_notification_failure_count: failureCount,
-        app_notification_sent_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      });
-    } catch (error) {
-      await persist({
-        status: "failed",
-        app_notification_status: "failed",
-        last_error_code: errorCode(error),
-        lease_until: deleteField(),
-        updated_at: serverTimestamp(),
-      });
-      throw error;
+      if (!reservation.skipped) await enqueueReservation(reservation, delivery.parts, overrides);
     }
-  } else if (claimState.appNotificationComplete) {
-    appNotification = { status: "already-complete" };
+    return { deferred: true };
+  };
+  if (!inDeliveryWindow(now) || (!claim.manual &&
+      (today.day < FIRST_REMINDER_DAY || monthKey(today) !== monthKey(delivery.parts)))) {
+    return defer();
   }
 
-  await persist(
-    {
-      status: "sent",
-      sent_at: serverTimestamp(),
-      lease_until: deleteField(),
-      last_error_code: deleteField(),
-      updated_at: serverTimestamp(),
-    },
-  );
+  // Re-read payments just before delivery; never send a stale queued bill.
+  let plan;
+  try {
+    plan = await (overrides.loadPlan || loadPaymentReminderPlan)(delivery.parts, {
+      ...overrides, now, recipientUid: delivery.recipientUid, skipRecords: true,
+    });
+  } catch (error) {
+    await persist({ status: "failed", last_error_code: "payment_recheck_failed",
+      lease_until: deleteField(), updated_at: timestamp() });
+    throw error;
+  }
+  const item = plan.messages.find((value) => value.uid === delivery.recipientUid);
+  if (!item) {
+    await persist({ status: "cancelled", reason: "paid_or_inactive",
+      lease_until: deleteField(), updated_at: timestamp() });
+    return { skipped: true, reason: "paid_or_inactive" };
+  }
+  let failure;
+  const enabled = overrides.enabled === undefined ? isWablasEnabled() : overrides.enabled;
+  const whatsappComplete = claim.whatsapp_status === "sent";
+  // A slow Firestore/provider call can cross 15:00 after the first guard.
+  if (!inDeliveryWindow(deliveryNow())) return defer();
+  if (!whatsappComplete) {
+    try {
+      if (enabled && item.phone) {
+        await (overrides.send || sendTextMessages)([item]);
+        await persist({ whatsapp_status: "sent", whatsapp_sent_at: timestamp(),
+          admin_fallback: item.adminFallback, updated_at: timestamp() });
+      } else {
+        await persist({ whatsapp_status: enabled ? "invalid-phone" : "disabled",
+          updated_at: timestamp() });
+      }
+    } catch (error) {
+      failure = error;
+      await persist({ whatsapp_status: "failed", updated_at: timestamp() });
+    }
+  }
+  if (!["sent", "partial", "no-device"].includes(claim.app_notification_status)) {
+    if (!inDeliveryWindow(deliveryNow())) return defer();
+    try {
+      const result = await (overrides.sendPush || sendToUid)(delivery.recipientUid, item.pushNotification);
+      const success = Number(result?.successCount || 0);
+      const failed = Number(result?.failureCount || 0);
+      if (success === 0 && failed > 0) throw new Error("Pengiriman notifikasi aplikasi gagal.");
+      await persist({
+        app_notification_status: success > 0 ? (failed > 0 ? "partial" : "sent") : "no-device",
+        app_notification_success_count: success,
+        app_notification_failure_count: failed,
+        app_notification_sent_at: timestamp(),
+        updated_at: timestamp(),
+      });
+    } catch (error) {
+      failure ||= error;
+      await persist({ app_notification_status: "failed", updated_at: timestamp() });
+    }
+  }
+  await persist({
+    status: failure ? "failed" : (whatsappComplete || (enabled && item.phone)) ? "sent" : "blocked",
+    ...(failure ? { last_error_code: String(failure.code || "provider_error").slice(0, 80) }
+      : { sent_at: timestamp(), last_error_code: deleteField() }),
+    lease_until: deleteField(),
+    updated_at: timestamp(),
+  });
+  if (failure) throw failure;
+  return { sent: true, whatsapp: whatsappComplete ? "already-complete" : "processed" };
+}
+
+async function paymentReminderDashboard(parts, overrides = {}) {
+  const plan = await loadPaymentReminderPlan(parts, overrides);
+  const pending = plan.messages.filter((item) => {
+    const record = plan.records.get(item.uid);
+    return !record || !["sent", "blocked", "failed"].includes(record.status) &&
+      !hasActiveTask(record, plan.now);
+  });
+  const futureSlots = [...plan.records.values()].map((r) => asDate(r.scheduled_at))
+    .filter((date) => date && date > plan.now);
+  const previous = futureSlots.length ? new Date(Math.max(...futureSlots.map(Number))) : null;
+  const preview = new Map(buildPaymentReminderSchedule(plan.unpaid, pending, parts, {
+    now: plan.now, previous,
+  }).map((item) => [item.uid, item]));
   return {
-    sent: true,
-    whatsapp: claimState.whatsappComplete ? "already-complete" : "sent",
-    appNotification,
+    firstDay: FIRST_REMINDER_DAY, lastDay: parts.daysInMonth,
+    minIntervalMinutes: MIN_INTERVAL_MINUTES, maxIntervalMinutes: MAX_INTERVAL_MINUTES,
+    timezone: "Asia/Jakarta", startTime: "08:00", endTime: "15:00",
+    invalidPhoneCount: plan.invalidPhoneCount, adminFallbackCount: plan.adminFallbackCount,
+    items: plan.messages.map((item) => {
+      const record = plan.records.get(item.uid) || {};
+      const active = hasActiveTask(record, plan.now);
+      const estimated = preview.get(item.uid);
+      const status = record.status === "sent" ? "sent" :
+        record.status === "blocked" ? "blocked" :
+        record.status === "failed" ? (active ? "retrying" : "failed") :
+        active ? record.status : "pending";
+      const scheduled = estimated?.scheduledAt || asDate(record.scheduled_at);
+      return {
+        santriId: item.uid, santriName: item.santriName, type: item.notificationType,
+        arrearsCount: item.arrearsCount, months: item.months,
+        status, whatsappStatus: record.whatsapp_status || "pending",
+        appStatus: record.app_notification_status || "pending",
+        adminFallback: record.whatsapp_status === "sent"
+          ? Boolean(record.admin_fallback) : Boolean(item.adminFallback),
+        scheduledAt: scheduled?.toISOString() || null,
+        estimated: Boolean(estimated) || !record.scheduled_at,
+        sentAt: asDate(record.whatsapp_sent_at || record.sent_at)?.toISOString() || null,
+        intervalMinutes: record.interval_minutes || estimated?.intervalMinutes || 0,
+        attempts: Number(record.attempts || 0),
+        canSend: !active && (record.status !== "sent" ||
+          record.admin_fallback && !item.adminFallback && Boolean(item.phone)) &&
+          plan.now >= referenceDate(parts),
+      };
+    }).sort((a, b) => a.arrearsCount - b.arrearsCount || a.santriName.localeCompare(b.santriName)),
   };
 }
 
-const sendScheduledPaymentWhatsApp = onTaskDispatched(
-  {
-    region: "asia-southeast2",
-    memory: "256MiB",
-    secrets: wablasSecrets,
-    retryConfig: {
-      maxAttempts: 5,
-      minBackoffSeconds: 60,
-      maxBackoffSeconds: 600,
-    },
-    rateLimits: { maxConcurrentDispatches: 1, maxDispatchesPerSecond: 1 },
-  },
-  runScheduledPaymentDelivery,
-);
-
-const getPaymentReminderSchedule = onCall(CALLABLE_OPTIONS, async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Harus login.");
+async function runManualPaymentReminder(data, overrides = {}) {
+  const parts = validMonthParts(data?.year, data?.month);
+  const now = overrides.now || new Date();
+  if (now < referenceDate(parts)) {
+    throw new HttpsError("failed-precondition", "Pengiriman dimulai tanggal 25 pukul 08.00 WIB.");
   }
-  await assertAdmin(request.auth.uid);
-  const parts = validMonthParts(request.data?.year, request.data?.month);
-  const plan = await loadPaymentReminderPlan(parts);
-  return {
-    firstDay: FIRST_REMINDER_DAY,
-    lastDay: parts.daysInMonth,
-    minIntervalMinutes: MIN_INTERVAL_MINUTES,
-    maxIntervalMinutes: MAX_INTERVAL_MINUTES,
-    timezone: "Asia/Jakarta",
-    invalidPhoneCount: plan.invalidPhoneCount,
-    adminFallbackCount: plan.adminFallbackCount,
-    items: plan.schedule.map((item) => ({
-      santriId: item.uid,
-      santriName: item.santriName,
-      type: item.notificationType,
-      scheduledAt: item.scheduledAt.toISOString(),
-      intervalMinutes: item.intervalMinutes,
-    })),
-  };
+  const plan = await loadPaymentReminderPlan(parts, { ...overrides, now });
+  const item = plan.messages.find((value) => value.uid === data?.santriId);
+  if (!item) throw new HttpsError("failed-precondition", "Santri sudah lunas atau tidak lagi wajib membayar.");
+  const reservation = await (overrides.reserve || reserveDelivery)(item, parts, {
+    ...overrides, now, manual: true, seed: plan.records.get(item.uid),
+  });
+  if (reservation.skipped) return { status: reservation.reason };
+  await enqueueReservation(reservation, parts, overrides);
+  return { status: "queued", scheduledAt: reservation.scheduledAt.toISOString() };
+}
+
+async function requireAdmin(request, check = assertAdmin) {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Harus login.");
+  await check(request.auth.uid);
+}
+
+const sendScheduledPaymentWhatsApp = onTaskDispatched({
+  region: "asia-southeast2", memory: "256MiB",
+  ...(wablasSecrets.length > 0
+    ? { secrets: wablasSecrets }
+    : {}),
+  retryConfig: { maxAttempts: MAX_ATTEMPTS, minBackoffSeconds: 60, maxBackoffSeconds: 600 },
+  rateLimits: { maxConcurrentDispatches: 1, maxDispatchesPerSecond: 1 },
+}, runScheduledPaymentDelivery);
+
+const getPaymentReminderSchedule = onCall({ ...CALLABLE_OPTIONS, timeoutSeconds: 120 }, async (request) => {
+  await requireAdmin(request);
+  return paymentReminderDashboard(validMonthParts(request.data?.year, request.data?.month));
+});
+
+const sendManualPaymentReminder = onCall({ ...CALLABLE_OPTIONS, timeoutSeconds: 120 }, async (request) => {
+  await requireAdmin(request);
+  return runManualPaymentReminder(request.data);
 });
 
 module.exports = {
-  getPaymentReminderSchedule,
-  sendScheduledPaymentWhatsApp,
+  getPaymentReminderSchedule, sendManualPaymentReminder, sendScheduledPaymentWhatsApp,
   runPaymentReminderQueue,
-  _private: {
-    claimDelivery,
-    isDuplicateTaskError,
-    loadPaymentReminderPlan,
-    referenceDate,
-    runScheduledPaymentDelivery,
-    validMonthParts,
-    validateDelivery,
-  },
+  _private: { claimDelivery, isDuplicateTaskError, loadPaymentReminderPlan, referenceDate,
+    runScheduledPaymentDelivery, validMonthParts, validateDelivery, paymentReminderDashboard,
+    runManualPaymentReminder, requireAdmin },
 };

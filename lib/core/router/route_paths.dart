@@ -13,6 +13,8 @@ abstract class RoutePaths {
   static const editAsatidz = '/edit_asatidz';
 
   static const adminPayment = '/admin-payment';
+  static const adminScheduling = '/admin-scheduling';
+  static const adminPaymentScheduling = '/admin-scheduling/payment';
   static const inputPayment = '/input_payment';
   static const paymentHistory = '/payment_history';
   static const financialReport = '/financial_report';

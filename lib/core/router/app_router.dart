@@ -26,6 +26,8 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/pages/ed
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_history_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/admin_payment_page.dart';
+import 'package:khoirunnasyien/features/payment/presentation/pages/admin_scheduling_page.dart';
+import 'package:khoirunnasyien/features/payment/presentation/pages/payment_scheduling_page.dart';
 import 'package:khoirunnasyien/features/payment/presentation/pages/input_payment_page.dart';
 import 'package:khoirunnasyien/features/financial_report/presentation/pages/financial_report_page.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/pages/schedule_view_page.dart';
@@ -229,6 +231,17 @@ class AppRouter {
             child: EditAsatidzPage(asatidz: extras['asatidz'] as AsatidzDetail),
           );
         },
+      ),
+      GoRoute(
+        path: RoutePaths.adminScheduling,
+        name: RouteNames.adminScheduling,
+        builder: (context, state) => const AdminSchedulingPage(),
+      ),
+      GoRoute(
+        path: RoutePaths.adminPaymentScheduling,
+        name: RouteNames.adminPaymentScheduling,
+        builder: (context, state) =>
+            PaymentSchedulingPage(initialPeriod: state.extra as DateTime?),
       ),
       GoRoute(
         path: RoutePaths.adminPayment,

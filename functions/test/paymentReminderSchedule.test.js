@@ -1,322 +1,381 @@
 "use strict";
-
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const { admin } = require("../lib/firebase");
 const {
-  buildPaymentReminderSchedule,
-  taskIdForRef,
+  buildPaymentReminderSchedule, reminderRefId, nextDeliverySlot, inDeliveryWindow,
 } = require("../lib/paymentReminderSchedule");
 const {
-  prepareScheduledPaymentMessages,
-} = require("../handlers/whatsappNotifier");
+  DELIVERY_COLLECTION, reserveDelivery, loadDeliveryRecords,
+} = require("../lib/paymentReminderStore");
 const {
   runPaymentReminderQueue,
-  _private: { runScheduledPaymentDelivery, validateDelivery },
+  _private: {
+    runScheduledPaymentDelivery, paymentReminderDashboard, runManualPaymentReminder,
+    requireAdmin, validMonthParts,
+  },
 } = require("../handlers/paymentReminderScheduler");
 
-const parts = {
-  year: 2026,
-  month: 9,
-  day: 20,
-  daysInMonth: 30,
-  daysRemaining: 10,
-};
-const institution = {
-  institutionName: "Lembaga Uji",
-  bankName: "BSI",
-  accountNumber: "123",
-  accountHolder: "Bendahara",
-};
-
-function santri(index) {
+const parts = validMonthParts(2026, 10);
+const start = new Date("2026-10-25T08:00:00+07:00");
+const institution = { institutionName: "Uji", bankName: "BSI", accountNumber: "123", accountHolder: "Uji" };
+const ts = (date) => admin.firestore.Timestamp.fromDate(new Date(date));
+function santri(i, count = 1) {
+  return { uid: `santri-${i}`, name: `Santri ${i}`, nis: String(i),
+    nomorWali: "081234567890", tanggalMasuk: new Date("2025-01-01"),
+    count, months: Array.from({ length: count }, (_, offset) => ({ year: 2026, month: 11 - count + offset })) };
+}
+function item(s) {
+  return { ...s, recipientUid: s.uid, notificationType: "current-month-payment",
+    refId: reminderRefId(parts, s.uid), phone: "6281234567890", message: "Pengingat",
+    pushNotification: { title: "SPP", body: "Belum dibayar" }, adminFallback: false };
+}
+function fakeFirestore() {
+  const data = new Map();
+  let serial = Promise.resolve();
+  function put(path, patch, merge = true) {
+    const current = merge ? { ...(data.get(path) || {}) } : {};
+    for (const [key, value] of Object.entries(patch)) {
+      const type = value?.constructor?.name;
+      if (type === "DeleteTransform") delete current[key];
+      else if (type === "NumericIncrementTransform") current[key] = Number(current[key] || 0) + value.operand;
+      else if (type === "ServerTimestampTransform") current[key] = ts(start);
+      else current[key] = value;
+    }
+    data.set(path, current);
+  }
+  const snapshot = (path) => ({ id: path.split("/").at(-1), exists: data.has(path), data: () => data.get(path) });
   return {
-    uid: `santri-${index}`,
-    name: `Santri ${index}`,
-    nis: String(1000 + index),
-    nomorWali: `081200000${String(index).padStart(3, "0")}`,
-    tanggalMasuk: new Date("2025-01-01T00:00:00+07:00"),
+    data, put,
+    collection(name) {
+      let lower = "", upper = "\uffff";
+      const query = {
+        doc(id) { return { path: `${name}/${id}`, get: async () => snapshot(`${name}/${id}`),
+          set: async (patch, options) => put(`${name}/${id}`, patch, options?.merge) }; },
+        orderBy() { return query; },
+        startAt(value) { lower = value; return query; },
+        endAt(value) { upper = value; return query; },
+        async get() {
+          return { docs: [...data.keys()].filter((path) => path.startsWith(name + "/"))
+            .filter((path) => { const id = path.split("/").at(-1); return id >= lower && id <= upper; })
+            .map(snapshot) };
+        },
+      };
+      return query;
+    },
+    runTransaction(callback) {
+      const result = serial.then(async () => {
+        const writes = [];
+        const value = await callback({
+          get: async (ref) => snapshot(ref.path),
+          set: (ref, patch, options) => writes.push([ref.path, patch, options?.merge]),
+        });
+        writes.forEach((args) => put(...args));
+        return value;
+      });
+      serial = result.catch(() => {});
+      return result;
+    },
   };
 }
+function dependencies(recipients, firestore = fakeFirestore(), now = start) {
+  const calls = [];
+  const options = {
+    firestore, now, enabled: true,
+    fetchPayingSantri: async () => recipients,
+    computeUnpaidSantri: async () => recipients,
+    messageOptions: { institution, adminPhone: "" },
+    queue: { enqueue: async (data, config) => calls.push({ data, config }) },
+  };
+  return { options, calls, firestore };
+}
+function task(reservation, period = parts) {
+  return { data: { recipientUid: reservation.recipient_uid, refId: reservation.refId,
+    year: period.year, month: period.month, generation: reservation.generation } };
+}
 
-test("jadwal deterministik tersebar tanggal 20-akhir dengan interval 1-10 menit", () => {
-  const recipients = Array.from({ length: 80 }, (_, index) => santri(index));
-  const messages = recipients.map((item) => ({
-    recipientUid: item.uid,
-    santriName: item.name,
-    notificationType: "current-month-payment",
-    phone: item.nomorWali,
-    message: `Pesan ${item.uid}`,
-    refId: `current-month-payment-2026-09-${item.uid}`,
-  }));
-
-  const first = buildPaymentReminderSchedule(recipients, messages, parts);
-  const reordered = buildPaymentReminderSchedule(
-    [...recipients].reverse(),
-    [...messages].reverse(),
-    parts,
-  );
-
-  assert.equal(first.length, recipients.length);
-  assert.deepEqual(
-    first.map(({ uid, scheduledAt }) => [uid, scheduledAt.toISOString()]),
-    reordered.map(({ uid, scheduledAt }) => [uid, scheduledAt.toISOString()]),
-  );
-  assert.equal(new Set(first.map((item) => item.uid)).size, first.length);
-  for (const item of first) {
-    assert.ok(item.day >= 20 && item.day <= 30);
-    assert.ok(item.intervalMinutes >= 1 && item.intervalMinutes <= 10);
+test("80 penerima mengisi hari pertama, sisa langsung ke hari kedua; jeda 1–15 menit", () => {
+  const recipients = Array.from({ length: 80 }, (_, i) => santri(i));
+  const schedule = buildPaymentReminderSchedule(recipients, recipients.map(item), parts);
+  assert.equal(schedule.length, 80);
+  assert.deepEqual(new Set(schedule.map((x) => x.day)), new Set([25, 26]));
+  const firstDay = schedule.filter((x) => x.day === 25);
+  assert.ok(firstDay.length > 40);
+  assert.ok(firstDay.at(-1).hour === 14 && firstDay.at(-1).minute >= 45);
+  for (let i = 0; i < schedule.length; i++) {
+    assert.ok(inDeliveryWindow(schedule[i].scheduledAt));
+    assert.ok(schedule[i].intervalMinutes >= 1 && schedule[i].intervalMinutes <= 15);
+    if (i && schedule[i].day === schedule[i - 1].day) {
+      assert.equal((schedule[i].scheduledAt - schedule[i - 1].scheduledAt) / 60000, schedule[i].intervalMinutes);
+    }
   }
-  assert.ok(new Set(first.map((item) => item.day)).size > 1);
+  assert.deepEqual(schedule, buildPaymentReminderSchedule([...recipients].reverse(), recipients.map(item).reverse(), parts));
 });
 
-test("interval 1-10 menit dihitung hanya antar penerima aktual", () => {
-  const recipients = Array.from({ length: 1000 }, (_, index) => santri(index));
-  const allMessages = recipients.map((item) => ({
-    recipientUid: item.uid,
-    santriName: item.name,
-    notificationType: "current-month-payment",
-    phone: item.nomorWali,
-    message: `Pesan ${item.uid}`,
-    refId: `current-month-payment-2026-09-${item.uid}`,
-  }));
-  const fullSchedule = buildPaymentReminderSchedule(
-    recipients,
-    allMessages,
-    parts,
-  );
-  const byDay = Map.groupBy(fullSchedule, (item) => item.day);
-  const denseDay = [...byDay.values()].find((items) => items.length > 11);
-  assert.ok(denseDay);
-
-  const selected = [denseDay[0], denseDay[denseDay.length - 1]];
-  assert.ok(
-    (selected[1].scheduledAt - selected[0].scheduledAt) / 60_000 > 10,
-  );
-  const selectedIds = new Set(selected.map((item) => item.uid));
-  const actualSchedule = buildPaymentReminderSchedule(
-    recipients,
-    allMessages.filter((message) => selectedIds.has(message.recipientUid)),
-    parts,
-  );
-
-  assert.equal(actualSchedule.length, 2);
-  assert.equal(actualSchedule[0].day, selected[0].day);
-  assert.equal(actualSchedule[1].day, selected[1].day);
-  const actualGapMinutes =
-    (actualSchedule[1].scheduledAt - actualSchedule[0].scheduledAt) / 60_000;
-  assert.ok(actualGapMinutes >= 1 && actualGapMinutes <= 10);
+test("batas 15.00, sebelum 08.00, Februari, dan pergantian tahun memakai WIB", () => {
+  assert.equal(nextDeliverySlot(new Date("2026-10-25T14:59:00+07:00"), null, 1).toISOString(), "2026-10-26T01:01:00.000Z");
+  assert.equal(nextDeliverySlot(new Date("2026-12-31T23:00:00+07:00"), null, 15).toISOString(), "2027-01-01T01:15:00.000Z");
+  assert.equal(nextDeliverySlot(new Date("2026-02-28T07:00:00+07:00"), null, 1).toISOString(), "2026-02-28T01:01:00.000Z");
+  assert.equal(inDeliveryWindow(new Date("2026-10-25T15:00:00+07:00")), false);
+  const recipients = Array.from({ length: 500 }, (_, i) => santri(i));
+  const schedule = buildPaymentReminderSchedule(recipients, recipients.map(item), validMonthParts(2026, 2));
+  assert.ok(schedule.length < 500);
+  assert.ok(schedule.every((x) => x.day >= 25 && x.day <= 28));
 });
 
-test("setiap kategori pembayaran saling eksklusif", () => {
-  const twoMonth = {
-    ...santri(1),
-    months: [
-      { year: 2026, month: 8 },
-      { year: 2026, month: 9 },
-    ],
-  };
-  const long = {
-    ...santri(2),
-    months: [
-      { year: 2026, month: 7 },
-      { year: 2026, month: 8 },
-      { year: 2026, month: 9 },
-    ],
-  };
-  const current = {
-    ...santri(3),
-    months: [{ year: 2026, month: 9 }],
-  };
-  const prepared = prepareScheduledPaymentMessages(
-    parts,
-    [twoMonth, long, current],
-    {
-      institution,
-      adminPhone: "",
-    },
-  );
-
-  assert.equal(prepared.messages.length, 3);
-  assert.deepEqual(
-    prepared.messages.map((message) => message.notificationType).sort(),
-    ["arrears", "current-month-payment", "two-month-arrears"],
-  );
-  assert.equal(
-    new Set(prepared.messages.map((message) => message.recipientUid)).size,
-    3,
-  );
-  for (const message of prepared.messages) {
-    assert.equal(message.pushNotification.title, "Pengingat Pembayaran SPP");
-    assert.equal(message.pushNotification.data.type, "payment_arrears");
+test("scheduler hanya mulai tanggal 25; 80 santri lanjut besok tanpa menduplikasi yang selesai", async () => {
+  const recipients = Array.from({ length: 80 }, (_, i) => santri(i));
+  const env = dependencies(recipients);
+  assert.deepEqual(await runPaymentReminderQueue(parts, { ...env.options, now: new Date("2026-10-24T08:00:00+07:00") }), { skipped: true });
+  await runPaymentReminderQueue(parts, env.options);
+  const first = [...env.calls];
+  assert.ok(first.length > 40 && first.length < 80);
+  for (const call of first) {
+    env.firestore.put(`${DELIVERY_COLLECTION}/${call.data.refId}`, { status: "sent", whatsapp_status: "sent" });
   }
+  await runPaymentReminderQueue(parts, { ...env.options, now: new Date("2026-10-26T08:00:00+07:00") });
+  assert.equal(env.calls.length, 80);
+  assert.equal(new Set(env.calls.map((x) => x.data.refId)).size, 80);
 });
 
-test("scheduler hanya mengantre slot hari ini dengan task id idempoten", async () => {
-  const recipient = santri(1);
-  const messages = [
-    {
-      recipientUid: recipient.uid,
-      santriName: recipient.name,
-      notificationType: "current-month-payment",
-      phone: recipient.nomorWali,
-      message: "Pengingat pembayaran",
-      refId: "current-month-payment-2026-09-santri-1",
-      pushNotification: {
-        title: "Pengingat Pembayaran SPP",
-        body: "Pembayaran belum kami terima.",
-        data: { type: "payment_arrears" },
-      },
-    },
-  ];
-  const schedule = buildPaymentReminderSchedule([recipient], messages, parts);
-  const queueCalls = [];
-  const result = await runPaymentReminderQueue(
-    { ...parts, day: schedule[0].day },
-    {
-      enabled: true,
-      fetchPayingSantri: async () => [recipient],
-      computeUnpaidSantri: async () => [recipient],
-      prepareMessages: () => ({
-        messages,
-        invalidPhoneCount: 0,
-        adminFallbackCount: 0,
-      }),
-      queue: {
-        async enqueue(data, options) {
-          queueCalls.push({ data, options });
-        },
-      },
-    },
-  );
-
-  assert.equal(result.queued, 1);
-  assert.equal(queueCalls.length, 1);
-  assert.equal(
-    queueCalls[0].options.id,
-    taskIdForRef("current-month-payment-2026-09-santri-1"),
-  );
-  assert.equal(queueCalls[0].data.recipientUid, recipient.uid);
-  assert.equal(
-    queueCalls[0].data.pushNotification.data.type,
-    "payment_arrears",
-  );
+test("catch-up menjalankan penerima belum terkirim walaupun baru aktif tanggal 29", async () => {
+  const env = dependencies([santri(1), santri(2)], undefined, new Date("2026-10-29T08:00:00+07:00"));
+  await runPaymentReminderQueue(parts, env.options);
+  assert.equal(env.calls.length, 2);
+  assert.ok(env.calls.every((x) => x.config.scheduleTime.getDate() >= 28));
 });
 
-test("worker menerima tipe reminder tunggakan dua bulan", () => {
-  const delivery = validateDelivery({
-    phone: "081234567890",
-    message: "Tunggakan dua bulan",
-    refId: "two-month-arrears-2026-09-santri-1",
-    notificationType: "two-month-arrears",
+test("retry enqueue menggunakan reservasi dan task ID sama; pemanggilan bersamaan tidak membuat duplikat", async () => {
+  const s = santri(1);
+  const firestore = fakeFirestore();
+  const reservations = await Promise.all([
+    reserveDelivery(item(s), parts, { firestore, now: start }),
+    reserveDelivery(item(s), parts, { firestore, now: start }),
+  ]);
+  assert.equal(reservations[0].task_id, reservations[1].task_id);
+  assert.equal(reservations[0].scheduledAt.getTime(), reservations[1].scheduledAt.getTime());
+  const env = dependencies([s], firestore);
+  let fail = true;
+  const enqueue = env.options.queue.enqueue;
+  env.options.queue.enqueue = async (...args) => { if (fail) { fail = false; throw new Error("enqueue offline"); } return enqueue(...args); };
+  await assert.rejects(runPaymentReminderQueue(parts, env.options), /offline/);
+  await runPaymentReminderQueue(parts, env.options);
+  assert.equal(env.calls[0].config.id, reservations[0].task_id);
+});
+
+test("worker memeriksa pelunasan sebelum mengirim WA maupun notifikasi", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+  let sent = 0;
+  const result = await runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, loadPlan: async () => ({ messages: [] }),
+    send: async () => sent++, sendPush: async () => sent++,
   });
-
-  assert.equal(delivery.notificationType, "two-month-arrears");
+  assert.equal(result.reason, "paid_or_inactive");
+  assert.equal(sent, 0);
+  assert.equal(env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`).status, "cancelled");
 });
 
-test("worker tidak mengirim ulang delivery yang sudah terkirim", async () => {
-  let sendCalls = 0;
-  const result = await runScheduledPaymentDelivery(
-    {
-      data: {
-        phone: "081234567890",
-        message: "Pengingat pembayaran",
-        refId: "current-month-payment-2026-09-santri-1",
-        notificationType: "current-month-payment",
-      },
-    },
-    {
-      claim: async () => "sent",
-      send: async () => {
-        sendCalls += 1;
-      },
-    },
-  );
-
-  assert.deepEqual(result, { duplicate: true });
-  assert.equal(sendCalls, 0);
+test("worker di luar jam menunda kedua kanal dan scheduler besok melanjutkan", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+  const result = await runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, now: new Date("2026-10-25T15:01:00+07:00"),
+    send: async () => assert.fail("tidak boleh kirim di luar jam"),
+    loadPlan: async () => assert.fail("tidak perlu query pembayaran"),
+  });
+  assert.deepEqual(result, { deferred: true });
+  await runPaymentReminderQueue(parts, { ...env.options, now: new Date("2026-10-26T08:00:00+07:00") });
+  assert.equal(env.calls[0].data.generation, 2);
 });
 
-test("worker mengirim WhatsApp dan notifikasi HP pada task yang sama", async () => {
-  let whatsappCalls = 0;
+test("retry aplikasi tidak mengirim WA lagi; kegagalan WA tidak menghalangi aplikasi", async () => {
+  for (const failing of ["app", "wa"]) {
+    const env = dependencies([santri(1)]);
+    const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+    let wa = 0, app = 0, fail = true;
+    const options = {
+      ...env.options, loadPlan: async () => ({ messages: [item(santri(1))] }),
+      send: async () => { wa++; if (failing === "wa" && fail) throw new Error("WA gagal"); },
+      sendPush: async () => { app++; if (failing === "app" && fail) throw new Error("FCM gagal"); return { successCount: 1, failureCount: 0 }; },
+    };
+    await assert.rejects(runScheduledPaymentDelivery(task(reservation), options));
+    fail = false;
+    await runScheduledPaymentDelivery(task(reservation), options);
+    assert.equal(wa, failing === "wa" ? 2 : 1);
+    assert.equal(app, failing === "app" ? 2 : 1);
+    const again = await runScheduledPaymentDelivery(task(reservation), options);
+    assert.deepEqual(again, { duplicate: true });
+  }
+});
+
+test("FCM tanpa perangkat berbeda dari FCM gagal, WA nonaktif tetap mengirim notifikasi", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+  await runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, enabled: false, loadPlan: async () => ({ messages: [item(santri(1))] }),
+    send: async () => assert.fail("WA nonaktif"),
+    sendPush: async () => ({ successCount: 0, failureCount: 0 }),
+  });
+  const record = env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`);
+  assert.equal(record.status, "blocked");
+  assert.equal(record.app_notification_status, "no-device");
+  assert.equal(record.whatsapp_status, "disabled");
+});
+
+test("status admin mengelompokkan jumlah bulan aktual, termasuk 1 bulan lampau dan nomor invalid", async () => {
+  const recipients = [santri(1), santri(2, 2), santri(3, 3), { ...santri(4), months: [{ year: 2026, month: 9 }], nomorWali: "" }];
+  const env = dependencies(recipients);
+  const dashboard = await paymentReminderDashboard(parts, env.options);
+  assert.equal(dashboard.items.length, 4);
+  assert.deepEqual(dashboard.items.map((x) => x.arrearsCount).sort(), [1, 1, 2, 3]);
+  assert.ok(dashboard.items.every((x) => x.status === "pending"));
+  assert.ok(dashboard.items.find((x) => x.santriId === "santri-4"));
+  assert.equal((await paymentReminderDashboard(parts, dependencies([]).options)).items.length, 0);
+});
+
+test("riwayat legacy tetap muncul dan tidak dikirim ulang setelah kategori berubah", async () => {
+  const env = dependencies([santri(1, 2)]);
+  env.firestore.put(`${DELIVERY_COLLECTION}/arrears-2026-10-santri-1`, { status: "sent", sent_at: ts(start) });
+  const dashboard = await paymentReminderDashboard(parts, env.options);
+  assert.equal(dashboard.items[0].status, "sent");
+  assert.equal(dashboard.items[0].canSend, false);
+  await runPaymentReminderQueue(parts, env.options);
+  assert.equal(env.calls.length, 0);
+  assert.equal((await loadDeliveryRecords(parts, [santri(1)], env.firestore)).size, 1);
+});
+
+test("pengiriman manual periode lalu tetap dijadwalkan dalam WIB dan memakai ulang kanal sukses", async () => {
+  const env = dependencies([santri(1)], undefined, new Date("2026-11-01T16:00:00+07:00"));
+  env.firestore.put(`${DELIVERY_COLLECTION}/payment-2026-10-santri-1`, {
+    status: "failed", generation: 1, cycle_attempts: 5, whatsapp_status: "sent",
+    app_notification_status: "failed", scheduled_at: ts(start),
+  });
+  const result = await runManualPaymentReminder({ year: 2026, month: 10, santriId: "santri-1" }, env.options);
+  assert.equal(result.status, "queued");
+  assert.ok(result.scheduledAt.startsWith("2026-11-02T01:"));
+  assert.equal(env.calls[0].data.generation, 2);
+  const record = env.firestore.data.get(`${DELIVERY_COLLECTION}/payment-2026-10-santri-1`);
+  assert.equal(record.whatsapp_status, "sent");
+  assert.equal(record.manual, true);
+  const old = await runScheduledPaymentDelivery({ data: { ...env.calls[0].data, generation: 1 } }, env.options);
+  assert.deepEqual(old, { duplicate: true });
+});
+
+test("manual menolak santri lunas/periode sebelum tanggal 25; auth wajib admin", async () => {
+  await assert.rejects(runManualPaymentReminder({ year: 2026, month: 10, santriId: "s" },
+    dependencies([], undefined, new Date("2026-10-24")).options), /tanggal 25/);
+  await assert.rejects(runManualPaymentReminder({ year: 2026, month: 10, santriId: "s" },
+    dependencies([]).options), /lunas/);
+  await assert.rejects(requireAdmin({}, async () => assert.fail()), { code: "unauthenticated" });
+  await assert.rejects(requireAdmin({ auth: { uid: "santri" } }, async () => {
+    const error = new Error("Admin saja"); error.code = "permission-denied"; throw error;
+  }), { code: "permission-denied" });
+  let checked;
+  await requireAdmin({ auth: { uid: "admin" } }, async (uid) => { checked = uid; });
+  assert.equal(checked, "admin");
+});
+
+test("lima kegagalan berhenti otomatis, admin dapat mengulang kanal yang gagal", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
   let pushCalls = 0;
-  const patches = [];
-  const result = await runScheduledPaymentDelivery(
-    {
-      data: {
-        recipientUid: "santri-1",
-        phone: "081234567890",
-        message: "Pengingat pembayaran",
-        refId: "current-month-payment-2026-09-santri-1",
-        notificationType: "current-month-payment",
-        pushNotification: {
-          title: "Pengingat Pembayaran SPP",
-          body: "Pembayaran belum kami terima.",
-          data: { type: "payment_arrears" },
-        },
-      },
-    },
-    {
-      claim: async () => ({ status: "claimed" }),
-      send: async () => {
-        whatsappCalls += 1;
-      },
-      sendPush: async (uid, notification) => {
-        pushCalls += 1;
-        assert.equal(uid, "santri-1");
-        assert.equal(notification.data.type, "payment_arrears");
-        return { successCount: 1, failureCount: 0 };
-      },
-      persist: async (patch) => patches.push(patch),
-    },
-  );
-
-  assert.equal(whatsappCalls, 1);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await assert.rejects(runScheduledPaymentDelivery(task(reservation), {
+      ...env.options, loadPlan: async () => ({ messages: [item(santri(1))] }),
+      send: async () => { throw new Error("provider offline"); },
+      sendPush: async () => { pushCalls++; return { successCount: 1, failureCount: 0 }; },
+    }), /offline/);
+  }
   assert.equal(pushCalls, 1);
-  assert.equal(result.sent, true);
-  assert.equal(result.appNotification.status, "sent");
-  assert.ok(patches.some((patch) => patch.whatsapp_status === "sent"));
-  assert.ok(
-    patches.some((patch) => patch.app_notification_status === "sent"),
-  );
-  assert.equal(patches.at(-1).status, "sent");
+  const record = env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`);
+  assert.equal(record.cycle_attempts, 5);
+  const nextDay = { ...env.options, now: new Date("2026-10-26T08:00:00+07:00") };
+  await runPaymentReminderQueue(parts, nextDay);
+  assert.equal(env.calls.length, 0);
+  assert.equal((await paymentReminderDashboard(parts, nextDay)).items[0].status, "failed");
+  await runManualPaymentReminder({ year: 2026, month: 10, santriId: "santri-1" }, nextDay);
+  assert.equal(env.calls.length, 1);
+  assert.equal(env.calls[0].data.generation, 2);
 });
 
-test("retry notifikasi HP tidak mengirim ulang WhatsApp", async () => {
-  let whatsappCalls = 0;
-  let pushCalls = 0;
-  const result = await runScheduledPaymentDelivery(
-    {
-      data: {
-        recipientUid: "santri-1",
-        phone: "081234567890",
-        message: "Pengingat pembayaran",
-        refId: "current-month-payment-2026-09-santri-1",
-        notificationType: "current-month-payment",
-        pushNotification: {
-          title: "Pengingat Pembayaran SPP",
-          body: "Pembayaran belum kami terima.",
-          data: { type: "payment_arrears" },
-        },
-      },
-    },
-    {
-      claim: async () => ({
-        status: "claimed",
-        whatsappComplete: true,
-        appNotificationComplete: false,
-      }),
-      send: async () => {
-        whatsappCalls += 1;
-      },
-      sendPush: async () => {
-        pushCalls += 1;
-        return { successCount: 1, failureCount: 0 };
-      },
-      persist: async () => {},
-    },
-  );
+test("nomor invalid tetap mendapatkan notifikasi; koreksi nomor fallback dapat dikirim ke wali", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+  const deliveryItem = { ...item(santri(1)), phone: null };
+  await runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, loadPlan: async () => ({ messages: [deliveryItem] }),
+    send: async () => assert.fail("nomor kosong"),
+    sendPush: async () => ({ successCount: 1, failureCount: 0 }),
+  });
+  let record = env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`);
+  assert.equal(record.whatsapp_status, "invalid-phone");
+  assert.equal(record.app_notification_status, "sent");
+  env.firestore.put(`${DELIVERY_COLLECTION}/${reservation.refId}`, {
+    status: "sent", whatsapp_status: "sent", admin_fallback: true,
+    whatsapp_sent_at: ts(start), sent_at: ts(start),
+  });
+  const dashboard = await paymentReminderDashboard(parts, env.options);
+  assert.equal(dashboard.items[0].adminFallback, true);
+  assert.equal(dashboard.items[0].canSend, true);
+  await runManualPaymentReminder({ year: 2026, month: 10, santriId: "santri-1" }, env.options);
+  record = env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`);
+  assert.equal(record.whatsapp_status, "pending");
+  assert.equal(record.app_notification_status, "sent");
+  assert.equal(record.whatsapp_sent_at, undefined);
+  assert.equal(record.sent_at, undefined);
+});
 
-  assert.equal(whatsappCalls, 0);
-  assert.equal(pushCalls, 1);
-  assert.equal(result.whatsapp, "already-complete");
+test("susulan manual yang retry lewat jam 15 berlanjut esok meski periode bulan lalu", async () => {
+  const env = dependencies([santri(1)], undefined, new Date("2026-11-01T08:00:00+07:00"));
+  await runManualPaymentReminder({ year: 2026, month: 10, santriId: "santri-1" }, env.options);
+  const old = env.calls[0];
+  await runScheduledPaymentDelivery({ data: old.data }, {
+    ...env.options, now: new Date("2026-11-01T15:30:00+07:00"),
+  });
+  assert.equal(env.calls.length, 2);
+  assert.ok(env.calls[1].config.scheduleTime.toISOString().startsWith("2026-11-02T01:"));
+  assert.equal(env.calls[1].data.generation, 2);
+});
+
+test("pembayaran sebagian memperbarui isi pesan saat kirim, tanpa mengubah identitas reminder", async () => {
+  const env = dependencies([santri(1, 3)]);
+  const reservation = await reserveDelivery(item(santri(1, 3)), parts, env.options);
+  let message;
+  await runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, loadPlan: async () => ({ messages: [{ ...item(santri(1)), message: "Tinggal Oktober" }] }),
+    send: async (messages) => { message = messages[0]; },
+    sendPush: async () => ({ successCount: 1, failureCount: 0 }),
+  });
+  assert.equal(message.message, "Tinggal Oktober");
+  assert.equal(message.refId, reservation.refId);
+});
+
+test("error pemeriksaan pembayaran melepaskan lease dan terlihat gagal untuk retry", async () => {
+  const env = dependencies([santri(1)]);
+  const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+  await assert.rejects(runScheduledPaymentDelivery(task(reservation), {
+    ...env.options, loadPlan: async () => { throw new Error("Firestore offline"); },
+  }), /offline/);
+  const record = env.firestore.data.get(`${DELIVERY_COLLECTION}/${reservation.refId}`);
+  assert.equal(record.status, "failed");
+  assert.equal(record.lease_until, undefined);
+});
+
+test("pemeriksaan yang melewati pukul 15 menunda pengiriman; WA lambat menunda aplikasi", async () => {
+  for (const crossesDuring of ["read", "wa"]) {
+    const env = dependencies([santri(1)]);
+    const reservation = await reserveDelivery(item(santri(1)), parts, env.options);
+    let current = new Date("2026-10-25T14:59:59+07:00");
+    let wa = 0;
+    const late = () => { current = new Date("2026-10-25T15:00:01+07:00"); };
+    const result = await runScheduledPaymentDelivery(task(reservation), {
+      ...env.options, clock: () => current,
+      loadPlan: async () => { if (crossesDuring === "read") late(); return { messages: [item(santri(1))] }; },
+      send: async () => { wa++; late(); },
+      sendPush: async () => assert.fail("notifikasi tidak boleh mulai setelah 15.00"),
+    });
+    assert.equal(result.deferred, true);
+    assert.equal(wa, crossesDuring === "wa" ? 1 : 0);
+  }
 });

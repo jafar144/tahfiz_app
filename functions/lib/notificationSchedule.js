@@ -38,12 +38,7 @@ function assessmentJobNames(parts) {
 
 function paymentJobNames(parts) {
   const jobs = [];
-  if (parts.day === PAYMENT_DUE_DAY) {
-    jobs.push(PAYMENT_JOBS.paymentDue);
-  }
-  if (parts.day === ARREARS_MID_DAY) {
-    jobs.push(PAYMENT_JOBS.arrearsMidMonth);
-  }
+  // Reminder aplikasi dan WA kini berjalan bersama mulai tanggal 25.
   if (parts.day >= FIRST_REMINDER_DAY) {
     jobs.push(PAYMENT_JOBS.paymentReminderQueue);
   }

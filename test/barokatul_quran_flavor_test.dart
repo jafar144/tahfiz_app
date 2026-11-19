@@ -6,6 +6,7 @@ void main() {
   test('Barokatul Qur\'an memakai identitas flavor dan Firebase terpisah', () {
     expect(barokatulQuranAppConfig.flavor, 'barokatul_quran');
     expect(barokatulQuranAppConfig.appName, "Barokatul Qur'an");
+    expect(barokatulQuranAppConfig.notificationsEnabled, isFalse);
     expect(BarokatulQuranFirebaseOptions.android.projectId, 'barokatul-apps');
     expect(
       BarokatulQuranFirebaseOptions.android.appId,

@@ -36,12 +36,12 @@ class PaymentReminderScheduleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Jadwal Reminder WhatsApp',
+                      'Penjadwalan Pembayaran',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Tanggal ${schedule.firstDay}–${schedule.lastDay} • '
+                      'Mulai tanggal ${schedule.firstDay} • 08.00–15.00 WIB\n'
                       'jeda ${schedule.minIntervalMinutes}–'
                       '${schedule.maxIntervalMinutes} menit',
                       style: TextStyle(
@@ -96,8 +96,8 @@ class PaymentReminderScheduleSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
             child: Text(
-              'Setiap santri hanya mendapat satu reminder. Jadwal disusun '
-              'deterministik dalam zona WIB.',
+              'Pengiriman mulai tanggal 25, pukul 08.00–15.00 WIB. '
+              'Sisa antrean dilanjutkan ke hari berikutnya.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
             ),
@@ -136,10 +136,13 @@ class PaymentReminderScheduleSheet extends StatelessWidget {
                           '${item.typeLabel} • jeda ${item.intervalMinutes} menit',
                         ),
                         trailing: Text(
-                          DateFormat(
-                            'd MMM\nHH:mm',
-                            'id_ID',
-                          ).format(item.scheduledAt),
+                          item.scheduledAt == null
+                              ? item.statusLabel
+                              : DateFormat('d MMM\nHH:mm', 'id_ID').format(
+                                  PaymentReminderScheduleItem.wib(
+                                    item.scheduledAt!,
+                                  ),
+                                ),
                           textAlign: TextAlign.right,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),

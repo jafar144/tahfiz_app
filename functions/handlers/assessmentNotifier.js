@@ -20,14 +20,17 @@ const {
 // Seluruh kebutuhan penilaian berbagi satu scheduler dan dipilih berdasarkan
 // tanggal serta posisi terhadap akhir bulan di zona Jakarta.
 
-// WABLAS_ENABLED dari .env.<project> baru diterapkan setelah manifest dibuat.
-// Ikat secret tanpa kondisi agar tersedia ketika pengiriman runtime diaktifkan.
-const wablasSecrets = Object.values(require("../lib/wablasSecrets"));
+const { shouldBindWablasSecrets } = require("../lib/deploymentConfig");
+const wablasSecrets = shouldBindWablasSecrets()
+  ? Object.values(require("../lib/wablasSecrets"))
+  : [];
 const ASSESSMENT_SCHEDULE_OPTIONS = {
   ...SCHEDULE_OPTIONS,
   schedule: "30 19 * * *",
   timeoutSeconds: 300,
-  secrets: wablasSecrets,
+  ...(wablasSecrets.length > 0
+    ? { secrets: wablasSecrets }
+    : {}),
 };
 
 // --- Notif #1: pemberitahuan window penilaian dibuka (broadcast ke asatidz) ---
