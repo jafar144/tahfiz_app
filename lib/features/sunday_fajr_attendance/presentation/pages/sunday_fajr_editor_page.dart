@@ -380,7 +380,9 @@ class _EditorHeader extends StatelessWidget {
                       : Icons.lock_outline_rounded,
                   size: 12,
                   color: state.isEditable
-                      ? const Color(0xFF1D4ED8)
+                      ? (kGreenBrand
+                            ? const Color(0xFF2A683F)
+                            : const Color(0xFF1D4ED8))
                       : const Color(0xFF64748B),
                 ),
                 const SizedBox(width: 4),
@@ -390,7 +392,9 @@ class _EditorHeader extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: state.isEditable
-                        ? const Color(0xFF1D4ED8)
+                        ? (kGreenBrand
+                              ? const Color(0xFF2A683F)
+                              : const Color(0xFF1D4ED8))
                         : const Color(0xFF64748B),
                   ),
                 ),
@@ -741,13 +745,21 @@ class _FilterChip extends StatelessWidget {
         selectedColor: const Color(0xFFDBEAFE),
         backgroundColor: Colors.white,
         side: BorderSide(
-          color: selected ? const Color(0xFF93C5FD) : const Color(0xFFE2E8F0),
+          color: selected
+              ? (kGreenBrand
+                    ? const Color(0xFF75D495)
+                    : const Color(0xFF93C5FD))
+              : const Color(0xFFE2E8F0),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         labelStyle: TextStyle(
           fontSize: 10.5,
           fontWeight: FontWeight.w700,
-          color: selected ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+          color: selected
+              ? (kGreenBrand
+                    ? const Color(0xFF2A683F)
+                    : const Color(0xFF1D4ED8))
+              : const Color(0xFF64748B),
         ),
         visualDensity: VisualDensity.compact,
       ),

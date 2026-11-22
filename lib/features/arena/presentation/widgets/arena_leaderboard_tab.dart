@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/cubit/quiz_leaderboard_state.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Tab Papan Juara: scroll tingkatan kuis di atas, toggle mode
 /// Suara/Pilihan, lalu daftar peringkat Tantangan bulan berjalan (skor
@@ -183,7 +184,9 @@ class _ArenaLeaderboardTabState extends State<ArenaLeaderboardTab> {
                 QuizButton(
                   label: 'Coba Lagi',
                   icon: Icons.refresh_rounded,
-                  color: const Color(0xFF1C4364),
+                  color: (kGreenBrand
+                      ? const Color(0xFF264831)
+                      : const Color(0xFF1C4364)),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     vertical: 12,

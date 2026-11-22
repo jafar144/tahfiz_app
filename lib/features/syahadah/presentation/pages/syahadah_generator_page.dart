@@ -30,6 +30,7 @@ import 'package:khoirunnasyien/features/syahadah/presentation/widgets/syahadah_t
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SyahadahGeneratorPage extends StatefulWidget {
   const SyahadahGeneratorPage({super.key});
@@ -124,7 +125,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.upgrade_rounded, color: Colors.blue, size: 42),
+          const Icon(Icons.upgrade_rounded, color: AppColors.brand, size: 42),
           const SizedBox(height: 12),
           Text(
             '${promotion.milestone.displayLabel} adalah capaian terakhir '
@@ -135,7 +136,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
           const SizedBox(height: 12),
           DecoratedBox(
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppColors.brand.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Padding(
@@ -144,7 +145,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                 '${promotion.fromClass}  →  ${promotion.toClass}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.blue.shade800,
+                  color: AppColors.brand.shade800,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -162,7 +163,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       confirmText: 'Ya, Naikkan Kelas',
       confirmValue: true,
       cancelValue: false,
-      confirmColor: Colors.blue,
+      confirmColor: AppColors.brand,
     );
   }
 
@@ -179,7 +180,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
             children: [
               Icon(
                 Icons.workspace_premium_rounded,
-                color: Colors.blue,
+                color: AppColors.brand,
                 size: 28,
               ),
               SizedBox(width: 12),
@@ -229,7 +230,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
       confirmText: 'Bagikan Sekarang',
       confirmValue: true,
       cancelValue: false,
-      confirmColor: Colors.blue,
+      confirmColor: AppColors.brand,
     );
   }
 
@@ -724,7 +725,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                               children: [
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: Colors.blue.shade100,
+                                  backgroundColor: AppColors.brand.shade100,
                                   backgroundImage:
                                       _selectedSantri?.photoUrl != null
                                       ? NetworkImage(_selectedSantri!.photoUrl!)
@@ -732,7 +733,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                   child: _selectedSantri?.photoUrl == null
                                       ? const Icon(
                                           Icons.person,
-                                          color: Colors.blue,
+                                          color: AppColors.brand,
                                         )
                                       : null,
                                 ),
@@ -787,7 +788,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                             decoration: BoxDecoration(
                               color: _isTahsin
                                   ? Colors.orange.shade50
-                                  : Colors.blue.shade50,
+                                  : AppColors.brand.shade50,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -800,7 +801,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                   size: 16,
                                   color: _isTahsin
                                       ? Colors.orange.shade700
-                                      : Colors.blue.shade700,
+                                      : AppColors.brand.shade700,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -810,7 +811,7 @@ class _SyahadahGeneratorPageState extends State<SyahadahGeneratorPage> {
                                     fontWeight: FontWeight.w600,
                                     color: _isTahsin
                                         ? Colors.orange.shade700
-                                        : Colors.blue.shade700,
+                                        : AppColors.brand.shade700,
                                   ),
                                 ),
                               ],

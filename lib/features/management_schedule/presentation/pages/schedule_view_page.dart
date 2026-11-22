@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/sche
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/schedule_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class ScheduleViewPage extends StatelessWidget {
   const ScheduleViewPage({super.key});
@@ -95,7 +96,7 @@ class ScheduleViewPage extends StatelessWidget {
             }
           }
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: AppColors.brand,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -152,7 +153,7 @@ class ScheduleViewPage extends StatelessWidget {
             label,
             style: TextStyle(
               color: isSelected
-                  ? (value == 'P' ? Colors.red : Colors.blue)
+                  ? (value == 'P' ? Colors.red : AppColors.brand)
                   : Colors.grey.shade600,
               fontWeight: FontWeight.bold,
               fontSize: 14,
@@ -220,7 +221,7 @@ class ScheduleViewPage extends StatelessWidget {
     List<Halaqah> halaqahs,
     List<ScheduleProgram> programs,
   ) {
-    final accent = gender == 'L' ? Colors.blue : Colors.pink;
+    final accent = gender == 'L' ? AppColors.brand : Colors.pink;
     final teacherName = halaqahs.isNotEmpty ? halaqahs.first.teacherName : '-';
     final totalSantri = halaqahs.fold<int>(0, (sum, h) => sum + h.santriCount);
 
@@ -366,11 +367,11 @@ class ScheduleViewPage extends StatelessWidget {
   Color _getSessionColor(String session) {
     switch (session.toLowerCase()) {
       case 'pagi':
-        return Colors.blue;
+        return AppColors.brand;
       case 'sore':
         return Colors.orange.shade700;
       case 'malam':
-        return Colors.indigo.shade700;
+        return AppColors.brandDeep.shade700;
       default:
         return Colors.grey.shade700;
     }

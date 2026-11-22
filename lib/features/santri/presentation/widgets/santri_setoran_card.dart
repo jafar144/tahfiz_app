@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriSetoranCard extends StatelessWidget {
   final SantriSetoran setoran;
@@ -42,12 +43,12 @@ class SantriSetoranCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.brand.shade50,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.menu_book_rounded,
-                    color: Colors.blue.shade700,
+                    color: AppColors.brand.shade700,
                     size: 24,
                   ),
                 ),
@@ -143,14 +144,14 @@ class SantriSetoranCard extends StatelessWidget {
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.indigo.shade50,
+                    color: AppColors.brandDeep.shade50,
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     _getInitials(setoran.asatidzName),
                     style: TextStyle(
-                      color: Colors.indigo.shade400,
+                      color: AppColors.brandDeep.shade400,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class GenderDot extends StatelessWidget {
   final String gender;
@@ -7,7 +8,7 @@ class GenderDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = gender == 'L' ? Colors.blue : Colors.pinkAccent;
+    final color = gender == 'L' ? AppColors.brand : Colors.pinkAccent;
 
     return Container(
       width: 10,

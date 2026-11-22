@@ -16,6 +16,7 @@ import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_lis
 import 'package:khoirunnasyien/features/payment/presentation/widgets/payment_reminder_schedule_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AdminPaymentPage extends StatelessWidget {
   const AdminPaymentPage({super.key});
@@ -225,7 +226,7 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
                               children: [
                                 const Icon(
                                   Icons.calendar_month,
-                                  color: Colors.blue,
+                                  color: AppColors.brand,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
@@ -474,7 +475,7 @@ class _AdminPaymentViewState extends State<AdminPaymentView> {
             );
           }
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: AppColors.brand,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

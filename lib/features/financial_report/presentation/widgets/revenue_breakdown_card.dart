@@ -1,19 +1,33 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/core/utils/format_utils.dart';
 import 'package:khoirunnasyien/features/financial_report/domain/entities/financial_report_data.dart';
 
 /// Palet warna untuk tiap kelompok pendapatan (urut sesuai besar pendapatan).
-const _palette = [
-  Color(0xFF1E88E5), // biru
-  Color(0xFFFD5D6F), // merah muda
-  Color(0xFF0CAF60), // hijau
-  Color(0xFFFFA000), // amber
-  Color(0xFF8E5BE8), // ungu
-  Color(0xFF26C6DA), // cyan
-  Color(0xFFFF7043), // oranye
-  Color(0xFF78909C), // abu kebiruan
-];
+/// Al-Jauhar memakai brand hijau tanpa biru; slot hijau/cyan/abu kebiruan
+/// diganti agar setiap kelompok tetap mudah dibedakan.
+const _palette = kGreenBrand
+    ? [
+        AppColors.primary, // hijau brand
+        Color(0xFFFD5D6F), // merah muda
+        Color(0xFF8D6E63), // cokelat
+        Color(0xFFFFA000), // amber
+        Color(0xFF8E5BE8), // ungu
+        Color(0xFFC0CA33), // lime
+        Color(0xFFFF7043), // oranye
+        Color(0xFF9E9E9E), // abu
+      ]
+    : [
+        Color(0xFF1E88E5), // biru
+        Color(0xFFFD5D6F), // merah muda
+        Color(0xFF0CAF60), // hijau
+        Color(0xFFFFA000), // amber
+        Color(0xFF8E5BE8), // ungu
+        Color(0xFF26C6DA), // cyan
+        Color(0xFFFF7043), // oranye
+        Color(0xFF78909C), // abu kebiruan
+      ];
 
 Color _colorFor(int index) => _palette[index % _palette.length];
 

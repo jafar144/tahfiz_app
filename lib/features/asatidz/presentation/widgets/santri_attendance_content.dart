@@ -4,12 +4,13 @@ import 'package:khoirunnasyien/core/widgets/aiwa_button.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_outline_button.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 typedef AttendanceStatusChanged = void Function(String santriId, String status);
 
 enum _AttendanceStatus {
-  hadir('hadir', 'Hadir', Colors.blue, Icons.check_circle),
-  sakit('sakit', 'Sakit', Colors.blue, Icons.local_hospital),
+  hadir('hadir', 'Hadir', AppColors.brand, Icons.check_circle),
+  sakit('sakit', 'Sakit', AppColors.brand, Icons.local_hospital),
   izin('izin', 'Izin', Colors.orange, Icons.info),
   alpha('alpha', 'Alpha', Colors.red, Icons.cancel);
 
@@ -106,13 +107,13 @@ class ExistingAttendanceInfo extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppColors.brand.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(color: AppColors.brand.shade200),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
+          Icon(Icons.info_outline, color: AppColors.brand.shade700, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -121,7 +122,7 @@ class ExistingAttendanceInfo extends StatelessWidget {
                 Text(
                   'Sudah melakukan absen',
                   style: TextStyle(
-                    color: Colors.blue.shade900,
+                    color: AppColors.brand.shade900,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -130,7 +131,10 @@ class ExistingAttendanceInfo extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Terakhir: $formattedDate',
-                    style: TextStyle(color: Colors.blue.shade700, fontSize: 12),
+                    style: TextStyle(
+                      color: AppColors.brand.shade700,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ],
@@ -344,7 +348,7 @@ class _AttendanceStatusToggle extends StatelessWidget {
             width: 52,
             height: 32,
             decoration: BoxDecoration(
-              color: isPresent ? Colors.blue : Colors.grey.shade300,
+              color: isPresent ? AppColors.brand : Colors.grey.shade300,
               borderRadius: BorderRadius.circular(16),
             ),
             child: AnimatedAlign(
@@ -369,7 +373,7 @@ class _AttendanceStatusToggle extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.bold,
-              color: isPresent ? Colors.blue : Colors.grey.shade600,
+              color: isPresent ? AppColors.brand : Colors.grey.shade600,
             ),
           ),
         ],

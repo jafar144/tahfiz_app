@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AiwaSearch extends StatelessWidget {
   final TextEditingController controller;
@@ -52,7 +53,10 @@ class AiwaSearch extends StatelessWidget {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: const BorderSide(color: Colors.blue, width: 1),
+                  borderSide: const BorderSide(
+                    color: AppColors.brand,
+                    width: 1,
+                  ),
                 ),
               ),
             ),
@@ -63,7 +67,7 @@ class AiwaSearch extends StatelessWidget {
           height: 40,
           width: 40,
           decoration: BoxDecoration(
-            color: Colors.blue,
+            color: AppColors.brand,
             borderRadius: BorderRadius.circular(10),
           ),
           child: IconButton(

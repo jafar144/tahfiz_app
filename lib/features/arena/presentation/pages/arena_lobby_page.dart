@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/quiz_curriculum.d
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class ArenaLobbyPage extends StatelessWidget {
   const ArenaLobbyPage({super.key});
@@ -34,8 +35,10 @@ class _ArenaLobbyView extends StatefulWidget {
 }
 
 class _ArenaLobbyViewState extends State<_ArenaLobbyView> {
-  static const _nightTop = Color(0xFF0B2540);
-  static const _card = Color(0xFF14324A);
+  static const _nightTop = (kGreenBrand
+      ? Color(0xFF122819)
+      : Color(0xFF0B2540));
+  static const _card = (kGreenBrand ? Color(0xFF1C3624) : Color(0xFF14324A));
 
   PageController? _pageController;
   int _pageIndex = 0;
@@ -113,7 +116,10 @@ class _ArenaLobbyViewState extends State<_ArenaLobbyView> {
           gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF164E72), Color(0xFF0F766E)],
+            colors: [
+              (kGreenBrand ? Color(0xFF265335) : Color(0xFF164E72)),
+              Color(0xFF0F766E),
+            ],
           ),
           border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
         ),

@@ -9,6 +9,7 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart'
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
 import 'package:khoirunnasyien/features/syahadah/data/kelulusan_repository.dart';
 import 'package:khoirunnasyien/features/syahadah/data/syahadah_retention.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class KelulusanPhotoListPage extends StatefulWidget {
   const KelulusanPhotoListPage({super.key});
@@ -374,9 +375,9 @@ class _RetentionNotice extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppColors.brand.shade50,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.blue.shade100),
+        border: Border.all(color: AppColors.brand.shade100),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,13 +386,13 @@ class _RetentionNotice extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.blue.shade100,
+              color: AppColors.brand.shade100,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               Icons.info_outline_rounded,
               size: 20,
-              color: Colors.blue.shade800,
+              color: AppColors.brand.shade800,
             ),
           ),
           const SizedBox(width: 11),
@@ -402,7 +403,7 @@ class _RetentionNotice extends StatelessWidget {
                 Text(
                   'Tentang foto kelulusan',
                   style: TextStyle(
-                    color: Colors.blue.shade900,
+                    color: AppColors.brand.shade900,
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -413,7 +414,7 @@ class _RetentionNotice extends StatelessWidget {
                   'di Home Santri selama 7 hari, lalu dihapus otomatis setiap '
                   'Senin pukul 03.00 WIB.',
                   style: TextStyle(
-                    color: Colors.blue.shade800,
+                    color: AppColors.brand.shade800,
                     fontSize: 12,
                     height: 1.4,
                   ),

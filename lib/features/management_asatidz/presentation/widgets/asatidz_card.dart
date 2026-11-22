@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart'; // Added
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_entity.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AsatidzCard extends StatelessWidget {
   final AsatidzEntity asatidz;
@@ -25,18 +26,20 @@ class AsatidzCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = asatidz.jenisKelamin == 'L';
-    final primaryColor = isMale ? Colors.blue : Colors.red;
-    final backgroundColor = isMale ? Colors.blue.shade50 : Colors.red.shade50;
+    final primaryColor = isMale ? AppColors.brand : Colors.red;
+    final backgroundColor = isMale
+        ? AppColors.brand.shade50
+        : Colors.red.shade50;
 
     return Container(
       decoration: BoxDecoration(
         color: isEnabled
-            ? (isSelected ? Colors.blue.shade50 : Colors.white)
+            ? (isSelected ? AppColors.brand.shade50 : Colors.white)
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isSelected && isEnabled
-              ? Colors.blue.shade300
+              ? AppColors.brand.shade300
               : Colors.grey.shade200,
         ),
         boxShadow: [

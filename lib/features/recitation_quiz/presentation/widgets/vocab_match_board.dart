@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/vocab_ma
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Papan untuk memasangkan kata Arab dan arti: susun semua, lalu periksa.
 class VocabMatchBoard extends StatefulWidget {
@@ -150,7 +151,9 @@ class _VocabMatchBoardState extends State<VocabMatchBoard> {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = widget.light ? const Color(0xFF18303E) : Colors.white;
+    final foreground = widget.light
+        ? (kGreenBrand ? const Color(0xFF1E3224) : const Color(0xFF18303E))
+        : Colors.white;
     final muted = widget.light ? Colors.black45 : Colors.white54;
     final neutral = widget.light
         ? const Color(0xFFEAF1F3)

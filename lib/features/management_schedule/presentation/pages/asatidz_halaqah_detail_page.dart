@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/hala
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/schedule_program.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AsatidzHalaqahDetailPage extends StatefulWidget {
   final String teacherId;
@@ -53,7 +54,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
   int _loadRevision = 0;
 
   bool get _isMale => widget.gender == 'L';
-  Color get _accent => _isMale ? Colors.blue : Colors.pink;
+  Color get _accent => _isMale ? AppColors.brand : Colors.pink;
   String get _teacherName {
     final current = _teacher?.name.trim();
     if (current != null && current.isNotEmpty) return current;
@@ -423,7 +424,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
           _SessionChip(
             label: 'Tambah sesi',
             icon: Icons.add_rounded,
-            color: Colors.blue,
+            color: AppColors.brand,
             selected: false,
             dashedIntent: true,
             onTap: _openAddSession,
@@ -470,8 +471,8 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
                     icon: const Icon(Icons.edit_outlined, size: 16),
                     label: const Text('Edit'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.blue.shade700,
-                      side: BorderSide(color: Colors.blue.shade200),
+                      foregroundColor: AppColors.brand.shade700,
+                      side: BorderSide(color: AppColors.brand.shade200),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
@@ -581,7 +582,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
           Icon(
             Icons.event_available_outlined,
             size: 50,
-            color: Colors.blue[200],
+            color: AppColors.brand[200],
           ),
           const SizedBox(height: 12),
           const Text(
@@ -758,7 +759,7 @@ class _AsatidzHalaqahDetailPageState extends State<AsatidzHalaqahDetailPage> {
   Color _sessionColor(String session) => switch (session.toLowerCase()) {
     'pagi' => Colors.orange.shade700,
     'sore' => Colors.deepOrange.shade700,
-    'malam' => Colors.indigo.shade700,
+    'malam' => AppColors.brandDeep.shade700,
     _ => Colors.blueGrey.shade700,
   };
 

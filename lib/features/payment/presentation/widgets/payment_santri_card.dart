@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
 import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class PaymentSantriCard extends StatelessWidget {
   final SantriEntity santri;
@@ -21,8 +22,10 @@ class PaymentSantriCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = santri.jenisKelamin == 'L';
-    final primaryColor = isMale ? Colors.blue : Colors.red;
-    final backgroundColor = isMale ? Colors.blue.shade50 : Colors.red.shade50;
+    final primaryColor = isMale ? AppColors.brand : Colors.red;
+    final backgroundColor = isMale
+        ? AppColors.brand.shade50
+        : Colors.red.shade50;
 
     return Container(
       decoration: BoxDecoration(

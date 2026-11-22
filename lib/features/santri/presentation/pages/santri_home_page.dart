@@ -23,6 +23,7 @@ import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositori
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/sunday_fajr_eligibility.dart';
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/widgets/sunday_fajr_santri_preview.dart';
 import 'package:khoirunnasyien/core/services/app_update_service.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriHomePage extends StatefulWidget {
   const SantriHomePage({super.key});
@@ -278,7 +279,9 @@ class _SantriHomePageState extends State<SantriHomePage> {
 
     if (isFree) {
       accent = primary;
-      accentDark = const Color(0xFF1565C0);
+      accentDark = (kGreenBrand
+          ? const Color(0xFF2D7344)
+          : const Color(0xFF1565C0));
       statusIcon = Icons.volunteer_activism_rounded;
       statusTitle = 'Bebas SPP';
       statusSubtitle = 'Santri ini gratis, tidak ada tagihan SPP';

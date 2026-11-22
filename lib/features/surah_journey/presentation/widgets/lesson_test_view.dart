@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/surah_journey/domain/vocab_learning_rule
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_lesson_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Layar TEST bergaya journey (malam): campuran soal suara (sambung ayat /
 /// ayat terakhir) dan soal pilihan (materi / arti kata). Soal berganti dengan
@@ -829,7 +830,9 @@ class _OptionTile extends StatelessWidget {
                         letter,
                         style: TextStyle(
                           color: lockedState != null || picked
-                              ? const Color(0xFF0B2540)
+                              ? (kGreenBrand
+                                    ? const Color(0xFF122819)
+                                    : const Color(0xFF0B2540))
                               : Colors.white70,
                           fontWeight: FontWeight.w900,
                           fontSize: 13.5,

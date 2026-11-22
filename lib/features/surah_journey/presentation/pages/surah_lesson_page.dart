@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/lesso
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/lesson_overview_view.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/lesson_result_view.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/lesson_test_view.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Halaman sesi satu surah bergaya journey (malam islami): daftar bagian →
 /// belajar per bagian → test → hasil, dengan transisi geser berarah.
@@ -162,7 +163,9 @@ class _SurahLessonPageState extends State<SurahLessonPage> {
   Future<bool?> _confirmLeave(BuildContext context) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: const Color(0xFF102A3D),
+      backgroundColor: (kGreenBrand
+          ? const Color(0xFF172D1E)
+          : const Color(0xFF102A3D)),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),

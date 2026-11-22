@@ -11,14 +11,15 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_state.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/pages/surah_journey_page.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class ArenaColors {
   ArenaColors._();
 
-  static const skyTop = Color(0xFF0B2540);
+  static const skyTop = (kGreenBrand ? Color(0xFF122819) : Color(0xFF0B2540));
   static const skyBottom = Color(0xFF123B33);
-  static const card = Color(0xFF14324A);
-  static const navBar = Color(0xFF0A1F35);
+  static const card = (kGreenBrand ? Color(0xFF1C3624) : Color(0xFF14324A));
+  static const navBar = (kGreenBrand ? Color(0xFF0F2215) : Color(0xFF0A1F35));
 }
 
 class ArenaPage extends StatefulWidget {

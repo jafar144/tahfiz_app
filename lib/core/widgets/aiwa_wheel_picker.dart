@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AiwaWheelPicker<T> extends StatelessWidget {
   final int initialItem;
@@ -31,7 +31,7 @@ class AiwaWheelPicker<T> extends StatelessWidget {
         Container(
           height: itemExtent,
           decoration: BoxDecoration(
-            color: highlightColor ?? Colors.blue.withValues(alpha: 0.1),
+            color: highlightColor ?? AppColors.brand.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
         ),

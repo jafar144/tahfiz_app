@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/core/institution/domain/institution_curriculum.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class GraduationMilestoneField extends StatelessWidget {
   final String className;
@@ -175,14 +176,14 @@ class _MilestonePickerSheet extends StatelessWidget {
                     leading: CircleAvatar(
                       radius: 17,
                       backgroundColor: isSelected
-                          ? Colors.blue
-                          : Colors.blue.shade50,
+                          ? AppColors.brand
+                          : AppColors.brand.shade50,
                       child: Text(
                         '${milestone.number}',
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : Colors.blue.shade700,
+                              : AppColors.brand.shade700,
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -195,7 +196,7 @@ class _MilestonePickerSheet extends StatelessWidget {
                             'Menuntaskan kelas • naik ke ${promotion.toClass}',
                           ),
                     trailing: isSelected
-                        ? const Icon(Icons.check_circle, color: Colors.blue)
+                        ? const Icon(Icons.check_circle, color: AppColors.brand)
                         : null,
                     onTap: () => Navigator.pop(context, milestone),
                   ),

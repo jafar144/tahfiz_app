@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/entities/santri
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SelectSantriPage extends StatefulWidget {
   final String? genderFiltered;
@@ -328,7 +329,7 @@ class _SelectionTrailing extends StatelessWidget {
         key: Key('santri_select_checkbox_$santriId'),
         value: isSelected,
         onChanged: onChanged == null ? null : (_) => onChanged?.call(),
-        activeColor: Colors.blue,
+        activeColor: AppColors.brand,
         visualDensity: VisualDensity.compact,
       ),
     );

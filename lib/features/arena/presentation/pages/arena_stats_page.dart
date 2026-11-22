@@ -5,6 +5,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_ene
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Halaman detail Energi & XP — dibuka dari badge header Petualangan Surah
 /// dengan animasi naik dari bawah. Konten rincian (riwayat, hadiah, dsb.)
@@ -193,7 +194,10 @@ class _XpCard extends StatelessWidget {
       iconBg: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF4FC3F7), QuizColors.xpBlue],
+        colors: [
+          (kGreenBrand ? Color(0xFF64CC86) : Color(0xFF4FC3F7)),
+          QuizColors.xpBlue,
+        ],
       ),
       icon: Icons.star_rounded,
       label: 'TOTAL XP',

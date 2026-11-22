@@ -29,6 +29,7 @@ import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/repositori
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/domain/sunday_fajr_eligibility.dart';
 import 'package:khoirunnasyien/features/sunday_fajr_attendance/presentation/widgets/sunday_fajr_santri_preview.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriDetailPage extends StatefulWidget {
   final String santriId;
@@ -78,7 +79,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
         appBar: AiwaAppBar(
           title: 'Detail Santri',
           centerTitle: true,
-          backgroundColor: Colors.blue.shade600,
+          backgroundColor: AppColors.brand.shade600,
           foregroundColor: Colors.white,
         ),
         body: BlocBuilder<SantriDetailCubit, SantriDetailState>(
@@ -108,7 +109,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                 },
                 icon: const Icon(Icons.edit),
                 label: const Text('Edit Profil'),
-                backgroundColor: Colors.blue.shade600,
+                backgroundColor: AppColors.brand.shade600,
               );
             }
             return const SizedBox();
@@ -453,12 +454,12 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppColors.brand.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
               Icons.supervisor_account,
-              color: Colors.blue.shade700,
+              color: AppColors.brand.shade700,
               size: 20,
             ),
           ),
@@ -486,10 +487,13 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           if (!widget.readOnly)
             IconButton(
               onPressed: () => _openSwitchPembimbing(detail),
-              icon: Icon(Icons.swap_horiz_rounded, color: Colors.blue.shade700),
+              icon: Icon(
+                Icons.swap_horiz_rounded,
+                color: AppColors.brand.shade700,
+              ),
               tooltip: 'Ganti Pembimbing',
               style: IconButton.styleFrom(
-                backgroundColor: Colors.blue.shade50,
+                backgroundColor: AppColors.brand.shade50,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -533,7 +537,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade600,
+              color: AppColors.brand.shade600,
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
@@ -552,7 +556,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Colors.blue.shade800,
+                    color: AppColors.brand.shade800,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -636,7 +640,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue.shade800,
+                color: AppColors.brand.shade800,
               ),
             )
           : null,
@@ -650,7 +654,7 @@ class _SantriDetailPageState extends State<SantriDetailPage> {
           width: double.infinity,
           height: 150,
           decoration: BoxDecoration(
-            color: Colors.blue.shade600,
+            color: AppColors.brand.shade600,
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(30),
               bottomRight: Radius.circular(30),

@@ -480,18 +480,18 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                         ],
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Colors.blue.withValues(alpha: 0.05),
+                          fillColor: AppColors.brand.withValues(alpha: 0.05),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: Colors.blue,
+                              color: AppColors.brand,
                               width: 1,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: Colors.blue.withValues(alpha: 0.3),
+                              color: AppColors.brand.withValues(alpha: 0.3),
                             ),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
@@ -913,7 +913,7 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
-                    fillColor: Colors.blue.withValues(alpha: 0.05),
+                    fillColor: AppColors.brand.withValues(alpha: 0.05),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
@@ -921,13 +921,13 @@ class _InputPaymentViewState extends State<InputPaymentView> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.3),
+                        color: AppColors.brand.withValues(alpha: 0.3),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.3),
+                        color: AppColors.brand.withValues(alpha: 0.3),
                       ),
                     ),
                     hintText: 'Rp 0',

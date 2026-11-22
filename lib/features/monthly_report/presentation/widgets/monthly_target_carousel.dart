@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class _MonthlyTargetViewData {
   final String asatidzDisplayName;
@@ -298,7 +299,7 @@ class _MonthlyTargetCard extends StatelessWidget {
     if (period.isAfter(current)) {
       return const _TargetStatus(
         'Akan datang',
-        Color(0xFF2563EB),
+        (kGreenBrand ? Color(0xFF2E7B48) : Color(0xFF2563EB)),
         Color(0xFFEFF6FF),
         Icons.calendar_month_outlined,
       );

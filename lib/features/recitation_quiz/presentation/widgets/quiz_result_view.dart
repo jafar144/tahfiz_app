@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_rev
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_haptics.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 String _multiplierText(double value) => value == value.roundToDouble()
     ? value.toInt().toString()
@@ -607,7 +608,7 @@ class _ResultTotalValue extends StatelessWidget {
               letterSpacing: -2,
               shadows: [
                 Shadow(
-                  color: Color(0x5500AEEF),
+                  color: (kGreenBrand ? Color(0x5536BA62) : Color(0x5500AEEF)),
                   blurRadius: 18,
                   offset: Offset(0, 5),
                 ),

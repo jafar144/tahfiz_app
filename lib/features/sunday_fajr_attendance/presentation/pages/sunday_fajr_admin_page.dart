@@ -141,7 +141,9 @@ class _SundayFajrAdminView extends StatelessWidget {
                                   child: Text(
                                     '${state.history.length} minggu',
                                     style: const TextStyle(
-                                      color: Color(0xFF2563EB),
+                                      color: (kGreenBrand
+                                          ? Color(0xFF2E7B48)
+                                          : Color(0xFF2563EB)),
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -283,7 +285,9 @@ class _RecordsHeader extends StatelessWidget {
                     Text(
                       '$totalRecords data',
                       style: const TextStyle(
-                        color: Color(0xFF2563EB),
+                        color: (kGreenBrand
+                            ? Color(0xFF2E7B48)
+                            : Color(0xFF2563EB)),
                         fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                       ),
@@ -364,7 +368,9 @@ class _AttendanceHistoryCard extends StatelessWidget {
                             pattern: 'dd',
                           ),
                           style: const TextStyle(
-                            color: Color(0xFF1D4ED8),
+                            color: (kGreenBrand
+                                ? Color(0xFF2A683F)
+                                : Color(0xFF1D4ED8)),
                             fontSize: 18,
                             height: 1,
                             fontWeight: FontWeight.w900,
@@ -377,7 +383,9 @@ class _AttendanceHistoryCard extends StatelessWidget {
                             pattern: 'MMM',
                           ).toUpperCase(),
                           style: const TextStyle(
-                            color: Color(0xFF60A5FA),
+                            color: (kGreenBrand
+                                ? Color(0xFF3BB965)
+                                : Color(0xFF60A5FA)),
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                           ),
@@ -434,7 +442,9 @@ class _AttendanceHistoryCard extends StatelessWidget {
                               : Icons.lock_outline_rounded,
                           size: 11,
                           color: editable
-                              ? const Color(0xFF1D4ED8)
+                              ? (kGreenBrand
+                                    ? const Color(0xFF2A683F)
+                                    : const Color(0xFF1D4ED8))
                               : const Color(0xFF64748B),
                         ),
                         const SizedBox(width: 4),
@@ -444,7 +454,9 @@ class _AttendanceHistoryCard extends StatelessWidget {
                             fontSize: 9.5,
                             fontWeight: FontWeight.w700,
                             color: editable
-                                ? const Color(0xFF1D4ED8)
+                                ? (kGreenBrand
+                                      ? const Color(0xFF2A683F)
+                                      : const Color(0xFF1D4ED8))
                                 : const Color(0xFF64748B),
                           ),
                         ),
@@ -586,7 +598,7 @@ class _EmptyHistory extends StatelessWidget {
               child: const Icon(
                 Icons.event_available_outlined,
                 size: 34,
-                color: Color(0xFF60A5FA),
+                color: (kGreenBrand ? Color(0xFF3BB965) : Color(0xFF60A5FA)),
               ),
             ),
             const SizedBox(height: 16),

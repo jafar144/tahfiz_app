@@ -9,6 +9,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_form_widgets.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class DetailAsatidzPage extends StatefulWidget {
   final String asatidzId;
@@ -44,7 +45,7 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
         appBar: AiwaAppBar(
           title: 'Detail Asatidz',
           centerTitle: true,
-          backgroundColor: Colors.blue.shade600,
+          backgroundColor: AppColors.brand.shade600,
           foregroundColor: Colors.white,
         ),
         body: BlocBuilder<AsatidzDetailCubit, AsatidzDetailState>(
@@ -75,7 +76,7 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
                     },
                     icon: const Icon(Icons.edit),
                     label: const Text('Edit Profil'),
-                    backgroundColor: Colors.blue.shade600,
+                    backgroundColor: AppColors.brand.shade600,
                   );
                 }
                 return const SizedBox();
@@ -160,7 +161,7 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
           width: double.infinity,
           height: 150,
           decoration: BoxDecoration(
-            color: Colors.blue.shade600,
+            color: AppColors.brand.shade600,
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(30),
               bottomRight: Radius.circular(30),
@@ -198,7 +199,7 @@ class _DetailAsatidzPageState extends State<DetailAsatidzPage> {
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade800,
+                            color: AppColors.brand.shade800,
                           ),
                         )
                       : null,

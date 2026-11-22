@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart
 import 'package:khoirunnasyien/core/services/app_update_service.dart';
 import 'package:khoirunnasyien/features/home/domain/entities/admin_home_data.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AdminHomePage extends StatefulWidget {
   const AdminHomePage({super.key});
@@ -127,7 +128,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                 value: _formatValue(
                                   displayData.totalSantriPutra,
                                 ),
-                                color: Colors.blue,
+                                color: AppColors.brand,
                                 displayIndex: _santriInfoIndex,
                                 details: [
                                   InfoCardDetail(
@@ -140,7 +141,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                     label: 'Malam',
                                     value: displayData.santriPutraMalam,
                                     icon: Icons.nights_stay_outlined,
-                                    color: Colors.indigo.shade700,
+                                    color: AppColors.brandDeep.shade700,
                                   ),
                                 ],
                                 masuk: displayData.masukPutra,
@@ -180,7 +181,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
                                   displayData.totalAsatidzPutra,
                                 ),
                                 icon: Icons.school_rounded,
-                                color: Colors.blue,
+                                color: AppColors.brand,
                               ),
                               const SizedBox(width: 12),
                               InfoCard(
@@ -210,38 +211,38 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.calendar_month_rounded,
                   title: 'Halaqah',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminSchedule),
                 ),
                 MenuCard(
                   icon: Icons.wb_twilight_rounded,
                   title: 'Minggu Subuh',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () =>
                       context.pushNamed(RouteNames.adminSundayFajrAttendance),
                 ),
                 MenuCard(
                   icon: Icons.fact_check_rounded,
                   title: 'Penilaian',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminAssessment),
                 ),
                 MenuCard(
                   icon: Icons.workspace_premium_rounded,
                   title: 'Kelulusan',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminSyahadah),
                 ),
                 MenuCard(
                   icon: Icons.record_voice_over_rounded,
                   title: 'Uji Bacaan',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.recitationCheck),
                 ),
                 MenuCard(
                   icon: Icons.sports_esports_rounded,
                   title: 'Tahfiz Arena',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.arena),
                 ),
               ]),
@@ -252,13 +253,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.payments_rounded,
                   title: 'Pembayaran',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminPayment),
                 ),
                 MenuCard(
                   icon: Icons.bar_chart_rounded,
                   title: 'Laporan Keuangan',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.financialReport),
                 ),
               ]),
@@ -269,13 +270,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 MenuCard(
                   icon: Icons.schedule_send_rounded,
                   title: 'Penjadwalan',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminScheduling),
                 ),
                 MenuCard(
                   icon: Icons.family_restroom_rounded,
                   title: 'Keluarga',
-                  color: Colors.blue,
+                  color: AppColors.brand,
                   onTap: () => context.pushNamed(RouteNames.adminFamily),
                 ),
               ]),

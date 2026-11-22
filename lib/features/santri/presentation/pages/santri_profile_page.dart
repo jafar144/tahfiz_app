@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart'
 import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_home_cubit.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriProfilePage extends StatefulWidget {
   const SantriProfilePage({super.key});
@@ -69,12 +70,12 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
+          colors: [AppColors.brand.shade600, AppColors.brand.shade400],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.3),
+            color: AppColors.brand.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -102,7 +103,7 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade600,
+                  color: AppColors.brand.shade600,
                 ),
               ),
             ),
@@ -190,10 +191,10 @@ class _SantriProfilePageState extends State<SantriProfilePage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.brand.shade50,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: Colors.blue.shade700),
+          child: Icon(icon, size: 20, color: AppColors.brand.shade700),
         ),
         const SizedBox(width: 12),
         Expanded(

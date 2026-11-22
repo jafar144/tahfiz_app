@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/auth/data/model/user_model.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:khoirunnasyien/features/auth/presentation/cubit/auth_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AsatidzProfilePage extends StatelessWidget {
   const AsatidzProfilePage({super.key});
@@ -50,12 +51,12 @@ class AsatidzProfilePage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
+          colors: [AppColors.brand.shade600, AppColors.brand.shade400],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.3),
+            color: AppColors.brand.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -91,7 +92,7 @@ class AsatidzProfilePage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade600,
+                        color: AppColors.brand.shade600,
                       ),
                     ),
                   ),
@@ -174,10 +175,10 @@ class AsatidzProfilePage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.blue.shade50,
+            color: AppColors.brand.shade50,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: Colors.blue.shade700),
+          child: Icon(icon, size: 20, color: AppColors.brand.shade700),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -217,7 +218,7 @@ class AsatidzProfilePage extends StatelessWidget {
           content: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.swap_horiz, color: Colors.blue, size: 28),
+              const Icon(Icons.swap_horiz, color: AppColors.brand, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -230,7 +231,7 @@ class AsatidzProfilePage extends StatelessWidget {
           confirmText: 'Ya, Ganti',
           confirmValue: true,
           cancelValue: false,
-          confirmColor: Colors.blue,
+          confirmColor: AppColors.brand,
         );
         if (confirmed == true && context.mounted) {
           context.read<AuthCubit>().switchRole();
@@ -240,19 +241,19 @@ class AsatidzProfilePage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: AppColors.brand.shade50,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.blue.shade200),
+          border: Border.all(color: AppColors.brand.shade200),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.swap_horiz, size: 16, color: Colors.blue.shade700),
+            Icon(Icons.swap_horiz, size: 16, color: AppColors.brand.shade700),
             const SizedBox(width: 4),
             Text(
               "Switch",
               style: TextStyle(
-                color: Colors.blue.shade700,
+                color: AppColors.brand.shade700,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),

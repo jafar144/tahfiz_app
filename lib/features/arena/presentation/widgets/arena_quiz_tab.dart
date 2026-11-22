@@ -14,6 +14,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/rules/quiz_diffic
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class ArenaQuizTab extends StatelessWidget {
   const ArenaQuizTab({super.key});
@@ -78,7 +79,10 @@ class ArenaQuizTab extends StatelessWidget {
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFF1D4ED8), Color(0xFF0E7490)],
+                  colors: [
+                    (kGreenBrand ? Color(0xFF2A683F) : Color(0xFF1D4ED8)),
+                    (kGreenBrand ? Color(0xFF2D7946) : Color(0xFF0E7490)),
+                  ],
                 ),
                 icon: Icons.fitness_center_rounded,
                 title: 'Latihan',
@@ -287,7 +291,9 @@ class _ModeCard extends StatelessWidget {
             onPressed: onPressed,
             label: buttonLabel,
             color: Colors.white,
-            foregroundColor: const Color(0xFF12324B),
+            foregroundColor: (kGreenBrand
+                ? const Color(0xFF1B3524)
+                : const Color(0xFF12324B)),
             padding: const EdgeInsets.symmetric(vertical: 13),
             borderRadius: 14,
           ),

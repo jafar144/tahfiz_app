@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/asatidz_dashboard_page.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/asatidz_santri_page.dart';
 import 'package:khoirunnasyien/features/asatidz/presentation/pages/asatidz_profile_page.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AsatidzShellPage extends StatefulWidget {
   const AsatidzShellPage({super.key});
@@ -42,7 +43,7 @@ class _AsatidzShellPageState extends State<AsatidzShellPage> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: Colors.blue,
+          selectedItemColor: AppColors.brand,
           unselectedItemColor: Colors.grey,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           items: const [

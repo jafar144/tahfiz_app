@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:khoirunnasyien/core/utils/image_utils.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 enum ProfilePhotoType { santri, asatidz }
 
@@ -63,9 +64,13 @@ class ProfilePhotoPicker {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: type.editorTitle,
-          toolbarColor: const Color(0xFF004AAD),
+          toolbarColor: (kGreenBrand
+              ? const Color(0xFF1A5B30)
+              : const Color(0xFF004AAD)),
           toolbarWidgetColor: Colors.white,
-          activeControlsWidgetColor: const Color(0xFF004AAD),
+          activeControlsWidgetColor: (kGreenBrand
+              ? const Color(0xFF1A5B30)
+              : const Color(0xFF004AAD)),
           lockAspectRatio: true,
           showCropGrid: true,
         ),
@@ -200,7 +205,13 @@ class _PhotoSourceTile extends StatelessWidget {
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: const Color(0xFF004AAD), size: 23),
+                child: Icon(
+                  icon,
+                  color: (kGreenBrand
+                      ? const Color(0xFF1A5B30)
+                      : const Color(0xFF004AAD)),
+                  size: 23,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

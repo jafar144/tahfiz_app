@@ -44,7 +44,8 @@ class AlJauharSyahadahTemplate extends StatelessWidget {
     return '${months[date.month]}  ${date.year}';
   }
 
-  static const _bgColor = Color(0xFF004aad);
+  // Hijau zamrud brand Al-Jauhar (setara luminans biru template Khoirun).
+  static const _bgColor = Color(0xFF085D2B);
   static const _goldColor = Color(0xFFFFC550);
   static const _creamColor = Color(0xFFFFFBD5);
 

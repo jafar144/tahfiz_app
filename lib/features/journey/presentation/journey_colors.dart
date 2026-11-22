@@ -7,7 +7,9 @@ class JourneyColors {
   const JourneyColors._();
 
   // Biru selaras dengan primary app (dipakai di tombol, dll).
-  static const primaryDeep = Color(0xFF0D47A1);
+  static const primaryDeep = (kGreenBrand
+      ? Color(0xFF1F5531)
+      : Color(0xFF0D47A1));
   static const primaryMid = AppColors.primary;
   static const gold = Color(0xFFC9A84C);
   static const goldLight = Color(0xFFE8C96A);

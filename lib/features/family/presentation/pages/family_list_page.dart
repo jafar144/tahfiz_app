@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_app_bar.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.dart';
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class FamilyListPage extends StatefulWidget {
   const FamilyListPage({super.key});
@@ -31,7 +32,7 @@ class _FamilyListPageState extends State<FamilyListPage> {
           await context.pushNamed(RouteNames.familyForm);
           if (context.mounted) context.read<FamilyCubit>().loadFamilies();
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: AppColors.brand,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: BlocBuilder<FamilyCubit, FamilyState>(
@@ -121,12 +122,12 @@ class _FamilyListPageState extends State<FamilyListPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppColors.brand.shade50,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
                     Icons.family_restroom,
-                    color: Colors.blue.shade700,
+                    color: AppColors.brand.shade700,
                     size: 24,
                   ),
                 ),

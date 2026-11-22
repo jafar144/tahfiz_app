@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/repositories/
 import 'package:khoirunnasyien/features/session_spin/data/session_spin_loader.dart';
 import 'package:khoirunnasyien/features/session_spin/domain/session_spin.dart';
 import 'package:khoirunnasyien/features/session_spin/presentation/widgets/session_spin_wheel.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SessionSpinPage extends StatefulWidget {
   final String teacherId;
@@ -361,13 +362,13 @@ class _SessionSpinPageState extends State<SessionSpinPage> {
                   title: Text(santri.name),
                   subtitle: Text('NIS ${santri.nis} • ${santri.kelas}'),
                   secondary: CircleAvatar(
-                    backgroundColor: Colors.blue.shade50,
+                    backgroundColor: AppColors.brand.shade50,
                     child: Text(
                       santri.name.trim().isEmpty
                           ? '?'
                           : santri.name.trim()[0].toUpperCase(),
                       style: TextStyle(
-                        color: Colors.blue.shade700,
+                        color: AppColors.brand.shade700,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -447,7 +448,7 @@ class _SessionSpinPageState extends State<SessionSpinPage> {
                 leading: CircleAvatar(
                   backgroundColor: index == 0
                       ? Colors.orange.shade100
-                      : Colors.blue.shade50,
+                      : AppColors.brand.shade50,
                   child: Text('${index + 1}'),
                 ),
                 title: Text(_session.order[index].name),

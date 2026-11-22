@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_reminder_schedule.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class PaymentReminderScheduleCard extends StatelessWidget {
   final PaymentReminderSchedule schedule;
@@ -27,7 +28,9 @@ class PaymentReminderScheduleCard extends StatelessWidget {
             children: [
               const CircleAvatar(
                 backgroundColor: Color(0xFFDCEBFF),
-                foregroundColor: Color(0xFF2563EB),
+                foregroundColor: (kGreenBrand
+                    ? Color(0xFF2E7B48)
+                    : Color(0xFF2563EB)),
                 child: Icon(Icons.schedule_send_rounded),
               ),
               const SizedBox(width: 12),
@@ -55,13 +58,16 @@ class PaymentReminderScheduleCard extends StatelessWidget {
               Text(
                 '${schedule.items.length}',
                 style: const TextStyle(
-                  color: Color(0xFF2563EB),
+                  color: (kGreenBrand ? Color(0xFF2E7B48) : Color(0xFF2563EB)),
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF2563EB)),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: (kGreenBrand ? Color(0xFF2E7B48) : Color(0xFF2563EB)),
+              ),
             ],
           ),
         ),

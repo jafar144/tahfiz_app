@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/financial_report/presentation/widgets/fi
 import 'package:khoirunnasyien/features/financial_report/presentation/widgets/revenue_breakdown_card.dart';
 import 'package:khoirunnasyien/features/payment/presentation/widgets/student_payment_list_bottom_sheet.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class FinancialReportPage extends StatelessWidget {
   const FinancialReportPage({super.key});
@@ -84,7 +85,7 @@ class FinancialReportView extends StatelessWidget {
                       },
                       child: const Text(
                         'Pilih',
-                        style: TextStyle(color: Colors.blue),
+                        style: TextStyle(color: AppColors.brand),
                       ),
                     ),
                   ],
@@ -255,7 +256,11 @@ class FinancialReportView extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_month, color: Colors.blue, size: 20),
+              const Icon(
+                Icons.calendar_month,
+                color: AppColors.brand,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 label,

@@ -14,6 +14,7 @@ import 'package:khoirunnasyien/features/management_santri/presentation/cubit/san
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AdminSantriPage extends StatefulWidget {
   const AdminSantriPage({super.key});
@@ -167,7 +168,7 @@ class _AdminSantriPageState extends State<AdminSantriPage> {
           await context.pushNamed(RouteNames.addSantri);
           if (mounted) _fetchData();
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: AppColors.brand,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
@@ -804,9 +805,11 @@ class _ListControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = isActive ? Colors.blue.shade700 : Colors.grey.shade800;
-    final border = isActive ? Colors.blue.shade300 : Colors.grey.shade300;
-    final background = isActive ? Colors.blue.shade50 : Colors.white;
+    final foreground = isActive
+        ? AppColors.brand.shade700
+        : Colors.grey.shade800;
+    final border = isActive ? AppColors.brand.shade300 : Colors.grey.shade300;
+    final background = isActive ? AppColors.brand.shade50 : Colors.white;
 
     return Material(
       color: background,
@@ -844,7 +847,7 @@ class _ListControlButton extends StatelessWidget {
                   dimension: 20,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade700,
+                      color: AppColors.brand.shade700,
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -901,10 +904,10 @@ class _FilterSection extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppColors.brand.shade50,
                 borderRadius: BorderRadius.circular(9),
               ),
-              child: Icon(icon, size: 17, color: Colors.blue.shade700),
+              child: Icon(icon, size: 17, color: AppColors.brand.shade700),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -946,7 +949,7 @@ class _SortOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isSelected ? Colors.blue.shade50 : Colors.white,
+      color: isSelected ? AppColors.brand.shade50 : Colors.white,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -956,7 +959,9 @@ class _SortOptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected ? Colors.blue.shade300 : Colors.grey.shade200,
+              color: isSelected
+                  ? AppColors.brand.shade300
+                  : Colors.grey.shade200,
             ),
           ),
           child: Row(
@@ -966,14 +971,14 @@ class _SortOptionTile extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.blue.shade100
+                      ? AppColors.brand.shade100
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
                   color: isSelected
-                      ? Colors.blue.shade700
+                      ? AppColors.brand.shade700
                       : Colors.grey.shade700,
                   size: 20,
                 ),
@@ -1007,7 +1012,7 @@ class _SortOptionTile extends StatelessWidget {
                 isSelected
                     ? Icons.radio_button_checked_rounded
                     : Icons.radio_button_off_rounded,
-                color: isSelected ? Colors.blue : Colors.grey.shade400,
+                color: isSelected ? AppColors.brand : Colors.grey.shade400,
                 size: 21,
               ),
             ],
@@ -1036,13 +1041,13 @@ class _EmptySantriState extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: AppColors.brand.shade50,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.person_search_outlined,
                 size: 34,
-                color: Colors.blue.shade300,
+                color: AppColors.brand.shade300,
               ),
             ),
             const SizedBox(height: 16),

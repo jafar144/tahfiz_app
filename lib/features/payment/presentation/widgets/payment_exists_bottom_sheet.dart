@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:khoirunnasyien/features/payment/domain/entities/payment_entity.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class PaymentExistsBottomSheet extends StatelessWidget {
   final PaymentEntity payment;
@@ -99,7 +100,7 @@ class PaymentExistsBottomSheet extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onClose,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.brand,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

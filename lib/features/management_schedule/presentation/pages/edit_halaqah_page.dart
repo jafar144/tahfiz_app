@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/hala
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/program_schedule.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class EditHalaqahPage extends StatefulWidget {
   const EditHalaqahPage({super.key});
@@ -151,12 +152,12 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade700, Colors.blue.shade500],
+          colors: [AppColors.brand.shade700, AppColors.brand.shade500],
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.blue.withValues(alpha: 0.15),
+            color: AppColors.brand.withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 7),
           ),
@@ -328,19 +329,19 @@ class _EditHalaqahPageState extends State<EditHalaqahPage> {
                           final selected = draft.contains(schedule.id);
                           return CheckboxListTile(
                             value: selected,
-                            activeColor: Colors.blue,
+                            activeColor: AppColors.brand,
                             controlAffinity: ListTileControlAffinity.trailing,
                             secondary: Container(
                               width: 38,
                               height: 38,
                               decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
+                                color: AppColors.brand.shade50,
                                 borderRadius: BorderRadius.circular(11),
                               ),
                               child: Icon(
                                 Icons.event_available_outlined,
                                 size: 20,
-                                color: Colors.blue.shade700,
+                                color: AppColors.brand.shade700,
                               ),
                             ),
                             title: Text(
@@ -618,7 +619,7 @@ class _SelectedValueChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = warning ? Colors.orange.shade800 : Colors.blue.shade700;
+    final color = warning ? Colors.orange.shade800 : AppColors.brand.shade700;
     return InputChip(
       label: Text(
         label,
@@ -631,9 +632,11 @@ class _SelectedValueChip extends StatelessWidget {
       avatar: Icon(icon, size: 15, color: color),
       deleteIcon: Icon(Icons.close_rounded, size: 16, color: color),
       onDeleted: onDeleted,
-      backgroundColor: warning ? Colors.orange.shade50 : Colors.blue.shade50,
+      backgroundColor: warning
+          ? Colors.orange.shade50
+          : AppColors.brand.shade50,
       side: BorderSide(
-        color: warning ? Colors.orange.shade200 : Colors.blue.shade100,
+        color: warning ? Colors.orange.shade200 : AppColors.brand.shade100,
       ),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
@@ -651,13 +654,13 @@ class _CountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: AppColors.brand.shade50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         '$count dipilih',
         style: TextStyle(
-          color: Colors.blue.shade700,
+          color: AppColors.brand.shade700,
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),

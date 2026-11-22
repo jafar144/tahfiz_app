@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AiwaChip extends StatelessWidget {
   final String label;
@@ -20,10 +21,10 @@ class AiwaChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.white,
+          color: isSelected ? AppColors.brand : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.blue : Colors.grey.shade300,
+            color: isSelected ? AppColors.brand : Colors.grey.shade300,
           ),
         ),
         child: Row(
@@ -77,9 +78,9 @@ class AiwaChoiceChip extends StatelessWidget {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onTap(),
-      selectedColor: Colors.blue.shade100,
+      selectedColor: AppColors.brand.shade100,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.blue.shade800 : Colors.black87,
+        color: isSelected ? AppColors.brand.shade800 : Colors.black87,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         fontSize: 12, // Reduced font size
       ),
@@ -93,7 +94,7 @@ class AiwaChoiceChip extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? Colors.blue : Colors.grey.shade300,
+          color: isSelected ? AppColors.brand : Colors.grey.shade300,
         ),
       ),
     );

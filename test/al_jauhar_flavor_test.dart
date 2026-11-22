@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 import 'package:khoirunnasyien/firebase_options.dart';
 import 'package:khoirunnasyien/flavors/al_jauhar/app_config.dart';
 import 'package:khoirunnasyien/flavors/al_jauhar/firebase_options.dart';
@@ -62,6 +64,30 @@ void main() {
       );
     },
   );
+
+  test('warna brand hijau hanya untuk Al-Jauhar, flavor lain tetap biru', () {
+    if (FlavorFirebaseOptions.flavor == 'al_jauhar') {
+      expect(kGreenBrand, isTrue);
+      for (final color in [
+        AppColors.primary,
+        AppColors.secondary,
+        AppColors.brand,
+        AppColors.brand.shade700,
+        AppColors.brandLight,
+        AppColors.brandDeep.shade700,
+      ]) {
+        final hue = HSLColor.fromColor(color).hue;
+        expect(hue, inInclusiveRange(90, 170), reason: '$color harus hijau');
+      }
+      expect(AppColors.brand, isNot(Colors.blue));
+    } else {
+      expect(kGreenBrand, isFalse);
+      expect(AppColors.brand, Colors.blue);
+      expect(AppColors.brandLight, Colors.lightBlue);
+      expect(AppColors.brandDeep, Colors.indigo);
+      expect(AppColors.primary, const Color.fromRGBO(30, 136, 229, 1));
+    }
+  });
 
   test('resolver background FCM mengikuti APP_FLAVOR Al-Jauhar', () {
     // Uji ini juga dijalankan dengan --dart-define=APP_FLAVOR=al_jauhar.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SessionSpinWheel extends StatelessWidget {
   final double turns;
@@ -52,19 +53,19 @@ class SessionSpinWheel extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: [
-                        Colors.blue.shade600,
-                        Colors.lightBlue.shade300,
+                        AppColors.brand.shade600,
+                        AppColors.brandLight.shade300,
                         Colors.orange.shade400,
-                        Colors.blue.shade700,
+                        AppColors.brand.shade700,
                         Colors.teal.shade300,
                         Colors.amber.shade400,
-                        Colors.blue.shade600,
+                        AppColors.brand.shade600,
                       ],
                     ),
                     border: Border.all(color: Colors.white, width: 5),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.blue.withValues(alpha: 0.2),
+                        color: AppColors.brand.withValues(alpha: 0.2),
                         blurRadius: 22,
                         spreadRadius: 3,
                       ),
@@ -82,7 +83,7 @@ class SessionSpinWheel extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.blue.shade50, width: 5),
+                  border: Border.all(color: AppColors.brand.shade50, width: 5),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.12),
@@ -102,7 +103,7 @@ class SessionSpinWheel extends StatelessWidget {
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.blue.shade800,
+                        color: AppColors.brand.shade800,
                         fontWeight: FontWeight.w800,
                         fontSize: winnerName == null ? 18 : 15,
                         height: 1.2,

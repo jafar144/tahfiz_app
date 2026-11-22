@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/core/widgets/aiwa_bottom_sheet.dart';
 import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.dart';
 import 'package:khoirunnasyien/features/santri/presentation/cubit/santri_setoran_cubit.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriSetoranPage extends StatelessWidget {
   const SantriSetoranPage({super.key});
@@ -100,9 +101,11 @@ class SantriSetoranPage extends StatelessWidget {
                       }
                     });
                   },
-                  selectedColor: Colors.blue.shade100,
+                  selectedColor: AppColors.brand.shade100,
                   labelStyle: TextStyle(
-                    color: isSelected ? Colors.blue.shade800 : Colors.black87,
+                    color: isSelected
+                        ? AppColors.brand.shade800
+                        : Colors.black87,
                     fontWeight: isSelected
                         ? FontWeight.bold
                         : FontWeight.normal,
@@ -112,7 +115,9 @@ class SantriSetoranPage extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                     side: BorderSide(
-                      color: isSelected ? Colors.blue : Colors.grey.shade300,
+                      color: isSelected
+                          ? AppColors.brand
+                          : Colors.grey.shade300,
                     ),
                   ),
                 );
@@ -152,13 +157,13 @@ class SantriSetoranPage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.08),
+                          color: AppColors.brand.withValues(alpha: 0.08),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.menu_book_rounded,
                           size: 48,
-                          color: Colors.blue.shade300,
+                          color: AppColors.brand.shade300,
                         ),
                       ),
                       const SizedBox(height: 20),

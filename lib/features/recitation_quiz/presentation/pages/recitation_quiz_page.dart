@@ -14,6 +14,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_result_view.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/widgets/journey_style.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class RecitationQuizPage extends StatefulWidget {
   const RecitationQuizPage({super.key});
@@ -209,7 +210,9 @@ class _RecitationQuizPageState extends State<RecitationQuizPage> {
   }) {
     return showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: const Color(0xFF102A3D),
+      backgroundColor: (kGreenBrand
+          ? const Color(0xFF172D1E)
+          : const Color(0xFF102A3D)),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),

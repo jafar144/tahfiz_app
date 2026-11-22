@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setora
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/santri_setoran_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriSetoranPage extends StatefulWidget {
   final ActiveHalaqah activeHalaqah;
@@ -163,14 +164,14 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.shade50,
-            Colors.blue.shade100.withValues(alpha: 0.4),
+            AppColors.brand.shade50,
+            AppColors.brand.shade100.withValues(alpha: 0.4),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.shade100),
+        border: Border.all(color: AppColors.brand.shade100),
       ),
       child: Row(
         children: [
@@ -182,7 +183,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.12),
+                  color: AppColors.brand.withValues(alpha: 0.12),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -194,7 +195,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade700,
+                  color: AppColors.brand.shade700,
                 ),
               ),
             ),
@@ -227,7 +228,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.blue.shade700,
+                      color: AppColors.brand.shade700,
                     ),
                   ),
                 ),
@@ -242,7 +243,7 @@ class _SantriSetoranPageState extends State<SantriSetoranPage> {
             ),
             child: Icon(
               Icons.menu_book_rounded,
-              color: Colors.blue.shade400,
+              color: AppColors.brand.shade400,
               size: 22,
             ),
           ),

@@ -12,6 +12,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/qui
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_cubit.dart';
 import 'package:khoirunnasyien/features/surah_journey/presentation/cubit/surah_journey_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Peta Petualangan Surah bergaya game: jalur berkelok bernuansa malam islami
 /// (bintang + bulan sabit), node level dari bawah ke atas. Level terkunci
@@ -20,7 +21,7 @@ class SurahJourneyPage extends StatelessWidget {
   const SurahJourneyPage({super.key});
 
   // Palet nuansa malam (langit gelap kehijauan → bukit).
-  static const _skyTop = Color(0xFF0B2540);
+  static const _skyTop = (kGreenBrand ? Color(0xFF122819) : Color(0xFF0B2540));
   static const _skyBottom = Color(0xFF123B33);
   static const _hillDark = Color(0xFF0E4429);
   static const _hillLight = Color(0xFF166534);
@@ -179,7 +180,10 @@ class _Header extends StatelessWidget {
                   gradient: const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Color(0xFF4FC3F7), QuizColors.xpBlue],
+                    colors: [
+                      (kGreenBrand ? Color(0xFF64CC86) : Color(0xFF4FC3F7)),
+                      QuizColors.xpBlue,
+                    ],
                   ),
                   value: '${state.xp}',
                   valueColor: QuizColors.xpBlue,
@@ -344,7 +348,7 @@ class _JuzDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<int>(
-      color: const Color(0xFF14324A),
+      color: (kGreenBrand ? const Color(0xFF1C3624) : const Color(0xFF14324A)),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       offset: const Offset(0, 42),
       itemBuilder: (context) => [
@@ -585,7 +589,8 @@ class _LevelNode extends StatelessWidget {
       );
     } else {
       circle = _NodeCircle(
-        color: const Color(0xFF1E3A5F).withValues(alpha: 0.9),
+        color: (kGreenBrand ? const Color(0xFF23402D) : const Color(0xFF1E3A5F))
+            .withValues(alpha: 0.9),
         ringColor: Colors.white24,
         icon: Icons.lock_rounded,
         iconColor: Colors.white38,
@@ -869,7 +874,9 @@ class _SkyPainter extends CustomPainter {
     // bintang jatuh dan satu rasi kecil, keduanya tipis agar jalur level
     // tetap menjadi fokus utama.
     final shootingStar = Paint()
-      ..color = const Color(0xFFB8E8FF).withValues(alpha: 0.62)
+      ..color =
+          (kGreenBrand ? const Color(0xFFBCECCC) : const Color(0xFFB8E8FF))
+              .withValues(alpha: 0.62)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
@@ -884,7 +891,9 @@ class _SkyPainter extends CustomPainter {
     );
 
     final constellation = Paint()
-      ..color = const Color(0xFF8DCEFF).withValues(alpha: 0.30)
+      ..color =
+          (kGreenBrand ? const Color(0xFF7EDA9D) : const Color(0xFF8DCEFF))
+              .withValues(alpha: 0.30)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
     final stars = [

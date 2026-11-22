@@ -16,6 +16,7 @@ import 'package:khoirunnasyien/features/app_config/domain/feature_access_policy.
 import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_cubit.dart';
 import 'package:khoirunnasyien/features/app_config/presentation/cubit/app_config_state.dart';
 import 'package:khoirunnasyien/features/home/presentation/widgets/menu_card.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AsatidzDashboardPage extends StatefulWidget {
   const AsatidzDashboardPage({super.key});
@@ -98,7 +99,7 @@ class _AsatidzDashboardPageState extends State<AsatidzDashboardPage> {
                       InfoCard(
                         title: 'Total Santri',
                         value: '${state.totalSantri}',
-                        color: Colors.blue,
+                        color: AppColors.brand,
                       ),
                       const SizedBox(height: 20),
                       const Text(

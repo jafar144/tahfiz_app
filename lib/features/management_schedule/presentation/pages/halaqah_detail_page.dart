@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/h
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/halaqah_detail_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/widgets/santri_card.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class HalaqahDetailPage extends StatelessWidget {
   final String sessionName;
@@ -54,7 +55,7 @@ class HalaqahDetailPage extends StatelessWidget {
           final cubit = context.read<HalaqahDetailCubit>();
           context.pushNamed(RouteNames.editHalaqah, extra: cubit);
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: AppColors.brand,
         child: const Icon(Icons.edit, color: Colors.white),
       ),
       body: BlocConsumer<HalaqahDetailCubit, HalaqahDetailState>(
@@ -145,7 +146,7 @@ class HalaqahDetailPage extends StatelessWidget {
         : (gender == 'P' ? 'Putri' : gender);
     final genderColor = (gender == 'P' || gender == 'Putri')
         ? Colors.pink
-        : Colors.blue;
+        : AppColors.brand;
 
     return Container(
       width: double.infinity,
@@ -167,7 +168,7 @@ class HalaqahDetailPage extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppColors.brand.shade50,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -176,7 +177,7 @@ class HalaqahDetailPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue.shade700,
+                color: AppColors.brand.shade700,
               ),
             ),
           ),
@@ -206,10 +207,10 @@ class HalaqahDetailPage extends StatelessWidget {
                 color: genderColor.withValues(alpha: 0.1),
                 textColor: genderColor == Colors.pink
                     ? Colors.red
-                    : Colors.blue,
+                    : AppColors.brand,
                 iconColor: genderColor == Colors.pink
                     ? Colors.red
-                    : Colors.blue,
+                    : AppColors.brand,
                 isCustomColor: true,
               ),
             ],
@@ -395,12 +396,12 @@ class HalaqahDetailPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: AppColors.brand.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.calendar_today_rounded,
-              color: Colors.blue.shade700,
+              color: AppColors.brand.shade700,
               size: 20,
             ),
           ),
@@ -560,7 +561,7 @@ class HalaqahDetailPage extends StatelessWidget {
       case 'sore':
         return Colors.deepOrange.shade700;
       case 'malam':
-        return Colors.indigo.shade700;
+        return AppColors.brandDeep.shade700;
       default:
         return Colors.grey.shade700;
     }

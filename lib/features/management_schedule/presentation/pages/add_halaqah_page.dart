@@ -13,6 +13,7 @@ import 'package:khoirunnasyien/features/management_schedule/domain/entities/sche
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_cubit.dart';
 import 'package:khoirunnasyien/features/management_schedule/presentation/cubit/add_halaqah_state.dart';
 import 'package:khoirunnasyien/core/router/route_names.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AddHalaqahPage extends StatefulWidget {
   final String? initialGender;
@@ -146,7 +147,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                 label: 'Putra',
                 icon: Icons.face,
                 isSelected: _selectedGender == 'L',
-                activeColor: Colors.blue,
+                activeColor: AppColors.brand,
                 onTap: () => _updateGender(context, 'L'),
               ),
             ),
@@ -243,12 +244,12 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: AppColors.brand.shade50,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             _sessionIcon(sessionName),
-                            color: Colors.blue.shade700,
+                            color: AppColors.brand.shade700,
                             size: 20,
                           ),
                         ),
@@ -262,7 +263,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                         trailing: selected
                             ? Icon(
                                 Icons.check_circle_rounded,
-                                color: Colors.blue.shade700,
+                                color: AppColors.brand.shade700,
                               )
                             : const Icon(
                                 Icons.chevron_right_rounded,
@@ -370,7 +371,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                       ? 'Jadwal tidak ditemukan'
                       : _scheduleLabel(schedule),
                   style: TextStyle(
-                    color: Colors.blue.shade700,
+                    color: AppColors.brand.shade700,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -378,14 +379,14 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                 avatar: Icon(
                   Icons.schedule_rounded,
                   size: 15,
-                  color: Colors.blue.shade700,
+                  color: AppColors.brand.shade700,
                 ),
-                backgroundColor: Colors.blue.shade50,
-                side: BorderSide(color: Colors.blue.shade100),
+                backgroundColor: AppColors.brand.shade50,
+                side: BorderSide(color: AppColors.brand.shade100),
                 deleteIcon: Icon(
                   Icons.close_rounded,
                   size: 16,
-                  color: Colors.blue.shade700,
+                  color: AppColors.brand.shade700,
                 ),
                 onDeleted: () {
                   setState(() => _selectedScheduleIds.remove(id));
@@ -438,19 +439,19 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                             final selected = draft.contains(schedule.id);
                             return CheckboxListTile(
                               value: selected,
-                              activeColor: Colors.blue,
+                              activeColor: AppColors.brand,
                               controlAffinity: ListTileControlAffinity.trailing,
                               secondary: Container(
                                 width: 38,
                                 height: 38,
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.shade50,
+                                  color: AppColors.brand.shade50,
                                   borderRadius: BorderRadius.circular(11),
                                 ),
                                 child: Icon(
                                   Icons.event_available_outlined,
                                   size: 20,
-                                  color: Colors.blue.shade700,
+                                  color: AppColors.brand.shade700,
                                 ),
                               ),
                               title: Text(
@@ -593,7 +594,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               Text(
                 '${_selectedSantris.length} dipilih',
                 style: TextStyle(
-                  color: Colors.blue.shade700,
+                  color: AppColors.brand.shade700,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -646,7 +647,7 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
               final willMove = santri.halaqahId?.trim().isNotEmpty == true;
               final color = willMove
                   ? Colors.orange.shade800
-                  : Colors.blue.shade700;
+                  : AppColors.brand.shade700;
               return InputChip(
                 label: Text(
                   santri.name,
@@ -665,11 +666,11 @@ class _AddHalaqahPageState extends State<AddHalaqahPage> {
                 ),
                 backgroundColor: willMove
                     ? Colors.orange.shade50
-                    : Colors.blue.shade50,
+                    : AppColors.brand.shade50,
                 side: BorderSide(
                   color: willMove
                       ? Colors.orange.shade200
-                      : Colors.blue.shade100,
+                      : AppColors.brand.shade100,
                 ),
                 deleteIcon: Icon(Icons.close_rounded, size: 16, color: color),
                 onDeleted: () {

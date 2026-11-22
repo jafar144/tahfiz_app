@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/asatidz/domain/entities/santri_setoran.d
 import 'package:khoirunnasyien/features/asatidz/presentation/cubit/halaqah_deposit_list_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class HalaqahDepositListPage extends StatelessWidget {
   final ActiveHalaqah activeHalaqah;
@@ -212,7 +213,9 @@ class HalaqahDepositListPage extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: hasTodayDeposit ? Colors.grey.shade200 : Colors.blue,
+                    color: hasTodayDeposit
+                        ? Colors.grey.shade200
+                        : AppColors.brand,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -254,11 +257,11 @@ class HalaqahDepositListPage extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: Colors.blue.shade50,
+          backgroundColor: AppColors.brand.shade50,
           child: Text(
             initial,
             style: const TextStyle(
-              color: Colors.blue,
+              color: AppColors.brand,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -320,7 +323,7 @@ class HalaqahDepositListPage extends StatelessWidget {
               },
             );
           },
-          icon: const Icon(Icons.history, color: Colors.blue),
+          icon: const Icon(Icons.history, color: AppColors.brand),
           tooltip: 'Lihat History',
         ),
       ],
@@ -335,10 +338,10 @@ class HalaqahDepositListPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isToday ? Colors.blue.shade50 : Colors.grey.shade50,
+        color: isToday ? AppColors.brand.shade50 : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isToday ? Colors.blue.shade100 : Colors.grey.shade200,
+          color: isToday ? AppColors.brand.shade100 : Colors.grey.shade200,
         ),
       ),
       child: Column(
@@ -349,7 +352,7 @@ class HalaqahDepositListPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: isToday ? Colors.blue.shade700 : Colors.grey.shade500,
+              color: isToday ? AppColors.brand.shade700 : Colors.grey.shade500,
             ),
           ),
           const SizedBox(height: 6),
@@ -361,7 +364,7 @@ class HalaqahDepositListPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
-                color: isToday ? Colors.blue.shade900 : Colors.black87,
+                color: isToday ? AppColors.brand.shade900 : Colors.black87,
               ),
             ),
             if (setoran.catatan.isNotEmpty) ...[

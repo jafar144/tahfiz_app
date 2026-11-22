@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/family/domain/entities/family_account.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 typedef SwitchFamilyAccount = Future<String?> Function(String santriId);
 
@@ -115,9 +116,11 @@ class _FamilyAccountTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMale = account.jenisKelamin == 'L';
-    final backgroundColor = isMale ? Colors.blue.shade50 : Colors.pink.shade50;
+    final backgroundColor = isMale
+        ? AppColors.brand.shade50
+        : Colors.pink.shade50;
     final foregroundColor = isMale
-        ? Colors.blue.shade700
+        ? AppColors.brand.shade700
         : Colors.pink.shade700;
 
     return ListTile(

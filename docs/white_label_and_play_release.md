@@ -68,6 +68,21 @@ Integrity; enforcement diaktifkan per project setelah token tervalidasi.
 Firestore dan Storage memakai default-deny Rules. Rules serta seluruh flavor
 dikompilasi di CI.
 
+## Warna brand per flavor
+
+Warna brand dipilih saat compile dari `--dart-define=APP_FLAVOR` di
+`lib/core/theme/app_colors.dart` (`kGreenBrand`), sehingga tetap `const`.
+Khoirunnasyien dan Barokatul memakai biru; Al-Jauhar memakai hijau yang
+luminansnya dicocokkan dengan biru (kontras teks sama).
+
+- Pakai `AppColors.brand`, `AppColors.brandLight`, `AppColors.brandDeep`,
+  `AppColors.primary`, dan `AppColors.secondary`. Jangan menulis
+  `Colors.blue`, `Colors.lightBlue`, `Colors.indigo`, atau hex biru langsung.
+- Warna hex khusus layar ditulis `kGreenBrand ? hijau : biru`.
+- Abu "slate" (`#64748B`, `#334155`, `#475569`) dianggap netral.
+- Tanpa `APP_FLAVOR` aplikasi berhenti di native splash (dicek bootstrap);
+  konfigurasi run di `.vscode/launch.json` sudah menyertakannya.
+
 ## Perintah validasi
 
 ```powershell

@@ -5,17 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
 import 'package:khoirunnasyien/features/surah_journey/domain/arabic_highlight_matcher.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Palet & widget bersama bergaya "malam islami" Petualangan Surah — dipakai
 /// peta journey, halaman surah, layar belajar/test/hasil agar senada.
 class JourneyColors {
   JourneyColors._();
 
-  static const skyTop = Color(0xFF0B2540);
+  static const skyTop = (kGreenBrand ? Color(0xFF122819) : Color(0xFF0B2540));
   static const skyBottom = Color(0xFF123B33);
 
   /// Permukaan kartu di atas langit malam.
-  static const card = Color(0xFF14324A);
+  static const card = (kGreenBrand ? Color(0xFF1C3624) : Color(0xFF14324A));
   static const cardBorder = Color(0x22FFFFFF);
 }
 

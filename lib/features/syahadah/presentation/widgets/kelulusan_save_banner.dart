@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 enum KelulusanSaveStatus { saving, success, failure }
 
@@ -28,7 +29,9 @@ class KelulusanSaveBanner extends StatelessWidget {
       KelulusanSaveStatus.saving => (
         background: const Color(0xFFEFF6FF),
         border: const Color(0xFFBFDBFE),
-        foreground: const Color(0xFF1D4ED8),
+        foreground: (kGreenBrand
+            ? const Color(0xFF2A683F)
+            : const Color(0xFF1D4ED8)),
         title: 'Menyimpan foto kelulusan…',
         message:
             'Anda boleh membuka WhatsApp. Jangan tutup paksa Tahfiz App sampai proses selesai.',

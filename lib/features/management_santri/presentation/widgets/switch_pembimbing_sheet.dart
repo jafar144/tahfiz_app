@@ -6,6 +6,7 @@ import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asati
 import 'package:khoirunnasyien/features/management_santri/domain/repository/santri_repository.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/entities/halaqah.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Bottom sheet untuk mengganti pembimbing santri. Karena pembimbing terikat
 /// lewat halaqah, mengganti pembimbing = memindahkan santri ke halaqah milik
@@ -394,13 +395,13 @@ class _SwitchPembimbingSheetState extends State<SwitchPembimbingSheet> {
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: Colors.blue.shade50,
+              backgroundColor: AppColors.brand.shade50,
               child: icon != null
-                  ? Icon(icon, color: Colors.blue.shade700, size: 20)
+                  ? Icon(icon, color: AppColors.brand.shade700, size: 20)
                   : Text(
                       initials ?? '?',
                       style: TextStyle(
-                        color: Colors.blue.shade700,
+                        color: AppColors.brand.shade700,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),

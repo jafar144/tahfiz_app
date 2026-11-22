@@ -14,6 +14,7 @@ import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_params.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_state.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AddSantriPage extends StatefulWidget {
   const AddSantriPage({super.key});
@@ -277,7 +278,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         Navigator.pop(context);
                       },
                       trailing: _selectedClass == cls
-                          ? const Icon(Icons.check, color: Colors.blue)
+                          ? const Icon(Icons.check, color: AppColors.brand)
                           : null,
                     ),
                   ),
@@ -334,7 +335,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                         Navigator.pop(context);
                       },
                       trailing: _classType == type
-                          ? const Icon(Icons.check, color: Colors.blue)
+                          ? const Icon(Icons.check, color: AppColors.brand)
                           : null,
                     ),
                   ),
@@ -375,7 +376,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                   title: Text(option, textAlign: TextAlign.center),
                   trailing:
                       (_selectedFiqihClass ?? 'Belum ditentukan') == option
-                      ? const Icon(Icons.check, color: Colors.blue)
+                      ? const Icon(Icons.check, color: AppColors.brand)
                       : null,
                   onTap: () {
                     setState(() {
@@ -458,7 +459,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Colors.blue,
+                                  color: AppColors.brand,
                                 ),
                                 child: const Icon(
                                   Icons.camera_alt,
@@ -548,7 +549,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
                               UiUtils.unfocus(context);
                               setState(() => _gender = 'L');
                             },
-                            activeColor: Colors.blue,
+                            activeColor: AppColors.brand,
                           ),
                         ),
                         const SizedBox(width: 12),

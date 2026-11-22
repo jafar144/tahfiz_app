@@ -18,6 +18,7 @@ import 'package:khoirunnasyien/features/management_santri/domain/services/santri
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_cubit.dart';
 import 'package:khoirunnasyien/features/management_santri/presentation/cubit/santri_detail_state.dart';
 import 'package:khoirunnasyien/features/management_schedule/domain/repositories/schedule_repository.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class EditSantriPage extends StatefulWidget {
   final SantriDetail santri;
@@ -444,7 +445,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Colors.blue,
+                                color: AppColors.brand,
                               ),
                               child: Icon(
                                 _hasPhoto ? Icons.edit : Icons.camera_alt,
@@ -530,7 +531,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
                             UiUtils.unfocus(context);
                             setState(() => _gender = 'L');
                           },
-                          activeColor: Colors.blue,
+                          activeColor: AppColors.brand,
                         ),
                       ),
                       const SizedBox(width: 12),

@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/app_config/presentation/widgets/feature_
 import 'package:khoirunnasyien/features/arena/presentation/pages/arena_lobby_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_home_page.dart';
 import 'package:khoirunnasyien/features/santri/presentation/pages/santri_profile_page.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SantriMainPage extends StatefulWidget {
   const SantriMainPage({super.key});
@@ -69,7 +70,7 @@ class _SantriMainPageState extends State<SantriMainPage> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: Colors.blue,
+          selectedItemColor: AppColors.brand,
           unselectedItemColor: Colors.grey,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
           items: const [

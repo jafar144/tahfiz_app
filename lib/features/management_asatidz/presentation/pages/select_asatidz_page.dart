@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/as
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_state.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/widgets/asatidz_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class SelectAsatidzPage extends StatefulWidget {
   final String? genderFiltered;
@@ -169,7 +170,7 @@ class _SelectAsatidzPageState extends State<SelectAsatidzPage> {
                                 color: isDisabled
                                     ? Colors.grey.shade500
                                     : isSelected
-                                    ? Colors.blue
+                                    ? AppColors.brand
                                     : Colors.grey.shade400,
                               ),
                             );

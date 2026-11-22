@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/management_santri/presentation/cubit/san
 import 'package:khoirunnasyien/features/recitation_quiz/data/quiz_energy_remote_datasource.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_widgets.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Nilai default pemberian energi (samakan dengan default server).
 const _kDefaultPractice = 15;
@@ -270,9 +271,13 @@ class _AdminEnergyViewState extends State<_AdminEnergyView> {
 
     if (widget.embedded) return content;
     return Scaffold(
-      backgroundColor: const Color(0xFF0B2540),
+      backgroundColor: (kGreenBrand
+          ? const Color(0xFF122819)
+          : const Color(0xFF0B2540)),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A1F35),
+        backgroundColor: (kGreenBrand
+            ? const Color(0xFF0F2215)
+            : const Color(0xFF0A1F35)),
         foregroundColor: Colors.white,
         title: const Text('Energi Santri'),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class AiwaInfoCard extends StatelessWidget {
   final List<Widget> children;
@@ -43,8 +44,9 @@ class AiwaDetailInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveIconColor = iconColor ?? Colors.blue.shade700;
-    final effectiveBackgroundColor = iconBackgroundColor ?? Colors.blue.shade50;
+    final effectiveIconColor = iconColor ?? AppColors.brand.shade700;
+    final effectiveBackgroundColor =
+        iconBackgroundColor ?? AppColors.brand.shade50;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),

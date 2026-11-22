@@ -11,6 +11,7 @@ import 'package:khoirunnasyien/core/utils/ui_utils.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_detail.dart';
 import 'package:khoirunnasyien/features/management_asatidz/domain/entities/asatidz_params.dart';
 import 'package:khoirunnasyien/features/management_asatidz/presentation/cubit/asatidz_detail_cubit.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class EditAsatidzPage extends StatefulWidget {
   final AsatidzDetail asatidz;
@@ -179,7 +180,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
                           right: -2,
                           bottom: -2,
                           child: Material(
-                            color: Colors.blue,
+                            color: AppColors.brand,
                             shape: const CircleBorder(),
                             child: InkWell(
                               customBorder: const CircleBorder(),
@@ -266,7 +267,7 @@ class _EditAsatidzPageState extends State<EditAsatidzPage> {
                         UiUtils.unfocus(context);
                         setState(() => _gender = 'L');
                       },
-                      activeColor: Colors.blue,
+                      activeColor: AppColors.brand,
                     ),
                   ),
                   const SizedBox(width: 12),

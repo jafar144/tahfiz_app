@@ -10,6 +10,7 @@ import 'package:khoirunnasyien/features/family/presentation/cubit/family_cubit.d
 import 'package:khoirunnasyien/features/family/presentation/cubit/family_state.dart';
 import 'package:khoirunnasyien/features/management_santri/domain/entities/santri_entity.dart';
 import 'package:khoirunnasyien/core/di/injection.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class FamilyFormPage extends StatefulWidget {
   final FamilyWithMembers? existing;
@@ -233,7 +234,7 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: isMale
-                                    ? Colors.blue.shade50
+                                    ? AppColors.brand.shade50
                                     : Colors.pink.shade50,
                                 child: Text(
                                   santri.name.isNotEmpty
@@ -242,7 +243,7 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: isMale
-                                        ? Colors.blue.shade700
+                                        ? AppColors.brand.shade700
                                         : Colors.pink.shade700,
                                   ),
                                 ),
@@ -285,7 +286,7 @@ class _FamilyFormPageState extends State<FamilyFormPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          side: BorderSide(color: Colors.blue.shade300),
+                          side: BorderSide(color: AppColors.brand.shade300),
                         ),
                       ),
                     ),

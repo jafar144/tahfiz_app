@@ -7,6 +7,7 @@ import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_blo
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_difficulty.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/domain/entities/quiz_energy.dart';
 import 'package:khoirunnasyien/features/recitation_quiz/presentation/widgets/quiz_button.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 /// Palet warna khusus kuis (gamifikasi, tetap selaras tema app).
 class QuizColors {
@@ -20,18 +21,22 @@ class QuizColors {
   static const extra = Colors.blueGrey;
 
   // ── Palet "malam islami" (samakan dengan Petualangan Surah / Arena) ──
-  static const nightTop = Color(0xFF0B2540);
+  static const nightTop = (kGreenBrand ? Color(0xFF122819) : Color(0xFF0B2540));
   static const nightBottom = Color(0xFF123B33);
-  static const nightCard = Color(0xFF14324A);
+  static const nightCard = (kGreenBrand
+      ? Color(0xFF1C3624)
+      : Color(0xFF14324A));
 
   /// Permukaan tombol netral di atas latar malam (sedikit lebih terang dari
   /// kartu agar "bibir" QuizButton tetap terlihat).
-  static const nightButton = Color(0xFF1C4364);
+  static const nightButton = (kGreenBrand
+      ? Color(0xFF264831)
+      : Color(0xFF1C4364));
 
   // Varian cerah untuk teks/aksen di atas latar gelap.
   static const correctBright = Color(0xFF34D399);
   static const missingBright = Color(0xFFFF8A80);
-  static const xpBlue = Color(0xFF1CB0F6);
+  static const xpBlue = (kGreenBrand ? Color(0xFF3DBC68) : Color(0xFF1CB0F6));
 
   /// Warna berdasarkan persentase skor.
   static Color forScore(int pct) {

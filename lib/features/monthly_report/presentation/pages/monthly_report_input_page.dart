@@ -8,6 +8,7 @@ import 'package:khoirunnasyien/features/monthly_report/presentation/constants/mo
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_cubit.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/cubit/monthly_report_input_state.dart';
 import 'package:khoirunnasyien/features/monthly_report/presentation/widgets/monthly_report_card.dart';
+import 'package:khoirunnasyien/core/theme/app_colors.dart';
 
 class MonthlyReportInputPage extends StatefulWidget {
   final SantriEntity santri;
@@ -175,7 +176,7 @@ class _MonthlyReportInputPageState extends State<MonthlyReportInputPage> {
 
   Widget _buildSantriHeader() {
     final isMale = widget.santri.jenisKelamin == 'L';
-    final color = isMale ? Colors.blue : Colors.red;
+    final color = isMale ? AppColors.brand : Colors.red;
 
     return Container(
       padding: const EdgeInsets.all(16),
