@@ -591,6 +591,7 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
       phone: userData['phone'],
       halaqahId: data['halaqah_id'],
       photoUrl: data['photo_url'],
+      photoOriginalUrl: data['photo_original_url'] as String?,
     );
   }
 
@@ -628,6 +629,19 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
     final password = (data['temporaryPassword'] as String?)?.trim() ?? '';
     if (password.isEmpty) {
       throw StateError('Server tidak mengembalikan password sementara.');
+    }
+
+    // Foto asli disimpan dari klien agar tidak perlu mengubah callable
+    // provisioning. Gagal di sini tidak membatalkan akun yang sudah dibuat;
+    // pengaturan posisi foto akan memakai foto hasil crop.
+    final uid = (data['uid'] as String?)?.trim() ?? '';
+    final originalUrl = params.photoOriginalUrl;
+    if (uid.isNotEmpty && originalUrl != null && originalUrl.isNotEmpty) {
+      try {
+        await firestore.collection('santri_profiles').doc(uid).update({
+          'photo_original_url': originalUrl,
+        });
+      } catch (_) {}
     }
     return password;
   }
@@ -691,6 +705,10 @@ class SantriRemoteDataSourceImpl implements SantriRemoteDataSource {
         'photo_url': params.photoUrl
       else if (params.removePhoto)
         'photo_url': FieldValue.delete(),
+      if (params.photoOriginalUrl != null)
+        'photo_original_url': params.photoOriginalUrl
+      else if (params.removePhoto)
+        'photo_original_url': FieldValue.delete(),
     });
 
     // Update User Document

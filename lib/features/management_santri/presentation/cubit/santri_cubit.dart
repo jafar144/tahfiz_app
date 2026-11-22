@@ -149,6 +149,7 @@ class SantriCubit extends Cubit<SantriState> {
       }
 
       String? finalPhotoUrl = params.photoUrl;
+      String? finalPhotoOriginalUrl;
 
       // Santri non-aktif tidak menyimpan foto agar tidak membebani Storage.
       if (params.isActive && params.localPhotoFile != null) {
@@ -159,6 +160,15 @@ class SantriCubit extends Cubit<SantriState> {
         if (finalPhotoUrl == null) {
           emit(SantriError('Gagal mengupload foto'));
           return;
+        }
+        // Foto asli untuk mengatur ulang posisi. Bila gagal, santri tetap
+        // dibuat dan pengaturan posisi memakai foto hasil crop.
+        final original = params.localPhotoOriginalFile;
+        if (original != null) {
+          finalPhotoOriginalUrl = await ImageUtils.uploadImageToFirebase(
+            original,
+            'santri_photos',
+          );
         }
       } else if (!params.isActive) {
         finalPhotoUrl = null;
@@ -181,6 +191,7 @@ class SantriCubit extends Cubit<SantriState> {
         isActive: params.isActive,
         freeUntil: params.freeUntil,
         photoUrl: finalPhotoUrl,
+        photoOriginalUrl: finalPhotoOriginalUrl,
       );
 
       final temporaryPassword = await repository.addSantri(finalParams);

@@ -20,6 +20,10 @@ class SantriDetail {
   final String? halaqahName;
   final String? photoUrl;
 
+  /// Foto asli sebelum di-crop, dipakai untuk mengatur ulang posisi foto.
+  /// Kosong untuk foto lama yang diunggah sebelum fitur ini ada.
+  final String? photoOriginalUrl;
+
   const SantriDetail({
     required this.id,
     required this.name,
@@ -41,5 +45,6 @@ class SantriDetail {
     this.halaqahId,
     this.halaqahName,
     this.photoUrl,
+    this.photoOriginalUrl,
   });
 }

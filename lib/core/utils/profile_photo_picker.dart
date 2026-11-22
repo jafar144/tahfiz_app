@@ -24,6 +24,15 @@ extension ProfilePhotoTypeSettings on ProfilePhotoType {
 typedef ProfileImagePicker = Future<File?> Function(ImageSource source);
 typedef ProfileImageEditor =
     Future<File?> Function(File file, ProfilePhotoType type);
+typedef ProfileImageDownloader = Future<File?> Function(String url);
+
+/// Foto asli dari galeri/kamera beserta hasil crop-nya.
+class ProfilePhotoSelection {
+  final File original;
+  final File edited;
+
+  const ProfilePhotoSelection({required this.original, required this.edited});
+}
 
 /// Mengelola alur pemilihan sumber foto hingga editor crop native.
 ///
@@ -32,16 +41,29 @@ typedef ProfileImageEditor =
 class ProfilePhotoPicker {
   final ProfileImagePicker _pickImage;
   final ProfileImageEditor _editImage;
+  final ProfileImageDownloader _download;
 
   ProfilePhotoPicker({
     ProfileImagePicker? pickImage,
     ProfileImageEditor? editImage,
+    ProfileImageDownloader? download,
   }) : _pickImage = pickImage ?? ImageUtils.pickImage,
-       _editImage = editImage ?? _openEditor;
+       _editImage = editImage ?? _openEditor,
+       _download = download ?? ImageUtils.downloadImageToTemp;
 
   static final shared = ProfilePhotoPicker();
 
   Future<File?> pickAndEdit(
+    BuildContext context, {
+    required ProfilePhotoType type,
+  }) async {
+    final selection = await pickAndEditWithOriginal(context, type: type);
+    return selection?.edited;
+  }
+
+  /// Seperti [pickAndEdit], tetapi juga mengembalikan foto asli agar posisi
+  /// foto bisa diatur ulang nanti tanpa memilih foto baru.
+  Future<ProfilePhotoSelection?> pickAndEditWithOriginal(
     BuildContext context, {
     required ProfilePhotoType type,
   }) async {
@@ -52,8 +74,20 @@ class ProfilePhotoPicker {
     final pickedFile = await _pickImage(source);
     if (pickedFile == null) return null;
 
-    return _editImage(pickedFile, type);
+    final edited = await _editImage(pickedFile, type);
+    if (edited == null) return null;
+    return ProfilePhotoSelection(original: pickedFile, edited: edited);
   }
+
+  /// Membuka editor langsung dengan foto yang sudah ada (tanpa pilihan
+  /// galeri/kamera).
+  Future<File?> editExisting(File source, ProfilePhotoType type) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    return _editImage(source, type);
+  }
+
+  /// Mengunduh foto tersimpan agar bisa dibuka di editor.
+  Future<File?> download(String url) => _download(url);
 
   static Future<File?> _openEditor(File file, ProfilePhotoType type) async {
     final croppedFile = await ImageCropper().cropImage(

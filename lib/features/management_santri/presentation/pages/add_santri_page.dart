@@ -47,6 +47,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
   bool _isLoading = false;
   bool _isPickingPhoto = false;
   File? _localPhotoFile;
+  File? _localOriginalFile;
   bool _loadingNis = true;
 
   @override
@@ -120,6 +121,7 @@ class _AddSantriPageState extends State<AddSantriPage> {
             ? (_freeUntil ?? DateTime(DateTime.now().year + 7))
             : null,
         localPhotoFile: _localPhotoFile,
+        localPhotoOriginalFile: _localOriginalFile,
       );
 
       context.read<SantriCubit>().addSantri(params);
@@ -206,17 +208,21 @@ class _AddSantriPageState extends State<AddSantriPage> {
     setState(() => _isPickingPhoto = true);
 
     try {
-      final file = await ProfilePhotoPicker.shared.pickAndEdit(
+      final selection = await ProfilePhotoPicker.shared.pickAndEditWithOriginal(
         context,
         type: ProfilePhotoType.santri,
       );
-      if (file == null || !mounted) return;
+      if (selection == null || !mounted) return;
 
-      final compressed = await ImageUtils.compressImage(file);
+      final compressed = await ImageUtils.compressImage(selection.edited);
+      final original = await ImageUtils.compressToMaxSize(selection.original);
       if (!mounted) return;
 
       if (compressed != null) {
-        setState(() => _localPhotoFile = compressed);
+        setState(() {
+          _localPhotoFile = compressed;
+          _localOriginalFile = original;
+        });
       }
     } catch (e) {
       if (mounted) {

@@ -18,6 +18,12 @@ class SantriParams {
   final DateTime? freeUntil;
   final String? photoUrl;
   final File? localPhotoFile;
+
+  /// URL foto asli (sebelum crop) yang tersimpan.
+  final String? photoOriginalUrl;
+
+  /// Foto asli baru yang perlu diunggah. Null bila foto hanya di-crop ulang.
+  final File? localPhotoOriginalFile;
   final bool removePhoto; // Hapus foto profil yang ada saat menyimpan
 
   SantriParams({
@@ -38,6 +44,8 @@ class SantriParams {
     this.freeUntil,
     this.photoUrl,
     this.localPhotoFile,
+    this.photoOriginalUrl,
+    this.localPhotoOriginalFile,
     this.removePhoto = false,
   });
 }

@@ -23,7 +23,10 @@ import 'package:khoirunnasyien/core/theme/app_colors.dart';
 class EditSantriPage extends StatefulWidget {
   final SantriDetail santri;
 
-  const EditSantriPage({super.key, required this.santri});
+  /// Dapat diganti pada test; default memakai picker bersama.
+  final ProfilePhotoPicker? photoPicker;
+
+  const EditSantriPage({super.key, required this.santri, this.photoPicker});
 
   @override
   State<EditSantriPage> createState() => _EditSantriPageState();
@@ -49,9 +52,19 @@ class _EditSantriPageState extends State<EditSantriPage> {
   bool _isLoading = false;
   bool _isPickingPhoto = false;
   String? _photoUrl;
+  String? _photoOriginalUrl;
   File? _localPhotoFile;
+
+  /// Foto asli baru dari galeri/kamera yang perlu diunggah.
+  File? _localOriginalFile;
+
+  /// Salinan lokal foto asli untuk editor, agar tidak diunduh berulang.
+  File? _editSourceFile;
   bool _photoRemoved = false;
   late bool _isActive;
+
+  ProfilePhotoPicker get _photoPicker =>
+      widget.photoPicker ?? ProfilePhotoPicker.shared;
 
   /// Ada foto yang sedang ditampilkan di preview (lokal baru atau url lama).
   bool get _hasPhoto =>
@@ -79,6 +92,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
     _isFree = widget.santri.isFree;
     _freeUntil = widget.santri.freeUntil;
     _photoUrl = widget.santri.photoUrl;
+    _photoOriginalUrl = widget.santri.photoOriginalUrl;
     _isActive = widget.santri.isActive;
   }
 
@@ -194,26 +208,25 @@ class _EditSantriPageState extends State<EditSantriPage> {
     setState(() => _isPickingPhoto = true);
 
     try {
-      final file = await ProfilePhotoPicker.shared.pickAndEdit(
+      final selection = await _photoPicker.pickAndEditWithOriginal(
         context,
         type: ProfilePhotoType.santri,
       );
-      if (file == null || !mounted) return;
+      if (selection == null || !mounted) return;
 
-      final compressed = await ImageUtils.compressImage(file);
+      final compressed = await ImageUtils.compressImage(selection.edited);
+      final original = await ImageUtils.compressToMaxSize(selection.original);
       if (!mounted) return;
 
-      if (compressed != null) {
+      if (compressed != null && original != null) {
         setState(() {
           _localPhotoFile = compressed;
+          _localOriginalFile = original;
+          _editSourceFile = original;
           _photoRemoved = false;
         });
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto gagal diproses. Silakan coba lagi.'),
-          ),
-        );
+      } else {
+        _showPhotoError('Foto gagal diproses. Silakan coba lagi.');
       }
     } catch (e) {
       if (mounted) {
@@ -228,10 +241,60 @@ class _EditSantriPageState extends State<EditSantriPage> {
     }
   }
 
+  /// Membuka editor langsung dengan foto yang sudah ada untuk mengatur
+  /// posisinya. Memakai foto asli bila tersedia.
+  Future<void> _adjustPhoto() async {
+    setState(() => _isPickingPhoto = true);
+
+    try {
+      var source = _editSourceFile;
+      final remoteUrl = _photoOriginalUrl ?? _photoUrl;
+      if (source == null && remoteUrl != null) {
+        source = await _photoPicker.download(remoteUrl);
+      }
+      if (!mounted) return;
+      if (source == null) {
+        _showPhotoError('Foto gagal dibuka. Periksa koneksi lalu coba lagi.');
+        return;
+      }
+      _editSourceFile = source;
+
+      final edited = await _photoPicker.editExisting(
+        source,
+        ProfilePhotoType.santri,
+      );
+      if (edited == null || !mounted) return;
+
+      final compressed = await ImageUtils.compressImage(edited);
+      if (!mounted) return;
+      if (compressed == null) {
+        _showPhotoError('Foto gagal diproses. Silakan coba lagi.');
+        return;
+      }
+      setState(() {
+        _localPhotoFile = compressed;
+        _photoRemoved = false;
+      });
+    } catch (e) {
+      if (mounted) _showPhotoError('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isPickingPhoto = false);
+    }
+  }
+
+  void _showPhotoError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
   void _removePhoto() {
     UiUtils.unfocus(context);
     setState(() {
       _localPhotoFile = null;
+      _localOriginalFile = null;
+      _editSourceFile = null;
       _photoRemoved = true;
     });
   }
@@ -364,6 +427,8 @@ class _EditSantriPageState extends State<EditSantriPage> {
             : null,
         localPhotoFile: _localPhotoFile,
         photoUrl: _photoUrl,
+        photoOriginalUrl: _photoOriginalUrl,
+        localPhotoOriginalFile: _localOriginalFile,
         removePhoto: _photoRemoved,
       );
 
@@ -440,7 +505,10 @@ class _EditSantriPageState extends State<EditSantriPage> {
                           bottom: 0,
                           right: 0,
                           child: GestureDetector(
-                            onTap: _isPickingPhoto ? null : _pickImage,
+                            key: const Key('santri_photo_edit_button'),
+                            onTap: _isPickingPhoto
+                                ? null
+                                : (_hasPhoto ? _adjustPhoto : _pickImage),
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
@@ -460,6 +528,7 @@ class _EditSantriPageState extends State<EditSantriPage> {
                             top: 0,
                             right: 0,
                             child: GestureDetector(
+                              key: const Key('santri_photo_remove_button'),
                               onTap: _isPickingPhoto ? null : _removePhoto,
                               child: Container(
                                 padding: const EdgeInsets.all(5),

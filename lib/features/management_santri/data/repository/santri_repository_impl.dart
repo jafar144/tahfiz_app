@@ -126,6 +126,7 @@ class SantriRepositoryImpl implements SantriRepository {
       halaqahId: detail.halaqahId,
       halaqahName: detail.halaqahName,
       photoUrl: detail.photoUrl,
+      photoOriginalUrl: detail.photoOriginalUrl,
     );
   }
 

@@ -103,6 +103,23 @@ class ImageUtils {
     return ref.getDownloadURL();
   }
 
+  /// Mengunduh foto dari Firebase Storage ke file sementara agar bisa dibuka
+  /// di editor crop. Mengembalikan null bila gagal.
+  static Future<File?> downloadImageToTemp(String url) async {
+    try {
+      final bytes = await FirebaseStorage.instance
+          .refFromURL(url)
+          .getData(15 * 1024 * 1024);
+      if (bytes == null || bytes.isEmpty) return null;
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/${const Uuid().v4()}.jpg');
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Menghapus file dari Firebase Storage berdasarkan download URL
   static Future<void> deleteImageFromFirebase(String url) async {
     try {
