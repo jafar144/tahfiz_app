@@ -71,6 +71,8 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
     required String targetMinimum,
     required String targetOptimum,
     MonthlyTargetResult targetResult = MonthlyTargetResult.notAssessed,
+    MonthlyPenaltyDecision penalty = MonthlyPenaltyDecision.undecided,
+    String penaltyExcuse = '',
     String notes = '',
   }) async {
     if (state is! MonthlyReportInputReady) return;
@@ -90,6 +92,26 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
       emit(
         const MonthlyReportInputError('Hasil target bulan ini wajib dipilih'),
       );
+      emit(currentState);
+      return;
+    }
+    final notAchieved =
+        currentState.targetToEvaluate != null &&
+        targetResult == MonthlyTargetResult.notAchieved;
+    final normalizedPenalty = notAchieved
+        ? penalty
+        : MonthlyPenaltyDecision.undecided;
+    final normalizedExcuse = normalizedPenalty == MonthlyPenaltyDecision.excused
+        ? penaltyExcuse.trim()
+        : '';
+    if (notAchieved && normalizedPenalty == MonthlyPenaltyDecision.undecided) {
+      emit(const MonthlyReportInputError(MonthlyReportStrings.hukumanWajib));
+      emit(currentState);
+      return;
+    }
+    if (normalizedPenalty == MonthlyPenaltyDecision.excused &&
+        normalizedExcuse.isEmpty) {
+      emit(const MonthlyReportInputError(MonthlyReportStrings.alasanWajib));
       emit(currentState);
       return;
     }
@@ -125,6 +147,8 @@ class MonthlyReportInputCubit extends Cubit<MonthlyReportInputState> {
                 targetTahun: targetToEvaluate.target!.tahun,
                 result: targetResult,
                 evaluatedAt: now,
+                penalty: normalizedPenalty,
+                penaltyExcuse: normalizedExcuse,
               ),
         createdAt: currentState.existingReport?.createdAt ?? now,
         updatedAt: now,

@@ -1,30 +1,51 @@
 import 'package:khoirunnasyien/features/monthly_report/domain/entities/monthly_report.dart';
 
+/// Kelompok rekap target bulanan untuk admin.
+///
+/// Santri yang tidak mencapai target minimum dipisah sesuai keputusan
+/// pembimbing. Data lama tanpa keputusan dianggap [penalized].
+enum TargetRecapGroup {
+  penalized,
+  excused,
+  minimum,
+  optimum;
+
+  static TargetRecapGroup? of(MonthlyTargetEvaluation evaluation) {
+    return switch (evaluation.result) {
+      MonthlyTargetResult.notAchieved =>
+        evaluation.isExcused
+            ? TargetRecapGroup.excused
+            : TargetRecapGroup.penalized,
+      MonthlyTargetResult.minimumAchieved => TargetRecapGroup.minimum,
+      MonthlyTargetResult.optimumAchieved => TargetRecapGroup.optimum,
+      MonthlyTargetResult.notAssessed => null,
+    };
+  }
+}
+
 class TargetAchievementEntry {
   final String santriId;
   final String santriName;
   final String asatidzName;
-  final MonthlyTargetResult result;
+  final TargetRecapGroup group;
+
+  /// Alasan pembimbing membebaskan hukuman; kosong untuk kelompok lain.
+  final String penaltyExcuse;
 
   const TargetAchievementEntry({
     required this.santriId,
     required this.santriName,
     required this.asatidzName,
-    required this.result,
+    required this.group,
+    this.penaltyExcuse = '',
   });
 }
 
 class TargetAchievementRecap {
-  static const supportedResults = <MonthlyTargetResult>{
-    MonthlyTargetResult.notAchieved,
-    MonthlyTargetResult.minimumAchieved,
-    MonthlyTargetResult.optimumAchieved,
-  };
-
-  final Map<MonthlyTargetResult, List<TargetAchievementEntry>> _entries;
+  final Map<TargetRecapGroup, List<TargetAchievementEntry>> _entries;
 
   const TargetAchievementRecap({
-    Map<MonthlyTargetResult, List<TargetAchievementEntry>> entries = const {},
+    Map<TargetRecapGroup, List<TargetAchievementEntry>> entries = const {},
   }) : _entries = entries;
 
   factory TargetAchievementRecap.fromReports(
@@ -40,7 +61,7 @@ class TargetAchievementRecap {
           evaluation == null ||
           evaluation.targetBulan != bulan ||
           evaluation.targetTahun != tahun ||
-          !supportedResults.contains(evaluation.result)) {
+          TargetRecapGroup.of(evaluation) == null) {
         continue;
       }
 
@@ -50,17 +71,21 @@ class TargetAchievementRecap {
       }
     }
 
-    final grouped = <MonthlyTargetResult, List<TargetAchievementEntry>>{};
+    final grouped = <TargetRecapGroup, List<TargetAchievementEntry>>{};
     for (final report in latestBySantri.values) {
-      final result = report.targetEvaluation!.result;
+      final evaluation = report.targetEvaluation!;
+      final group = TargetRecapGroup.of(evaluation)!;
       grouped
-          .putIfAbsent(result, () => [])
+          .putIfAbsent(group, () => [])
           .add(
             TargetAchievementEntry(
               santriId: report.santriId,
               santriName: report.santriName,
               asatidzName: report.asatidzName,
-              result: result,
+              group: group,
+              penaltyExcuse: group == TargetRecapGroup.excused
+                  ? evaluation.penaltyExcuse
+                  : '',
             ),
           );
     }
@@ -74,18 +99,20 @@ class TargetAchievementRecap {
 
     return TargetAchievementRecap(
       entries:
-          Map<MonthlyTargetResult, List<TargetAchievementEntry>>.unmodifiable({
+          Map<TargetRecapGroup, List<TargetAchievementEntry>>.unmodifiable({
             for (final entry in grouped.entries)
               entry.key: List<TargetAchievementEntry>.unmodifiable(entry.value),
           }),
     );
   }
 
-  List<TargetAchievementEntry> entriesFor(MonthlyTargetResult result) =>
-      _entries[result] ?? const [];
+  List<TargetAchievementEntry> entriesFor(TargetRecapGroup group) =>
+      _entries[group] ?? const [];
 
-  int countFor(MonthlyTargetResult result) => entriesFor(result).length;
+  int countFor(TargetRecapGroup group) => entriesFor(group).length;
 
-  int get total =>
-      supportedResults.fold(0, (total, result) => total + countFor(result));
+  int get total => TargetRecapGroup.values.fold(
+    0,
+    (total, group) => total + countFor(group),
+  );
 }

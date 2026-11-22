@@ -294,11 +294,5 @@ Map<String, dynamic>? _evaluationToFirestore(
   MonthlyTargetEvaluation? evaluation,
 ) {
   if (evaluation == null) return null;
-  return {
-    'source_report_id': evaluation.sourceReportId,
-    'target_bulan': evaluation.targetBulan,
-    'target_tahun': evaluation.targetTahun,
-    'result': evaluation.result.storageValue,
-    'evaluated_at': Timestamp.fromDate(evaluation.evaluatedAt),
-  };
+  return targetEvaluationToMap(evaluation);
 }

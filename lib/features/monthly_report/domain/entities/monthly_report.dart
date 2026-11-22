@@ -29,6 +29,26 @@ enum MonthlyTargetResult {
   };
 }
 
+/// Keputusan pembimbing bila target minimum tidak tercapai.
+///
+/// [undecided] dipakai untuk data lama yang dibuat sebelum pilihan ini ada;
+/// di rekap admin diperlakukan sama dengan [penalized].
+enum MonthlyPenaltyDecision {
+  undecided,
+  penalized,
+  excused;
+
+  static MonthlyPenaltyDecision fromStorage(dynamic value) {
+    return switch (value?.toString()) {
+      'penalized' => MonthlyPenaltyDecision.penalized,
+      'excused' => MonthlyPenaltyDecision.excused,
+      _ => MonthlyPenaltyDecision.undecided,
+    };
+  }
+
+  String get storageValue => name;
+}
+
 class MonthlyTarget {
   final int bulan;
   final int tahun;
@@ -53,13 +73,31 @@ class MonthlyTargetEvaluation {
   final MonthlyTargetResult result;
   final DateTime evaluatedAt;
 
+  /// Hanya bermakna bila [result] = [MonthlyTargetResult.notAchieved].
+  final MonthlyPenaltyDecision penalty;
+
+  /// Alasan pembimbing tidak memasukkan santri ke daftar hukuman.
+  final String penaltyExcuse;
+
   const MonthlyTargetEvaluation({
     required this.sourceReportId,
     required this.targetBulan,
     required this.targetTahun,
     required this.result,
     required this.evaluatedAt,
+    this.penalty = MonthlyPenaltyDecision.undecided,
+    this.penaltyExcuse = '',
   });
+
+  /// Target minimum tidak tercapai dan santri tidak dibebaskan pembimbing.
+  bool get isPenalized =>
+      result == MonthlyTargetResult.notAchieved &&
+      penalty != MonthlyPenaltyDecision.excused;
+
+  /// Target minimum tidak tercapai, tetapi pembimbing membebaskan hukuman.
+  bool get isExcused =>
+      result == MonthlyTargetResult.notAchieved &&
+      penalty == MonthlyPenaltyDecision.excused;
 
   bool evaluates(String reportId, MonthlyTarget target) {
     if (sourceReportId.isNotEmpty) return sourceReportId == reportId;

@@ -94,13 +94,7 @@ class MonthlyReportModel extends MonthlyReport {
           'optimum': target!.optimum,
         },
       if (targetEvaluation != null)
-        'target_evaluation': {
-          'source_report_id': targetEvaluation!.sourceReportId,
-          'target_bulan': targetEvaluation!.targetBulan,
-          'target_tahun': targetEvaluation!.targetTahun,
-          'result': targetEvaluation!.result.storageValue,
-          'evaluated_at': Timestamp.fromDate(targetEvaluation!.evaluatedAt),
-        },
+        'target_evaluation': targetEvaluationToMap(targetEvaluation!),
       'created_at': Timestamp.fromDate(createdAt),
       'updated_at': Timestamp.fromDate(updatedAt),
     };
@@ -146,6 +140,23 @@ MonthlyTarget? _parseTarget(dynamic raw) {
   );
 }
 
+/// Bentuk Firestore untuk `target_evaluation`. Keputusan hukuman hanya
+/// disimpan bila target minimum tidak tercapai.
+Map<String, dynamic> targetEvaluationToMap(MonthlyTargetEvaluation evaluation) {
+  final notAchieved = evaluation.result == MonthlyTargetResult.notAchieved;
+  return {
+    'source_report_id': evaluation.sourceReportId,
+    'target_bulan': evaluation.targetBulan,
+    'target_tahun': evaluation.targetTahun,
+    'result': evaluation.result.storageValue,
+    'evaluated_at': Timestamp.fromDate(evaluation.evaluatedAt),
+    if (notAchieved && evaluation.penalty != MonthlyPenaltyDecision.undecided)
+      'penalty': evaluation.penalty.storageValue,
+    if (notAchieved && evaluation.penalty == MonthlyPenaltyDecision.excused)
+      'penalty_excuse': evaluation.penaltyExcuse.trim(),
+  };
+}
+
 MonthlyTargetEvaluation? _parseTargetEvaluation(dynamic raw) {
   final data = _stringKeyedMap(raw);
   if (data == null) return null;
@@ -161,6 +172,8 @@ MonthlyTargetEvaluation? _parseTargetEvaluation(dynamic raw) {
     targetTahun: tahun,
     result: MonthlyTargetResult.fromStorage(data['result']),
     evaluatedAt: evaluatedAt,
+    penalty: MonthlyPenaltyDecision.fromStorage(data['penalty']),
+    penaltyExcuse: (data['penalty_excuse'] ?? '').toString().trim(),
   );
 }
 

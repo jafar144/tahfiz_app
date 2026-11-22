@@ -137,7 +137,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Desember 2026'), findsOneWidget);
-      expect(find.text('Belum ada evaluasi target'), findsOneWidget);
+      expect(find.text('Belum ada santri yang dievaluasi'), findsOneWidget);
       expect(
         find.byKey(const Key('admin_assessment_previous_incomplete_indicator')),
         findsNothing,
@@ -200,12 +200,12 @@ void main() {
       expect(find.textContaining('Belum ada pembimbing'), findsOneWidget);
       expect(find.text('Januari 2027'), findsOneWidget);
       await _selectSection(tester, recap: true);
-      expect(find.text('Semua pembimbing · putra & putri'), findsOneWidget);
+      expect(find.text('1 santri sudah dievaluasi'), findsOneWidget);
       expect(find.text('Putri'), findsNothing);
       await tester.tap(find.byKey(const Key('target_recap_minimum')));
       await tester.pumpAndSettle();
       expect(find.text('Ali'), findsOneWidget);
-      expect(find.text('Januari 2027 · 1 santri'), findsOneWidget);
+      expect(find.text('1 santri pada Januari 2027'), findsOneWidget);
       await tester.tap(find.byTooltip('Tutup daftar santri'));
       await tester.pumpAndSettle();
       expect(reportRepository.requests, isEmpty);
@@ -317,7 +317,7 @@ void main() {
         expect(find.text('Desember 2026'), findsOneWidget);
         expect(
           find.text(
-            showRecap ? 'Belum ada evaluasi target' : 'Status penilaian',
+            showRecap ? 'Belum ada santri yang dievaluasi' : 'Status penilaian',
           ),
           findsOneWidget,
         );

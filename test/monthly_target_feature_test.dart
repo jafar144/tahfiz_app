@@ -75,6 +75,72 @@ void main() {
       },
     );
 
+    test('penalty decision and excuse round-trip for not achieved', () {
+      final model = _report(
+        id: 'aug',
+        bulan: 8,
+        evaluation: MonthlyTargetEvaluation(
+          sourceReportId: 'july',
+          targetBulan: 8,
+          targetTahun: 2026,
+          result: MonthlyTargetResult.notAchieved,
+          evaluatedAt: DateTime(2026, 8, 29),
+          penalty: MonthlyPenaltyDecision.excused,
+          penaltyExcuse: 'Sakit dua pekan',
+        ),
+      );
+
+      final map = model.toFirestore();
+      final stored = map['target_evaluation'] as Map<String, dynamic>;
+      expect(stored['penalty'], 'excused');
+      expect(stored['penalty_excuse'], 'Sakit dua pekan');
+
+      final parsed = MonthlyReportModel.fromMap(id: model.id, data: map);
+      expect(parsed.targetEvaluation?.penalty, MonthlyPenaltyDecision.excused);
+      expect(parsed.targetEvaluation?.penaltyExcuse, 'Sakit dua pekan');
+      expect(parsed.targetEvaluation?.isExcused, isTrue);
+      expect(parsed.targetEvaluation?.isPenalized, isFalse);
+    });
+
+    test('penalty fields are not stored when target is achieved', () {
+      final map = targetEvaluationToMap(
+        MonthlyTargetEvaluation(
+          sourceReportId: 'july',
+          targetBulan: 8,
+          targetTahun: 2026,
+          result: MonthlyTargetResult.minimumAchieved,
+          evaluatedAt: DateTime(2026, 8, 29),
+          penalty: MonthlyPenaltyDecision.excused,
+          penaltyExcuse: 'Tidak relevan',
+        ),
+      );
+
+      expect(map.containsKey('penalty'), isFalse);
+      expect(map.containsKey('penalty_excuse'), isFalse);
+    });
+
+    test('legacy not achieved without decision counts as penalized', () {
+      final parsed = MonthlyReportModel.fromMap(
+        id: 'legacy',
+        data: {
+          ..._report(id: 'legacy', bulan: 8).toFirestore(),
+          'target_evaluation': {
+            'source_report_id': 'july',
+            'target_bulan': 8,
+            'target_tahun': 2026,
+            'result': 'notAchieved',
+            'evaluated_at': Timestamp.fromDate(DateTime(2026, 8, 29)),
+          },
+        },
+      );
+
+      expect(
+        parsed.targetEvaluation?.penalty,
+        MonthlyPenaltyDecision.undecided,
+      );
+      expect(parsed.targetEvaluation?.isPenalized, isTrue);
+    });
+
     test('unknown stored result safely falls back to not assessed', () {
       expect(
         MonthlyTargetResult.fromStorage('future_value'),
@@ -174,6 +240,76 @@ void main() {
       },
     );
 
+    test('not achieved requires a penalty decision and an excuse', () async {
+      final repository = _FakeMonthlyReportRepository([_juneWithTarget()]);
+      final cubit = MonthlyReportInputCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.loadExisting('student-1', 7, 2026);
+
+      Future<void> save({
+        MonthlyPenaltyDecision penalty = MonthlyPenaltyDecision.undecided,
+        String excuse = '',
+      }) => cubit.saveReport(
+        asatidzId: 'teacher-1',
+        asatidzName: 'Ahmad',
+        santriId: 'student-1',
+        santriName: 'Ali',
+        bulan: 7,
+        tahun: 2026,
+        hafalanTerakhir: 'An-Naba',
+        nilaiPerkembangan: 3,
+        nilaiAkhlaq: 4,
+        targetMinimum: 'Minimum baru',
+        targetOptimum: 'Optimum baru',
+        targetResult: MonthlyTargetResult.notAchieved,
+        penalty: penalty,
+        penaltyExcuse: excuse,
+      );
+
+      await save();
+      expect(repository.saved, isNull);
+
+      await save(penalty: MonthlyPenaltyDecision.excused, excuse: '  ');
+      expect(repository.saved, isNull);
+      expect(cubit.state, isA<MonthlyReportInputReady>());
+
+      await save(
+        penalty: MonthlyPenaltyDecision.excused,
+        excuse: ' Sakit dua pekan ',
+      );
+      final evaluation = repository.saved!.targetEvaluation!;
+      expect(evaluation.penalty, MonthlyPenaltyDecision.excused);
+      expect(evaluation.penaltyExcuse, 'Sakit dua pekan');
+    });
+
+    test('achieved target drops any penalty decision', () async {
+      final repository = _FakeMonthlyReportRepository([_juneWithTarget()]);
+      final cubit = MonthlyReportInputCubit(repository: repository);
+      addTearDown(cubit.close);
+      await cubit.loadExisting('student-1', 7, 2026);
+
+      await cubit.saveReport(
+        asatidzId: 'teacher-1',
+        asatidzName: 'Ahmad',
+        santriId: 'student-1',
+        santriName: 'Ali',
+        bulan: 7,
+        tahun: 2026,
+        hafalanTerakhir: 'An-Naba',
+        nilaiPerkembangan: 4,
+        nilaiAkhlaq: 4,
+        targetMinimum: 'Minimum baru',
+        targetOptimum: 'Optimum baru',
+        targetResult: MonthlyTargetResult.minimumAchieved,
+        penalty: MonthlyPenaltyDecision.excused,
+        penaltyExcuse: 'Sisa pilihan lama',
+      );
+
+      final evaluation = repository.saved!.targetEvaluation!;
+      expect(evaluation.penalty, MonthlyPenaltyDecision.undecided);
+      expect(evaluation.penaltyExcuse, isEmpty);
+    });
+
     test('rejects blank next-month targets outside the UI layer', () async {
       final repository = _FakeMonthlyReportRepository(const []);
       final cubit = MonthlyReportInputCubit(repository: repository);
@@ -200,38 +336,10 @@ void main() {
   });
 
   group('monthly target input UI', () {
-    testWidgets(
-      'keeps evaluation section visible when previous target is unavailable',
-      (tester) async {
-        final repository = _FakeMonthlyReportRepository(const []);
-        final cubit = MonthlyReportInputCubit(repository: repository);
-        addTearDown(cubit.close);
-
-        await _pumpInputPage(tester, cubit);
-        await cubit.loadExisting('student-1', 7, 2026);
-        await tester.pump();
-
-        expect(find.text('Evaluasi Target Bulan Ini'), findsOneWidget);
-        expect(find.text('Belum ada target bulan sebelumnya'), findsOneWidget);
-        expect(find.textContaining('Target untuk Juli 2026'), findsOneWidget);
-      },
-    );
-
-    testWidgets('shows result choices when previous target exists', (
+    testWidgets('shows a short note when there is no target to evaluate', (
       tester,
     ) async {
-      final repository = _FakeMonthlyReportRepository([
-        _report(
-          id: 'june',
-          bulan: 6,
-          target: const MonthlyTarget(
-            bulan: 7,
-            tahun: 2026,
-            minimum: 'Murojaah 3 halaman',
-            optimum: 'Hafalan 5 halaman',
-          ),
-        ),
-      ]);
+      final repository = _FakeMonthlyReportRepository(const []);
       final cubit = MonthlyReportInputCubit(repository: repository);
       addTearDown(cubit.close);
 
@@ -239,40 +347,208 @@ void main() {
       await cubit.loadExisting('student-1', 7, 2026);
       await tester.pump();
 
-      expect(find.text('Belum ada target bulan sebelumnya'), findsNothing);
-      expect(find.text('Belum tercapai'), findsOneWidget);
-      expect(find.text('Minimum tercapai'), findsOneWidget);
-      expect(find.text('Optimum tercapai'), findsOneWidget);
+      expect(find.text('Target Juli 2026'), findsOneWidget);
+      expect(find.text('Belum ada target untuk bulan ini.'), findsOneWidget);
+      expect(find.text('Target Agustus 2026'), findsOneWidget);
+      expect(find.byKey(const Key('target_result_notAchieved')), findsNothing);
+    });
+
+    testWidgets('penalty question appears only for not achieved', (
+      tester,
+    ) async {
+      final cubit = MonthlyReportInputCubit(
+        repository: _FakeMonthlyReportRepository([_juneWithTarget()]),
+      );
+      addTearDown(cubit.close);
+
+      await _pumpInputPage(tester, cubit);
+      await cubit.loadExisting('student-1', 7, 2026);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Murojaah 3 halaman'), findsOneWidget);
+      expect(find.text('Masukkan ke daftar hukuman?'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('target_result_notAchieved')));
+      await tester.pumpAndSettle();
+      expect(find.text('Masukkan ke daftar hukuman?'), findsOneWidget);
+      expect(find.byKey(const Key('penalty_excuse_field')), findsNothing);
+
+      await tester.tap(find.byKey(const Key('penalty_excused')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('penalty_excuse_field')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('target_result_minimumAchieved')));
+      await tester.pumpAndSettle();
+      expect(find.text('Masukkan ke daftar hukuman?'), findsNothing);
+    });
+
+    testWidgets('save shows inline errors and does not submit', (tester) async {
+      final repository = _FakeMonthlyReportRepository([_juneWithTarget()]);
+      final cubit = MonthlyReportInputCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await _pumpInputPage(tester, cubit);
+      await cubit.loadExisting('student-1', 7, 2026);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('target_result_notAchieved')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('monthly_report_save')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pilih Ya atau Tidak'), findsOneWidget);
+      expect(find.text('Pilih nilai'), findsNWidgets(2));
+      expect(repository.saved, isNull);
+    });
+
+    testWidgets('fills the form and saves an excused not-achieved result', (
+      tester,
+    ) async {
+      final repository = _FakeMonthlyReportRepository([_juneWithTarget()]);
+      final cubit = MonthlyReportInputCubit(repository: repository);
+      addTearDown(cubit.close);
+
+      await _pumpInputPage(tester, cubit, withNavigator: true);
+      await cubit.loadExisting('student-1', 7, 2026);
+      await tester.pumpAndSettle();
+
+      Future<void> tapKey(String key) async {
+        final finder = find.byKey(Key(key));
+        await tester.ensureVisible(finder);
+        await tester.pumpAndSettle();
+        await tester.tap(finder);
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> enter(String hint, String text) async {
+        final finder = find.widgetWithText(TextFormField, hint);
+        await tester.ensureVisible(finder);
+        await tester.enterText(finder, text);
+      }
+
+      await tapKey('target_result_notAchieved');
+      await tapKey('penalty_excused');
+      await enter('Contoh: sakit dua pekan', 'Sakit tifus');
+      await enter('Contoh: Al-Baqarah ayat 1-20', 'An-Naba ayat 1-30');
+      await tapKey('score_perkembangan_3');
+      await tapKey('score_akhlaq_5');
+      await enter(
+        'Contoh: Murojaah 3 halaman dengan lancar',
+        'Murojaah 2 halaman',
+      );
+      await enter(
+        'Contoh: Menambah hafalan 5 halaman dengan lancar',
+        'Hafalan 4 halaman',
+      );
+      await tapKey('monthly_report_save');
+
+      final saved = repository.saved!;
+      expect(saved.hafalanTerakhir, 'An-Naba ayat 1-30');
+      expect(saved.nilaiPerkembangan, 3);
+      expect(saved.nilaiAkhlaq, 5);
+      expect(saved.target?.minimum, 'Murojaah 2 halaman');
+      expect(saved.targetEvaluation?.result, MonthlyTargetResult.notAchieved);
+      expect(saved.targetEvaluation?.penalty, MonthlyPenaltyDecision.excused);
+      expect(saved.targetEvaluation?.penaltyExcuse, 'Sakit tifus');
+    });
+
+    testWidgets('edit restores the saved penalty decision and excuse', (
+      tester,
+    ) async {
+      final existing = _report(
+        id: 'july',
+        bulan: 7,
+        target: const MonthlyTarget(
+          bulan: 8,
+          tahun: 2026,
+          minimum: 'Minimum Agustus',
+          optimum: 'Optimum Agustus',
+        ),
+        evaluation: MonthlyTargetEvaluation(
+          sourceReportId: 'june',
+          targetBulan: 7,
+          targetTahun: 2026,
+          result: MonthlyTargetResult.notAchieved,
+          evaluatedAt: DateTime(2026, 7, 28),
+          penalty: MonthlyPenaltyDecision.excused,
+          penaltyExcuse: 'Pulang kampung',
+        ),
+      );
+      final cubit = MonthlyReportInputCubit(
+        repository: _FakeMonthlyReportRepository([existing, _juneWithTarget()]),
+      );
+      addTearDown(cubit.close);
+
+      await _pumpInputPage(tester, cubit);
+      await cubit.loadExisting('student-1', 7, 2026);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masukkan ke daftar hukuman?'), findsOneWidget);
+      expect(find.text('Pulang kampung'), findsOneWidget);
+      expect(find.text('Perbarui penilaian'), findsOneWidget);
     });
   });
 }
 
+MonthlyReportModel _juneWithTarget() => _report(
+  id: 'june',
+  bulan: 6,
+  target: const MonthlyTarget(
+    bulan: 7,
+    tahun: 2026,
+    minimum: 'Murojaah 3 halaman',
+    optimum: 'Hafalan 5 halaman',
+  ),
+);
+
 Future<void> _pumpInputPage(
   WidgetTester tester,
-  MonthlyReportInputCubit cubit,
-) {
-  return tester.pumpWidget(
+  MonthlyReportInputCubit cubit, {
+  bool withNavigator = false,
+}) async {
+  tester.view.physicalSize = const Size(390, 844);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+  final page = BlocProvider.value(
+    value: cubit,
+    child: MonthlyReportInputPage(
+      santri: SantriEntity(
+        id: 'student-1',
+        name: 'Ali',
+        nis: '4110',
+        kelas: 'Tahfizh',
+        jenisKelamin: 'L',
+        isActive: true,
+        isFree: false,
+      ),
+      asatidzId: 'teacher-1',
+      asatidzName: 'Ahmad',
+      bulan: 7,
+      tahun: 2026,
+    ),
+  );
+  if (!withNavigator) {
+    await tester.pumpWidget(MaterialApp(home: page));
+    return;
+  }
+  // Halaman memanggil Navigator.pop setelah tersimpan, jadi perlu rute di bawahnya.
+  await tester.pumpWidget(
     MaterialApp(
-      home: BlocProvider.value(
-        value: cubit,
-        child: MonthlyReportInputPage(
-          santri: SantriEntity(
-            id: 'student-1',
-            name: 'Ali',
-            nis: '4110',
-            kelas: 'Tahfizh',
-            jenisKelamin: 'L',
-            isActive: true,
-            isFree: false,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => page)),
+            child: const Text('open'),
           ),
-          asatidzId: 'teacher-1',
-          asatidzName: 'Ahmad',
-          bulan: 7,
-          tahun: 2026,
         ),
       ),
     ),
   );
+  await tester.tap(find.text('open'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 500));
 }
 
 MonthlyReportModel _report({
