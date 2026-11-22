@@ -211,8 +211,12 @@ baru.
 
 Dirilis memakai akun Play developer yang sama dengan Khoirunnasyien.
 
-- Package: `id.or.aljauhar.tahfiz`; AAB pertama `1.0.0+1`, targetSdk 36.
-- Build: `flutter build appbundle --release --flavor al_jauhar --target lib/main_al_jauhar.dart --build-name 1.0.0 --build-number 1 --dart-define=APP_FLAVOR=al_jauhar`
+- Package: `id.or.aljauhar.tahfiz`; AAB untuk upload pertama `1.0.0` versionCode **2**
+  (22 Nov 2026, sudah berwarna hijau), targetSdk 36.
+- versionCode flavor dibaca dari env `APP_VERSION_CODE`/`APP_VERSION_NAME`, atau
+  `defaultVersionCode` di `config/flavors/al_jauhar.properties`. Flag
+  `--build-number` **diabaikan**. Naikkan angka ini setiap upload:
+  `$env:APP_VERSION_CODE="3"; $env:APP_VERSION_NAME="1.0.1"; flutter build appbundle --release --flavor al_jauhar --target lib/main_al_jauhar.dart --dart-define=APP_FLAVOR=al_jauhar`
   → `build/app/outputs/bundle/al_jauharRelease/app-al_jauhar-release.aab`.
   Ditandatangani upload key Al-Jauhar (SHA-256 `DC:27:E6:…:C9:D8`).
 - Aset store di `store/al_jauhar/`: ikon 512×512 dan feature graphic
